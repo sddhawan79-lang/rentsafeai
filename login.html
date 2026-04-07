@@ -204,5 +204,22 @@ if(sessionStorage.getItem('rsa_logged_in')==='true'){
   window.location.href='landlord.html';
 }
 </script>
+
+<!-- COOKIE BANNER -->
+<div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:var(--navy);border-top:1px solid rgba(255,255,255,0.1);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+  <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:260px">
+    <span style="font-size:20px">🍪</span>
+    <p style="font-size:13px;color:rgba(255,255,255,0.7);margin:0;line-height:1.5">We use essential cookies to keep you logged in and the platform running. No tracking or advertising cookies. <a href="privacy.html" style="color:var(--green);text-decoration:none">Privacy Policy</a></p>
+  </div>
+  <div style="display:flex;gap:10px;flex-shrink:0">
+    <button onclick="declineCookies()" style="padding:8px 16px;border-radius:7px;border:1px solid rgba(255,255,255,0.2);background:none;color:rgba(255,255,255,0.6);font-family:var(--font,sans-serif);font-size:13px;cursor:pointer">Essential only</button>
+    <button onclick="acceptCookies()" style="padding:8px 16px;border-radius:7px;border:none;background:#00C896;color:#0B1E3D;font-family:var(--font,sans-serif);font-size:13px;font-weight:600;cursor:pointer">Accept & continue</button>
+  </div>
+</div>
+<script>
+function acceptCookies(){localStorage.setItem('rsa_cookies','accepted');document.getElementById('cookie-banner').style.display='none';}
+function declineCookies(){localStorage.setItem('rsa_cookies','essential');document.getElementById('cookie-banner').style.display='none';}
+(function(){if(!localStorage.getItem('rsa_cookies')){document.getElementById('cookie-banner').style.display='flex';}})();
+</script>
 </body>
 </html>
