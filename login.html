@@ -167,12 +167,18 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// ── CHECK SESSION ON LOAD ──
+// ── HANDLE MAGIC LINK + SESSION ──
 (async () => {
+  // Let Supabase process the magic link hash automatically
   const { data: { session } } = await sb.auth.getSession();
   if (session) {
     window.location.href = 'landlord.html';
+    return;
   }
+  // Listen for auth state change (magic link sets session async)
+  sb.auth.onAuthStateChange((event, session) => {
+    if (session) window.location.href = 'landlord.html';
+  });
 })();
 
 // ── LOGIN ──
