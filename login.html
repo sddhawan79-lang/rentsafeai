@@ -19,8 +19,6 @@
 }
 html,body{height:100%;font-family:var(--font);color:var(--txt);-webkit-font-smoothing:antialiased}
 body{display:flex;min-height:100vh}
-
-/* LEFT PANEL */
 .left{width:45%;background:var(--navy);display:flex;flex-direction:column;padding:48px;position:relative;overflow:hidden}
 .left::before{content:'';position:absolute;top:-100px;right:-100px;width:400px;height:400px;background:radial-gradient(circle,rgba(0,200,150,0.08) 0%,transparent 70%);pointer-events:none}
 .left::after{content:'';position:absolute;bottom:-100px;left:-50px;width:300px;height:300px;background:radial-gradient(circle,rgba(30,58,95,0.8) 0%,transparent 70%);pointer-events:none}
@@ -34,14 +32,10 @@ body{display:flex;min-height:100vh}
 .left-feat{display:flex;align-items:center;gap:10px;font-size:13.5px;color:rgba(255,255,255,0.65)}
 .left-feat-dot{width:20px;height:20px;border-radius:50%;background:rgba(0,200,150,0.15);border:1px solid rgba(0,200,150,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;color:var(--green)}
 .left-bottom{font-size:12px;color:rgba(255,255,255,0.25);margin-top:48px}
-
-/* RIGHT PANEL */
 .right{flex:1;background:var(--off);display:flex;align-items:center;justify-content:center;padding:40px 20px}
 .login-box{background:var(--white);border:1px solid var(--border);border-radius:16px;padding:40px;width:100%;max-width:420px}
 .login-title{font-family:var(--disp);font-size:26px;color:var(--txt);margin-bottom:6px}
 .login-sub{font-size:14px;color:var(--muted);margin-bottom:32px}
-
-/* FORM */
 .fg{margin-bottom:18px}
 .fg label{font-size:11px;font-weight:600;color:var(--txt);margin-bottom:6px;display:block;letter-spacing:.3px;text-transform:uppercase}
 .fg input{width:100%;padding:11px 14px;border-radius:9px;border:1.5px solid var(--border);font-family:var(--font);font-size:14px;color:var(--txt);outline:none;transition:border .2s;background:var(--white)}
@@ -51,8 +45,6 @@ body{display:flex;min-height:100vh}
 .fg-row label{margin-bottom:0}
 .forgot{font-size:12px;color:var(--muted);text-decoration:none;transition:color .15s}
 .forgot:hover{color:var(--navy)}
-
-/* BUTTONS */
 .btn-login{width:100%;padding:13px;border-radius:9px;background:var(--navy);color:#fff;font-family:var(--font);font-size:15px;font-weight:600;border:none;cursor:pointer;transition:background .15s;margin-top:4px}
 .btn-login:hover{background:var(--navy-mid)}
 .btn-login:disabled{opacity:.6;cursor:not-allowed}
@@ -61,20 +53,17 @@ body{display:flex;min-height:100vh}
 .btn-google{width:100%;padding:12px;border-radius:9px;background:var(--white);border:1.5px solid var(--border);font-family:var(--font);font-size:14px;font-weight:500;color:var(--txt);cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:10px}
 .btn-google:hover{border-color:#c5d0dd;background:var(--off)}
 .google-icon{width:18px;height:18px;flex-shrink:0}
-
-/* ERROR */
 .error-msg{background:rgba(229,62,62,0.06);border:1px solid rgba(229,62,62,0.2);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--red);margin-bottom:16px;display:none}
-
-/* LOADING */
+.success-msg{background:rgba(0,200,150,0.06);border:1px solid rgba(0,200,150,0.3);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--green-dark);margin-bottom:16px;display:none}
 .spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;margin-right:8px;vertical-align:middle}
 @keyframes spin{to{transform:rotate(360deg)}}
-
-/* FOOTER */
 .login-footer{text-align:center;margin-top:24px;font-size:13px;color:var(--muted)}
 .login-footer a{color:var(--navy);font-weight:500;text-decoration:none}
 .login-footer a:hover{text-decoration:underline}
-
-/* RESPONSIVE */
+/* Reset password view */
+#reset-view{display:none}
+.back-link{font-size:13px;color:var(--muted);cursor:pointer;margin-bottom:20px;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+.back-link:hover{color:var(--navy)}
 @media(max-width:768px){
   .left{display:none}
   .right{background:var(--white);padding:24px 16px;align-items:flex-start;padding-top:40px}
@@ -108,101 +97,179 @@ body{display:flex;min-height:100vh}
 <div class="right">
   <div class="login-box">
     <a href="index.html" class="mobile-logo"><span>Rent</span>Safe AI</a>
-    <div class="login-title">Welcome back</div>
-    <div class="login-sub">Log in to your landlord dashboard</div>
 
-    <div class="error-msg" id="error-msg">Incorrect email or password. Please try again.</div>
+    <!-- LOGIN VIEW -->
+    <div id="login-view">
+      <div class="login-title">Welcome back</div>
+      <div class="login-sub">Log in to your landlord dashboard</div>
 
-    <div class="fg">
-      <label>Email address</label>
-      <input type="email" id="email" placeholder="you@email.com" onkeydown="if(event.key==='Enter')login()">
-    </div>
+      <div class="error-msg" id="error-msg"></div>
 
-    <div class="fg">
-      <div class="fg-row">
-        <label>Password</label>
-        <a href="#" class="forgot" onclick="alert('Password reset — coming when backend is connected')">Forgot password?</a>
+      <div class="fg">
+        <label>Email address</label>
+        <input type="email" id="email" placeholder="you@email.com" onkeydown="if(event.key==='Enter')login()">
       </div>
-      <input type="password" id="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()">
+
+      <div class="fg">
+        <div class="fg-row">
+          <label>Password</label>
+          <a href="#" class="forgot" onclick="showReset();return false">Forgot password?</a>
+        </div>
+        <input type="password" id="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()">
+      </div>
+
+      <button class="btn-login" id="login-btn" onclick="login()">Log in</button>
+
+      <div class="divider">or</div>
+
+      <button class="btn-google" id="google-btn" onclick="loginGoogle()">
+        <svg class="google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Continue with Google
+      </button>
+
+      <div class="login-footer">
+        Don't have an account? <a href="index.html#waitlist">Join the waitlist</a>
+      </div>
     </div>
 
-    <button class="btn-login" id="login-btn" onclick="login()">Log in</button>
+    <!-- RESET PASSWORD VIEW -->
+    <div id="reset-view">
+      <a href="#" class="back-link" onclick="showLogin();return false">← Back to login</a>
+      <div class="login-title">Reset password</div>
+      <div class="login-sub">We'll send a reset link to your email</div>
 
-    <div class="divider">or</div>
+      <div class="error-msg" id="reset-error-msg"></div>
+      <div class="success-msg" id="reset-success-msg"></div>
 
-    <button class="btn-google" onclick="alert('Google sign-in — coming when backend is connected')">
-      <svg class="google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-      </svg>
-      Continue with Google
-    </button>
+      <div class="fg">
+        <label>Email address</label>
+        <input type="email" id="reset-email" placeholder="you@email.com" onkeydown="if(event.key==='Enter')sendReset()">
+      </div>
 
-    <div class="login-footer">
-      Don't have an account? <a href="index.html#waitlist">Join the waitlist</a>
+      <button class="btn-login" id="reset-btn" onclick="sendReset()">Send reset link</button>
     </div>
+
   </div>
 </div>
 
-<script>
-// ── PILOT CREDENTIALS ──
-// Change these to your real email and password
-const PILOT_EMAIL = 'pilot@rentsafeai.co.uk';
-const PILOT_PASSWORD = 'RentSafe2026';
+<!-- Supabase JS -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-function login(){
+<script>
+// ── SUPABASE CLIENT ──
+const SUPABASE_URL = 'https://mahtcfukgzbonwibtsxz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1haHRjZnVrZ3pib253aWJ0c3h6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2MjQ2MDAsImV4cCI6MjA5MTIwMDYwMH0.-wC55rGp1WFKfjKR3EhuXqAPDiWJ4w_e2LBXjHr_y5Y';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ── CHECK SESSION ON LOAD ──
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    window.location.href = 'landlord.html';
+  }
+})();
+
+// ── LOGIN ──
+async function login() {
   const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
   const btn = document.getElementById('login-btn');
   const err = document.getElementById('error-msg');
 
-  if(!email || !password){
-    err.textContent = 'Please enter your email and password.';
-    err.style.display = 'block';
+  if (!email || !password) {
+    showError(err, 'Please enter your email and password.');
     return;
   }
 
-  // Loading state
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>Logging in…';
   err.style.display = 'none';
 
-  // Simulate network delay for realism
-  setTimeout(()=>{
-    if(email.toLowerCase() === PILOT_EMAIL.toLowerCase() && password === PILOT_PASSWORD){
-      // Success — go to dashboard
-      sessionStorage.setItem('rsa_logged_in', 'true');
-      sessionStorage.setItem('rsa_user_email', email);
-      window.location.href = 'landlord.html';
-    } else {
-      // Failed
-      btn.disabled = false;
-      btn.innerHTML = 'Log in';
-      err.textContent = 'Incorrect email or password. Please try again.';
-      err.style.display = 'block';
-      document.getElementById('email').classList.add('error');
-      document.getElementById('password').classList.add('error');
-      document.getElementById('password').value = '';
-    }
-  }, 800);
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    btn.disabled = false;
+    btn.innerHTML = 'Log in';
+    showError(err, 'Incorrect email or password. Please try again.');
+    document.getElementById('email').classList.add('error');
+    document.getElementById('password').classList.add('error');
+    document.getElementById('password').value = '';
+  } else {
+    window.location.href = 'landlord.html';
+  }
 }
 
-// Clear error on input
-document.getElementById('email').addEventListener('input',()=>{
-  document.getElementById('error-msg').style.display='none';
+// ── GOOGLE LOGIN ──
+async function loginGoogle() {
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin + '/landlord.html' }
+  });
+  if (error) alert('Google sign-in failed: ' + error.message);
+}
+
+// ── FORGOT PASSWORD ──
+function showReset() {
+  document.getElementById('login-view').style.display = 'none';
+  document.getElementById('reset-view').style.display = 'block';
+  // Pre-fill email if already typed
+  const email = document.getElementById('email').value.trim();
+  if (email) document.getElementById('reset-email').value = email;
+}
+
+function showLogin() {
+  document.getElementById('reset-view').style.display = 'none';
+  document.getElementById('login-view').style.display = 'block';
+}
+
+async function sendReset() {
+  const email = document.getElementById('reset-email').value.trim();
+  const btn = document.getElementById('reset-btn');
+  const err = document.getElementById('reset-error-msg');
+  const ok = document.getElementById('reset-success-msg');
+
+  if (!email) { showError(err, 'Please enter your email address.'); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Sending…';
+  err.style.display = 'none';
+
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + '/login.html'
+  });
+
+  btn.disabled = false;
+  btn.innerHTML = 'Send reset link';
+
+  if (error) {
+    showError(err, error.message);
+  } else {
+    ok.textContent = 'Reset link sent! Check your email inbox.';
+    ok.style.display = 'block';
+  }
+}
+
+// ── HELPERS ──
+function showError(el, msg) {
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+// Clear errors on input
+document.getElementById('email').addEventListener('input', () => {
+  document.getElementById('error-msg').style.display = 'none';
   document.getElementById('email').classList.remove('error');
 });
-document.getElementById('password').addEventListener('input',()=>{
-  document.getElementById('error-msg').style.display='none';
+document.getElementById('password').addEventListener('input', () => {
+  document.getElementById('error-msg').style.display = 'none';
   document.getElementById('password').classList.remove('error');
 });
-
-// If already logged in, go straight to dashboard
-if(sessionStorage.getItem('rsa_logged_in')==='true'){
-  window.location.href='landlord.html';
-}
 </script>
 
 <!-- COOKIE BANNER -->
