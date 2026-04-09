@@ -1,27 +1,1262 @@
-RentSafe AI
-Stay compliant.
-Stay protected.
-The UK's landlord compliance platform built around the Renters Rights Act. Everything in one place.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rent Safe AI — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0B1E3D;--navy-mid:#132847;
+  --green:#00C896;--green-dark:#009970;--green-bg:rgba(0,200,150,0.1);
+  --blue:#3B6FE8;--blue-bg:rgba(59,111,232,0.09);
+  --red:#E53E3E;--red-bg:rgba(229,62,62,0.09);
+  --amber:#D97706;--amber-bg:rgba(217,119,6,0.09);
+  --white:#fff;--off:#F6F8FB;--border:#E4EAF1;
+  --txt:#1A2B45;--muted:#7A8FA6;
+  --font:'DM Sans',system-ui,sans-serif;
+  --disp:'DM Serif Display',Georgia,serif;
+  --sb:228px;
+}
+html,body{height:100%;font-family:var(--font);color:var(--txt);background:var(--off);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.app{display:flex;flex-direction:column;min-height:100vh}
+.top-header{background:var(--navy);padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;flex-shrink:0}
+.th-logo{font-family:var(--disp);font-size:18px;color:#fff;text-decoration:none}
+.th-logo span{color:var(--green)}
+.th-right{display:flex;align-items:center;gap:8px}
+.th-user{display:flex;align-items:center;gap:8px}
+.th-avatar{width:28px;height:28px;border-radius:50%;background:rgba(0,200,150,0.2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--green);flex-shrink:0}
+.th-username{font-size:13px;color:rgba(255,255,255,0.6)}
+.th-btn{padding:6px 14px;border-radius:7px;font-family:var(--font);font-size:12px;font-weight:500;cursor:pointer;border:1px solid rgba(255,255,255,0.15);background:none;color:rgba(255,255,255,0.6);transition:all .15s}
+.th-btn:hover{background:rgba(255,255,255,0.08);color:#fff}
+.top-nav{background:var(--white);border-bottom:1px solid var(--border);position:sticky;top:56px;z-index:99;overflow-x:auto;flex-shrink:0}
+.top-nav::-webkit-scrollbar{display:none}
+.top-nav-inner{display:flex;align-items:center;padding:0 28px;min-width:max-content}
+.nav-item{display:flex;align-items:center;gap:7px;padding:14px 14px;font-size:13.5px;font-weight:400;color:var(--muted);cursor:pointer;border:none;background:none;font-family:var(--font);border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
+.nav-item:hover{color:var(--txt)}
+.nav-item.active{color:var(--navy);font-weight:600;border-bottom-color:var(--navy)}
+.nav-item svg{width:14px;height:14px;opacity:.6;flex-shrink:0}
+.nav-item.active svg{opacity:1}
+.nav-divider{width:1px;height:20px;background:var(--border);margin:0 4px;flex-shrink:0}
+.topbar{background:var(--off);border-bottom:1px solid var(--border);padding:0 28px;height:50px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.tb-title{font-size:13px;font-weight:500;color:var(--muted)}
+.tb-right{display:flex;align-items:center;gap:8px}
+.main{flex:1;overflow-y:auto;display:flex;flex-direction:column;min-width:0}
+.content{padding:24px 28px;flex:1}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;font-family:var(--font);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;border:1px solid var(--border);background:var(--white);color:var(--muted);text-decoration:none;white-space:nowrap}
+.btn:hover{border-color:#c5d0dd;background:var(--off);color:var(--txt)}
+.btn-navy{background:var(--navy);color:#fff;border-color:var(--navy)}
+.btn-navy:hover{background:var(--navy-mid);color:#fff;border-color:var(--navy-mid)}
+.btn-navy:disabled{opacity:.6;cursor:not-allowed}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-icon{width:28px;height:28px;padding:0;justify-content:center;font-size:13px}
+.ph{margin-bottom:22px}
+.ph h1{font-size:22px;font-weight:600;color:var(--txt);margin-bottom:3px}
+.ph p{font-size:13px;color:var(--muted)}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.metrics-3{grid-template-columns:repeat(3,1fr)}
+.mc{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:16px 18px}
+.mc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.mc-label{font-size:12px;color:var(--muted)}
+.mc-icon{width:30px;height:30px;border-radius:7px;background:var(--off);display:flex;align-items:center;justify-content:center;font-size:14px}
+.mc-val{font-size:26px;font-weight:600;color:var(--txt);line-height:1}
+.mc-sub{font-size:11px;color:var(--muted);margin-top:3px}
+.g2{display:grid;grid-template-columns:1fr 320px;gap:18px;align-items:start}
+.panel{background:var(--white);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px}
+.panel:last-child{margin-bottom:0}
+.ph2{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.ph2 h2{font-size:14px;font-weight:600;color:var(--txt)}
+.ph2 p{font-size:12px;color:var(--muted)}
+.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:100px;font-size:11px;font-weight:600;white-space:nowrap}
+.b-green{background:var(--green-bg);color:var(--green-dark)}
+.b-red{background:var(--red-bg);color:var(--red)}
+.b-amber{background:var(--amber-bg);color:var(--amber)}
+.b-blue{background:var(--blue-bg);color:var(--blue)}
+.b-gray{background:#EEF2F7;color:#556678}
+.ai-row{padding:11px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:11px;cursor:pointer;transition:background .1s}
+.ai-row:last-child{border-bottom:none}
+.ai-row:hover{background:var(--off)}
+.ai-body{flex:1}
+.ai-title{font-size:13px;font-weight:500;color:var(--txt)}
+.ai-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:9px 14px;font-size:11px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);background:var(--off);white-space:nowrap}
+td{padding:12px 14px;border-bottom:1px solid var(--border);color:#3D5166;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(246,248,251,.8)}
+.td-bold{font-weight:500;color:var(--txt)}
+.td-act{display:flex;gap:5px;align-items:center}
+.prop-group{padding:12px 14px;background:var(--off);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.prog-wrap{width:70px;height:5px;background:var(--border);border-radius:100px;overflow:hidden;display:inline-block}
+.prog-fill{height:100%;border-radius:100px;background:var(--green)}
+.tabs{display:flex;margin-bottom:18px;border-radius:8px;overflow:hidden;border:1px solid var(--border)}
+.tab{flex:1;padding:9px 18px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);background:var(--white);border:none;font-family:var(--font);transition:all .15s;border-right:1px solid var(--border)}
+.tab:last-child{border-right:none}
+.tab.active{background:var(--blue);color:#fff}
+.prop-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.pc{background:var(--white);border:1px solid var(--border);border-radius:10px;transition:box-shadow .2s;overflow:hidden}
+.pc:hover{box-shadow:0 4px 18px rgba(11,30,61,.07)}
+.pc-head{padding:16px 16px 12px;display:flex;justify-content:space-between;align-items:flex-start}
+.pc-addr{font-size:14px;font-weight:600;color:var(--txt);margin-bottom:2px}
+.pc-city{font-size:12px;color:var(--muted)}
+.pc-info{padding:0 16px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pc-tag{background:var(--off);color:var(--muted);border:1px solid var(--border);font-size:11px;font-weight:500;padding:3px 10px;border-radius:100px}
+.pc-foot{padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:8px}
+.t-av{width:34px;height:34px;border-radius:50%;background:var(--blue-bg);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--blue);flex-shrink:0}
+.sf{display:flex;align-items:center;gap:4px;white-space:nowrap}
+.sf-btn{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--white);color:var(--muted);font-family:var(--font)}
+.sf-on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.chat-outer{display:flex;flex-direction:column;height:calc(100vh - 54px)}
+.chat-msgs{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:70%;padding:10px 14px;border-radius:10px;font-size:13.5px;line-height:1.6}
+.msg.ai{background:var(--white);border:1px solid var(--border);color:#3D5166;align-self:flex-start;border-radius:3px 10px 10px 10px}
+.msg.ai .mlbl{font-size:10px;font-weight:600;color:var(--green-dark);margin-bottom:5px;letter-spacing:.5px;text-transform:uppercase}
+.msg.user{background:var(--navy);color:#fff;align-self:flex-end;border-radius:10px 3px 10px 10px}
+.chat-bar{padding:14px 24px;border-top:1px solid var(--border);background:var(--white);display:flex;gap:10px}
+.chat-in{flex:1;padding:9px 13px;border-radius:8px;border:1px solid var(--border);font-family:var(--font);font-size:13.5px;outline:none;color:var(--txt)}
+.chat-in:focus{border-color:var(--navy)}
+.chat-disc{font-size:10px;color:var(--muted);text-align:center;padding:6px 24px;background:var(--off);border-top:1px solid var(--border)}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border)}
+.cal-nav h3{font-size:14px;font-weight:600}
+.cal-wrap{padding:14px 18px}
+.cal-dh{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
+.cal-dn{text-align:center;font-size:10px;font-weight:600;text-transform:uppercase;color:var(--muted)}
+.cal-g{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cc{aspect-ratio:1;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--muted);cursor:pointer;position:relative}
+.cc:hover{background:var(--off)}
+.cc.cm{color:var(--txt)}
+.cc.td{background:var(--navy);color:#fff;font-weight:600}
+.cc.hd::after{content:'';position:absolute;bottom:4px;width:4px;height:4px;border-radius:50%;background:var(--green)}
+.cc.td.hd::after{background:rgba(255,255,255,.7)}
+.detail-back{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px;cursor:pointer;background:none;border:none;font-family:var(--font);margin-bottom:18px;padding:0}
+.detail-back:hover{color:var(--navy)}
+.coll{background:var(--white);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px}
+.coll-hd{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+.coll-hd:hover{background:var(--off)}
+.coll-l{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:500;color:var(--txt)}
+.coll-cnt{font-size:11px;color:#fff;background:var(--navy);padding:1px 7px;border-radius:100px;font-weight:600}
+.coll-r{display:flex;align-items:center;gap:10px}
+.coll-arr{color:var(--muted);font-size:12px;transition:transform .2s;display:inline-block}
+.coll-arr.op{transform:rotate(180deg)}
+.coll-body{border-top:1px solid var(--border);padding:18px}
+.coll-body.hidden{display:none}
+.det-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:4px}
+.det-f label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);display:block;margin-bottom:3px}
+.det-f span{font-size:13.5px;color:var(--txt)}
+.mo{position:fixed;inset:0;background:rgba(0,0,0,0.38);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px}
+.mo.open{display:flex}
+.mo-box{background:var(--white);border-radius:12px;width:520px;max-width:100%;max-height:90vh;overflow-y:auto}
+.mo-hd{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;position:sticky;top:0;background:var(--white);z-index:1}
+.mo-hd h3{font-size:15px;font-weight:600;color:var(--txt)}
+.mo-hd p{font-size:12px;color:var(--muted);margin-top:2px}
+.mo-x{font-size:18px;cursor:pointer;color:var(--muted);background:none;border:none;padding:0;margin-left:10px;flex-shrink:0}
+.mo-bd{padding:20px}
+.mo-ft{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--white)}
+.fg{margin-bottom:14px}
+.fg label{font-size:11px;font-weight:600;color:var(--txt);margin-bottom:5px;display:block;letter-spacing:.3px;text-transform:uppercase}
+.fg label .req{color:var(--red);margin-left:2px}
+.fg input,.fg select,.fg textarea{width:100%;padding:8px 11px;border-radius:7px;border:1px solid var(--border);font-family:var(--font);font-size:13.5px;color:var(--txt);outline:none;background:var(--white)}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--navy)}
+.fg textarea{min-height:70px;resize:vertical}
+.fg-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fg-div{height:1px;background:var(--border);margin:18px 0}
+.fg-sec{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:12px}
+.scan-box{border:2px dashed var(--border);border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:14px;position:relative}
+.scan-box:hover{border-color:var(--navy);background:var(--off)}
+.scan-box input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.scan-ic{font-size:28px;margin-bottom:8px}
+.scan-t{font-size:13px;font-weight:600;color:var(--txt);margin-bottom:3px}
+.scan-s{font-size:12px;color:var(--muted)}
+.scan-badge{display:inline-flex;align-items:center;gap:5px;background:var(--green-bg);color:var(--green-dark);border:1px solid rgba(0,200,150,0.2);font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px;margin-top:8px}
+.ai-res{background:var(--off);border:1px solid rgba(0,200,150,0.25);border-radius:8px;padding:14px;margin-bottom:14px;display:none}
+.ai-res-hd{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;font-weight:600;color:var(--green-dark)}
+.ai-res-g{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ai-res-f{font-size:12px}
+.ai-res-f span{display:block;color:var(--muted);font-size:11px;margin-bottom:1px}
+.ai-res-f strong{color:var(--txt)}
+.empty{padding:40px;text-align:center}
+.empty-ic{font-size:28px;margin-bottom:10px;opacity:.35}
+.empty-t{font-size:14px;font-weight:500;color:var(--txt);margin-bottom:4px}
+.empty-s{font-size:12px;color:var(--muted)}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px}
+.step-bar{display:flex;gap:6px;margin-bottom:20px}
+.step-bar-seg{flex:1;height:3px;border-radius:100px;background:var(--border);transition:background .3s}
+.step-bar-seg.done{background:var(--blue)}
+.step-box{display:none}
+.step-box.active{display:block}
+.step-title{font-size:13px;color:var(--muted);margin-bottom:16px}
+.mo-nav{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-top:1px solid var(--border);position:sticky;bottom:0;background:var(--white)}
+.btn-back{display:inline-flex;align-items:center;gap:6px;background:none;border:none;font-family:var(--font);font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;padding:7px 0}
+.btn-back:hover{color:var(--txt)}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--navy);color:#fff;border-radius:10px;padding:12px 18px;font-size:13px;font-weight:500;z-index:9999;opacity:0;transform:translateY(10px);transition:all .3s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.err{background:var(--red)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px}
+</style>
+</head>
+<body>
+<div class="app">
 
-✓
-Certificate tracking & expiry alerts
-✓
-Section 8 & 13 notice generator
-✓
-Tenant portal — no app needed
-✓
-AI compliance advisor
-✓
-Awaab's Law maintenance log
-Built for UK landlords · Renters Rights Act compliant · 2026
-Welcome back
-Log in to your landlord dashboard
-Email address
-you@email.com
-Password
-Forgot password?
-••••••••
-Log in
-or
-Continue with Google
-Don't have an account? Join the waitlist
+<!-- TOP HEADER -->
+<div class="top-header">
+  <a href="index.html" class="th-logo"><span>Rent</span>Safe AI</a>
+  <div class="th-right">
+    <div class="th-user">
+      <div class="th-avatar" id="th-av">—</div>
+      <span class="th-username" id="sb-username">Loading…</span>
+    </div>
+    <button class="th-btn" onclick="window.location.href='index.html'">← Website</button>
+    <button class="th-btn" onclick="logout()">Log out</button>
+  </div>
+</div>
+
+<!-- TOP NAV -->
+<div class="top-nav">
+  <div class="top-nav-inner">
+    <button class="nav-item active" data-page="dashboard">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>
+      Dashboard
+    </button>
+    <div class="nav-divider"></div>
+    <button class="nav-item" data-page="properties">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 14V7L8 2l6 5v7"/><path d="M6 14v-4h4v4"/></svg>
+      Properties
+    </button>
+    <button class="nav-item" data-page="tenants">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.314 2.686-5 6-5s6 1.686 6 5"/></svg>
+      Tenants
+    </button>
+    <button class="nav-item" data-page="rent">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M8 4.5v7M5.5 6.5a2.5 2 0 015 0c0 2-5 2-5 4a2.5 2 0 005 0"/></svg>
+      Rent
+    </button>
+    <div class="nav-divider"></div>
+    <button class="nav-item" data-page="compliance">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5L2 4v4c0 3.5 2.5 6 6 7 3.5-1 6-3.5 6-7V4L8 1.5z"/><path d="M5.5 8l2 2 3-3"/></svg>
+      Compliance
+    </button>
+    <button class="nav-item" data-page="maintenance">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.5 2.5a3 3 0 00-4 4L2 11a1.5 1.5 0 002 2l4.5-4.5a3 3 0 004-4l-2 2-1.5-1.5 2-2z"/></svg>
+      Maintenance
+    </button>
+    <button class="nav-item" data-page="insurance">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3h10v6.5c0 2.5-2 4-5 4.5-3-.5-5-2-5-4.5V3z"/><path d="M6 8l1.5 1.5L10 6"/></svg>
+      Insurance
+    </button>
+    <div class="nav-divider"></div>
+    <button class="nav-item" data-page="calendar">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="2.5" width="13" height="12" rx="2"/><path d="M5 1v3M11 1v3M1.5 6.5h13"/></svg>
+      Calendar
+    </button>
+    <button class="nav-item" data-page="onboarding">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 8h8M4 5h8M4 11h5"/><rect x="1" y="1" width="14" height="14" rx="2"/></svg>
+      Onboarding
+    </button>
+    <button class="nav-item" data-page="assistant">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12v8H9l-3 2v-2H2z"/><path d="M5 6h6M5 8.5h4"/></svg>
+      AI Assistant
+    </button>
+  </div>
+</div>
+
+<main class="main" id="main">
+  <div style="display:flex;align-items:center;justify-content:center;height:100%;gap:10px;color:var(--muted)">
+    <div style="width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--navy);border-radius:50%;animation:spin .6s linear infinite"></div>
+    Loading your dashboard…
+  </div>
+</main>
+</div>
+
+<!-- MODAL -->
+<div class="mo" id="mo">
+  <div class="mo-box">
+    <div class="mo-hd">
+      <div><h3 id="mo-t">Modal</h3><p id="mo-s"></p></div>
+      <button class="mo-x" onclick="closeMo()">✕</button>
+    </div>
+    <div class="mo-bd" id="mo-b"></div>
+    <div class="mo-ft" id="mo-f"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+<script>
+// ── SUPABASE ──
+const SUPABASE_URL = 'https://mahtcfukgzbonwibtsxz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1haHRjZnVrZ3pib253aWJ0c3h6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2MjQ2MDAsImV4cCI6MjA5MTIwMDYwMH0.-wC55rGp1WFKfjKR3EhuXqAPDiWJ4w_e2LBXjHr_y5Y';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let currentUser = null;
+
+// ── DATA STORE ──
+const D = {
+  properties: [], tenants: [], certs: [], maintenance: [], rent: [], insurance: [],
+  chat: [{role:'ai', text:'Hello! I\'m your AI compliance assistant. Ask me anything about UK landlord law — Section 8, Renters Rights Act, Awaab\'s Law, deposits, or anything else.'}]
+};
+
+// ── UI HELPERS ──
+const main = document.getElementById('main');
+const P  = id => D.properties.find(p => String(p.id) === String(id));
+const CF = pid => D.certs.filter(c => String(c.prop_id) === String(pid));
+const INI = n => n.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+const FMT = d => d ? new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—';
+const FMS = d => d ? new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
+
+let _toastTimer;
+function toast(msg, err=false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (err ? ' err' : '');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.className = 'toast', 3200);
+}
+
+function B(s){
+  const m={Valid:'green',Active:'green',Paid:'green',Resolved:'green',Protected:'green',Served:'green',Missing:'red',Expired:'red',Open:'red',Urgent:'red',Late:'red',Due:'amber','In progress':'amber',High:'amber','No expiry':'gray',AST:'gray',DPS:'gray',MyDeposits:'gray',TDS:'gray',Low:'blue',Vacant:'gray',Uploaded:'blue'};
+  return `<span class="badge b-${m[s]||'gray'}">${s}</span>`;
+}
+
+// ── AUDIT LOG ──
+async function logAudit(action, tableName, recordId, details) {
+  if (!currentUser) return;
+  try {
+    await sb.from('audit_log').insert({
+      user_id: currentUser.id, action,
+      table_name: tableName, record_id: String(recordId || ''), details
+    });
+  } catch(e) { /* non-critical */ }
+}
+
+// ── AUTH ──
+async function logout() {
+  await sb.auth.signOut();
+  window.location.href = 'login.html';
+}
+
+// ── LOAD DATA ──
+async function loadData() {
+  const [p, t, c, m, r, i] = await Promise.all([
+    sb.from('properties').select('*').order('created_at', {ascending: false}),
+    sb.from('tenants').select('*'),
+    sb.from('certificates').select('*'),
+    sb.from('maintenance').select('*').order('issue_date', {ascending: false}),
+    sb.from('rent_payments').select('*').order('due_date', {ascending: false}),
+    sb.from('insurance').select('*'),
+  ]);
+
+  if (p.data?.length) {
+    D.properties = p.data.map(row => ({
+      ...row,
+      rooms: row.rooms || [],
+      inspections: row.inspections || []
+    }));
+  }
+  if (t.data?.length) {
+    D.tenants = t.data.map(row => ({
+      ...row,
+      start: row.start_date, end: row.end_date
+    }));
+  }
+  if (c.data?.length) {
+    D.certs = c.data.map(row => ({
+      ...row,
+      file: row.has_file
+    }));
+  }
+  if (m.data?.length) {
+    D.maintenance = m.data.map(row => ({
+      ...row,
+      desc: row.description || '',
+      date: row.issue_date
+    }));
+  }
+  if (r.data?.length) {
+    D.rent = r.data.map(row => ({
+      ...row,
+      due: row.due_date,
+      paid: row.paid_date
+    }));
+  }
+  if (i.data?.length) D.insurance = i.data;
+}
+
+// ── INIT ──
+async function initApp() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { window.location.href = 'login.html'; return; }
+
+  currentUser = session.user;
+  const email = currentUser.email || '';
+  document.getElementById('sb-username').textContent = email.split('@')[0];
+  document.getElementById('th-av').textContent = email.slice(0,2).toUpperCase();
+
+  await loadData();
+  nav('dashboard');
+}
+
+// ── SAVE: PROPERTY ──
+async function savePropToDB() {
+  const btn = document.getElementById('mo-next-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span>Saving…';
+
+  const prop = {
+    address: document.getElementById('p-addr')?.value.trim(),
+    city: document.getElementById('p-city')?.value.trim(),
+    postcode: document.getElementById('p-post')?.value.trim(),
+    type: document.getElementById('p-type')?.value || 'FLAT',
+    beds: parseInt(document.getElementById('p-beds')?.value) || null,
+    bathrooms: parseInt(document.getElementById('p-bath')?.value) || null,
+    rent: parseFloat(document.getElementById('p-rent')?.value) || 0,
+    council_tax_band: document.getElementById('p-ctb')?.value || null,
+    user_id: currentUser.id,
+    score: 50, licence_type: 'None', rooms: [], inspections: []
+  };
+
+  const { data, error } = await sb.from('properties').insert(prop).select().single();
+  if (error) {
+    btn.disabled = false; btn.textContent = 'Add property ✓';
+    toast('Error saving property: ' + error.message, true); return;
+  }
+
+  D.properties.unshift({...data, rooms:[], inspections:[]});
+  await logAudit('ADD_PROPERTY', 'properties', data.id, `Added: ${prop.address}, ${prop.city}`);
+
+  // Optional tenant
+  const tname = document.getElementById('p-tname')?.value.trim();
+  if (tname) {
+    const tenant = {
+      name: tname, email: document.getElementById('p-temail')?.value.trim() || null,
+      prop_id: data.id, start_date: document.getElementById('p-tstart')?.value || null,
+      rent: prop.rent, status: 'Active', user_id: currentUser.id, deposit: 0
+    };
+    const { data: td, error: te } = await sb.from('tenants').insert(tenant).select().single();
+    if (!te && td) {
+      D.tenants.push({...td, start: td.start_date, end: td.end_date});
+      await logAudit('ADD_TENANT', 'tenants', td.id, `Added tenant: ${tname}`);
+    }
+  }
+
+  closeMo();
+  toast('✓ Property saved!');
+  nav('properties');
+}
+
+// ── SAVE: CERTIFICATE ──
+async function saveCertToDB() {
+  const propId = document.getElementById('cp')?.value;
+  const certType = document.getElementById('ct')?.value;
+  const expiry = document.getElementById('ce')?.value || null;
+  const engineer = document.getElementById('ceng')?.value.trim() || null;
+
+  if (!propId || !certType) { toast('Please select a property and certificate type.', true); return; }
+
+  let status = expiry ? (new Date(expiry) < new Date() ? 'Expired' : 'Valid') : 'No expiry';
+
+  const cert = {
+    prop_id: parseInt(propId), type: certType,
+    expiry: expiry || null, status,
+    has_file: true, served: false,
+    engineer: engineer || null,
+    user_id: currentUser.id
+  };
+
+  const { data, error } = await sb.from('certificates').insert(cert).select().single();
+  if (error) { toast('Error: ' + error.message, true); return; }
+
+  D.certs.push({...data, file: true});
+  await logAudit('ADD_CERT', 'certificates', data.id, `Added ${certType}`);
+  closeMo();
+  toast('✓ Certificate saved!');
+  nav('compliance');
+}
+
+// ── SAVE: TENANT ──
+async function saveTenantToDB() {
+  const btn = document.querySelector('#mo-f .btn-navy');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Saving…'; }
+
+  const propId = document.getElementById('t-prop')?.value;
+  const name = document.getElementById('t-name')?.value.trim();
+  if (!propId || !name) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Add tenant'; }
+    toast('Property and tenant name are required.', true); return;
+  }
+
+  const tenant = {
+    prop_id: parseInt(propId), name,
+    email: document.getElementById('t-email')?.value.trim() || null,
+    phone: document.getElementById('t-phone')?.value.trim() || null,
+    rent: parseFloat(document.getElementById('t-rent')?.value) || 0,
+    deposit: parseFloat(document.getElementById('t-deposit')?.value) || 0,
+    start_date: document.getElementById('t-start')?.value || null,
+    end_date: document.getElementById('t-end')?.value || null,
+    type: document.getElementById('t-type')?.value || 'AST',
+    rent_day: parseInt(document.getElementById('t-day')?.value) || 1,
+    scheme: document.getElementById('t-scheme')?.value || null,
+    scheme_ref: document.getElementById('t-ref')?.value.trim() || null,
+    status: 'Active',
+    user_id: currentUser.id
+  };
+
+  const { data, error } = await sb.from('tenants').insert(tenant).select().single();
+  if (error) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Add tenant'; }
+    toast('Error: ' + error.message, true); return;
+  }
+
+  D.tenants.push({...data, start: data.start_date, end: data.end_date});
+  await logAudit('ADD_TENANT', 'tenants', data.id, `Added tenant: ${name}`);
+  closeMo();
+  toast('✓ Tenant saved!');
+  nav('tenants');
+}
+
+// ── SAVE: MAINTENANCE ISSUE ──
+async function saveIssueToDB() {
+  const btn = document.querySelector('#mo-f .btn-navy');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Saving…'; }
+
+  const propId = document.getElementById('i-prop')?.value;
+  const desc = document.getElementById('i-desc')?.value.trim();
+  if (!propId || !desc) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Log issue'; }
+    toast('Property and description are required.', true); return;
+  }
+
+  const awaabVal = document.getElementById('i-awaab')?.value || 'No';
+  const issue = {
+    prop_id: parseInt(propId),
+    title: desc.slice(0, 60),
+    description: desc,
+    cat: document.getElementById('i-cat')?.value || 'Other',
+    priority: document.getElementById('i-pri')?.value || 'Low',
+    status: 'Open',
+    issue_date: new Date().toISOString().slice(0,10),
+    awaab: awaabVal.startsWith('Yes'),
+    user_id: currentUser.id
+  };
+
+  const { data, error } = await sb.from('maintenance').insert(issue).select().single();
+  if (error) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Log issue'; }
+    toast('Error: ' + error.message, true); return;
+  }
+
+  D.maintenance.unshift({...data, desc: data.description, date: data.issue_date});
+  await logAudit('ADD_MAINTENANCE', 'maintenance', data.id, `Logged: ${issue.title}`);
+  closeMo();
+  toast('✓ Issue logged!');
+  nav('maintenance');
+}
+
+// ── SAVE: EDIT PROPERTY ──
+async function saveEditPropToDB(pid) {
+  const btn = document.querySelector('#mo-f .btn-navy');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Saving…'; }
+
+  const inputs = document.querySelectorAll('#mo-b input, #mo-b select, #mo-b textarea');
+  const [addr, city, post, beds, bath, rent, ctb, notes] = [...inputs].map(el => el.value);
+
+  const { error } = await sb.from('properties').update({
+    address: addr, city, postcode: post,
+    beds: parseInt(beds)||null, bathrooms: parseInt(bath)||null,
+    rent: parseFloat(rent)||0,
+    council_tax_band: ctb || null, notes
+  }).eq('id', pid);
+
+  if (error) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Save changes'; }
+    toast('Error: ' + error.message, true); return;
+  }
+
+  const idx = D.properties.findIndex(p => String(p.id) === String(pid));
+  if (idx >= 0) Object.assign(D.properties[idx], {address:addr,city,postcode:post,beds:parseInt(beds),bathrooms:parseInt(bath),rent:parseFloat(rent),notes});
+  await logAudit('EDIT_PROPERTY', 'properties', pid, `Updated: ${addr}`);
+  closeMo();
+  toast('✓ Property updated!');
+  nav('prop-detail', pid);
+}
+
+// ── SAVE: LICENCE ──
+async function saveLicenceToDB(pid) {
+  const inputs = document.querySelectorAll('#mo-b select, #mo-b input');
+  const [licType, licRef, licExpiry, licMax] = [...inputs].map(el => el.value);
+  const { error } = await sb.from('properties').update({
+    licence_type: licType, licence_ref: licRef || null,
+    licence_expiry: licExpiry || null, licence_max: parseInt(licMax)||null
+  }).eq('id', pid);
+  if (error) { toast('Error: ' + error.message, true); return; }
+  const p = P(pid);
+  if (p) Object.assign(p, {licence_type: licType, licence_ref: licRef, licence_expiry: licExpiry, licence_max: licMax});
+  await logAudit('EDIT_LICENCE', 'properties', pid, `Licence updated`);
+  closeMo(); toast('✓ Licence saved!');
+  nav('prop-detail', pid);
+}
+
+// ── SAVE: MORTGAGE ──
+async function saveMortgageToDB(pid) {
+  const inputs = document.querySelectorAll('#mo-b input, #mo-b select');
+  const [lender, account, mtype, rate, monthly, outstanding, end] = [...inputs].map(el => el.value);
+  const { error } = await sb.from('properties').update({
+    mortgage_lender: lender, mortgage_account: account,
+    mortgage_type: mtype, mortgage_rate: parseFloat(rate)||null,
+    mortgage_monthly: parseFloat(monthly)||null,
+    mortgage_outstanding: parseFloat(outstanding)||null,
+    mortgage_end: end || null
+  }).eq('id', pid);
+  if (error) { toast('Error: ' + error.message, true); return; }
+  await logAudit('EDIT_MORTGAGE', 'properties', pid, `Mortgage updated`);
+  closeMo(); toast('✓ Mortgage saved!');
+  nav('prop-detail', pid);
+}
+
+// ── MODAL HELPERS ──
+function openMo(t,s,b,f){
+  document.getElementById('mo-t').textContent=t;
+  document.getElementById('mo-s').textContent=s||'';
+  document.getElementById('mo-b').innerHTML=b;
+  document.getElementById('mo-f').innerHTML=f||'';
+  document.getElementById('mo').classList.add('open');
+}
+function closeMo(){document.getElementById('mo').classList.remove('open')}
+
+// ── MODAL: ADD CERTIFICATE ──
+function moCert(pid){
+  const opts=D.properties.map(p=>`<option value="${p.id}"${p.id==pid?' selected':''}>${p.address}, ${p.city}</option>`).join('');
+  openMo('Add certificate','Upload document — AI will scan and fill details',`
+    <div class="scan-box" id="sb-scan">
+      <input type="file" accept=".pdf,.jpg,.jpeg,.png" onchange="scanDoc(this)">
+      <div class="scan-ic">📄</div>
+      <div class="scan-t">Upload certificate</div>
+      <div class="scan-s">PDF, JPG or PNG</div>
+      <div class="scan-badge">✦ AI auto-extraction</div>
+    </div>
+    <div class="ai-res" id="ar"><div class="ai-res-hd">✦ AI extracted — please confirm below</div><div class="ai-res-g" id="arg"></div></div>
+    <div class="fg-div"></div>
+    <div class="fg"><label>Property</label><select id="cp">${opts}</select></div>
+    <div class="fg"><label>Certificate type</label><select id="ct"><option>Gas Safety Certificate (GSC)</option><option>Electrical Installation Condition Report (EICR)</option><option>Energy Performance Certificate (EPC)</option><option>How to Rent Guide</option><option>Deposit Certificate</option><option>Tenancy Agreement</option></select></div>
+    <div class="fg-row">
+      <div class="fg"><label>Issue date</label><input type="date" id="ci"></div>
+      <div class="fg"><label>Expiry date</label><input type="date" id="ce"></div>
+    </div>
+    <div class="fg"><label>Engineer / provider</label><input type="text" id="ceng" placeholder="e.g. City Gas Services"></div>
+    <div class="fg"><label>Notes (optional)</label><textarea placeholder="Any notes…"></textarea></div>
+  `,'<button class="btn" onclick="closeMo()">Cancel</button><button class="btn btn-navy" onclick="saveCertToDB()">Save certificate</button>');
+}
+
+async function scanDoc(input){
+  if(!input.files[0])return;
+  const file=input.files[0];
+  const sb2=document.getElementById('sb-scan');
+  sb2.innerHTML=`<div class="scan-ic">⏳</div><div class="scan-t">Scanning document…</div><div class="scan-s">AI is reading your certificate</div>`;
+  const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});
+  const isImg=file.type.startsWith('image/');
+  const content=isImg
+    ?[{type:'image',source:{type:'base64',media_type:file.type,data:b64}},{type:'text',text:'UK property compliance certificate. Extract: certificate type, issue date (YYYY-MM-DD), expiry date (YYYY-MM-DD), engineer or provider name, address. Return JSON only, keys: type, issued, expiry, engineer, address.'}]
+    :[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:'UK property compliance certificate. Extract: certificate type, issue date (YYYY-MM-DD), expiry date (YYYY-MM-DD), engineer or provider name, address. Return JSON only, keys: type, issued, expiry, engineer, address.'}];
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:300,messages:[{role:'user',content}]})});
+    const data=await res.json();
+    const txt=data.content?.[0]?.text||'{}';
+    const parsed=JSON.parse(txt.replace(/```json|```/g,'').trim());
+    if(parsed.type)document.getElementById('ct').value=parsed.type;
+    if(parsed.issued)document.getElementById('ci').value=parsed.issued;
+    if(parsed.expiry)document.getElementById('ce').value=parsed.expiry;
+    if(parsed.engineer)document.getElementById('ceng').value=parsed.engineer;
+    document.getElementById('arg').innerHTML=[['Type',parsed.type],['Issue date',parsed.issued],['Expiry',parsed.expiry],['Engineer',parsed.engineer],['Address',parsed.address]].map(([l,v])=>`<div class="ai-res-f"><span>${l}</span><strong>${v||'Not detected'}</strong></div>`).join('');
+    document.getElementById('ar').style.display='block';
+    sb2.innerHTML=`<div style="font-size:13px;color:var(--green-dark);font-weight:600">✓ Scanned — fields filled below</div><div style="font-size:12px;color:var(--muted);margin-top:4px">${file.name}</div>`;
+  }catch(e){sb2.innerHTML=`<div style="font-size:13px;color:var(--amber);font-weight:500">Could not scan — please fill in manually</div>`;}
+}
+
+// ── MODAL: ADD PROPERTY (multi-step) ──
+function moAddProp(){
+  document.getElementById('mo-t').textContent='Add property';
+  document.getElementById('mo-s').textContent='';
+  document.getElementById('mo-b').innerHTML=`
+    <div class="step-bar">
+      <div class="step-bar-seg done" id="seg1"></div>
+      <div class="step-bar-seg" id="seg2"></div>
+      <div class="step-bar-seg" id="seg3"></div>
+    </div>
+    <div class="step-box active" id="step1">
+      <div style="font-size:16px;font-weight:600;margin-bottom:4px">Where is the property?</div>
+      <div class="step-title">Step 1 of 3 — basic address</div>
+      <div class="fg"><label>Address <span class="req">*</span></label><input type="text" id="p-addr" placeholder="e.g. 14 Maple Street"></div>
+      <div class="fg-row">
+        <div class="fg"><label>City / town <span class="req">*</span></label><input type="text" id="p-city" placeholder="e.g. Manchester"></div>
+        <div class="fg"><label>Postcode <span class="req">*</span></label><input type="text" id="p-post" placeholder="e.g. M4 1AQ"></div>
+      </div>
+    </div>
+    <div class="step-box" id="step2">
+      <div style="font-size:16px;font-weight:600;margin-bottom:4px">Property details</div>
+      <div class="step-title">Step 2 of 3</div>
+      <div class="fg"><label>Type</label>
+        <select id="p-type"><option>FLAT</option><option>HOUSE</option><option>Terraced</option><option>Semi-detached</option><option>Detached</option><option>Bungalow</option><option>Studio</option><option>HMO</option></select>
+      </div>
+      <div class="fg-row">
+        <div class="fg"><label>Bedrooms</label><input type="number" id="p-beds" placeholder="e.g. 2" min="0"></div>
+        <div class="fg"><label>Bathrooms</label><input type="number" id="p-bath" placeholder="e.g. 1" min="0"></div>
+      </div>
+      <div class="fg-row">
+        <div class="fg"><label>Monthly rent (£)</label><input type="number" id="p-rent" placeholder="e.g. 1200"></div>
+        <div class="fg"><label>Council tax band</label>
+          <select id="p-ctb"><option value="">Not set</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option><option>H</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="step-box" id="step3">
+      <div style="font-size:16px;font-weight:600;margin-bottom:4px">Who lives there?</div>
+      <div class="step-title">Step 3 of 3 — optional, add later</div>
+      <div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--muted);margin-bottom:16px">You can add tenant details later if the property is vacant.</div>
+      <div class="fg"><label>Tenant name</label><input type="text" id="p-tname" placeholder="John Smith"></div>
+      <div class="fg"><label>Tenant email</label><input type="email" id="p-temail" placeholder="john@example.com"></div>
+      <div class="fg"><label>Tenancy start date</label><input type="date" id="p-tstart"></div>
+    </div>`;
+  document.getElementById('mo-f').innerHTML=`
+    <div class="mo-nav" style="padding:0;border:none;width:100%;justify-content:space-between">
+      <button class="btn-back" id="mo-back-btn" onclick="propStepBack()" style="visibility:hidden">← Back</button>
+      <button class="btn btn-navy" id="mo-next-btn" onclick="propStepNext()">Next →</button>
+    </div>`;
+  document.getElementById('mo').classList.add('open');
+  window._propStep=1;
+}
+
+function propStepNext(){
+  const s=window._propStep;
+  if(s===1){
+    if(!document.getElementById('p-addr').value.trim()||!document.getElementById('p-city').value.trim()||!document.getElementById('p-post').value.trim()){toast('Please fill in address, city and postcode.',true);return;}
+    goStep(2);
+  } else if(s===2){
+    goStep(3);
+  } else if(s===3){
+    savePropToDB();
+  }
+}
+function propStepBack(){if(window._propStep>1)goStep(window._propStep-1);}
+function goStep(n){
+  window._propStep=n;
+  document.querySelectorAll('.step-box').forEach((el,i)=>el.classList.toggle('active',i+1===n));
+  document.querySelectorAll('.step-bar-seg').forEach((el,i)=>el.classList.toggle('done',i<n));
+  document.getElementById('mo-back-btn').style.visibility=n===1?'hidden':'visible';
+  document.getElementById('mo-next-btn').textContent=n===3?'Add property ✓':'Next →';
+}
+
+// ── MODAL: EDIT PROPERTY ──
+function moEditProp(pid){
+  const p=P(pid);
+  openMo('Edit property','Update property details',`
+    <div class="fg"><label>Address</label><input type="text" value="${p.address}"></div>
+    <div class="fg-row">
+      <div class="fg"><label>City</label><input type="text" value="${p.city}"></div>
+      <div class="fg"><label>Postcode</label><input type="text" value="${p.postcode}"></div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Bedrooms</label><input type="number" value="${p.beds||''}"></div>
+      <div class="fg"><label>Bathrooms</label><input type="number" value="${p.bathrooms||''}"></div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Monthly rent (£)</label><input type="number" value="${p.rent||0}"></div>
+      <div class="fg"><label>Council tax band</label><select>${['A','B','C','D','E','F','G','H'].map(b=>`<option${b===p.council_tax_band?' selected':''}>${b}</option>`).join('')}</select></div>
+    </div>
+    <div class="fg"><label>Landlord notes</label><textarea>${p.notes||''}</textarea></div>
+  `,`<button class="btn" onclick="closeMo()">Cancel</button><button class="btn btn-navy" onclick="saveEditPropToDB(${pid})">Save changes</button>`);
+}
+
+// ── MODAL: LICENCE ──
+function moLicence(pid){
+  const p=P(pid);
+  openMo('Property licence','Update licence details',`
+    <div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:var(--muted)">
+      <strong style="color:var(--txt);display:block;margin-bottom:4px">UK property licence types</strong>
+      <b>Mandatory HMO</b> — 5+ occupants, 2+ households, 3+ storeys · <b>Additional HMO</b> — smaller HMOs in designated areas · <b>Selective</b> — council requires all rentals licensed · <b>Article 4</b> — planning direction
+    </div>
+    <div class="fg"><label>Licence type</label>
+      <select>${['None','Mandatory HMO','Additional HMO','Selective Licence','Article 4','Short-term Let'].map(l=>`<option${l===p.licence_type?' selected':''}>${l}</option>`).join('')}</select>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Licence reference</label><input type="text" value="${p.licence_ref||''}" placeholder="e.g. SL-2024-00412"></div>
+      <div class="fg"><label>Expiry date</label><input type="date" value="${p.licence_expiry||''}"></div>
+    </div>
+    <div class="fg"><label>Max permitted occupants</label><input type="number" value="${p.licence_max||''}" placeholder="e.g. 5"></div>
+  `,`<button class="btn" onclick="closeMo()">Cancel</button><button class="btn btn-navy" onclick="saveLicenceToDB(${pid})">Save licence</button>`);
+}
+
+// ── MODAL: MORTGAGE ──
+function moMortgage(pid){
+  const p=P(pid);
+  openMo('Mortgage details','Update mortgage information',`
+    <div class="fg-row">
+      <div class="fg"><label>Lender</label><input type="text" value="${p.mortgage_lender||''}" placeholder="e.g. Nationwide"></div>
+      <div class="fg"><label>Account (masked)</label><input type="text" value="${p.mortgage_account||''}" placeholder="XXXX-1234"></div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Mortgage type</label>
+        <select>${['Repayment','Interest only','Part and part'].map(t=>`<option${t===p.mortgage_type?' selected':''}>${t}</option>`).join('')}</select>
+      </div>
+      <div class="fg"><label>Interest rate (%)</label><input type="number" step="0.01" value="${p.mortgage_rate||''}" placeholder="4.5"></div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Monthly payment (£)</label><input type="number" value="${p.mortgage_monthly||''}" placeholder="680"></div>
+      <div class="fg"><label>Outstanding balance (£)</label><input type="number" value="${p.mortgage_outstanding||''}" placeholder="98000"></div>
+    </div>
+    <div class="fg"><label>Mortgage end date</label><input type="date" value="${p.mortgage_end||''}"></div>
+  `,`<button class="btn" onclick="closeMo()">Cancel</button><button class="btn btn-navy" onclick="saveMortgageToDB(${pid})">Save mortgage</button>`);
+}
+
+// ── MODAL: INSPECTION ──
+function moInspection(pid){
+  openMo('Log inspection','Record a property inspection',`
+    <div class="fg-row">
+      <div class="fg"><label>Date <span class="req">*</span></label><input type="date" id="insp-date"></div>
+      <div class="fg"><label>Type</label>
+        <select id="insp-type"><option>Routine</option><option>Move-in</option><option>Move-out</option><option>Emergency</option><option>Annual</option></select>
+      </div>
+    </div>
+    <div class="fg"><label>Inspector</label><input type="text" id="insp-who" placeholder="e.g. Landlord, letting agent name"></div>
+    <div class="fg"><label>Notes / findings</label><textarea id="insp-notes" placeholder="Describe the condition, any issues noted…"></textarea></div>
+    <div class="fg"><label>Photos (optional)</label>
+      <div class="scan-box" style="padding:12px;margin-bottom:0"><input type="file" accept="image/*" multiple><div style="font-size:13px;color:var(--muted)">📷 Upload inspection photos</div></div>
+    </div>
+  `,`<button class="btn" onclick="closeMo()">Cancel</button><button class="btn btn-navy" onclick="saveInspectionToDB(${pid})">Save inspection</button>`);
+}
+
+async function saveInspectionToDB(pid) {
+  const date = document.getElementById('insp-date')?.value;
+  const type = document.getElementById('insp-type')?.value;
+  const inspector = document.getElementById('insp-who')?.value.trim();
+  const notes = document.getElementById('insp-notes')?.value.trim();
+  if (!date) { toast('Please enter an inspection date.', true); return; }
+
+  const p = P(pid);
+  const inspections = [...(p.inspections || []), {date, type, inspector, notes}];
+  const { error } = await sb.from('properties').update({inspections}).eq('id', pid);
+  if (error) { toast('Error: ' + error.message, true); return; }
+
+  p.inspections = inspections;
+  await logAudit('ADD_INSPECTION', 'properties', pid, `${type} inspection on ${date}`);
+  closeMo(); toast('✓ Inspection logged!');
+  nav('prop-detail', pid);
+}
+
+// ── MODAL: ADD TENANT ──
+function moTenant(pid){
+  const opts=D.properties.map(p=>`<option value="${p.id}"${p.id==pid?' selected':''}>${p.address}, ${p.city}</option>`).join('');
+  openMo('Add tenant','Link a tenant to one of your properties',`
+    <div class="fg"><label>Property <span class="req">*</span></label><select id="t-prop">${opts}</select></div>
+    <div class="fg"><label>Full name <span class="req">*</span></label><input type="text" id="t-name" placeholder="John Smith"></div>
+    <div class="fg-row">
+      <div class="fg"><label>Email</label><input type="email" id="t-email" placeholder="john@example.com"></div>
+      <div class="fg"><label>Phone</label><input type="tel" id="t-phone" placeholder="07…"></div>
+    </div>
+    <div class="fg-div"></div>
+    <div class="fg-sec">Tenancy details</div>
+    <div class="fg-row">
+      <div class="fg"><label>Monthly rent (£) <span class="req">*</span></label><input type="number" id="t-rent" placeholder="1500"></div>
+      <div class="fg"><label>Deposit (£) <span class="req">*</span></label><input type="number" id="t-deposit" placeholder="1500"></div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Tenancy start <span class="req">*</span></label><input type="date" id="t-start"></div>
+      <div class="fg"><label>Tenancy end</label><input type="date" id="t-end"></div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Tenancy type</label><select id="t-type"><option>AST</option><option>Periodic</option><option>Company let</option></select></div>
+      <div class="fg"><label>Rent due day</label><input type="number" id="t-day" min="1" max="28" placeholder="1"></div>
+    </div>
+    <div class="fg-div"></div>
+    <div class="fg-sec">Deposit protection</div>
+    <div class="fg-row">
+      <div class="fg"><label>Scheme</label><select id="t-scheme"><option value="">Select scheme</option><option>DPS</option><option>MyDeposits</option><option>TDS</option></select></div>
+      <div class="fg"><label>Reference</label><input type="text" id="t-ref" placeholder="Scheme reference number"></div>
+    </div>
+  `,`<button class="btn" onclick="closeMo()">Cancel</button><button class="btn btn-navy" onclick="saveTenantToDB()">Add tenant</button>`);
+}
+
+// ── MODAL: MAINTENANCE ISSUE ──
+function moIssue(pid){
+  const opts=D.properties.map(p=>`<option value="${p.id}"${p.id==pid?' selected':''}>${p.address}, ${p.city}</option>`).join('');
+  openMo('Report maintenance issue','',`
+    <div class="fg"><label>Property</label><select id="i-prop">${opts}</select></div>
+    <div class="fg-row">
+      <div class="fg"><label>Category</label><select id="i-cat"><option>Plumbing</option><option>Heating</option><option>Electrical</option><option>Pest Control</option><option>Structural</option><option>Damp & Mould</option><option>Other</option></select></div>
+      <div class="fg"><label>Priority</label><select id="i-pri"><option>Low</option><option>High</option><option>Urgent</option></select></div>
+    </div>
+    <div class="fg"><label>Description <span class="req">*</span></label><textarea id="i-desc" placeholder="Describe the issue in detail…"></textarea></div>
+    <div class="fg-row">
+      <div class="fg"><label>Source</label><select id="i-src"><option>Landlord</option><option>Tenant portal</option><option>Inspection</option></select></div>
+      <div class="fg"><label>Awaab's Law flag</label><select id="i-awaab"><option>No</option><option>Yes — hazard affecting health</option></select></div>
+    </div>
+  `,`<button class="btn" onclick="closeMo()">Cancel</button><button class="btn btn-navy" onclick="saveIssueToDB()">Log issue</button>`);
+}
+
+function toggleColl(id){
+  document.getElementById('cb-'+id).classList.toggle('hidden');
+  document.getElementById('ca-'+id).classList.toggle('op');
+}
+
+// ── ACTION ITEMS ──
+function UA(){
+  const miss=D.certs.filter(c=>c.status==='Missing').map(c=>({b:'red',l:'Urgent',t:`Missing ${c.type}`,s:(P(c.prop_id)||{address:'—'}).address}));
+  const mnt=D.maintenance.filter(x=>x.status!=='Resolved').map(x=>({b:x.priority==='Urgent'?'red':'amber',l:x.awaab?'Awaab':x.priority,t:x.title,s:(P(x.prop_id)||{address:'—'}).address}));
+  const rnt=D.rent.filter(x=>x.status==='Due'||x.status==='Late').map(x=>({b:x.status==='Late'?'red':'amber',l:x.status,t:`Rent ${x.status.toLowerCase()} — ${x.month}`,s:(P(x.prop_id)||{address:'—'}).address}));
+  return[...miss,...mnt,...rnt];
+}
+
+// ── PAGE: DASHBOARD ──
+function pgDashboard(){
+  const acts=UA(),tot=D.properties.reduce((s,p)=>s+(p.rent||0),0),open=D.maintenance.filter(m=>m.status!=='Resolved').length;
+  const today=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  return`<div class="topbar"><span class="tb-title">Dashboard</span><div class="tb-right">
+    <button class="btn" onclick="moCert()">+ Add certificate</button>
+    <button class="btn" onclick="alert('S.13 — coming next')">S.13 Notice</button>
+    <button class="btn" onclick="alert('S.8 — coming next')">S.8 Notice</button>
+    <button class="btn" onclick="moIssue()">Report issue</button>
+  </div></div>
+  <div class="content">
+    <div class="ph"><h1>Dashboard</h1><p>${acts.length} urgent, ${acts.filter(a=>a.b==='amber').length} due soon</p></div>
+    <div class="metrics">
+      <div class="mc"><div class="mc-top"><span class="mc-label">Properties</span><div class="mc-icon">🏠</div></div><div class="mc-val">${D.properties.length}</div><div class="mc-sub">Active</div></div>
+      <div class="mc"><div class="mc-top"><span class="mc-label">Active tenants</span><div class="mc-icon">👤</div></div><div class="mc-val">${D.tenants.length}</div><div class="mc-sub">All active</div></div>
+      <div class="mc"><div class="mc-top"><span class="mc-label">Monthly rent</span><div class="mc-icon">💷</div></div><div class="mc-val">£${tot.toLocaleString()}</div><div class="mc-sub">Total portfolio</div></div>
+      <div class="mc"><div class="mc-top"><span class="mc-label">Open issues</span><div class="mc-icon">🔧</div></div><div class="mc-val">${open}</div><div class="mc-sub">${D.maintenance.filter(m=>m.awaab&&m.status!=='Resolved').length} Awaab flagged</div></div>
+    </div>
+    <div class="g2">
+      <div class="panel">
+        <div class="ph2"><div><h2>Action items</h2><p>Sorted by urgency</p></div></div>
+        ${acts.length?acts.map(a=>`<div class="ai-row"><span class="badge b-${a.b}">${a.l}</span><div class="ai-body"><div class="ai-title">${a.t}</div><div class="ai-sub">${a.s}</div></div><span style="color:var(--muted)">›</span></div>`).join(''):'<div class="empty"><div class="empty-ic">✓</div><div class="empty-t">All clear</div></div>'}
+      </div>
+      <div class="panel">
+        <div class="ph2"><div><h2>Today</h2><p>${today}</p></div><button class="btn btn-sm" onclick="nav('calendar')">View calendar</button></div>
+        <div class="empty"><div class="empty-ic">📅</div><div class="empty-t">No tasks today</div><div class="empty-s">Upcoming deadlines appear here</div></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── PAGE: PROPERTIES ──
+function pgProperties(){
+  return`<div class="topbar"><span class="tb-title">Properties</span><div class="tb-right"><button class="btn btn-navy" onclick="moAddProp()">+ Add property</button></div></div>
+  <div class="content">
+    <div class="ph"><h1>Properties</h1><p>Manage your portfolio</p></div>
+    ${D.properties.length?`<div class="prop-grid">${D.properties.map(p=>{const t=D.tenants.find(x=>String(x.prop_id)===String(p.id));return`<div class="pc" style="cursor:pointer" onclick="nav('prop-detail','${p.id}')">
+        <div class="pc-head">
+          <div><div class="pc-addr">${p.address}</div><div class="pc-city">${p.city}, ${p.postcode}</div><div style="font-size:12px;color:var(--muted);margin-top:3px">${t?t.name:'No tenant'}</div></div>
+          <button style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px" onclick="event.stopPropagation()">⋯</button>
+        </div>
+        <div class="pc-info">
+          ${t?B('Active'):B('Vacant')}
+          ${p.beds?`<span class="pc-tag">${p.beds} bed</span>`:''}
+          ${p.type?`<span class="pc-tag">${p.type}</span>`:''}
+          ${t?`<span style="font-size:13px;font-weight:600;color:var(--txt);margin-left:auto">£${(p.rent||0).toLocaleString()}/mo</span>`:''}
+        </div>
+        <div class="pc-foot">
+          <button class="btn btn-sm" style="flex:1" onclick="event.stopPropagation();nav('compliance')">Compliance</button>
+          <button class="btn btn-sm" style="flex:1" onclick="event.stopPropagation();nav('maintenance')">Maintenance</button>
+        </div>
+      </div>`}).join('')}</div>`:'<div class="empty"><div class="empty-ic">🏠</div><div class="empty-t">No properties yet</div><div class="empty-s">Click + Add property to get started</div></div>'}
+  </div>`;
+}
+
+// ── PAGE: PROPERTY DETAIL ──
+function pgPropDetail(pid){
+  const p=P(pid); if(!p)return pgProperties();
+  const t=D.tenants.find(x=>String(x.prop_id)===String(pid));
+  const pc=CF(pid),pi=D.insurance.filter(i=>String(i.prop_id)===String(pid));
+  const pm=D.maintenance.filter(m=>String(m.prop_id)===String(pid)&&m.status!=='Resolved');
+  const licBadge={None:'b-gray','Mandatory HMO':'b-red','Additional HMO':'b-amber','Selective Licence':'b-blue','Article 4':'b-navy','Short-term Let':'b-amber'}[p.licence_type]||'b-gray';
+  return`<div class="topbar"><span class="tb-title">Properties</span><div class="tb-right">
+    <button class="btn" onclick="alert('P&L — coming next')">📊 P&L</button>
+    <button class="btn btn-navy" onclick="moEditProp('${pid}')">✎ Edit</button>
+  </div></div>
+  <div class="content">
+    <button class="detail-back" onclick="nav('properties')"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3L5 8l5 5"/></svg>Back to properties</button>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:12px">
+      <div><h1 style="font-size:22px;font-weight:600;margin-bottom:3px">${p.address}, ${p.city}</h1><p style="font-size:13px;color:var(--muted)">${p.city}, ${p.postcode}</p></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${B(t?'Active':'Vacant')}<span class="badge b-gray">${p.type||'—'}</span>${p.beds?`<span class="badge b-gray">${p.beds} bed · ${p.bathrooms||1} bath</span>`:''}<span class="badge ${licBadge}">${p.licence_type||'No licence'}</span></div>
+    </div>
+    <div class="metrics">
+      <div class="mc"><div class="mc-top"><span class="mc-label">Monthly rent</span></div><div class="mc-val">${p.rent?'£'+p.rent.toLocaleString():'Vacant'}</div></div>
+      <div class="mc"><div class="mc-top"><span class="mc-label">Tenants</span></div><div class="mc-val">${t?1:0}</div></div>
+      <div class="mc"><div class="mc-top"><span class="mc-label">Documents</span></div><div class="mc-val">${pc.filter(c=>c.file||c.has_file).length}</div></div>
+      <div class="mc"><div class="mc-top"><span class="mc-label">Open issues</span></div><div class="mc-val">${pm.length}</div></div>
+    </div>
+
+    <div class="coll"><div class="coll-hd" onclick="toggleColl('det')"><span class="coll-l">🏠 Property details</span><span class="coll-arr op" id="ca-det">▾</span></div>
+    <div class="coll-body" id="cb-det"><div class="det-grid">
+      ${[['Address',p.address],['City',p.city],['Postcode',p.postcode],['Type',p.type],['Built',p.built||'—'],['Council',p.council||'—'],['Council tax band',p.council_tax_band||'—'],['EPC rating',p.epc||'—'],['EPC expiry',FMS(p.epc_expiry)],['Monthly rent',p.rent?'£'+p.rent.toLocaleString():'Vacant'],['Bedrooms',p.beds||'—'],['Bathrooms',p.bathrooms||'—']].map(([l,v])=>`<div class="det-f"><label>${l}</label><span>${v}</span></div>`).join('')}
+    </div></div></div>
+
+    <div class="coll"><div class="coll-hd" onclick="toggleColl('rooms')"><span class="coll-l">📐 Rooms <span class="coll-cnt">${(p.rooms||[]).length}</span></span><div class="coll-r"><button class="btn btn-sm" onclick="event.stopPropagation();alert('Add room — coming next')">+ Add</button><span class="coll-arr op" id="ca-rooms">▾</span></div></div>
+    <div class="coll-body" id="cb-rooms">${(p.rooms||[]).length?`<div class="tw"><table><thead><tr><th>Room</th><th>Floor</th><th>Size (m²)</th></tr></thead><tbody>${(p.rooms||[]).map(r=>`<tr><td class="td-bold">${r.name}</td><td>${r.floor}</td><td>${r.size} m²</td></tr>`).join('')}</tbody></table></div>`:'<div style="color:var(--muted);font-size:13px">No rooms added yet</div>'}</div></div>
+
+    <div class="coll"><div class="coll-hd" onclick="toggleColl('lic')"><span class="coll-l">📋 Property licence <span class="coll-cnt badge ${licBadge}" style="font-size:10px">${p.licence_type||'None'}</span></span><div class="coll-r"><button class="btn btn-sm" onclick="event.stopPropagation();moLicence('${pid}')">✎ Edit</button><span class="coll-arr op" id="ca-lic">▾</span></div></div>
+    <div class="coll-body" id="cb-lic"><div class="det-grid">${[['Licence type',p.licence_type||'None'],['Reference',p.licence_ref||'—'],['Expiry',FMS(p.licence_expiry)],['Max occupants',p.licence_max||'—']].map(([l,v])=>`<div class="det-f"><label>${l}</label><span>${v}</span></div>`).join('')}</div></div></div>
+
+    <div class="coll"><div class="coll-hd" onclick="toggleColl('ten')"><span class="coll-l">👤 Tenants <span class="coll-cnt">${t?1:0}</span></span><div class="coll-r"><button class="btn btn-sm" onclick="event.stopPropagation();moTenant('${pid}')">+ Add tenant</button><span class="coll-arr op" id="ca-ten">▾</span></div></div>
+    <div class="coll-body" id="cb-ten">${t?`<div style="display:flex;align-items:center;gap:12px"><div class="t-av">${INI(t.name)}</div><div style="flex:1"><div style="font-weight:500">${t.name}</div><div style="font-size:12px;color:var(--muted)">${t.email||'—'}</div></div><div style="text-align:right"><div style="font-size:12px;font-weight:600">£${(t.rent||0).toLocaleString()}/mo</div><div style="font-size:11px;color:var(--muted)">${FMS(t.start)} – ${FMS(t.end)}</div></div>${B(t.status)}</div>`:'<div style="color:var(--muted);font-size:13px">No active tenants</div>'}</div></div>
+
+    <div class="coll"><div class="coll-hd" onclick="toggleColl('doc')"><span class="coll-l">📄 Documents <span class="coll-cnt">${pc.filter(c=>c.file||c.has_file).length}</span></span><div class="coll-r"><button class="btn btn-sm" onclick="event.stopPropagation();moCert('${pid}')">+ Add</button><span class="coll-arr op" id="ca-doc">▾</span></div></div>
+    <div class="coll-body" id="cb-doc">${pc.length?`<div class="tw"><table><thead><tr><th>Document</th><th>Status</th><th>Expiry</th><th>Engineer</th><th>Served</th></tr></thead><tbody>${pc.map(c=>`<tr><td class="td-bold">${c.type}</td><td>${B(c.status)}</td><td>${FMT(c.expiry)}</td><td style="font-size:12px;color:var(--muted)">${c.engineer||'—'}</td><td>${c.served?B('Served'):'—'}</td></tr>`).join('')}</tbody></table></div>`:'<div style="color:var(--muted);font-size:13px">No documents yet</div>'}</div></div>
+
+    <div class="coll"><div class="coll-hd" onclick="toggleColl('mort')"><span class="coll-l">🏦 Mortgage</span><div class="coll-r"><button class="btn btn-sm" onclick="event.stopPropagation();moMortgage('${pid}')">✎ Edit</button><span class="coll-arr op" id="ca-mort">▾</span></div></div>
+    <div class="coll-body" id="cb-mort">${p.mortgage_lender?`<div class="det-grid">${[['Lender',p.mortgage_lender],['Account',p.mortgage_account||'—'],['Monthly','£'+(p.mortgage_monthly||0).toLocaleString()],['Rate',p.mortgage_rate?p.mortgage_rate+'%':'—'],['Type',p.mortgage_type||'—'],['End date',FMS(p.mortgage_end)],['Outstanding','£'+(p.mortgage_outstanding||0).toLocaleString()]].map(([l,v])=>`<div class="det-f"><label>${l}</label><span>${v}</span></div>`).join('')}</div>`:'<div style="color:var(--muted);font-size:13px">No mortgage details yet</div>'}</div></div>
+
+    <div class="coll"><div class="coll-hd" onclick="toggleColl('ins')"><span class="coll-l">🛡 Insurance <span class="coll-cnt">${pi.length}</span></span><span class="coll-arr op" id="ca-ins">▾</span></div>
+    <div class="coll-body" id="cb-ins">${pi.length?pi.map(i=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)"><div><div style="font-weight:500">${i.type}</div><div style="font-size:12px;color:var(--muted)">${i.provider} · ${i.policy}</div></div><div style="text-align:right"><div style="font-size:12px;font-weight:600">£${i.premium}/yr</div><div style="font-size:11px;color:var(--muted)">Expires ${FMS(i.expiry)}</div></div></div>`).join(''):'<div style="color:var(--muted);font-size:13px">No insurance policies</div>'}</div></div>
+
+    <div class="coll"><div class="coll-hd" onclick="toggleColl('insp')"><span class="coll-l">🔍 Inspections <span class="coll-cnt">${(p.inspections||[]).length}</span></span><div class="coll-r"><button class="btn btn-sm" onclick="event.stopPropagation();moInspection('${pid}')">+ Log</button><span class="coll-arr op" id="ca-insp">▾</span></div></div>
+    <div class="coll-body" id="cb-insp">${(p.inspections||[]).length?`<div class="tw"><table><thead><tr><th>Date</th><th>Type</th><th>Inspector</th><th>Notes</th></tr></thead><tbody>${(p.inspections||[]).map(i=>`<tr><td>${FMS(i.date)}</td><td><span class="badge b-blue">${i.type}</span></td><td>${i.inspector||'—'}</td><td style="font-size:12px;max-width:200px">${i.notes||'—'}</td></tr>`).join('')}</tbody></table></div>`:'<div style="color:var(--muted);font-size:13px">No inspections yet</div>'}</div></div>
+
+    <div class="coll"><div class="coll-hd" onclick="toggleColl('notes')"><span class="coll-l">📝 Notes</span><span class="coll-arr op" id="ca-notes">▾</span></div>
+    <div class="coll-body" id="cb-notes">${p.notes?`<div style="font-size:13.5px;line-height:1.7;white-space:pre-wrap">${p.notes}</div>`:'<div style="color:var(--muted);font-size:13px">No notes added</div>'}<button class="btn btn-sm" style="margin-top:12px" onclick="moEditProp('${pid}')">✎ Edit notes</button></div></div>
+  </div>`;
+}
+
+// ── PAGE: COMPLIANCE ──
+function pgCompliance(){
+  const grps=D.properties.map(p=>{const c=CF(p.id),v=c.filter(x=>x.status!=='Missing').length,n=c.length||1,pct=Math.round(v/n*100);return{p,c,v,n:c.length,pct}});
+  return`<div class="topbar"><span class="tb-title">Compliance</span><div class="tb-right">
+    <button class="btn" onclick="alert('S.8 — coming next')">S.8 Notice</button>
+    <button class="btn btn-navy" onclick="moCert()">+ Add certificate</button>
+  </div></div>
+  <div class="content">
+    <div class="ph"><h1>Compliance</h1><p>Track certificates across your portfolio</p></div>
+    ${grps.length?grps.map(g=>`<div class="panel">
+      <div class="prop-group">
+        <span style="font-size:12px;font-weight:600;text-transform:uppercase">${g.p.address}, ${g.p.city}</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="prog-wrap"><div class="prog-fill" style="width:${g.pct}%"></div></div>
+          <span class="badge ${g.pct===100?'b-green':g.pct>=60?'b-amber':'b-red'}">${g.v}/${g.n} complete</span>
+        </div>
+      </div>
+      ${g.c.length?`<div class="tw"><table><thead><tr><th>Type</th><th>Expiry</th><th>Status</th><th>File</th><th>Served</th><th>Engineer</th></tr></thead>
+      <tbody>${g.c.map(c=>`<tr><td class="td-bold">${c.type}</td><td>${FMT(c.expiry)}</td><td>${B(c.status)}</td>
+        <td>${(c.file||c.has_file)?B('Uploaded'):'<span style="font-size:11px;color:var(--muted)">No file</span>'}</td>
+        <td>${c.served?B('Served'):'<span style="font-size:11px;color:var(--muted)">Not served</span>'}</td>
+        <td style="font-size:12px;color:var(--muted)">${c.engineer||'—'}</td>
+      </tr>`).join('')}</tbody></table></div>`:'<div style="padding:14px 18px;font-size:13px;color:var(--muted)">No certificates yet — <a href="#" onclick="moCert()" style="color:var(--navy);font-weight:500">add one</a></div>'}
+    </div>`).join(''):'<div class="empty"><div class="empty-ic">✓</div><div class="empty-t">No properties yet</div><div class="empty-s">Add a property to start tracking compliance</div></div>'}
+  </div>`;
+}
+
+// ── PAGE: TENANTS ──
+function pgTenants(){
+  return`<div class="topbar"><span class="tb-title">Tenants</span><div class="tb-right"><button class="btn btn-navy" onclick="moTenant()">+ Add tenant</button></div></div>
+  <div class="content">
+    <div class="ph"><h1>Tenants</h1><p>${D.tenants.length} active tenant${D.tenants.length!==1?'s':''}</p></div>
+    ${D.tenants.length?`<div class="panel"><div class="tw"><table>
+      <thead><tr><th>Name</th><th>Property</th><th>Email</th><th>Start</th><th>End</th><th>Deposit</th><th>Status</th></tr></thead>
+      <tbody>${D.tenants.map(t=>{const p=P(t.prop_id)||{address:'—'};return`<tr>
+        <td><div style="display:flex;align-items:center;gap:10px"><div class="t-av">${INI(t.name)}</div><div><div class="td-bold">${t.name}</div><div style="font-size:11px;color:var(--muted)">${t.phone||'—'}</div></div></div></td>
+        <td>${p.address}</td><td style="font-size:12px;color:var(--muted)">${t.email||'—'}</td>
+        <td>${FMS(t.start||t.start_date)}</td><td>${FMS(t.end||t.end_date)}</td>
+        <td>${t.scheme?B('Protected'):'<span style="color:var(--muted);font-size:12px">Not set</span>'}</td><td>${B(t.status)}</td>
+      </tr>`}).join('')}</tbody>
+    </table></div></div>`:'<div class="empty"><div class="empty-ic">👤</div><div class="empty-t">No tenants yet</div><div class="empty-s">Click + Add tenant to get started</div></div>'}
+  </div>`;
+}
+
+// ── PAGE: RENT ──
+function pgRent(){
+  const tot=D.properties.reduce((s,p)=>s+(p.rent||0),0);
+  const paid=D.rent.filter(r=>r.status==='Paid').reduce((s,r)=>s+(r.amount||0),0);
+  const due=D.rent.filter(r=>r.status==='Due').reduce((s,r)=>s+(r.amount||0),0);
+  return`<div class="topbar"><span class="tb-title">Rent</span><div class="tb-right"><button class="btn btn-navy" onclick="alert('Record payment — coming next')">+ Record payment</button></div></div>
+  <div class="content">
+    <div class="ph"><h1>Rent</h1><p>Track payments across your portfolio</p></div>
+    <div class="metrics metrics-3">
+      <div class="mc"><div class="mc-top"><span class="mc-label">Collected</span></div><div class="mc-val" style="color:var(--green-dark)">£${paid.toLocaleString()}</div><div class="mc-sub">of £${tot.toLocaleString()} expected</div></div>
+      <div class="mc"><div class="mc-top"><span class="mc-label">Outstanding</span></div><div class="mc-val" style="color:var(--amber)">£${due.toLocaleString()}</div></div>
+      <div class="mc"><div class="mc-top"><span class="mc-label">Late payments</span></div><div class="mc-val" style="color:var(--red)">${D.rent.filter(r=>r.status==='Late').length}</div></div>
+    </div>
+    ${D.rent.length?`<div class="panel"><div class="tw"><table>
+      <thead><tr><th>Property</th><th>Month</th><th>Amount</th><th>Due</th><th>Paid</th><th>Status</th></tr></thead>
+      <tbody>${D.rent.map(r=>{const p=P(r.prop_id)||{address:'—',city:''};return`<tr>
+        <td class="td-bold">${p.address}</td><td>${r.month}</td>
+        <td>£${(r.amount||0).toLocaleString()}</td><td>${FMS(r.due||r.due_date)}</td>
+        <td>${r.paid||r.paid_date?FMS(r.paid||r.paid_date):'—'}</td><td>${B(r.status)}</td>
+      </tr>`}).join('')}</tbody>
+    </table></div></div>`:'<div class="empty"><div class="empty-ic">💷</div><div class="empty-t">No rent records yet</div></div>'}
+  </div>`;
+}
+
+// ── PAGE: MAINTENANCE ──
+let mtab='open';
+function pgMaintenance(){
+  const opn=D.maintenance.filter(m=>m.status!=='Resolved'),res=D.maintenance.filter(m=>m.status==='Resolved'),cur=mtab==='open'?opn:res;
+  return`<div class="topbar"><span class="tb-title">Maintenance</span><div class="tb-right"><button class="btn btn-navy" onclick="moIssue()">+ Report issue</button></div></div>
+  <div class="content">
+    <div class="ph"><h1>Maintenance</h1><p>Track and manage issues</p></div>
+    <div class="metrics metrics-3">
+      <div class="mc"><div class="mc-top"><span class="mc-label">Open issues</span><div class="mc-icon">🔧</div></div><div class="mc-val">${opn.length}</div></div>
+      <div class="mc"><div class="mc-top"><span class="mc-label">Resolved</span><div class="mc-icon">✅</div></div><div class="mc-val">${res.length}</div></div>
+      <div class="mc"><div class="mc-top"><span class="mc-label">Awaab's Law</span><div class="mc-icon">⏱</div></div><div class="mc-val" style="color:var(--red)">${D.maintenance.filter(m=>m.awaab).length}</div></div>
+    </div>
+    <div class="tabs">
+      <button class="tab${mtab==='open'?' active':''}" onclick="mtab='open';nav('maintenance')">Open (${opn.length})</button>
+      <button class="tab${mtab==='resolved'?' active':''}" onclick="mtab='resolved';nav('maintenance')">Resolved (${res.length})</button>
+    </div>
+    <div class="panel"><div class="tw"><table>
+      <thead><tr><th>Date</th><th>Property</th><th>Description</th><th>Category</th><th>Priority</th><th>Flags</th><th>Status</th></tr></thead>
+      <tbody>${cur.length?cur.map(m=>{const p=P(m.prop_id)||{address:'—',id:0};return`<tr>
+        <td style="white-space:nowrap;font-size:12px">${FMT(m.date||m.issue_date)}</td>
+        <td><button style="background:none;border:none;color:var(--blue);cursor:pointer;font-weight:500;font-size:13px;font-family:var(--font)" onclick="nav('prop-detail','${p.id}')">${p.address}</button></td>
+        <td style="max-width:220px;font-size:13px;white-space:normal">${m.desc||m.description||'—'}</td>
+        <td style="font-size:12px">${m.cat}</td><td>${B(m.priority)}</td>
+        <td>${m.awaab?'<span class="badge b-red">Awaab</span>':'—'}</td>
+        <td><div class="sf">
+          <button class="sf-btn${m.status==='Open'?' sf-on':''}" onclick="updateIssueStatus('${m.id}','Open')">Open</button>
+          <span style="color:var(--muted);font-size:11px">→</span>
+          <button class="sf-btn${m.status==='In progress'?' sf-on':''}" onclick="updateIssueStatus('${m.id}','In progress')">In progress</button>
+          ${mtab==='open'?`<span style="color:var(--muted)">→</span><button class="sf-btn" onclick="updateIssueStatus('${m.id}','Resolved')">Resolve</button>`:''}
+        </div></td>
+      </tr>`}).join(''):`<tr><td colspan="7"><div class="empty"><div class="empty-ic">✓</div><div class="empty-t">No ${mtab} issues</div></div></td></tr>`}
+      </tbody>
+    </table></div></div>
+  </div>`;
+}
+
+async function updateIssueStatus(id, status) {
+  const { error } = await sb.from('maintenance').update({status}).eq('id', id);
+  if (error) { toast('Error: ' + error.message, true); return; }
+  const m = D.maintenance.find(x => String(x.id) === String(id));
+  if (m) m.status = status;
+  await logAudit('UPDATE_MAINTENANCE', 'maintenance', id, `Status → ${status}`);
+  toast(`✓ Marked as ${status}`);
+  nav('maintenance');
+}
+
+// ── PAGE: INSURANCE ──
+function pgInsurance(){
+  return`<div class="topbar"><span class="tb-title">Insurance</span><div class="tb-right"><button class="btn btn-navy" onclick="alert('Add policy — coming next')">+ Add policy</button></div></div>
+  <div class="content">
+    <div class="ph"><h1>Insurance</h1><p>Track policies across your portfolio</p></div>
+    ${D.insurance.length?`<div class="panel"><div class="tw"><table>
+      <thead><tr><th>Property</th><th>Type</th><th>Provider</th><th>Policy no.</th><th>Premium</th><th>Expiry</th><th>Status</th></tr></thead>
+      <tbody>${D.insurance.map(i=>{const p=P(i.prop_id)||{address:'—'};const d=Math.round((new Date(i.expiry)-new Date())/864e5);return`<tr>
+        <td class="td-bold">${p.address}</td><td>${i.type}</td><td>${i.provider}</td>
+        <td style="font-size:12px;color:var(--muted)">${i.policy}</td><td>£${i.premium}/yr</td>
+        <td>${FMS(i.expiry)} <span style="font-size:11px;color:${d<60?'var(--amber)':'var(--muted)'}">(${d}d)</span></td>
+        <td>${B(i.status)}</td>
+      </tr>`}).join('')}</tbody>
+    </table></div></div>`:'<div class="empty"><div class="empty-ic">🛡</div><div class="empty-t">No insurance policies yet</div></div>'}
+  </div>`;
+}
+
+// ── PAGE: AI ASSISTANT ──
+function pgAssistant(){
+  return`<div class="topbar"><span class="tb-title">AI Compliance Assistant</span></div>
+  <div class="chat-outer">
+    <div class="chat-msgs" id="cm">${D.chat.map(m=>m.role==='ai'?`<div class="msg ai"><div class="mlbl">Rent Safe AI</div>${m.text}</div>`:`<div class="msg user">${m.text}</div>`).join('')}</div>
+    <div class="chat-bar">
+      <input class="chat-in" id="ci2" placeholder="Ask anything — Section 8, Awaab's Law, RRA, deposits..." onkeydown="if(event.key==='Enter')sendChat()">
+      <button class="btn btn-navy" onclick="sendChat()">Send</button>
+    </div>
+    <div class="chat-disc">For guidance only. Verify with a qualified solicitor for legal proceedings.</div>
+  </div>`;
+}
+
+async function sendChat(){
+  const i=document.getElementById('ci2'),q=i.value.trim();if(!q)return;i.value='';
+  D.chat.push({role:'user',text:q});
+  const cm=document.getElementById('cm');
+  cm.innerHTML+=`<div class="msg user">${q}</div><div class="msg ai" id="at"><div class="mlbl">Rent Safe AI</div><span style="color:var(--muted)">Thinking…</span></div>`;
+  cm.scrollTop=cm.scrollHeight;
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,system:'UK landlord compliance assistant. Expert in RRA, Section 8/21, Awaab\'s Law, EPC, EICR, gas safety, deposits. Concise, practical, under 200 words.',messages:D.chat.filter(m=>m.role!=='system').map(m=>({role:m.role==='ai'?'assistant':'user',content:m.text}))})});
+    const d=await r.json(),reply=d.content?.[0]?.text||'No response.';
+    D.chat.push({role:'ai',text:reply});
+    document.getElementById('at').innerHTML=`<div class="mlbl">Rent Safe AI</div>${reply}`;
+    cm.scrollTop=cm.scrollHeight;
+  }catch(e){document.getElementById('at').innerHTML=`<div class="mlbl">Rent Safe AI</div>Connection error. Please try again.`;}
+}
+
+// ── PAGE: CALENDAR ──
+function pgCalendar(){
+  const now=new Date(),yr=now.getFullYear(),mo=now.getMonth();
+  const mn=now.toLocaleString('en-GB',{month:'long',year:'numeric'});
+  const fd=(new Date(yr,mo,1).getDay()+6)%7,dim=new Date(yr,mo+1,0).getDate();
+  const dn=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],ev=[10,14,22,30];
+  let cells='';
+  for(let i=0;i<fd;i++)cells+=`<div class="cc"></div>`;
+  for(let d=1;d<=dim;d++){const iT=d===now.getDate(),hE=ev.includes(d);cells+=`<div class="cc cm${iT?' td':''}${hE?' hd':''}">${d}</div>`;}
+  return`<div class="topbar"><span class="tb-title">Calendar</span></div>
+  <div class="content">
+    <div class="ph"><h1>Calendar</h1><p>Certificate expiries, inspections, and key dates</p></div>
+    <div class="g2">
+      <div class="panel">
+        <div class="cal-nav"><button class="btn btn-sm">‹</button><h3>${mn}</h3><button class="btn btn-sm">›</button></div>
+        <div class="cal-wrap">
+          <div class="cal-dh">${dn.map(d=>`<div class="cal-dn">${d}</div>`).join('')}</div>
+          <div class="cal-g">${cells}</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="ph2"><h2>Upcoming</h2></div>
+        ${D.certs.filter(c=>c.expiry).sort((a,b)=>new Date(a.expiry)-new Date(b.expiry)).slice(0,5).map(c=>{const p=P(c.prop_id)||{address:'—'};const d=new Date(c.expiry);return`<div class="ai-row">
+          <div style="text-align:center;min-width:44px"><div style="font-size:11px;color:var(--muted)">${d.toLocaleString('en-GB',{month:'short'})}</div><div style="font-size:15px;font-weight:600">${d.getDate()}</div></div>
+          <div class="ai-body"><div class="ai-title">${c.type}</div><div class="ai-sub">${p.address}</div></div>
+          <span class="badge ${c.status==='Expired'?'b-red':Math.round((d-new Date())/864e5)<60?'b-amber':'b-blue'}">${c.status}</span>
+        </div>`}).join('')||'<div class="empty"><div class="empty-ic">📅</div><div class="empty-t">No upcoming dates</div></div>'}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── ROUTER ──
+const PAGES={
+  dashboard:()=>pgDashboard(),
+  properties:()=>pgProperties(),
+  tenants:()=>pgTenants(),
+  rent:()=>pgRent(),
+  compliance:()=>pgCompliance(),
+  maintenance:()=>pgMaintenance(),
+  insurance:()=>pgInsurance(),
+  assistant:()=>pgAssistant(),
+  calendar:()=>pgCalendar(),
+  'prop-detail':(id)=>pgPropDetail(id)
+};
+
+function nav(page, param){
+  document.querySelectorAll('.nav-item[data-page]').forEach(el=>{
+    const base=page==='prop-detail'?'properties':page;
+    el.classList.toggle('active',el.dataset.page===base);
+  });
+  main.innerHTML=(PAGES[page]||pgDashboard)(param);
+  main.scrollTo(0,0);
+}
+
+// ── START ──
+initApp();
+</script>
+
+<!-- COOKIE BANNER -->
+<div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:var(--navy);border-top:1px solid rgba(255,255,255,0.1);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+  <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:260px">
+    <span style="font-size:20px">🍪</span>
+    <p style="font-size:13px;color:rgba(255,255,255,0.7);margin:0;line-height:1.5">We use essential cookies to keep you logged in and the platform running. No tracking or advertising cookies. <a href="privacy.html" style="color:var(--green);text-decoration:none">Privacy Policy</a></p>
+  </div>
+  <div style="display:flex;gap:10px;flex-shrink:0">
+    <button onclick="declineCookies()" style="padding:8px 16px;border-radius:7px;border:1px solid rgba(255,255,255,0.2);background:none;color:rgba(255,255,255,0.6);font-family:var(--font,sans-serif);font-size:13px;cursor:pointer">Essential only</button>
+    <button onclick="acceptCookies()" style="padding:8px 16px;border-radius:7px;border:none;background:#00C896;color:#0B1E3D;font-family:var(--font,sans-serif);font-size:13px;font-weight:600;cursor:pointer">Accept & continue</button>
+  </div>
+</div>
+<script>
+function acceptCookies(){localStorage.setItem('rsa_cookies','accepted');document.getElementById('cookie-banner').style.display='none';}
+function declineCookies(){localStorage.setItem('rsa_cookies','essential');document.getElementById('cookie-banner').style.display='none';}
+(function(){if(!localStorage.getItem('rsa_cookies')){document.getElementById('cookie-banner').style.display='flex';}})();
+</script>
+</body>
+</html>
