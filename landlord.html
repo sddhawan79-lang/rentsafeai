@@ -317,7 +317,6 @@ const CF = pid => D.certs.filter(c => String(c.prop_id) === String(pid));
 const INI = n => n.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
 const FMT = d => d ? new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—';
 const FMS = d => d ? new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
-  bash
 let _toastTimer;
 function toast(msg, err=false) {
   const el = document.getElementById('toast');
