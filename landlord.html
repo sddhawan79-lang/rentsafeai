@@ -1240,9 +1240,6 @@ const PAGES={
 'financials':()=>pgFinancials()
 };
 
-bash
-
-cat << 'PLEOF'
 // ── PAGE: P&L FINANCIALS ──
 function pgFinancials(){
   const totRent=D.properties.reduce((s,p)=>s+(p.rent||0),0);
