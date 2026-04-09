@@ -1,1 +1,42 @@
-TEST123
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rent Safe AI — Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+<style>
+body{font-family:system-ui,sans-serif;margin:0;background:#F6F8FB;display:flex;align-items:center;justify-content:center;min-height:100vh}
+.box{background:#fff;border-radius:12px;padding:40px;text-align:center;max-width:400px;box-shadow:0 4px 20px rgba(0,0,0,0.08)}
+h1{color:#0B1E3D;font-size:24px;margin-bottom:8px}
+p{color:#7A8FA6;font-size:14px;margin-bottom:24px}
+.btn{background:#0B1E3D;color:#fff;border:none;padding:12px 28px;border-radius:8px;font-size:15px;cursor:pointer;font-family:inherit}
+.btn:hover{background:#132847}
+.user{font-size:13px;color:#7A8FA6;margin-top:16px}
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>🏠 Rent Safe AI</h1>
+  <p id="msg">Checking your session…</p>
+  <button class="btn" onclick="window.location.href='login.html'">← Back to login</button>
+  <div class="user" id="user-info"></div>
+</div>
+<script>
+const sb = supabase.createClient(
+  'https://mahtcfukgzbonwibtsxz.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1haHRjZnVrZ3pib253aWJ0c3h6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2MjQ2MDAsImV4cCI6MjA5MTIwMDYwMH0.-wC55rGp1WFKfjKR3EhuXqAPDiWJ4w_e2LBXjHr_y5Y'
+);
+(async()=>{
+  const {data:{session}} = await sb.auth.getSession();
+  if(session){
+    document.getElementById('msg').textContent = '✅ You are logged in! Full dashboard coming soon.';
+    document.getElementById('user-info').textContent = 'Logged in as: ' + session.user.email;
+  } else {
+    document.getElementById('msg').textContent = 'Not logged in — redirecting…';
+    setTimeout(()=>window.location.href='login.html', 2000);
+  }
+})();
+</script>
+</body>
+</html>
