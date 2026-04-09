@@ -632,11 +632,7 @@ function openMo(t,s,b,f){
   document.getElementById('mo-s').textContent=s||'';
   document.getElementById('mo-b').innerHTML=b;
   document.getElementById('mo-f').innerHTML=f||'';
-  bash
-
-sed -n '631,950p' /mnt/user-data/outputs/landlord.html
-Output
-
+  
   document.getElementById('mo').classList.add('open');
 }
 function closeMo(){document.getElementById('mo').classList.remove('open')}
@@ -957,10 +953,6 @@ function pgDashboard(){
 // ── PAGE: PROPERTIES ──
 function pgProperties(){
   return`<div class="topbar"><span class="tb-title">Properties</span><div class="tb-right"><button class="btn btn-navy" onclick="moAddProp()">+ Add property</button></div></div>
-bash
-
-sed -n '951,1262p' /mnt/user-data/outputs/landlord.html
-Output
 
   <div class="content">
     <div class="ph"><h1>Properties</h1><p>Manage your portfolio</p></div>
