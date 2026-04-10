@@ -1340,6 +1340,10 @@ function moFinancials(pid){
 }
 
 // ── START ──
+// Wire nav clicks
+document.querySelectorAll('.nav-item[data-page]').forEach(btn => {
+  btn.addEventListener('click', () => nav(btn.dataset.page));
+});
 initApp();
 </script>
 
