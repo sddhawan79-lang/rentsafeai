@@ -1304,37 +1304,6 @@ function moFinancials(pid){
   `,'<button class="btn" onclick="closeMo()">Close</button><button class="btn btn-navy" onclick="alert(\'PDF export coming soon!\')">📄 Export PDF</button>');
 }
 
-// ── PAGE: P&L FINANCIALS ──
-function pgFinancials(){
-  const totRent=D.properties.reduce((s,p)=>s+(p.rent||0),0);
-  const totMort=D.properties.reduce((s,p)=>s+(p.mortgage_monthly||0),0);
-  const totIns=D.insurance.reduce((s,i)=>s+(i.premium||0)/12,0);
-  const totProfit=totRent-totMort-totIns;
-  const totYield=D.properties.length?((totRent*12)/(D.properties.reduce((s,p)=>s+(p.mortgage_outstanding||200000),0))*100).toFixed(1):0;
-  return`<div class="topbar"><span class="tb-title">P&L Overview</span></div>
-  <div class="content">
-    <div class="ph"><h1>P&L Overview</h1><p>Full financial overview across your portfolio</p></div>
-    <div class="metrics">
-      <div class="mc"><div class="mc-top"><span class="mc-label">Monthly income</span><div class="mc-icon">💰</div></div><div class="mc-val" style="color:var(--green-dark)">£${totRent.toLocaleString()}</div><div class="mc-sub">Rent collected</div></div>
-      <div class="mc"><div class="mc-top"><span class="mc-label">Monthly expenses</span><div class="mc-icon">📤</div></div><div class="mc-val" style="color:var(--red)">£${Math.round(totMort+totIns).toLocaleString()}</div><div class="mc-sub">Mortgage + insurance</div></div>
-      <div class="mc"><div class="mc-top"><span class="mc-label">Net profit</span><div class="mc-icon">📈</div></div><div class="mc-val" style="color:${totProfit>=0?'var(--green-dark)':'var(--red)'}">£${Math.round(totProfit).toLocaleString()}</div><div class="mc-sub">Per month</div></div>
-      <div class="mc"><div class="mc-top"><span class="mc-label">Gross yield</span><div class="mc-icon">%</div></div><div class="mc-val">${totYield}%</div><div class="mc-sub">Portfolio average</div></div>
-    </div>
-    <div class="panel">
-      <div class="ph2"><h2>Property breakdown</h2><p>Per property P&L</p></div>
-      <div class="tw"><table>
-        <thead><tr><th>Property</th><th>Monthly rent</th><th>Mortgage</th><th>Insurance</th><th>Net profit</th><th>Yield</th><th>Tax est.</th><th>Actions</th></tr></thead>
-        <tbody>${D.properties.map(p=>{const ins=D.insurance.filter(i=>String(i.prop_id)===String(p.id)).reduce((s,i)=>s+(i.premium||0)/12,0);const mort=p.mortgage_monthly||0;const profit=(p.rent||0)-mort-ins;const yld=p.mortgage_outstanding?((p.rent||0)*12/p.mortgage_outstanding*100).toFixed(1):'—';const tax=profit>0?Math.round(profit*0.2):0;return`<tr><td class="td-bold">${p.address}</td><td style="color:var(--green-dark);font-weight:600">£${(p.rent||0).toLocaleString()}</td><td style="color:var(--red)">£${mort.toLocaleString()}</td><td style="color:var(--amber)">£${Math.round(ins).toLocaleString()}</td><td style="font-weight:600;color:${profit>=0?'var(--green-dark)':'var(--red)'}">£${Math.round(profit).toLocaleString()}</td><td><span class="badge ${parseFloat(yld)>=5?'b-green':parseFloat(yld)>=3?'b-amber':'b-red'}">${yld}%</span></td><td style="color:var(--muted);font-size:12px">~£${tax}/mo</td><td><button class="btn btn-sm" onclick="moFinancials('${p.id}')">📊 Detail</button></td></tr>`;}).join('')}${D.properties.length===0?`<tr><td colspan="8"><div class="empty"><div class="empty-ic">📊</div><div class="empty-t">No properties yet</div></div></td></tr>`:''}</tbody>
-      </table></div>
-    </div>
-    <div class="panel" style="background:linear-gradient(135deg,#0B1E3D,#132847);color:#fff;border:none">
-      <div style="padding:20px">
-        <div style="font-size:11px;font-weight:600;color:var(--green);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px">✦ AI Financial Insight</div>
-        <div style="font-size:14px;color:rgba(255,255,255,0.8);line-height:1.7">${D.properties.length?`Your portfolio generates £${totRent.toLocaleString()}/mo income with £${Math.round(totProfit).toLocaleString()}/mo net profit. ${parseFloat(totYield)>=5?'✅ Your yield is strong at '+totYield+'%.':parseFloat(totYield)>=3?'⚠️ Your yield of '+totYield+'% is average.':'🔴 Your yield of '+totYield+'% is below average.'} Tax estimate: ~£${Math.round(Math.max(0,totProfit)*0.2).toLocaleString()}/mo basic rate.`:'Add properties to see AI financial insights.'}</div>
-      </div>
-    </div>
-  </div>`;
-}
 function moFinancials(pid){
   const p=P(pid);
   const ins=D.insurance.filter(i=>String(i.prop_id)===String(pid)).reduce((s,i)=>s+(i.premium||0)/12,0);
