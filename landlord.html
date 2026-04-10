@@ -259,7 +259,11 @@ tr:hover td{background:rgba(246,248,251,.8)}
   <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12V4l4 3 3-4 3 3 2-2v8H2z"/></svg>
   P&L
 </button>
-    <button class="nav-item" data-page="onboarding">
+    <button class="nav-item" data-page="templates">
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="1" width="9" height="12" rx="1.5"/><path d="M5 4h5M5 7h5M5 10h3"/><path d="M11 9l3 3-1.5 1.5L9 10.5"/></svg>
+  Templates
+</button>
+<div class="nav-divider"></div><button class="nav-item" data-page="onboarding">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 8h8M4 5h8M4 11h5"/><rect x="1" y="1" width="14" height="14" rx="2"/></svg>
       Onboarding
     </button>
@@ -1232,7 +1236,8 @@ const PAGES={
   assistant:()=>pgAssistant(),
   calendar:()=>pgCalendar(),
   'prop-detail':(id)=>pgPropDetail(id),
-'financials':()=>pgFinancials()
+  financials:()=>pgFinancials(),
+templates:()=>pgTemplates(),
 };
 
 // ── PAGE: P&L FINANCIALS ──
@@ -1338,7 +1343,282 @@ function moFinancials(pid){
   main.innerHTML=(PAGES[page]||pgDashboard)(param);
   main.scrollTo(0,0);
 }
+// ── PAGE: TEMPLATES ──
+function pgTemplates() {
+  const cats = [
+    {
+      id: 'notices',
+      icon: '⚖️',
+      label: 'Legal Notices',
+      badge: null,
+      templates: [
+        { id: 'section8', name: 'Section 8 Notice', desc: 'Notice seeking possession — rent arrears or breach of tenancy', tag: 'Possession', ai: true },
+        { id: 'section13', name: 'Section 13 Notice', desc: 'Formal rent increase notice under the Housing Act 1988', tag: 'Rent increase', ai: true },
+        { id: 'noticetoquit', name: 'Notice to Quit', desc: 'Landlord notice to end a periodic tenancy', tag: 'Periodic', ai: true },
+      ]
+    },
+    {
+      id: 'rra',
+      icon: '🏛️',
+      label: "Renters' Rights Act 2025",
+      badge: '⚠️ Deadline 31 May 2026',
+      templates: [
+        { id: 'rrasheet', name: "Renters' Rights Act Information Sheet", desc: 'MANDATORY — must be sent to all existing tenants by 31 May 2026. Fine up to £7,000 if missed', tag: 'Urgent', ai: false, urgent: true },
+        { id: 'writtenstatement', name: 'Written Statement of Terms', desc: 'Replaces the AST — new mandatory tenancy document from 1 May 2026', tag: 'New 2026', ai: true },
+        { id: 'petpermission', name: 'Pet Permission Response', desc: 'Approve or decline a tenant pet request — must respond within 42 days', tag: 'Pet rights', ai: true },
+      ]
+    },
+    {
+      id: 'tenancy',
+      icon: '📄',
+      label: 'Tenancy Documents',
+      badge: null,
+      templates: [
+        { id: 'endoftenancy', name: 'End of Tenancy Letter', desc: 'Formal letter confirming tenancy end date and next steps', tag: 'Tenancy end', ai: true },
+        { id: 'depositdeduction', name: 'Deposit Deduction Letter', desc: 'Itemised letter explaining deposit deductions at end of tenancy', tag: 'Deposit', ai: true },
+        { id: 'depositreturn', name: 'Deposit Return Letter', desc: 'Confirm full or partial deposit return to tenant', tag: 'Deposit', ai: true },
+        { id: 'howtorent', name: 'How to Rent Checklist', desc: 'Government checklist — must be provided at tenancy start', tag: 'Required', ai: false },
+      ]
+    },
+    {
+      id: 'compliance',
+      icon: '✅',
+      label: 'Compliance & Inspections',
+      badge: null,
+      templates: [
+        { id: 'inspection', name: 'Property Inspection Report', desc: 'Detailed inspection record with condition notes and photos', tag: 'Inspection', ai: true },
+        { id: 'movein', name: 'Move-in Inventory', desc: 'Record property condition and contents at start of tenancy', tag: 'Inventory', ai: true },
+        { id: 'moveout', name: 'Move-out Inventory', desc: 'Compare condition at end of tenancy against move-in record', tag: 'Inventory', ai: true },
+        { id: 'righttorent', name: 'Right to Rent Check Record', desc: 'Document tenant identity checks as required by law', tag: 'Legal check', ai: false },
+        { id: 'smokeco', name: 'Smoke & CO Alarm Check', desc: 'Record alarm tests — required at start of every tenancy', tag: 'Safety', ai: false },
+      ]
+    },
+    {
+      id: 'comms',
+      icon: '✉️',
+      label: 'Communications',
+      badge: null,
+      templates: [
+        { id: 'rentarrears1', name: 'Rent Arrears Warning — 1st Letter', desc: 'Friendly first reminder that rent is overdue', tag: 'Arrears', ai: true },
+        { id: 'rentarrears2', name: 'Rent Arrears Warning — Final Letter', desc: 'Formal final warning before legal action', tag: 'Arrears', ai: true },
+        { id: 'maintenanceack', name: 'Maintenance Acknowledgement', desc: 'Confirm receipt of tenant maintenance request with timeline', tag: 'Maintenance', ai: true },
+        { id: 'contractoraccess', name: 'Contractor Access Letter', desc: '24-hour notice to tenant of contractor visit', tag: 'Access', ai: true },
+        { id: 'rentincrease', name: 'Rent Increase Cover Letter', desc: 'Informal letter accompanying a Section 13 notice', tag: 'Rent', ai: true },
+      ]
+    }
+  ];
 
+  const propOpts = D.properties.length
+    ? D.properties.map(p => `<option value="${p.id}">${p.address}, ${p.city}</option>`).join('')
+    : '<option value="">No properties yet</option>';
+
+  const tenantOpts = D.tenants.length
+    ? D.tenants.map(t => `<option value="${t.id}">${t.name}</option>`).join('')
+    : '<option value="">No tenants yet</option>';
+
+  return `
+    <div class="topbar">
+      <span class="tb-title">Templates</span>
+      <div class="tb-right">
+        <button class="btn btn-navy" onclick="moUploadTemplate()">↑ Upload template</button>
+      </div>
+    </div>
+    <div class="content">
+      <div class="ph">
+        <h1>Template Generator</h1>
+        <p>AI-powered UK landlord documents — auto-filled with your property and tenant data</p>
+      </div>
+
+      <div style="background:var(--amber-bg);border:1px solid var(--amber);border-radius:10px;padding:14px 18px;margin-bottom:22px;display:flex;align-items:center;gap:12px">
+        <span style="font-size:20px">⚠️</span>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--amber)">Renters' Rights Act — Deadline 31 May 2026</div>
+          <div style="font-size:12px;color:var(--txt);margin-top:2px">You must send the Renters' Rights Act Information Sheet to <strong>all existing tenants</strong> by 31 May 2026. Fines up to <strong>£7,000</strong> per breach.</div>
+        </div>
+        <button class="btn btn-sm" style="margin-left:auto;flex-shrink:0;border-color:var(--amber);color:var(--amber)" onclick="moGenerate('rrasheet')">Generate now →</button>
+      </div>
+
+      <div style="background:var(--off);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:22px;font-size:12px;color:var(--muted)">
+        ⚠️ <strong style="color:var(--txt)">Disclaimer:</strong> Templates are for reference only and do not constitute legal advice. Always seek independent legal advice before serving notices or signing tenancy documents.
+      </div>
+
+      ${cats.map(cat => `
+        <div class="coll" style="margin-bottom:14px">
+          <div class="coll-hd" onclick="toggleColl('tmpl-${cat.id}')">
+            <div class="coll-l">
+              <span style="font-size:16px">${cat.icon}</span>
+              ${cat.label}
+              <span class="coll-cnt">${cat.templates.length}</span>
+              ${cat.badge ? `<span class="badge b-amber" style="font-size:10px">${cat.badge}</span>` : ''}
+            </div>
+            <div class="coll-r">
+              <span class="coll-arr op" id="ca-tmpl-${cat.id}">▼</span>
+            </div>
+          </div>
+          <div class="coll-body" id="cb-tmpl-${cat.id}">
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
+              ${cat.templates.map(t => `
+                <div style="background:var(--white);border:1px solid ${t.urgent ? 'var(--amber)' : 'var(--border)'};border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:8px">
+                  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+                    <div style="font-size:13px;font-weight:600;color:var(--txt)">${t.name}</div>
+                    <span class="badge ${t.urgent ? 'b-amber' : t.tag === 'New 2026' ? 'b-blue' : 'b-gray'}" style="flex-shrink:0">${t.tag}</span>
+                  </div>
+                  <div style="font-size:12px;color:var(--muted);flex:1">${t.desc}</div>
+                  <div style="display:flex;gap:6px;margin-top:4px">
+                    ${t.ai ? `<button class="btn btn-sm btn-navy" onclick="moGenerate('${t.id}')">✦ Generate with AI</button>` : `<button class="btn btn-sm btn-navy" onclick="moGenerate('${t.id}')">Generate</button>`}
+                    <button class="btn btn-sm" onclick="toast('Download coming soon')">↓ Blank</button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+}
+
+// ── TEMPLATE GENERATOR MODAL ──
+function moGenerate(templateId) {
+  const titles = {
+    section8: 'Section 8 Notice',
+    section13: 'Section 13 Notice',
+    noticetoquit: 'Notice to Quit',
+    rrasheet: "Renters' Rights Act Information Sheet",
+    writtenstatement: 'Written Statement of Terms',
+    petpermission: 'Pet Permission Response',
+    endoftenancy: 'End of Tenancy Letter',
+    depositdeduction: 'Deposit Deduction Letter',
+    depositreturn: 'Deposit Return Letter',
+    inspection: 'Property Inspection Report',
+    movein: 'Move-in Inventory',
+    moveout: 'Move-out Inventory',
+    rentarrears1: 'Rent Arrears Warning — 1st Letter',
+    rentarrears2: 'Rent Arrears Warning — Final Letter',
+    maintenanceack: 'Maintenance Acknowledgement',
+    contractoraccess: 'Contractor Access Letter',
+    rentincrease: 'Rent Increase Cover Letter',
+  };
+
+  const propOpts = D.properties.length
+    ? D.properties.map(p => `<option value="${p.id}">${p.address}, ${p.city}</option>`).join('')
+    : '<option value="">No properties added yet</option>';
+
+  const tenantOpts = D.tenants.length
+    ? D.tenants.map(t => `<option value="${t.id}">${t.name}</option>`).join('')
+    : '<option value="">No tenants added yet</option>';
+
+  openMo(
+    titles[templateId] || 'Generate Template',
+    '✦ AI will auto-fill from your property & tenant data',
+    `
+    <div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:var(--muted)">
+      ⚠️ This template is for reference only and does not constitute legal advice. Seek independent legal advice before serving.
+    </div>
+    <div class="fg"><label>Property</label><select id="gen-prop">${propOpts}</select></div>
+    <div class="fg"><label>Tenant</label><select id="gen-tenant">${tenantOpts}</select></div>
+    <div class="fg"><label>Additional notes (optional)</label><textarea id="gen-notes" placeholder="Any specific details to include…"></textarea></div>
+    <div id="gen-output" style="display:none;margin-top:16px">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:8px">✦ Generated document</div>
+      <div id="gen-text" style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:16px;font-size:13px;line-height:1.8;white-space:pre-wrap;max-height:320px;overflow-y:auto;color:var(--txt)"></div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn btn-sm" onclick="copyTemplate()">📋 Copy</button>
+        <button class="btn btn-sm" onclick="toast('PDF export coming soon')">↓ Download PDF</button>
+      </div>
+    </div>
+    `,
+    `<button class="btn" onclick="closeMo()">Cancel</button>
+     <button class="btn btn-navy" id="gen-btn" onclick="runGenerate('${templateId}')">✦ Generate document</button>`
+  );
+}
+
+async function runGenerate(templateId) {
+  const btn = document.getElementById('gen-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span>Generating…';
+
+  const propId = document.getElementById('gen-prop')?.value;
+  const tenantId = document.getElementById('gen-tenant')?.value;
+  const notes = document.getElementById('gen-notes')?.value || '';
+
+  const prop = D.properties.find(p => String(p.id) === String(propId));
+  const tenant = D.tenants.find(t => String(t.id) === String(tenantId));
+
+  const contextInfo = `
+Property: ${prop ? `${prop.address}, ${prop.city}, ${prop.postcode}` : 'Not specified'}
+Monthly rent: ${prop ? '£' + prop.rent : 'Not specified'}
+Landlord: ${(currentUser?.email || 'Landlord').split('@')[0]}
+Tenant: ${tenant ? tenant.name : 'Not specified'}
+Tenant email: ${tenant?.email || 'Not specified'}
+Tenancy start: ${tenant?.start_date || 'Not specified'}
+Tenancy end: ${tenant?.end_date || 'Periodic'}
+Additional notes: ${notes || 'None'}
+Today's date: ${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'})}
+  `.trim();
+
+  const prompts = {
+    section8: `Generate a formal UK Section 8 Notice (Housing Act 1988) using these details:\n${contextInfo}\n\nInclude: header, property address, tenant name, grounds for possession (Ground 8 — rent arrears), required notice period (2 weeks minimum), date, landlord signature block. Format professionally. End with a clear disclaimer that this is a template only and not legal advice.`,
+    section13: `Generate a formal UK Section 13 Notice (Housing Act 1988) for a rent increase using:\n${contextInfo}\n\nInclude: header, current rent, new proposed rent (add 5% as example if not specified), effective date (minimum 1 month notice), proper formatting. End with disclaimer.`,
+    rrasheet: `Generate a covering letter to accompany the Government's Renters' Rights Act 2025 Information Sheet, addressed to the tenant, using:\n${contextInfo}\n\nExplain: what the Information Sheet is, key changes (end of fixed terms, periodic tenancies, Section 21 abolished), deadline of 1 May 2026, where to get help. Friendly but professional tone. End with disclaimer.`,
+    writtenstatement: `Generate a Written Statement of Terms (replacement for AST under Renters' Rights Act 2025) using:\n${contextInfo}\n\nInclude all required sections: parties, property, rent amount & payment date, deposit details, periodic tenancy terms, repair obligations, pet policy, notice periods. End with disclaimer.`,
+    petpermission: `Generate a Pet Permission Response letter (approving the request) under the Renters' Rights Act 2025 using:\n${contextInfo}\n\nInclude: acknowledgement of request, approval with reasonable conditions (professional cleaning at end, damage liability), tenant obligations. End with disclaimer.`,
+    endoftenancy: `Generate an End of Tenancy Letter using:\n${contextInfo}\n\nInclude: confirmation of end date, key dates, requirements (cleaning, keys return, meter readings, forwarding address), deposit process timeline. End with disclaimer.`,
+    depositdeduction: `Generate a Deposit Deduction Letter using:\n${contextInfo}\n\nInclude: itemised deductions table (use example items like cleaning, damage repair), remaining balance, timeline for return. Professional but clear tone. End with disclaimer.`,
+    depositreturn: `Generate a Deposit Return Letter confirming full return using:\n${contextInfo}\n\nInclude: confirmation property left in good condition, full deposit amount being returned, bank transfer timeline. End with disclaimer.`,
+    inspection: `Generate a Property Inspection Report using:\n${contextInfo}\n\nInclude: inspection date, inspector name, room-by-room condition table (kitchen, living room, bedrooms, bathroom, exterior), overall rating, any actions required. End with disclaimer.`,
+    movein: `Generate a Move-in Inventory using:\n${contextInfo}\n\nInclude: date, meter readings section, room-by-room condition and contents checklist, signature blocks for landlord and tenant. End with disclaimer.`,
+    moveout: `Generate a Move-out Inventory using:\n${contextInfo}\n\nInclude: date, meter readings, comparison notes against move-in, any damage noted, deposit implication column. End with disclaimer.`,
+    rentarrears1: `Generate a friendly but firm first Rent Arrears Warning Letter using:\n${contextInfo}\n\nInclude: amount owed, due date, request to pay within 7 days, contact details, offer to discuss difficulties. Firm but not threatening. End with disclaimer.`,
+    rentarrears2: `Generate a formal Final Rent Arrears Warning Letter using:\n${contextInfo}\n\nInclude: total arrears, previous warning reference, 7-day deadline before legal action, mention of Section 8 proceedings, consequences. Professional and serious tone. End with disclaimer.`,
+    maintenanceack: `Generate a Maintenance Request Acknowledgement Letter using:\n${contextInfo}\n\nInclude: acknowledgement of issue reported, expected response timeline (within 24 hours for urgent, 7 days for routine), contractor visit process, contact details. End with disclaimer.`,
+    contractoraccess: `Generate a Contractor Access Letter (24-hour notice) using:\n${contextInfo}\n\nInclude: date and time of visit, contractor name and trade, reason for visit, tenant rights, landlord contact details. End with disclaimer.`,
+    rentincrease: `Generate a friendly Rent Increase Cover Letter to accompany a Section 13 Notice using:\n${contextInfo}\n\nInclude: reason for increase (market rates, costs), amount of increase, effective date, reassurance about tenancy continuing. Warm but professional. End with disclaimer.`,
+  };
+
+  const prompt = prompts[templateId] || `Generate a professional UK landlord document for: ${templateId}\n${contextInfo}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.[0]?.text || 'Could not generate document. Please try again.';
+    document.getElementById('gen-text').textContent = text;
+    document.getElementById('gen-output').style.display = 'block';
+    btn.disabled = false;
+    btn.innerHTML = '✦ Regenerate';
+    await logAudit('GENERATE_TEMPLATE', 'templates', templateId, `Generated: ${templateId}`);
+  } catch(e) {
+    toast('Error generating document. Please try again.', true);
+    btn.disabled = false;
+    btn.innerHTML = '✦ Generate document';
+  }
+}
+
+function copyTemplate() {
+  const text = document.getElementById('gen-text')?.textContent;
+  if (text) {
+    navigator.clipboard.writeText(text);
+    toast('✓ Copied to clipboard!');
+  }
+}
+
+function moUploadTemplate() {
+  openMo('Upload template', 'Add your own custom template to the library',
+    `<div class="fg"><label>Template name</label><input type="text" placeholder="e.g. My custom tenancy agreement"></div>
+     <div class="fg"><label>Category</label>
+       <select><option>Legal Notices</option><option>Tenancy Documents</option><option>Compliance</option><option>Communications</option></select>
+     </div>
+     <div class="scan-box"><input type="file" accept=".pdf,.doc,.docx"><div class="scan-ic">📄</div><div class="scan-t">Upload document</div><div class="scan-s">PDF or Word document</div></div>`,
+    `<button class="btn" onclick="closeMo()">Cancel</button>
+     <button class="btn btn-navy" onclick="toast('Upload coming soon — building storage next!');closeMo()">Upload</button>`
+  );
+}
 // ── START ──
 // Wire nav clicks
 document.querySelectorAll('.nav-item[data-page]').forEach(btn => {
