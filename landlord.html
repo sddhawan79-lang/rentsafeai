@@ -925,7 +925,7 @@ function pgComplianceSection(){
   if(!D.properties.length) return '';
   var html = '<div style="margin-bottom:22px"><div style="font-size:13px;font-weight:600;color:var(--txt);margin-bottom:10px">📊 Portfolio compliance</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">';
   D.properties.slice(0,4).forEach(function(p){
-    html += '<div><div style="font-size:12px;font-weight:500;color:var(--txt);margin-bottom:6px">' + p.address + '</div>' + ragBar(p.id) + '</div>';
+    html += '<div><div style="font-size:12px;font-weight:500;color:var(--txt);margin-bottom:6px">' + p.address + '</div>' + '</div>';
   });
   html += '</div></div>';
   return html;
@@ -943,7 +943,7 @@ function pgDashboard(){
   </div></div>
   <div class="content">
     <div class="ph"><h1>Dashboard</h1><p>${acts.length} urgent, ${acts.filter(a=>a.b==='amber').length} due soon</p></div>
-    ${pgComplianceSection()}
+    
     <div class="metrics">
       <div class="mc"><div class="mc-top"><span class="mc-label">Properties</span><div class="mc-icon">🏠</div></div><div class="mc-val">${D.properties.length}</div><div class="mc-sub">Active</div></div>
       <div class="mc"><div class="mc-top"><span class="mc-label">Active tenants</span><div class="mc-icon">👤</div></div><div class="mc-val">${D.tenants.length}</div><div class="mc-sub">All active</div></div>
