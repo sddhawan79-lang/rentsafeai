@@ -1266,6 +1266,128 @@ function pgCalendar(){
   </div>`;
 }
 
+
+// ── PAGE: ONBOARDING / DEBOARDING ──
+function pgOnboarding(){
+  const ONBOARD_ITEMS = [
+    { id:'ob1',  section:'Pre-Tenancy',         icon:'🔍', label:'Right to Rent check',                        detail:'Passport, share code or biometric card. Keep copy on file.' },
+    { id:'ob2',  section:'Pre-Tenancy',         icon:'📋', label:'Tenant referencing & credit check',          detail:'Employment, previous landlord references, credit score.' },
+    { id:'ob3',  section:'Pre-Tenancy',         icon:'💷', label:'Collect holding deposit',                    detail:"Max 1 week's rent. Must be refunded or offset at move-in." },
+    { id:'ob4',  section:'Pre-Tenancy',         icon:'💰', label:'Collect security deposit',                   detail:"Max 5 weeks' rent (under £50k/yr) or 6 weeks above. Before agreement signed." },
+    { id:'ob5',  section:'Legal Documents',     icon:'📄', label:'Written Statement of Terms served',          detail:'Replaces AST from 1 May 2026. Must be served BEFORE tenancy is signed. (RRA 2025)' },
+    { id:'ob6',  section:'Legal Documents',     icon:'📜', label:'RRA 2025 Information Sheet served',          detail:'Mandatory for all tenancies from 1 May 2026. Must be PDF attachment — a link is NOT valid. Fine up to £7,000.' },
+    { id:'ob7',  section:'Legal Documents',     icon:'🏠', label:'How to Rent Guide served',                   detail:'Latest edition from GOV.UK. Keep timestamped proof of delivery.' },
+    { id:'ob8',  section:'Legal Documents',     icon:'🔥', label:'Gas Safety Certificate (CP12) served',       detail:'Must be provided before tenancy begins. Annual renewal required.' },
+    { id:'ob9',  section:'Legal Documents',     icon:'⚡', label:'EICR served',                                detail:'Electrical Installation Condition Report. Valid for 5 years.' },
+    { id:'ob10', section:'Legal Documents',     icon:'🌿', label:'EPC served',                                 detail:'Minimum E rating required. C rating target. Valid 10 years.' },
+    { id:'ob11', section:'Deposit Protection',  icon:'🔒', label:'Deposit registered in approved scheme',      detail:'DPS, MyDeposits or TDS. Must be done within 30 days of receipt.' },
+    { id:'ob12', section:'Deposit Protection',  icon:'📩', label:'Prescribed Information served to tenant',    detail:'Confirm scheme name, amount, and how to reclaim. Keep proof.' },
+    { id:'ob13', section:'Move-In Day',         icon:'📸', label:'Move-in inventory / condition report signed',detail:'Room-by-room condition report with dated photos. Both parties sign and keep a copy.' },
+    { id:'ob14', section:'Move-In Day',         icon:'🔵', label:'Gas meter reading recorded',                 detail:'Note the reading, take a timestamped photo. Share with gas supplier.' },
+    { id:'ob15', section:'Move-In Day',         icon:'🟡', label:'Electric meter reading recorded',            detail:'Note the reading, take a timestamped photo. Share with electricity supplier.' },
+    { id:'ob16', section:'Move-In Day',         icon:'💧', label:'Water meter reading recorded',               detail:'Note the reading, take a timestamped photo. Notify water company.' },
+    { id:'ob17', section:'Move-In Day',         icon:'🔑', label:'All keys handed over & checked',            detail:'Front door, back door, post box, meter cupboard, window keys. Log how many sets given.' },
+    { id:'ob18', section:'Move-In Day',         icon:'🚨', label:'Smoke & CO alarms tested',                  detail:'Smoke alarm on every storey. CO alarm in any room with solid fuel appliance. Test on day 1.' },
+    { id:'ob19', section:'Move-In Day',         icon:'📞', label:'Contact details & repair process provided',  detail:'Landlord/agent name, phone, email, UK address. Emergency repair procedure explained.' },
+    { id:'ob20', section:'Move-In Day',         icon:'🏦', label:'Notify insurers of new tenancy',            detail:'Update buildings & contents insurance. Policy may be invalid if not notified.' },
+  ];
+
+  const DEBOARD_ITEMS = [
+    { id:'db1',  section:'Notice & Legal',      icon:'⚖️', label:'Serve valid Section 8 notice',              detail:'Section 21 abolished from 1 May 2026. Must cite valid S.8 ground. Ground 8 now requires 3 months arrears. Notice period 4 weeks.' },
+    { id:'db2',  section:'Notice & Legal',      icon:'📬', label:'Proof of notice delivery retained',          detail:'Email read receipt, signed acknowledgement or recorded delivery. Keep on file. (RRA 2025)' },
+    { id:'db3',  section:'Notice & Legal',      icon:'🐾', label:'Pet damage assessed if applicable',          detail:'Under RRA 2025 landlords cannot unreasonably refuse pets. Document any damage with photos.' },
+    { id:'db4',  section:'Move-Out',            icon:'🔍', label:'Checkout inspection completed with tenant',  detail:'Walk through property together. Use move-in inventory as comparison document.' },
+    { id:'db5',  section:'Move-Out',            icon:'📸', label:'Move-out condition report & photos',         detail:'Room-by-room dated photos. Note any damage vs move-in inventory.' },
+    { id:'db6',  section:'Move-Out',            icon:'🔵', label:'Final gas meter reading recorded',           detail:'Timestamped photo. Notify gas supplier of tenancy end date and new responsible party.' },
+    { id:'db7',  section:'Move-Out',            icon:'🟡', label:'Final electric meter reading recorded',      detail:'Timestamped photo. Notify electricity supplier of tenancy end date.' },
+    { id:'db8',  section:'Move-Out',            icon:'💧', label:'Final water meter reading recorded',         detail:'Timestamped photo. Notify water company of tenancy end date.' },
+    { id:'db9',  section:'Move-Out',            icon:'🔑', label:'All keys returned & counted',               detail:'Cross-check against move-in key log. Front door, back door, post box, meter cupboard.' },
+    { id:'db10', section:'Move-Out',            icon:'📮', label:'Tenant forwarding address obtained',         detail:'Required for deposit return, final correspondence and any legal notices.' },
+    { id:'db11', section:'Deposit Return',      icon:'💷', label:'Deposit deductions agreed (if any)',         detail:'Itemised list with evidence. Communicate within 10 days of move-out.' },
+    { id:'db12', section:'Deposit Return',      icon:'✅', label:'Deposit returned via approved scheme',       detail:'Return balance through TDS/DPS/MyDeposits within agreed timeline.' },
+    { id:'db13', section:'Deposit Return',      icon:'📄', label:'Deposit return or deduction letter issued',  detail:'Written confirmation of full return or itemised breakdown of deductions.' },
+    { id:'db14', section:'Admin',               icon:'🏡', label:'Utilities transferred back to landlord',    detail:'Gas, electric, water, council tax — all transferred to landlord/vacant account.' },
+    { id:'db15', section:'Admin',               icon:'🔄', label:'Property marked as vacant in RentSafe AI',  detail:'Update property status. Update insurance provider. Council tax vacancy exemption if eligible.' },
+    { id:'db16', section:'Admin',               icon:'🛠️', label:'Maintenance issues identified & logged',    detail:'Log any repairs needed before next tenancy begins. Get quotes where needed.' },
+  ];
+
+  const savedOb = JSON.parse(localStorage.getItem('rsa_ob_checks')||'{}');
+  const savedDb = JSON.parse(localStorage.getItem('rsa_db_checks')||'{}');
+
+  function renderSection(items, saved, prefix){
+    let sections = {};
+    items.forEach(item=>{
+      if(!sections[item.section]) sections[item.section]=[];
+      sections[item.section].push(item);
+    });
+    let html='';
+    Object.keys(sections).forEach(sec=>{
+      const secItems=sections[sec];
+      const done=secItems.filter(i=>saved[i.id]).length;
+      html+='<div style="margin-bottom:20px">';
+      html+='<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:8px;padding:0 2px">'+sec+' <span style="color:var(--green);font-weight:600">('+done+'/'+secItems.length+')</span></div>';
+      secItems.forEach(item=>{
+        const checked=saved[item.id]?true:false;
+        html+='<div onclick="toggleCheck(\''+prefix+'\',\''+item.id+'\')" style="display:flex;align-items:flex-start;gap:12px;padding:11px 14px;border-radius:9px;border:1px solid '+(checked?'var(--green)':'var(--border)')+';background:'+(checked?'rgba(0,200,150,0.06)':'var(--white)')+';cursor:pointer;margin-bottom:8px;transition:all .15s">';
+        html+='<div style="width:20px;height:20px;border-radius:5px;border:2px solid '+(checked?'var(--green)':'#C5D0DD')+';background:'+(checked?'var(--green)':'transparent')+';flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center">';
+        html+=checked?'<svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>':'';
+        html+='</div>';
+        html+='<div style="flex:1"><div style="font-size:13px;font-weight:500;color:'+(checked?'var(--muted)':'var(--txt)')+';'+(checked?'text-decoration:line-through':'')+'">' +item.icon+' '+item.label+'</div>';
+        html+='<div style="font-size:11px;color:var(--muted);margin-top:2px;line-height:1.5">'+item.detail+'</div></div>';
+        html+='</div>';
+      });
+      html+='</div>';
+    });
+    return html;
+  }
+
+  const obTotal=ONBOARD_ITEMS.length, obDone=ONBOARD_ITEMS.filter(i=>savedOb[i.id]).length;
+  const dbTotal=DEBOARD_ITEMS.length, dbDone=DEBOARD_ITEMS.filter(i=>savedDb[i.id]).length;
+  const obPct=Math.round(obDone/obTotal*100), dbPct=Math.round(dbDone/dbTotal*100);
+  const obCol=obPct===100?'#00C896':obPct>=50?'#D97706':'#E53E3E';
+  const dbCol=dbPct===100?'#00C896':dbPct>=50?'#D97706':'#E53E3E';
+
+  return`<div class="topbar"><span class="tb-title">Onboarding & Deboarding</span><div class="tb-right">
+    <button class="btn" onclick="resetChecks('ob')">↺ Reset onboarding</button>
+    <button class="btn" onclick="resetChecks('db')">↺ Reset deboarding</button>
+  </div></div>
+  <div class="content">
+    <div class="ph"><h1>Onboarding & Deboarding</h1><p>Full RRA 2025 compliant checklists — tenant move-in and move-out</p></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+      <div class="panel">
+        <div class="ph2">
+          <div><h2>🟢 Tenant Onboarding</h2><p>Move-in checklist · RRA 2025 compliant</p></div>
+          <div style="text-align:right"><div style="font-size:20px;font-weight:700;color:${obCol}">${obDone}/${obTotal}</div><div style="font-size:11px;color:var(--muted)">completed</div></div>
+        </div>
+        <div style="padding:8px 18px 4px"><div style="height:6px;background:var(--border);border-radius:100px;overflow:hidden;margin-bottom:16px"><div style="height:100%;width:${obPct}%;background:${obCol};border-radius:100px;transition:width .4s ease"></div></div></div>
+        <div style="padding:0 18px 18px">${renderSection(ONBOARD_ITEMS,savedOb,'ob')}</div>
+      </div>
+      <div class="panel">
+        <div class="ph2">
+          <div><h2>🔴 Tenant Deboarding</h2><p>Move-out checklist · RRA 2025 compliant</p></div>
+          <div style="text-align:right"><div style="font-size:20px;font-weight:700;color:${dbCol}">${dbDone}/${dbTotal}</div><div style="font-size:11px;color:var(--muted)">completed</div></div>
+        </div>
+        <div style="padding:8px 18px 4px"><div style="height:6px;background:var(--border);border-radius:100px;overflow:hidden;margin-bottom:16px"><div style="height:100%;width:${dbPct}%;background:${dbCol};border-radius:100px;transition:width .4s ease"></div></div></div>
+        <div style="padding:0 18px 18px">${renderSection(DEBOARD_ITEMS,savedDb,'db')}</div>
+      </div>
+    </div>
+    <p style="font-size:11px;color:var(--muted);margin-top:16px;text-align:center">⚠️ This checklist is a guide only and does not constitute legal advice. Always consult a qualified solicitor for your specific circumstances.</p>
+  </div>`;
+}
+
+function toggleCheck(prefix,id){
+  const key='rsa_'+prefix+'_checks';
+  const saved=JSON.parse(localStorage.getItem(key)||'{}');
+  if(saved[id]) delete saved[id]; else saved[id]=true;
+  localStorage.setItem(key,JSON.stringify(saved));
+  nav('onboarding');
+}
+
+function resetChecks(prefix){
+  localStorage.removeItem('rsa_'+prefix+'_checks');
+  nav('onboarding');
+}
+
 // ── ROUTER ──
 const PAGES={
   dashboard:()=>pgDashboard(),
@@ -1279,7 +1401,8 @@ const PAGES={
   calendar:()=>pgCalendar(),
   'prop-detail':(id)=>pgPropDetail(id),
   financials:()=>pgFinancials(),
-templates:()=>pgTemplates(),
+  templates:()=>pgTemplates(),
+  onboarding:()=>pgOnboarding(),
 };
 
 // ── PAGE: P&L FINANCIALS ──
