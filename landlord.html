@@ -1008,6 +1008,25 @@ function pgComplianceSection(){
   html += '</div></div>';
   return html;
 }
+// ── DASHBOARD TODAY HELPER ──
+function getTodayEventsHtml(){
+  try {
+    const t=new Date(); t.setHours(0,0,0,0);
+    const evs=getCalEvents().filter(function(e){
+      var d=new Date(e.date); d.setHours(0,0,0,0);
+      return d.getTime()===t.getTime();
+    });
+    if(!evs.length) return '<div class="empty"><div class="empty-ic">📅</div><div class="empty-t">No tasks today</div><div class="empty-s">Upcoming deadlines appear here</div></div>';
+    return evs.map(function(e){
+      var col=e.urg==='red'?'var(--red)':e.urg==='amber'?'var(--amber)':'var(--blue)';
+      var bg=e.urg==='red'?'var(--red-bg)':e.urg==='amber'?'var(--amber-bg)':'var(--blue-bg)';
+      return '<div class="ai-row"><div style="font-size:16px;min-width:32px;text-align:center">'+e.icon+'</div><div class="ai-body"><div class="ai-title">'+e.label+'</div><div class="ai-sub">'+e.sub+'</div></div><span style="font-size:11px;font-weight:600;color:'+col+';background:'+bg+';padding:2px 8px;border-radius:100px">Today</span></div>';
+    }).join('');
+  } catch(err) {
+    return '<div class="empty"><div class="empty-ic">📅</div><div class="empty-t">No tasks today</div></div>';
+  }
+}
+
 // ── PAGE: DASHBOARD ──
 
 function pgDashboard(){
@@ -1035,16 +1054,7 @@ function pgDashboard(){
       </div>
       <div class="panel">
         <div class="ph2"><div><h2>Today</h2><p>${today}</p></div><button class="btn btn-sm" onclick="nav('calendar')">View calendar</button></div>
-        ${(function(){
-          const t=new Date(); t.setHours(0,0,0,0);
-          const evs=getCalEvents().filter(e=>{const d=new Date(e.date);d.setHours(0,0,0,0);return d.getTime()===t.getTime();});
-          if(!evs.length) return '<div class="empty"><div class="empty-ic">📅</div><div class="empty-t">No tasks today</div><div class="empty-s">Upcoming deadlines appear here</div></div>';
-          return evs.map(e=>{
-            const col=e.urg==='red'?'var(--red)':e.urg==='amber'?'var(--amber)':'var(--blue)';
-            const bg=e.urg==='red'?'var(--red-bg)':e.urg==='amber'?'var(--amber-bg)':'var(--blue-bg)';
-            return`<div class="ai-row"><div style="font-size:16px;min-width:32px;text-align:center">${e.icon}</div><div class="ai-body"><div class="ai-title">${e.label}</div><div class="ai-sub">${e.sub}</div></div><span style="font-size:11px;font-weight:600;color:${col};background:${bg};padding:2px 8px;border-radius:100px">Today</span></div>`;
-          }).join('');
-        })()}
+        ${getTodayEventsHtml()}
       </div>
     </div>
   </div>`;
@@ -1078,112 +1088,107 @@ function pgProperties(){
 // ── PAGE: PROPERTY DETAIL ──
 
 // ── PROPERTY CHECKLIST RENDERER ──
-function renderPropChecklist(prefix, pid, mode){
-  const ITEMS = mode==='onboard' ? [
-    {id:'ob1',  group:'Pre-Tenancy',        label:'Right to Rent check completed',          detail:'Passport, share code or biometric card. Keep copy on file.'},
-    {id:'ob2',  group:'Pre-Tenancy',        label:'Tenant referencing & credit check done',  detail:'Employment, previous landlord refs, credit score verified.'},
-    {id:'ob3',  group:'Pre-Tenancy',        label:'Holding deposit collected',               detail:'Max 1 week's rent. Refund or offset at move-in.'},
-    {id:'ob4',  group:'Pre-Tenancy',        label:'Security deposit collected & capped',     detail:'Max 5 weeks' rent (under £50k/yr). Collected before agreement signed.'},
-    {id:'ob5',  group:'Legal Documents',    label:'Written Statement of Terms signed',       detail:'Replaces AST from 1 May 2026. Serve BEFORE tenancy is signed. (RRA 2025)'},
-    {id:'ob6',  group:'Legal Documents',    label:'RRA 2025 Information Sheet sent',         detail:'PDF attachment only — a link is NOT valid. Fine up to £7,000.'},
-    {id:'ob7',  group:'Legal Documents',    label:'How to Rent Guide served',                detail:'Latest edition from GOV.UK. Keep timestamped proof of delivery.'},
-    {id:'ob8',  group:'Legal Documents',    label:'Gas Safety Certificate (CP12) served',    detail:'Must be provided before tenancy begins. Annual renewal required.'},
-    {id:'ob9',  group:'Legal Documents',    label:'EICR served',                             detail:'Electrical Installation Condition Report. Valid for 5 years.'},
-    {id:'ob10', group:'Legal Documents',    label:'EPC served',                              detail:'Minimum E rating. Valid 10 years.'},
-    {id:'ob11', group:'Deposit',            label:'Deposit registered in approved scheme',   detail:'DPS, MyDeposits or TDS. Within 30 days of receipt.'},
-    {id:'ob12', group:'Deposit',            label:'Deposit certificate served to tenant',    detail:'Confirm scheme name, amount and how to reclaim.'},
-    {id:'ob13', group:'Safety Checks',      label:'Smoke alarms tested & logged',           detail:'One per storey. Test on move-in day. Log date and result.'},
-    {id:'ob14', group:'Safety Checks',      label:'CO alarms tested & logged',              detail:'Required in any room with solid fuel appliance.'},
-    {id:'ob15', group:'Safety Checks',      label:'Emergency lighting test logged',          detail:'Log date, result, any remedial action taken.'},
-    {id:'ob16', group:'Safety Checks',      label:'Pest control check completed',            detail:'Log inspection date and outcome.'},
-    {id:'ob17', group:'Move-In',            label:'Move-in inventory completed & signed',    detail:'Room-by-room condition report with dated photos. Both parties sign.'},
-    {id:'ob18', group:'Meter Readings',     label:'Gas meter reading recorded (move-in)',    detail:'', meter:true, mkey:'gas_in'},
-    {id:'ob19', group:'Meter Readings',     label:'Electric meter reading recorded (move-in)',detail:'', meter:true, mkey:'elec_in'},
-    {id:'ob20', group:'Meter Readings',     label:'Water meter reading recorded (move-in)',  detail:'', meter:true, mkey:'water_in'},
-  ] : [
-    {id:'db1',  group:'Notice & Legal',     label:'Valid Section 8 notice served',           detail:'S.21 abolished 1 May 2026. Ground 8 now needs 3 months arrears. 4 weeks notice.'},
-    {id:'db2',  group:'Notice & Legal',     label:'Proof of notice delivery retained',       detail:'Email read receipt, signed acknowledgement or recorded delivery.'},
-    {id:'db3',  group:'Notice & Legal',     label:'Notice period confirmed with tenant',     detail:'Confirm agreed end date in writing.'},
-    {id:'db4',  group:'Move-Out',           label:'Move-out inspection completed',           detail:'Walk through with tenant. Compare against move-in inventory.'},
-    {id:'db5',  group:'Move-Out',           label:'Move-out condition report & photos',      detail:'Room-by-room dated photos. Note damage vs move-in.'},
-    {id:'db6',  group:'Move-Out',           label:'All keys returned & counted',             detail:'Cross-check against move-in key log.'},
-    {id:'db7',  group:'Move-Out',           label:'Tenant forwarding address obtained',      detail:'Required for deposit return and legal notices.'},
-    {id:'db8',  group:'Safety Re-checks',   label:'Smoke & CO alarms re-tested',            detail:'Log date and result after tenant vacates.'},
-    {id:'db9',  group:'Safety Re-checks',   label:'Emergency lighting re-tested',            detail:'Log date and result.'},
-    {id:'db10', group:'Safety Re-checks',   label:'Pest control check completed',            detail:'Log inspection outcome before re-letting.'},
-    {id:'db11', group:'Meter Readings',     label:'Gas meter reading recorded (move-out)',   detail:'Compare vs move-in reading.', meter:true, mkey:'gas_out'},
-    {id:'db12', group:'Meter Readings',     label:'Electric meter reading recorded (move-out)',detail:'Compare vs move-in reading.', meter:true, mkey:'elec_out'},
-    {id:'db13', group:'Meter Readings',     label:'Water meter reading recorded (move-out)', detail:'Compare vs move-in reading.', meter:true, mkey:'water_out'},
-    {id:'db14', group:'Deposit & Admin',    label:'Deposit deductions agreed (if any)',      detail:'Itemised list with evidence. Within 10 days of move-out.'},
-    {id:'db15', group:'Deposit & Admin',    label:'Deposit returned via approved scheme',    detail:'TDS/DPS/MyDeposits. Return balance within agreed timeline.'},
-    {id:'db16', group:'Deposit & Admin',    label:'Deposit return or deduction letter sent', detail:'Written confirmation of full return or itemised deductions.'},
-    {id:'db17', group:'Deposit & Admin',    label:'Council & utilities notified',            detail:'Gas, electric, water, council tax — transfer back to landlord.'},
+function getPropCheckItems(mode){
+  if(mode==='onboard') return [
+    {id:'ob1',  group:'Pre-Tenancy',     label:'Right to Rent check completed',           detail:'Passport, share code or biometric card. Keep copy on file.'},
+    {id:'ob2',  group:'Pre-Tenancy',     label:'Tenant referencing and credit check done', detail:'Employment, previous landlord refs, credit score verified.'},
+    {id:'ob3',  group:'Pre-Tenancy',     label:'Holding deposit collected',                detail:'Max 1 weeks rent. Refund or offset at move-in.'},
+    {id:'ob4',  group:'Pre-Tenancy',     label:'Security deposit collected and capped',    detail:'Max 5 weeks rent under 50k/yr. Collected before agreement signed.'},
+    {id:'ob5',  group:'Legal Documents', label:'Written Statement of Terms signed',        detail:'Replaces AST from 1 May 2026. Serve BEFORE tenancy is signed. RRA 2025.'},
+    {id:'ob6',  group:'Legal Documents', label:'RRA 2025 Information Sheet sent',          detail:'PDF attachment only - a link is NOT valid. Fine up to 7000.'},
+    {id:'ob7',  group:'Legal Documents', label:'How to Rent Guide served',                 detail:'Latest edition from GOV.UK. Keep timestamped proof of delivery.'},
+    {id:'ob8',  group:'Legal Documents', label:'Gas Safety Certificate CP12 served',       detail:'Must be provided before tenancy begins. Annual renewal required.'},
+    {id:'ob9',  group:'Legal Documents', label:'EICR served',                              detail:'Electrical Installation Condition Report. Valid for 5 years.'},
+    {id:'ob10', group:'Legal Documents', label:'EPC served',                               detail:'Minimum E rating. Valid 10 years.'},
+    {id:'ob11', group:'Deposit',         label:'Deposit registered in approved scheme',    detail:'DPS, MyDeposits or TDS. Within 30 days of receipt.'},
+    {id:'ob12', group:'Deposit',         label:'Deposit certificate served to tenant',     detail:'Confirm scheme name, amount and how to reclaim.'},
+    {id:'ob13', group:'Safety Checks',   label:'Smoke alarms tested and logged',           detail:'One per storey. Test on move-in day. Log date and result.'},
+    {id:'ob14', group:'Safety Checks',   label:'CO alarms tested and logged',              detail:'Required in any room with solid fuel appliance.'},
+    {id:'ob15', group:'Safety Checks',   label:'Emergency lighting test logged',           detail:'Log date, result, any remedial action taken.'},
+    {id:'ob16', group:'Safety Checks',   label:'Pest control check completed',             detail:'Log inspection date and outcome.'},
+    {id:'ob17', group:'Move-In',         label:'Move-in inventory completed and signed',   detail:'Room-by-room condition report with dated photos. Both parties sign.'},
+    {id:'ob18', group:'Meter Readings',  label:'Gas meter reading recorded (move-in)',     detail:'', meter:true, mkey:'gas_in'},
+    {id:'ob19', group:'Meter Readings',  label:'Electric meter reading recorded (move-in)',detail:'', meter:true, mkey:'elec_in'},
+    {id:'ob20', group:'Meter Readings',  label:'Water meter reading recorded (move-in)',   detail:'', meter:true, mkey:'water_in'},
   ];
+  return [
+    {id:'db1',  group:'Notice and Legal',  label:'Valid Section 8 notice served',            detail:'S.21 abolished 1 May 2026. Ground 8 needs 3 months arrears. 4 weeks notice.'},
+    {id:'db2',  group:'Notice and Legal',  label:'Proof of notice delivery retained',        detail:'Email read receipt, signed acknowledgement or recorded delivery.'},
+    {id:'db3',  group:'Notice and Legal',  label:'Notice period confirmed with tenant',      detail:'Confirm agreed end date in writing.'},
+    {id:'db4',  group:'Move-Out',          label:'Move-out inspection completed',            detail:'Walk through with tenant. Compare against move-in inventory.'},
+    {id:'db5',  group:'Move-Out',          label:'Move-out condition report and photos',     detail:'Room-by-room dated photos. Note damage vs move-in.'},
+    {id:'db6',  group:'Move-Out',          label:'All keys returned and counted',            detail:'Cross-check against move-in key log.'},
+    {id:'db7',  group:'Move-Out',          label:'Tenant forwarding address obtained',       detail:'Required for deposit return and legal notices.'},
+    {id:'db8',  group:'Safety Re-checks',  label:'Smoke and CO alarms re-tested',           detail:'Log date and result after tenant vacates.'},
+    {id:'db9',  group:'Safety Re-checks',  label:'Emergency lighting re-tested',            detail:'Log date and result.'},
+    {id:'db10', group:'Safety Re-checks',  label:'Pest control check completed',            detail:'Log inspection outcome before re-letting.'},
+    {id:'db11', group:'Meter Readings',    label:'Gas meter reading recorded (move-out)',   detail:'Compare vs move-in reading.', meter:true, mkey:'gas_out'},
+    {id:'db12', group:'Meter Readings',    label:'Electric meter reading recorded (move-out)',detail:'Compare vs move-in reading.', meter:true, mkey:'elec_out'},
+    {id:'db13', group:'Meter Readings',    label:'Water meter reading recorded (move-out)', detail:'Compare vs move-in reading.', meter:true, mkey:'water_out'},
+    {id:'db14', group:'Deposit and Admin', label:'Deposit deductions agreed if any',        detail:'Itemised list with evidence. Within 10 days of move-out.'},
+    {id:'db15', group:'Deposit and Admin', label:'Deposit returned via approved scheme',    detail:'TDS, DPS or MyDeposits. Return balance within agreed timeline.'},
+    {id:'db16', group:'Deposit and Admin', label:'Deposit return or deduction letter sent', detail:'Written confirmation of full return or itemised deductions.'},
+    {id:'db17', group:'Deposit and Admin', label:'Council and utilities notified',          detail:'Gas, electric, water, council tax transferred back to landlord.'},
+  ];
+}
 
-  const key='rsa_prop_'+prefix+'_'+pid;
-  const mkey='rsa_prop_meters_'+pid;
-  const saved=JSON.parse(localStorage.getItem(key)||'{}');
-  const meters=JSON.parse(localStorage.getItem(mkey)||'{}');
-
-  const total=ITEMS.length, done=ITEMS.filter(i=>saved[i.id]).length;
-  const pct=Math.round(done/total*100);
-  const col=pct===100?'#00C896':pct>=50?'#D97706':'#E53E3E';
-
-  // Update badge
-  setTimeout(()=>{
-    const el=document.getElementById(prefix+'-cnt-'+pid);
-    if(el) el.textContent=done+'/'+total;
-  },0);
-
-  let groups={};
-  ITEMS.forEach(item=>{
-    if(!groups[item.group]) groups[item.group]=[];
-    groups[item.group].push(item);
-  });
-
-  let html='<div style="padding:4px 0 8px">';
+function renderPropChecklist(prefix, pid, mode){
+  var ITEMS = getPropCheckItems(mode);
+  var key='rsa_prop_'+prefix+'_'+pid;
+  var mkey='rsa_prop_meters_'+pid;
+  var saved=JSON.parse(localStorage.getItem(key)||'{}');
+  var meters=JSON.parse(localStorage.getItem(mkey)||'{}');
+  var total=ITEMS.length, done=ITEMS.filter(function(i){return saved[i.id];}).length;
+  var pct=Math.round(done/total*100);
+  var col=pct===100?'#00C896':pct>=50?'#D97706':'#E53E3E';
+  setTimeout(function(){var el=document.getElementById(prefix+'-cnt-'+pid);if(el)el.textContent=done+'/'+total;},0);
+  var groups={};
+  ITEMS.forEach(function(item){if(!groups[item.group])groups[item.group]=[];groups[item.group].push(item);});
+  var html='<div style="padding:4px 0 8px">';
   html+='<div style="height:5px;background:#E4EAF1;border-radius:100px;overflow:hidden;margin-bottom:14px"><div style="height:100%;width:'+pct+'%;background:'+col+';border-radius:100px"></div></div>';
-
-  Object.keys(groups).forEach(grp=>{
-    const gitems=groups[grp];
+  Object.keys(groups).forEach(function(grp){
+    var gitems=groups[grp];
     html+='<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:12px 0 6px">'+grp+'</div>';
-    gitems.forEach(item=>{
-      const checked=saved[item.id]?true:false;
-      html+='<div style="display:flex;align-items:flex-start;gap:10px;padding:9px 10px;border-radius:8px;border:1px solid '+(checked?'var(--green)':'var(--border)')+';background:'+(checked?'rgba(0,200,150,0.05)':'var(--white)')+';cursor:pointer;margin-bottom:6px" onclick="togglePropCheck(''+prefix+'',''+pid+'',''+item.id+'')">';
-      html+='<div style="width:18px;height:18px;border-radius:4px;border:2px solid '+(checked?'var(--green)':'#C5D0DD')+';background:'+(checked?'var(--green)':'transparent')+';flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center">';
-      html+=checked?'<svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>':'';
-      html+='</div>';
-      html+='<div style="flex:1"><div style="font-size:12.5px;font-weight:500;color:'+(checked?'var(--muted)':'var(--txt)')+';'+(checked?'text-decoration:line-through':'')+'">'+item.label+'</div>';
+    gitems.forEach(function(item){
+      var checked=saved[item.id]?true:false;
+      var borderCol=checked?'var(--green)':'var(--border)';
+      var bgCol=checked?'rgba(0,200,150,0.05)':'var(--white)';
+      var chkBorder=checked?'var(--green)':'#C5D0DD';
+      var chkBg=checked?'var(--green)':'transparent';
+      var txtStyle=checked?'text-decoration:line-through;color:var(--muted)':'color:var(--txt)';
+      var tick=checked?'<svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>':'';
+      html+='<div data-prefix="'+prefix+'" data-pid="'+pid+'" data-id="'+item.id+'" onclick="togglePropCheck(this.dataset.prefix,this.dataset.pid,this.dataset.id)" style="display:flex;align-items:flex-start;gap:10px;padding:9px 10px;border-radius:8px;border:1px solid '+borderCol+';background:'+bgCol+';cursor:pointer;margin-bottom:6px">';
+      html+='<div style="width:18px;height:18px;border-radius:4px;border:2px solid '+chkBorder+';background:'+chkBg+';flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center">'+tick+'</div>';
+      html+='<div style="flex:1"><div style="font-size:12.5px;font-weight:500;'+txtStyle+'">'+item.label+'</div>';
       if(item.detail) html+='<div style="font-size:11px;color:var(--muted);margin-top:1px">'+item.detail+'</div>';
       if(item.meter){
-        const mval=meters[item.mkey]||'';
-        html+='<input type="text" placeholder="Enter reading e.g. 12345" value="'+mval+'" onclick="event.stopPropagation()" onchange="saveMeterReading(''+pid+'',''+item.mkey+'',this.value)" style="margin-top:6px;width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:var(--font)">';
+        var mval=meters[item.mkey]||'';
+        html+='<input type="text" placeholder="Enter reading e.g. 12345" value="'+mval+'" data-pid="'+pid+'" data-mkey="'+item.mkey+'" onclick="event.stopPropagation()" onchange="saveMeterReading(this.dataset.pid,this.dataset.mkey,this.value)" style="margin-top:6px;width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:var(--font)">';
       }
       html+='</div></div>';
     });
   });
-
-  html+='<p style="font-size:10px;color:var(--muted);margin-top:10px">⚠️ Guide only — not legal advice. Consult a solicitor for your circumstances.</p>';
+  html+='<p style="font-size:10px;color:var(--muted);margin-top:10px">Guide only - not legal advice. Consult a solicitor for your circumstances.</p>';
   html+='</div>';
   return html;
 }
 
 function togglePropCheck(prefix,pid,itemId){
-  const key='rsa_prop_'+prefix+'_'+pid;
-  const saved=JSON.parse(localStorage.getItem(key)||'{}');
+  var key='rsa_prop_'+prefix+'_'+pid;
+  var saved=JSON.parse(localStorage.getItem(key)||'{}');
   if(saved[itemId]) delete saved[itemId]; else saved[itemId]=true;
   localStorage.setItem(key,JSON.stringify(saved));
-  // Re-render just the checklist body
-  const el=document.getElementById('cb-'+prefix+'-'+pid);
+  var el=document.getElementById('cb-'+prefix+'-'+pid);
   if(el) el.innerHTML=renderPropChecklist(prefix,pid,prefix==='ob'?'onboard':'deboard');
 }
 
 function saveMeterReading(pid,mkey,val){
-  const key='rsa_prop_meters_'+pid;
-  const meters=JSON.parse(localStorage.getItem(key)||'{}');
+  var key='rsa_prop_meters_'+pid;
+  var meters=JSON.parse(localStorage.getItem(key)||'{}');
   meters[mkey]=val;
   localStorage.setItem(key,JSON.stringify(meters));
 }
+
 
 function pgPropDetail(pid){
   const p=P(pid); if(!p)return pgProperties();
