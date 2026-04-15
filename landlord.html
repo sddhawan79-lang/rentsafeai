@@ -923,9 +923,21 @@ function UA(){
 }
 function pgComplianceSection(){
   if(!D.properties.length) return '';
-  var html = '<div style="margin-bottom:22px"><div style="font-size:13px;font-weight:600;color:var(--txt);margin-bottom:10px">📊 Portfolio compliance</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">';
+  var html = '<div style="margin-bottom:22px">';
+  html += '<div style="font-size:13px;font-weight:600;margin-bottom:10px">';
+  html += 'Portfolio compliance</div>';
+  html += '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">';
   D.properties.slice(0,4).forEach(function(p){
-    html += '<div><div style="font-size:12px;font-weight:500;color:var(--txt);margin-bottom:6px">' + p.address + '</div>' + '</div>';
+    var r = calcRAG(p.id);
+    var col = r.rag==='red' ? '#E53E3E' : r.rag==='amber' ? '#D97706' : '#00C896';
+    var bg = r.rag==='red' ? '#fff5f5' : r.rag==='amber' ? '#fffbeb' : '#f0fdf9';
+    html += '<div style="background:' + bg + ';border:1px solid ' + col + ';border-radius:10px;padding:12px">';
+    html += '<div style="font-size:12px;font-weight:600;margin-bottom:4px">' + p.address + '</div>';
+    html += '<div style="display:flex;justify-content:space-between;margin-bottom:5px">';
+    html += '<span style="font-size:11px;color:' + col + ';font-weight:600">' + r.label + '</span>';
+    html += '<span style="font-size:11px;font-weight:600">' + r.score + '/100</span></div>';
+    html += '<div style="height:4px;background:#E4EAF1;border-radius:100px">';
+    html += '<div style="height:100%;width:' + r.score + '%;background:' + col + ';border-radius:100px"></div></div></div>';
   });
   html += '</div></div>';
   return html;
