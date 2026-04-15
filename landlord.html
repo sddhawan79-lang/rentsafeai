@@ -961,10 +961,31 @@ function toggleColl(id){
 
 // ── ACTION ITEMS ──
 function UA(){
+  const today=new Date(); today.setHours(0,0,0,0);
   const miss=D.certs.filter(c=>c.status==='Missing').map(c=>({b:'red',l:'Urgent',t:`Missing ${c.type}`,s:(P(c.prop_id)||{address:'—'}).address}));
   const mnt=D.maintenance.filter(x=>x.status!=='Resolved').map(x=>({b:x.priority==='Urgent'?'red':'amber',l:x.awaab?'Awaab':x.priority,t:x.title,s:(P(x.prop_id)||{address:'—'}).address}));
   const rnt=D.rent.filter(x=>x.status==='Due'||x.status==='Late').map(x=>({b:x.status==='Late'?'red':'amber',l:x.status,t:`Rent ${x.status.toLowerCase()} — ${x.month}`,s:(P(x.prop_id)||{address:'—'}).address}));
-  return[...miss,...mnt,...rnt];
+  // Smart reminders from calendar
+  const reminders=[];
+  D.certs.filter(c=>c.expiry).forEach(c=>{
+    const d=new Date(c.expiry); d.setHours(0,0,0,0);
+    const days=Math.round((d-today)/864e5);
+    if(days>=0&&days<=30){
+      const prop=(P(c.prop_id)||{address:'—'}).address;
+      reminders.push({b:days<=7?'red':'amber',l:days===0?'Today':days<=7?'This week':'Due soon',t:`${c.type} expires in ${days===0?'today':days+' days'}`,s:prop});
+    }
+  });
+  D.properties.filter(p=>p.licence_expiry).forEach(p=>{
+    const d=new Date(p.licence_expiry); d.setHours(0,0,0,0);
+    const days=Math.round((d-today)/864e5);
+    if(days>=0&&days<=30) reminders.push({b:days<=7?'red':'amber',l:'Licence',t:`${p.licence_type||'Licence'} expires in ${days} days`,s:p.address});
+  });
+  D.properties.filter(p=>p.mortgage_end).forEach(p=>{
+    const d=new Date(p.mortgage_end); d.setHours(0,0,0,0);
+    const days=Math.round((d-today)/864e5);
+    if(days>=0&&days<=30) reminders.push({b:days<=7?'red':'amber',l:'Mortgage',t:`Mortgage ends in ${days} days`,s:p.address});
+  });
+  return[...miss,...reminders,...mnt,...rnt];
 }
 function pgComplianceSection(){
   if(!D.properties.length) return '';
@@ -1014,7 +1035,16 @@ function pgDashboard(){
       </div>
       <div class="panel">
         <div class="ph2"><div><h2>Today</h2><p>${today}</p></div><button class="btn btn-sm" onclick="nav('calendar')">View calendar</button></div>
-        <div class="empty"><div class="empty-ic">📅</div><div class="empty-t">No tasks today</div><div class="empty-s">Upcoming deadlines appear here</div></div>
+        ${(function(){
+          const t=new Date(); t.setHours(0,0,0,0);
+          const evs=getCalEvents().filter(e=>{const d=new Date(e.date);d.setHours(0,0,0,0);return d.getTime()===t.getTime();});
+          if(!evs.length) return '<div class="empty"><div class="empty-ic">📅</div><div class="empty-t">No tasks today</div><div class="empty-s">Upcoming deadlines appear here</div></div>';
+          return evs.map(e=>{
+            const col=e.urg==='red'?'var(--red)':e.urg==='amber'?'var(--amber)':'var(--blue)';
+            const bg=e.urg==='red'?'var(--red-bg)':e.urg==='amber'?'var(--amber-bg)':'var(--blue-bg)';
+            return`<div class="ai-row"><div style="font-size:16px;min-width:32px;text-align:center">${e.icon}</div><div class="ai-body"><div class="ai-title">${e.label}</div><div class="ai-sub">${e.sub}</div></div><span style="font-size:11px;font-weight:600;color:${col};background:${bg};padding:2px 8px;border-radius:100px">Today</span></div>`;
+          }).join('');
+        })()}
       </div>
     </div>
   </div>`;
@@ -1420,36 +1450,198 @@ async function sendChat(){
 }
 
 // ── PAGE: CALENDAR ──
+// ── CALENDAR EVENTS ENGINE ──
+function getCalEvents(){
+  const events=[];
+  const today=new Date(); today.setHours(0,0,0,0);
+
+  // Certificate expiries
+  D.certs.filter(c=>c.expiry).forEach(c=>{
+    const d=new Date(c.expiry); d.setHours(0,0,0,0);
+    const days=Math.round((d-today)/864e5);
+    const prop=(P(c.prop_id)||{address:'—'}).address;
+    const urg=days<0?'red':days<=7?'red':days<=30?'amber':'blue';
+    events.push({date:c.expiry,type:'cert',label:c.type+' expiry',sub:prop,urg,days,icon:'📄'});
+  });
+
+  // Rent due dates (monthly recurring)
+  D.tenants.filter(t=>t.rent&&t.status==='Active').forEach(t=>{
+    const prop=(P(t.prop_id)||{address:'—'}).address;
+    const day=t.rent_day||1;
+    // Generate next 3 months of rent dates
+    for(let m=0;m<3;m++){
+      const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()+m); d.setDate(day);
+      const days=Math.round((d-today)/864e5);
+      if(days>=-1&&days<=90){
+        const dStr=d.toISOString().slice(0,10);
+        const urg=days<0?'red':days===0?'red':days<=3?'amber':'blue';
+        events.push({date:dStr,type:'rent',label:'Rent due — '+t.name,sub:prop,urg,days,icon:'💷'});
+      }
+    }
+  });
+
+  // Insurance expiries
+  D.insurance&&D.insurance.filter(i=>i.expiry).forEach(i=>{
+    const d=new Date(i.expiry); d.setHours(0,0,0,0);
+    const days=Math.round((d-today)/864e5);
+    const prop=(P(i.prop_id)||{address:'—'}).address;
+    const urg=days<0?'red':days<=7?'red':days<=30?'amber':'blue';
+    events.push({date:i.expiry,type:'insurance',label:(i.type||'Insurance')+' expiry',sub:prop,urg,days,icon:'🛡'});
+  });
+
+  // Mortgage end dates
+  D.properties.filter(p=>p.mortgage_end).forEach(p=>{
+    const d=new Date(p.mortgage_end); d.setHours(0,0,0,0);
+    const days=Math.round((d-today)/864e5);
+    const urg=days<0?'red':days<=30?'red':days<=90?'amber':'blue';
+    events.push({date:p.mortgage_end,type:'mortgage',label:'Mortgage end',sub:p.address,urg,days,icon:'🏦'});
+  });
+
+  // Licence expiries
+  D.properties.filter(p=>p.licence_expiry).forEach(p=>{
+    const d=new Date(p.licence_expiry); d.setHours(0,0,0,0);
+    const days=Math.round((d-today)/864e5);
+    const urg=days<0?'red':days<=14?'red':days<=60?'amber':'blue';
+    events.push({date:p.licence_expiry,type:'licence',label:(p.licence_type||'Licence')+' expiry',sub:p.address,urg,days,icon:'📋'});
+  });
+
+  return events.sort((a,b)=>new Date(a.date)-new Date(b.date));
+}
+
+function calDayLabel(days){
+  if(days<0) return Math.abs(days)+' days overdue';
+  if(days===0) return 'Today';
+  if(days===1) return 'Tomorrow';
+  if(days<=7) return 'In '+days+' days';
+  if(days<=30) return 'In '+days+' days';
+  return new Date(Date.now()+days*864e5).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+}
+
 function pgCalendar(){
-  const now=new Date(),yr=now.getFullYear(),mo=now.getMonth();
-  const mn=now.toLocaleString('en-GB',{month:'long',year:'numeric'});
-  const fd=(new Date(yr,mo,1).getDay()+6)%7,dim=new Date(yr,mo+1,0).getDate();
-  const dn=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],ev=[10,14,22,30];
+  if(window.calYear===undefined){window.calYear=new Date().getFullYear();window.calMonth=new Date().getMonth();}
+  const yr=window.calYear,mo=window.calMonth;
+  const now=new Date(); now.setHours(0,0,0,0);
+  const mn=new Date(yr,mo,1).toLocaleString('en-GB',{month:'long',year:'numeric'});
+  const fd=(new Date(yr,mo,1).getDay()+6)%7;
+  const dim=new Date(yr,mo+1,0).getDate();
+  const dn=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const allEvents=getCalEvents();
+
+  // Build event map for this month
+  const evMap={};
+  allEvents.forEach(ev=>{
+    const d=new Date(ev.date);
+    if(d.getFullYear()===yr&&d.getMonth()===mo){
+      const k=d.getDate();
+      if(!evMap[k]) evMap[k]=[];
+      evMap[k].push(ev);
+    }
+  });
+
+  // Calendar cells
   let cells='';
-  for(let i=0;i<fd;i++)cells+=`<div class="cc"></div>`;
-  for(let d=1;d<=dim;d++){const iT=d===now.getDate(),hE=ev.includes(d);cells+=`<div class="cc cm${iT?' td':''}${hE?' hd':''}">${d}</div>`;}
+  for(let i=0;i<fd;i++) cells+=`<div class="cc"></div>`;
+  for(let d=1;d<=dim;d++){
+    const isToday=(yr===now.getFullYear()&&mo===now.getMonth()&&d===now.getDate());
+    const dayEvs=evMap[d]||[];
+    const hasRed=dayEvs.some(e=>e.urg==='red');
+    const hasAmber=dayEvs.some(e=>e.urg==='amber');
+    const dotCol=hasRed?'#E53E3E':hasAmber?'#D97706':dayEvs.length?'#3B6FE8':'';
+    cells+=`<div class="cc cm${isToday?' td':''}" onclick="showCalDay(${yr},${mo},${d})" style="cursor:${dayEvs.length?'pointer':'default'}">
+      ${d}
+      ${dotCol?`<div style="width:5px;height:5px;border-radius:50%;background:${dotCol};margin:2px auto 0"></div>`:'<div style="height:7px"></div>'}
+    </div>`;
+  }
+
+  // Reminders panel — next 60 days
+  const upcoming=allEvents.filter(e=>{const days=e.days;return days>=-1&&days<=60;});
+  const urgent=upcoming.filter(e=>e.days<=7);
+  const warning=upcoming.filter(e=>e.days>7&&e.days<=30);
+  const normal=upcoming.filter(e=>e.days>30&&e.days<=60);
+
+  function evRow(e){
+    const col=e.urg==='red'?'var(--red)':e.urg==='amber'?'var(--amber)':'var(--blue)';
+    const bg=e.urg==='red'?'var(--red-bg)':e.urg==='amber'?'var(--amber-bg)':'var(--blue-bg)';
+    return`<div class="ai-row">
+      <div style="text-align:center;min-width:40px;font-size:18px">${e.icon}</div>
+      <div class="ai-body"><div class="ai-title">${e.label}</div><div class="ai-sub">${e.sub}</div></div>
+      <span style="font-size:11px;font-weight:600;color:${col};background:${bg};padding:2px 8px;border-radius:100px;white-space:nowrap">${calDayLabel(e.days)}</span>
+    </div>`;
+  }
+
   return`<div class="topbar"><span class="tb-title">Calendar</span></div>
   <div class="content">
-    <div class="ph"><h1>Calendar</h1><p>Certificate expiries, inspections, and key dates</p></div>
+    <div class="ph"><h1>Calendar</h1><p>Smart reminders · rent, certificates, inspections, licences</p></div>
     <div class="g2">
-      <div class="panel">
-        <div class="cal-nav"><button class="btn btn-sm">‹</button><h3>${mn}</h3><button class="btn btn-sm">›</button></div>
-        <div class="cal-wrap">
-          <div class="cal-dh">${dn.map(d=>`<div class="cal-dn">${d}</div>`).join('')}</div>
-          <div class="cal-g">${cells}</div>
+      <div>
+        <div class="panel" style="margin-bottom:16px">
+          <div class="cal-nav">
+            <button class="btn btn-sm" onclick="calNav(-1)">‹</button>
+            <h3>${mn}</h3>
+            <button class="btn btn-sm" onclick="calNav(1)">›</button>
+          </div>
+          <div class="cal-wrap">
+            <div class="cal-dh">${dn.map(d=>`<div class="cal-dn">${d}</div>`).join('')}</div>
+            <div class="cal-g">${cells}</div>
+          </div>
+        </div>
+        <div class="panel" id="cal-day-detail" style="display:none">
+          <div class="ph2"><h2 id="cal-day-title">Events</h2></div>
+          <div id="cal-day-body"></div>
         </div>
       </div>
-      <div class="panel">
-        <div class="ph2"><h2>Upcoming</h2></div>
-        ${D.certs.filter(c=>c.expiry).sort((a,b)=>new Date(a.expiry)-new Date(b.expiry)).slice(0,5).map(c=>{const p=P(c.prop_id)||{address:'—'};const d=new Date(c.expiry);return`<div class="ai-row">
-          <div style="text-align:center;min-width:44px"><div style="font-size:11px;color:var(--muted)">${d.toLocaleString('en-GB',{month:'short'})}</div><div style="font-size:15px;font-weight:600">${d.getDate()}</div></div>
-          <div class="ai-body"><div class="ai-title">${c.type}</div><div class="ai-sub">${p.address}</div></div>
-          <span class="badge ${c.status==='Expired'?'b-red':Math.round((d-new Date())/864e5)<60?'b-amber':'b-blue'}">${c.status}</span>
-        </div>`}).join('')||'<div class="empty"><div class="empty-ic">📅</div><div class="empty-t">No upcoming dates</div></div>'}
+
+      <div>
+        ${urgent.length?`<div class="panel" style="margin-bottom:16px">
+          <div class="ph2"><div><h2>🔴 Urgent — within 7 days</h2><p>${urgent.length} item${urgent.length!==1?'s':''}</p></div></div>
+          ${urgent.map(evRow).join('')}
+        </div>`:''}
+
+        ${warning.length?`<div class="panel" style="margin-bottom:16px">
+          <div class="ph2"><div><h2>🟡 Due soon — 8 to 30 days</h2><p>${warning.length} item${warning.length!==1?'s':''}</p></div></div>
+          ${warning.map(evRow).join('')}
+        </div>`:''}
+
+        ${normal.length?`<div class="panel" style="margin-bottom:16px">
+          <div class="ph2"><div><h2>🔵 Upcoming — 31 to 60 days</h2><p>${normal.length} item${normal.length!==1?'s':''}</p></div></div>
+          ${normal.map(evRow).join('')}
+        </div>`:''}
+
+        ${!upcoming.length?`<div class="panel">
+          <div class="empty"><div class="empty-ic">✓</div><div class="empty-t">All clear</div><div class="empty-s">No events in the next 60 days</div></div>
+        </div>`:''}
       </div>
     </div>
   </div>`;
 }
+
+function calNav(dir){
+  if(window.calYear===undefined){window.calYear=new Date().getFullYear();window.calMonth=new Date().getMonth();}
+  window.calMonth+=dir;
+  if(window.calMonth>11){window.calMonth=0;window.calYear++;}
+  if(window.calMonth<0){window.calMonth=11;window.calYear--;}
+  nav('calendar');
+}
+
+function showCalDay(yr,mo,d){
+  const allEvents=getCalEvents();
+  const dayEvs=allEvents.filter(e=>{const ev=new Date(e.date);return ev.getFullYear()===yr&&ev.getMonth()===mo&&ev.getDate()===d;});
+  const panel=document.getElementById('cal-day-detail');
+  const title=document.getElementById('cal-day-title');
+  const body=document.getElementById('cal-day-body');
+  if(!panel||!dayEvs.length) return;
+  const dateStr=new Date(yr,mo,d).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+  title.textContent=dateStr;
+  const col=e=>e.urg==='red'?'var(--red)':e.urg==='amber'?'var(--amber)':'var(--blue)';
+  const bg=e=>e.urg==='red'?'var(--red-bg)':e.urg==='amber'?'var(--amber-bg)':'var(--blue-bg)';
+  body.innerHTML=dayEvs.map(e=>`<div class="ai-row">
+    <div style="font-size:18px;min-width:36px;text-align:center">${e.icon}</div>
+    <div class="ai-body"><div class="ai-title">${e.label}</div><div class="ai-sub">${e.sub}</div></div>
+    <span style="font-size:11px;font-weight:600;color:${col(e)};background:${bg(e)};padding:2px 8px;border-radius:100px">${calDayLabel(e.days)}</span>
+  </div>`).join('');
+  panel.style.display='block';
+}
+
 
 
 // ── PAGE: ONBOARDING / DEBOARDING ──
