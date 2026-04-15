@@ -1047,6 +1047,114 @@ function pgProperties(){
 
 // ── PAGE: PROPERTY DETAIL ──
 
+// ── PROPERTY CHECKLIST RENDERER ──
+function renderPropChecklist(prefix, pid, mode){
+  const ITEMS = mode==='onboard' ? [
+    {id:'ob1',  group:'Pre-Tenancy',        label:'Right to Rent check completed',          detail:'Passport, share code or biometric card. Keep copy on file.'},
+    {id:'ob2',  group:'Pre-Tenancy',        label:'Tenant referencing & credit check done',  detail:'Employment, previous landlord refs, credit score verified.'},
+    {id:'ob3',  group:'Pre-Tenancy',        label:'Holding deposit collected',               detail:'Max 1 week's rent. Refund or offset at move-in.'},
+    {id:'ob4',  group:'Pre-Tenancy',        label:'Security deposit collected & capped',     detail:'Max 5 weeks' rent (under £50k/yr). Collected before agreement signed.'},
+    {id:'ob5',  group:'Legal Documents',    label:'Written Statement of Terms signed',       detail:'Replaces AST from 1 May 2026. Serve BEFORE tenancy is signed. (RRA 2025)'},
+    {id:'ob6',  group:'Legal Documents',    label:'RRA 2025 Information Sheet sent',         detail:'PDF attachment only — a link is NOT valid. Fine up to £7,000.'},
+    {id:'ob7',  group:'Legal Documents',    label:'How to Rent Guide served',                detail:'Latest edition from GOV.UK. Keep timestamped proof of delivery.'},
+    {id:'ob8',  group:'Legal Documents',    label:'Gas Safety Certificate (CP12) served',    detail:'Must be provided before tenancy begins. Annual renewal required.'},
+    {id:'ob9',  group:'Legal Documents',    label:'EICR served',                             detail:'Electrical Installation Condition Report. Valid for 5 years.'},
+    {id:'ob10', group:'Legal Documents',    label:'EPC served',                              detail:'Minimum E rating. Valid 10 years.'},
+    {id:'ob11', group:'Deposit',            label:'Deposit registered in approved scheme',   detail:'DPS, MyDeposits or TDS. Within 30 days of receipt.'},
+    {id:'ob12', group:'Deposit',            label:'Deposit certificate served to tenant',    detail:'Confirm scheme name, amount and how to reclaim.'},
+    {id:'ob13', group:'Safety Checks',      label:'Smoke alarms tested & logged',           detail:'One per storey. Test on move-in day. Log date and result.'},
+    {id:'ob14', group:'Safety Checks',      label:'CO alarms tested & logged',              detail:'Required in any room with solid fuel appliance.'},
+    {id:'ob15', group:'Safety Checks',      label:'Emergency lighting test logged',          detail:'Log date, result, any remedial action taken.'},
+    {id:'ob16', group:'Safety Checks',      label:'Pest control check completed',            detail:'Log inspection date and outcome.'},
+    {id:'ob17', group:'Move-In',            label:'Move-in inventory completed & signed',    detail:'Room-by-room condition report with dated photos. Both parties sign.'},
+    {id:'ob18', group:'Meter Readings',     label:'Gas meter reading recorded (move-in)',    detail:'', meter:true, mkey:'gas_in'},
+    {id:'ob19', group:'Meter Readings',     label:'Electric meter reading recorded (move-in)',detail:'', meter:true, mkey:'elec_in'},
+    {id:'ob20', group:'Meter Readings',     label:'Water meter reading recorded (move-in)',  detail:'', meter:true, mkey:'water_in'},
+  ] : [
+    {id:'db1',  group:'Notice & Legal',     label:'Valid Section 8 notice served',           detail:'S.21 abolished 1 May 2026. Ground 8 now needs 3 months arrears. 4 weeks notice.'},
+    {id:'db2',  group:'Notice & Legal',     label:'Proof of notice delivery retained',       detail:'Email read receipt, signed acknowledgement or recorded delivery.'},
+    {id:'db3',  group:'Notice & Legal',     label:'Notice period confirmed with tenant',     detail:'Confirm agreed end date in writing.'},
+    {id:'db4',  group:'Move-Out',           label:'Move-out inspection completed',           detail:'Walk through with tenant. Compare against move-in inventory.'},
+    {id:'db5',  group:'Move-Out',           label:'Move-out condition report & photos',      detail:'Room-by-room dated photos. Note damage vs move-in.'},
+    {id:'db6',  group:'Move-Out',           label:'All keys returned & counted',             detail:'Cross-check against move-in key log.'},
+    {id:'db7',  group:'Move-Out',           label:'Tenant forwarding address obtained',      detail:'Required for deposit return and legal notices.'},
+    {id:'db8',  group:'Safety Re-checks',   label:'Smoke & CO alarms re-tested',            detail:'Log date and result after tenant vacates.'},
+    {id:'db9',  group:'Safety Re-checks',   label:'Emergency lighting re-tested',            detail:'Log date and result.'},
+    {id:'db10', group:'Safety Re-checks',   label:'Pest control check completed',            detail:'Log inspection outcome before re-letting.'},
+    {id:'db11', group:'Meter Readings',     label:'Gas meter reading recorded (move-out)',   detail:'Compare vs move-in reading.', meter:true, mkey:'gas_out'},
+    {id:'db12', group:'Meter Readings',     label:'Electric meter reading recorded (move-out)',detail:'Compare vs move-in reading.', meter:true, mkey:'elec_out'},
+    {id:'db13', group:'Meter Readings',     label:'Water meter reading recorded (move-out)', detail:'Compare vs move-in reading.', meter:true, mkey:'water_out'},
+    {id:'db14', group:'Deposit & Admin',    label:'Deposit deductions agreed (if any)',      detail:'Itemised list with evidence. Within 10 days of move-out.'},
+    {id:'db15', group:'Deposit & Admin',    label:'Deposit returned via approved scheme',    detail:'TDS/DPS/MyDeposits. Return balance within agreed timeline.'},
+    {id:'db16', group:'Deposit & Admin',    label:'Deposit return or deduction letter sent', detail:'Written confirmation of full return or itemised deductions.'},
+    {id:'db17', group:'Deposit & Admin',    label:'Council & utilities notified',            detail:'Gas, electric, water, council tax — transfer back to landlord.'},
+  ];
+
+  const key='rsa_prop_'+prefix+'_'+pid;
+  const mkey='rsa_prop_meters_'+pid;
+  const saved=JSON.parse(localStorage.getItem(key)||'{}');
+  const meters=JSON.parse(localStorage.getItem(mkey)||'{}');
+
+  const total=ITEMS.length, done=ITEMS.filter(i=>saved[i.id]).length;
+  const pct=Math.round(done/total*100);
+  const col=pct===100?'#00C896':pct>=50?'#D97706':'#E53E3E';
+
+  // Update badge
+  setTimeout(()=>{
+    const el=document.getElementById(prefix+'-cnt-'+pid);
+    if(el) el.textContent=done+'/'+total;
+  },0);
+
+  let groups={};
+  ITEMS.forEach(item=>{
+    if(!groups[item.group]) groups[item.group]=[];
+    groups[item.group].push(item);
+  });
+
+  let html='<div style="padding:4px 0 8px">';
+  html+='<div style="height:5px;background:#E4EAF1;border-radius:100px;overflow:hidden;margin-bottom:14px"><div style="height:100%;width:'+pct+'%;background:'+col+';border-radius:100px"></div></div>';
+
+  Object.keys(groups).forEach(grp=>{
+    const gitems=groups[grp];
+    html+='<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:12px 0 6px">'+grp+'</div>';
+    gitems.forEach(item=>{
+      const checked=saved[item.id]?true:false;
+      html+='<div style="display:flex;align-items:flex-start;gap:10px;padding:9px 10px;border-radius:8px;border:1px solid '+(checked?'var(--green)':'var(--border)')+';background:'+(checked?'rgba(0,200,150,0.05)':'var(--white)')+';cursor:pointer;margin-bottom:6px" onclick="togglePropCheck(''+prefix+'',''+pid+'',''+item.id+'')">';
+      html+='<div style="width:18px;height:18px;border-radius:4px;border:2px solid '+(checked?'var(--green)':'#C5D0DD')+';background:'+(checked?'var(--green)':'transparent')+';flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center">';
+      html+=checked?'<svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>':'';
+      html+='</div>';
+      html+='<div style="flex:1"><div style="font-size:12.5px;font-weight:500;color:'+(checked?'var(--muted)':'var(--txt)')+';'+(checked?'text-decoration:line-through':'')+'">'+item.label+'</div>';
+      if(item.detail) html+='<div style="font-size:11px;color:var(--muted);margin-top:1px">'+item.detail+'</div>';
+      if(item.meter){
+        const mval=meters[item.mkey]||'';
+        html+='<input type="text" placeholder="Enter reading e.g. 12345" value="'+mval+'" onclick="event.stopPropagation()" onchange="saveMeterReading(''+pid+'',''+item.mkey+'',this.value)" style="margin-top:6px;width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:var(--font)">';
+      }
+      html+='</div></div>';
+    });
+  });
+
+  html+='<p style="font-size:10px;color:var(--muted);margin-top:10px">⚠️ Guide only — not legal advice. Consult a solicitor for your circumstances.</p>';
+  html+='</div>';
+  return html;
+}
+
+function togglePropCheck(prefix,pid,itemId){
+  const key='rsa_prop_'+prefix+'_'+pid;
+  const saved=JSON.parse(localStorage.getItem(key)||'{}');
+  if(saved[itemId]) delete saved[itemId]; else saved[itemId]=true;
+  localStorage.setItem(key,JSON.stringify(saved));
+  // Re-render just the checklist body
+  const el=document.getElementById('cb-'+prefix+'-'+pid);
+  if(el) el.innerHTML=renderPropChecklist(prefix,pid,prefix==='ob'?'onboard':'deboard');
+}
+
+function saveMeterReading(pid,mkey,val){
+  const key='rsa_prop_meters_'+pid;
+  const meters=JSON.parse(localStorage.getItem(key)||'{}');
+  meters[mkey]=val;
+  localStorage.setItem(key,JSON.stringify(meters));
+}
+
 function pgPropDetail(pid){
   const p=P(pid); if(!p)return pgProperties();
   const t=D.tenants.find(x=>String(x.prop_id)===String(pid));
@@ -1115,6 +1223,12 @@ function pgPropDetail(pid){
     <div class="coll"><div class="coll-hd" onclick="toggleColl('insp')"><span class="coll-l">🔍 Inspections <span class="coll-cnt">${(p.inspections||[]).length}</span></span><div class="coll-r"><button class="btn btn-sm" onclick="event.stopPropagation();moInspection('${pid}')">+ Log</button><span class="coll-arr op" id="ca-insp">▾</span></div></div>
     <div class="coll-body" id="cb-insp">${(p.inspections||[]).length?`<div class="tw"><table><thead><tr><th>Date</th><th>Type</th><th>Inspector</th><th>Notes</th></tr></thead><tbody>${(p.inspections||[]).map(i=>`<tr><td>${FMS(i.date)}</td><td><span class="badge b-blue">${i.type}</span></td><td>${i.inspector||'—'}</td><td style="font-size:12px;max-width:200px">${i.notes||'—'}</td></tr>`).join('')}</tbody></table></div>`:'<div style="color:var(--muted);font-size:13px">No inspections yet</div>'}</div></div>
 
+    <div class="coll"><div class="coll-hd" onclick="toggleColl('ob-'+pid)"><span class="coll-l">🟢 Onboarding checklist <span class="coll-cnt" id="ob-cnt-${pid}"></span></span><span class="coll-arr op" id="ca-ob-${pid}">▾</span></div>
+    <div class="coll-body" id="cb-ob-${pid}">${renderPropChecklist('ob',pid,'onboard')}</div></div>
+
+    <div class="coll"><div class="coll-hd" onclick="toggleColl('db-'+pid)"><span class="coll-l">🔴 Deboarding checklist <span class="coll-cnt" id="db-cnt-${pid}"></span></span><span class="coll-arr op" id="ca-db-${pid}">▾</span></div>
+    <div class="coll-body" id="cb-db-${pid}">${renderPropChecklist('db',pid,'deboard')}</div></div>
+
     <div class="coll"><div class="coll-hd" onclick="toggleColl('notes')"><span class="coll-l">📝 Notes</span><span class="coll-arr op" id="ca-notes">▾</span></div>
     <div class="coll-body" id="cb-notes">${p.notes?`<div style="font-size:13.5px;line-height:1.7;white-space:pre-wrap">${p.notes}</div>`:'<div style="color:var(--muted);font-size:13px">No notes added</div>'}<button class="btn btn-sm" style="margin-top:12px" onclick="moEditProp('${pid}')">✎ Edit notes</button></div></div>
   </div>`;
@@ -1137,20 +1251,38 @@ function pgCompliance(){
           <span class="badge ${g.pct===100?'b-green':g.pct>=60?'b-amber':'b-red'}">${g.v}/${g.n} complete</span>
         </div>
       </div>
-      ${g.c.length?`<div class="tw"><table><thead><tr><th>Type</th><th>Expiry</th><th>Status</th><th>File</th><th>Served</th><th>Engineer</th></tr></thead>
-      <tbody>${g.c.map(c=>`<tr><td class="td-bold">${c.type}</td><td>${FMT(c.expiry)}</td><td>${B(c.status)}</td>
-        <td>${(c.file||c.has_file)
-          ?'<span class=\'badge b-green\'>✓ Uploaded</span>'
-          :`<label id="scan-lbl-${c.id}" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--blue);padding:3px 8px;border:1px solid var(--blue);border-radius:6px;background:var(--blue-bg)">
-              ✦ Upload & Scan<input type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="uploadScanCert(${c.id},this)">
-            </label>`}
-        </td>
-        <td>${c.served
-          ?`<button onclick="markServed(${c.id})" style="background:var(--green-bg);border:1px solid var(--green);color:var(--green-dark);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font)">✓ Served</button>`
-          :`<button onclick="markServed(${c.id})" style="background:var(--off);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;font-family:var(--font)">Mark served</button>`}
-        </td>
-        <td style="font-size:12px;color:var(--muted)">${c.engineer||'—'}</td>
-      </tr>`).join('')}</tbody></table></div>`:'<div style="padding:14px 18px;font-size:13px;color:var(--muted)">No certificates yet — <a href="#" onclick="moCert()" style="color:var(--navy);font-weight:500">add one</a></div>'}
+      ${(function(){
+        const docGroups={
+          'Gas Safety':g.c.filter(x=>x.type&&x.type.toLowerCase().includes('gas')),
+          'Electrical (EICR)':g.c.filter(x=>x.type&&x.type.toLowerCase().includes('eicr')||x.type&&x.type.toLowerCase().includes('electrical')),
+          'EPC':g.c.filter(x=>x.type&&x.type.toLowerCase().includes('epc')||x.type&&x.type.toLowerCase().includes('energy')),
+          'Deposit Protection':g.c.filter(x=>x.type&&x.type.toLowerCase().includes('deposit')),
+          'Tenancy Documents':g.c.filter(x=>x.type&&(x.type.toLowerCase().includes('tenancy')||x.type.toLowerCase().includes('statement')||x.type.toLowerCase().includes('how to rent')||x.type.toLowerCase().includes('rra'))),
+          'Other':g.c.filter(x=>{
+            const t=(x.type||'').toLowerCase();
+            return !t.includes('gas')&&!t.includes('eicr')&&!t.includes('electrical')&&!t.includes('epc')&&!t.includes('energy')&&!t.includes('deposit')&&!t.includes('tenancy')&&!t.includes('statement')&&!t.includes('how to rent')&&!t.includes('rra');
+          })
+        };
+        const nonEmpty=Object.entries(docGroups).filter(([,v])=>v.length>0);
+        if(!nonEmpty.length) return '<div style="padding:14px 18px;font-size:13px;color:var(--muted)">No certificates yet — <a href=\'#\' onclick=\'moCert()\' style=\'color:var(--navy);font-weight:500\'>add one</a></div>';
+        return nonEmpty.map(([grpName,certs])=>`
+          <div style="padding:8px 14px 0;border-top:1px solid var(--border)">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:8px 0 6px">${grpName}</div>
+          </div>
+          <div class="tw"><table><thead><tr><th>Type</th><th>Expiry</th><th>Status</th><th>File</th><th>Served</th><th>Engineer</th></tr></thead>
+          <tbody>${certs.map(c=>`<tr><td class="td-bold">${c.type}</td><td>${FMT(c.expiry)}</td><td>${B(c.status)}</td>
+            <td>${(c.file||c.has_file)
+              ?'<span class=\'badge b-green\'>✓ Uploaded</span>'
+              :`<label id="scan-lbl-${c.id}" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--blue);padding:3px 8px;border:1px solid var(--blue);border-radius:6px;background:var(--blue-bg)">✦ Upload & Scan<input type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="uploadScanCert(${c.id},this)"></label>`}
+            </td>
+            <td>${c.served
+              ?`<button onclick="markServed(${c.id})" style="background:var(--green-bg);border:1px solid var(--green);color:var(--green-dark);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font)">✓ Served</button>`
+              :`<button onclick="markServed(${c.id})" style="background:var(--off);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;font-family:var(--font)">Mark served</button>`}
+            </td>
+            <td style="font-size:12px;color:var(--muted)">${c.engineer||'—'}</td>
+          </tr>`).join('')}</tbody></table></div>
+        `).join('');
+      })()}:'<div style="padding:14px 18px;font-size:13px;color:var(--muted)">No certificates yet — <a href="#" onclick="moCert()" style="color:var(--navy);font-weight:500">add one</a></div>'}
     </div>`).join(''):'<div class="empty"><div class="empty-ic">✓</div><div class="empty-t">No properties yet</div><div class="empty-s">Add a property to start tracking compliance</div></div>'}
   </div>`;
 }
