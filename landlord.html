@@ -1025,6 +1025,25 @@ function pgPropDetail(pid){
       <div class="mc"><div class="mc-top"><span class="mc-label">Open issues</span></div><div class="mc-val">${pm.length}</div></div>
     </div>
 
+    ${(function(){
+      var r=calcRAG(pid);
+      var col=r.rag==='red'?'#E53E3E':r.rag==='amber'?'#D97706':'#00C896';
+      var bg=r.rag==='red'?'#fff5f5':r.rag==='amber'?'#fffbeb':'#f0fdf9';
+      var icon=r.rag==='red'?'⚠️':r.rag==='amber'?'⚡':'✅';
+      return '<div style="background:'+bg+';border:1px solid '+col+';border-radius:12px;padding:16px 20px;margin-bottom:22px;display:flex;align-items:center;gap:16px">'
+        +'<div style="font-size:28px">'+icon+'</div>'
+        +'<div style="flex:1">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+        +'<div style="font-size:13px;font-weight:600;color:'+col+'">Compliance: '+r.label+'</div>'
+        +'<div style="font-size:20px;font-weight:700;color:'+col+'">'+r.score+'/100</div>'
+        +'</div>'
+        +'<div style="height:6px;background:#E4EAF1;border-radius:100px;overflow:hidden">'
+        +'<div style="height:100%;width:'+r.score+'%;background:'+col+';border-radius:100px;transition:width .4s ease"></div>'
+        +'</div>'
+        +'<div style="font-size:11px;color:#7A8FA6;margin-top:6px">Based on '+pc.length+' certificate'+(pc.length!==1?'s':'')+' · '+pc.filter(c=>c.status==='Valid').length+' valid, '+pc.filter(c=>c.status==='Missing').length+' missing</div>'
+        +'</div></div>';
+    })()}
+
     <div class="coll"><div class="coll-hd" onclick="toggleColl('det')"><span class="coll-l">🏠 Property details</span><span class="coll-arr op" id="ca-det">▾</span></div>
     <div class="coll-body" id="cb-det"><div class="det-grid">
       ${[['Address',p.address],['City',p.city],['Postcode',p.postcode],['Type',p.type],['Built',p.built||'—'],['Council',p.council||'—'],['Council tax band',p.council_tax_band||'—'],['EPC rating',p.epc||'—'],['EPC expiry',FMS(p.epc_expiry)],['Monthly rent',p.rent?'£'+p.rent.toLocaleString():'Vacant'],['Bedrooms',p.beds||'—'],['Bathrooms',p.bathrooms||'—']].map(([l,v])=>`<div class="det-f"><label>${l}</label><span>${v}</span></div>`).join('')}
