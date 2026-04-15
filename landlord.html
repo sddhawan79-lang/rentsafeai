@@ -409,7 +409,12 @@ async function initApp() {
   document.getElementById('th-av').textContent = email.slice(0,2).toUpperCase();
 
   await loadData();
-  nav('dashboard');
+  try {
+    nav('dashboard');
+  } catch(err) {
+    document.getElementById('main').innerHTML = '<div style="padding:32px;font-family:sans-serif"><h2 style="color:#E53E3E">Dashboard Error</h2><pre style="background:#fff5f5;padding:16px;border-radius:8px;font-size:12px;overflow:auto">'+err.stack+'</pre><p style="margin-top:12px;color:#666">Please share this error with the developer.</p></div>';
+    console.error('Dashboard error:', err);
+  }
 }
 
 // ── SAVE: PROPERTY ──
@@ -1887,7 +1892,12 @@ function moFinancials(pid){
     const base=page==='prop-detail'?'properties':page;
     el.classList.toggle('active',el.dataset.page===base);
   });
-  main.innerHTML=(PAGES[page]||pgDashboard)(param);
+  try {
+    main.innerHTML=(PAGES[page]||pgDashboard)(param);
+  } catch(err) {
+    main.innerHTML='<div style="padding:32px;font-family:sans-serif"><h2 style="color:#E53E3E">Page Error: '+page+'</h2><pre style="background:#fff5f5;padding:16px;border-radius:8px;font-size:12px;overflow:auto;white-space:pre-wrap">'+err.stack+'</pre></div>';
+    console.error('Nav error on page '+page+':', err);
+  }
   main.scrollTo(0,0);
 }
 // ── PAGE: TEMPLATES ──
