@@ -461,6 +461,58 @@ async function savePropToDB() {
 }
 
 // ── SAVE: CERTIFICATE ──
+// ── REUSABLE: scanAndFill ──
+async function scanAndFill(file, onResult){
+  if(!file) return;
+  const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});
+  const isImg=file.type.startsWith('image/');
+  const msgContent=isImg
+    ?[{type:'image',source:{type:'base64',media_type:file.type,data:b64}},{type:'text',text:'UK property compliance certificate. Extract: certificate type, issue date (YYYY-MM-DD), expiry date (YYYY-MM-DD), engineer or provider name, address. Return JSON only, keys: type, issued, expiry, engineer, address.'}]
+    :[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:'UK property compliance certificate. Extract: certificate type, issue date (YYYY-MM-DD), expiry date (YYYY-MM-DD), engineer or provider name, address. Return JSON only, keys: type, issued, expiry, engineer, address.'}];
+  const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:300,messages:[{role:'user',content:msgContent}]})});
+  const data=await res.json();
+  const txt=data.content?.[0]?.text||'{}';
+  const parsed=JSON.parse(txt.replace(/```json|```/g,'').trim());
+  onResult(parsed);
+}
+
+// ── MARK CERT SERVED ──
+async function markServed(certId){
+  const c=D.certs.find(x=>x.id===certId);
+  if(!c) return;
+  const newVal=!c.served;
+  const{error}=await sb.from('certificates').update({served:newVal}).eq('id',certId);
+  if(error){toast('Error: '+error.message,true);return;}
+  c.served=newVal;
+  toast(newVal?'✓ Marked as served':'Marked as not served');
+  nav('compliance');
+}
+
+// ── UPLOAD & SCAN EXISTING CERT ──
+async function uploadScanCert(certId, input){
+  if(!input.files[0]) return;
+  const file=input.files[0];
+  const lbl=document.getElementById('scan-lbl-'+certId);
+  if(lbl) lbl.textContent='⏳ Scanning…';
+  try{
+    await scanAndFill(file, async (parsed)=>{
+      const updates={has_file:true};
+      if(parsed.expiry) updates.expiry=parsed.expiry;
+      if(parsed.engineer) updates.engineer=parsed.engineer;
+      if(parsed.expiry) updates.status=new Date(parsed.expiry)<new Date()?'Expired':'Valid';
+      const{error}=await sb.from('certificates').update(updates).eq('id',certId);
+      if(error){toast('Error: '+error.message,true);return;}
+      const c=D.certs.find(x=>x.id===certId);
+      if(c) Object.assign(c,updates,{file:true});
+      toast('✓ Scanned & saved — expiry and engineer auto-filled!');
+      nav('compliance');
+    });
+  }catch(e){
+    if(lbl) lbl.textContent='⚠️ Scan failed';
+    toast('Could not scan — please edit manually',true);
+  }
+}
+
 async function saveCertToDB() {
   const propId = document.getElementById('cp')?.value;
   const certType = document.getElementById('ct')?.value;
@@ -669,23 +721,16 @@ async function scanDoc(input){
   const file=input.files[0];
   const sb2=document.getElementById('sb-scan');
   sb2.innerHTML=`<div class="scan-ic">⏳</div><div class="scan-t">Scanning document…</div><div class="scan-s">AI is reading your certificate</div>`;
-  const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});
-  const isImg=file.type.startsWith('image/');
-  const content=isImg
-    ?[{type:'image',source:{type:'base64',media_type:file.type,data:b64}},{type:'text',text:'UK property compliance certificate. Extract: certificate type, issue date (YYYY-MM-DD), expiry date (YYYY-MM-DD), engineer or provider name, address. Return JSON only, keys: type, issued, expiry, engineer, address.'}]
-    :[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:'UK property compliance certificate. Extract: certificate type, issue date (YYYY-MM-DD), expiry date (YYYY-MM-DD), engineer or provider name, address. Return JSON only, keys: type, issued, expiry, engineer, address.'}];
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:300,messages:[{role:'user',content}]})});
-    const data=await res.json();
-    const txt=data.content?.[0]?.text||'{}';
-    const parsed=JSON.parse(txt.replace(/```json|```/g,'').trim());
-    if(parsed.type)document.getElementById('ct').value=parsed.type;
-    if(parsed.issued)document.getElementById('ci').value=parsed.issued;
-    if(parsed.expiry)document.getElementById('ce').value=parsed.expiry;
-    if(parsed.engineer)document.getElementById('ceng').value=parsed.engineer;
-    document.getElementById('arg').innerHTML=[['Type',parsed.type],['Issue date',parsed.issued],['Expiry',parsed.expiry],['Engineer',parsed.engineer],['Address',parsed.address]].map(([l,v])=>`<div class="ai-res-f"><span>${l}</span><strong>${v||'Not detected'}</strong></div>`).join('');
-    document.getElementById('ar').style.display='block';
-    sb2.innerHTML=`<div style="font-size:13px;color:var(--green-dark);font-weight:600">✓ Scanned — fields filled below</div><div style="font-size:12px;color:var(--muted);margin-top:4px">${file.name}</div>`;
+    await scanAndFill(file, (parsed)=>{
+      if(parsed.type)document.getElementById('ct').value=parsed.type;
+      if(parsed.issued)document.getElementById('ci').value=parsed.issued;
+      if(parsed.expiry)document.getElementById('ce').value=parsed.expiry;
+      if(parsed.engineer)document.getElementById('ceng').value=parsed.engineer;
+      document.getElementById('arg').innerHTML=[['Type',parsed.type],['Issue date',parsed.issued],['Expiry',parsed.expiry],['Engineer',parsed.engineer],['Address',parsed.address]].map(([l,v])=>`<div class="ai-res-f"><span>${l}</span><strong>${v||'Not detected'}</strong></div>`).join('');
+      document.getElementById('ar').style.display='block';
+      sb2.innerHTML=`<div style="font-size:13px;color:var(--green-dark);font-weight:600">✓ Scanned — fields filled below</div><div style="font-size:12px;color:var(--muted);margin-top:4px">${file.name}</div>`;
+    });
   }catch(e){sb2.innerHTML=`<div style="font-size:13px;color:var(--amber);font-weight:500">Could not scan — please fill in manually</div>`;}
 }
 
@@ -1094,8 +1139,16 @@ function pgCompliance(){
       </div>
       ${g.c.length?`<div class="tw"><table><thead><tr><th>Type</th><th>Expiry</th><th>Status</th><th>File</th><th>Served</th><th>Engineer</th></tr></thead>
       <tbody>${g.c.map(c=>`<tr><td class="td-bold">${c.type}</td><td>${FMT(c.expiry)}</td><td>${B(c.status)}</td>
-        <td>${(c.file||c.has_file)?B('Uploaded'):'<span style="font-size:11px;color:var(--muted)">No file</span>'}</td>
-        <td>${c.served?B('Served'):'<span style="font-size:11px;color:var(--muted)">Not served</span>'}</td>
+        <td>${(c.file||c.has_file)
+          ?'<span class=\'badge b-green\'>✓ Uploaded</span>'
+          :`<label id="scan-lbl-${c.id}" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--blue);padding:3px 8px;border:1px solid var(--blue);border-radius:6px;background:var(--blue-bg)">
+              ✦ Upload & Scan<input type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="uploadScanCert(${c.id},this)">
+            </label>`}
+        </td>
+        <td>${c.served
+          ?`<button onclick="markServed(${c.id})" style="background:var(--green-bg);border:1px solid var(--green);color:var(--green-dark);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font)">✓ Served</button>`
+          :`<button onclick="markServed(${c.id})" style="background:var(--off);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;font-family:var(--font)">Mark served</button>`}
+        </td>
         <td style="font-size:12px;color:var(--muted)">${c.engineer||'—'}</td>
       </tr>`).join('')}</tbody></table></div>`:'<div style="padding:14px 18px;font-size:13px;color:var(--muted)">No certificates yet — <a href="#" onclick="moCert()" style="color:var(--navy);font-weight:500">add one</a></div>'}
     </div>`).join(''):'<div class="empty"><div class="empty-ic">✓</div><div class="empty-t">No properties yet</div><div class="empty-s">Add a property to start tracking compliance</div></div>'}
