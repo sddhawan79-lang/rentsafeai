@@ -1195,6 +1195,59 @@ function saveMeterReading(pid,mkey,val){
 }
 
 
+// ── PROPERTY RENT PANEL ──
+function propRentHtml(pid){
+  var pr=D.rent.filter(function(r){return String(r.prop_id)===String(pid);});
+  if(!pr.length) return '<div style="color:var(--muted);font-size:13px;padding:4px 0">No rent records yet</div>';
+  var paid=pr.filter(function(r){return r.status==='Paid';}).reduce(function(s,r){return s+(r.amount||0);},0);
+  var due=pr.filter(function(r){return r.status==='Due'||r.status==='Late';}).reduce(function(s,r){return s+(r.amount||0);},0);
+  var html='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">'
+    +'<div style="background:var(--green-bg);border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--muted)">Collected</div><div style="font-size:16px;font-weight:600;color:var(--green-dark)">£'+paid.toLocaleString()+'</div></div>'
+    +'<div style="background:var(--amber-bg);border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--muted)">Outstanding</div><div style="font-size:16px;font-weight:600;color:var(--amber)">£'+due.toLocaleString()+'</div></div>'
+    +'<div style="background:var(--off);border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--muted)">Records</div><div style="font-size:16px;font-weight:600">'+pr.length+'</div></div>'
+    +'</div>';
+  html+='<div class="tw"><table><thead><tr><th>Month</th><th>Amount</th><th>Due</th><th>Paid</th><th>Status</th></tr></thead><tbody>';
+  pr.slice(0,6).forEach(function(r){
+    html+='<tr><td style="font-size:12px">'+r.month+'</td><td>£'+(r.amount||0).toLocaleString()+'</td>'
+      +'<td>'+FMS(r.due||r.due_date)+'</td>'
+      +'<td>'+(r.paid||r.paid_date?FMS(r.paid||r.paid_date):'—')+'</td>'
+      +'<td>'+B(r.status)+'</td></tr>';
+  });
+  html+='</tbody></table></div>';
+  if(pr.length>6) html+='<div style="font-size:11px;color:var(--muted);padding:8px 0">Showing 6 of '+pr.length+' records</div>';
+  return html;
+}
+
+// ── PROPERTY MAINTENANCE PANEL ──
+function propMaintHtml(pid){
+  var pm=D.maintenance.filter(function(m){return String(m.prop_id)===String(pid);});
+  if(!pm.length) return '<div style="color:var(--muted);font-size:13px;padding:4px 0">No issues logged yet</div>';
+  var opn=pm.filter(function(m){return m.status!=='Resolved';}).length;
+  var res=pm.filter(function(m){return m.status==='Resolved';}).length;
+  var aw=pm.filter(function(m){return m.awaab;}).length;
+  var html='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">'
+    +'<div style="background:var(--red-bg);border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--muted)">Open</div><div style="font-size:16px;font-weight:600;color:var(--red)">'+opn+'</div></div>'
+    +'<div style="background:var(--green-bg);border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--muted)">Resolved</div><div style="font-size:16px;font-weight:600;color:var(--green-dark)">'+res+'</div></div>'
+    +'<div style="background:var(--amber-bg);border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--muted)">Awaab flagged</div><div style="font-size:16px;font-weight:600;color:var(--amber)">'+aw+'</div></div>'
+    +'</div>';
+  html+='<div class="tw" style="overflow-x:auto"><table><thead><tr><th>Date</th><th>Description</th><th>Priority</th><th>Flags</th><th>Status</th></tr></thead><tbody>';
+  pm.slice(0,5).forEach(function(m){
+    var s=m.status;
+    html+='<tr><td style="font-size:12px;white-space:nowrap">'+FMT(m.date||m.issue_date)+'</td>'
+      +'<td style="font-size:12px;max-width:180px;white-space:normal">'+(m.desc||m.description||'—')+'</td>'
+      +'<td>'+B(m.priority)+'</td>'
+      +'<td>'+(m.awaab?'<span class="badge b-red">Awaab</span>':'—')+'</td>'
+      +'<td style="white-space:nowrap">'
+      +'<button data-id="'+m.id+'" data-s="Open" onclick="updateIssueStatus(this.dataset.id,this.dataset.s)" style="font-size:11px;padding:2px 7px;border-radius:4px;border:1px solid var(--border);background:'+(s==='Open'?'var(--navy)':'var(--off)')+';color:'+(s==='Open'?'#fff':'var(--muted)')+';cursor:pointer;font-family:var(--font)">Open</button> '
+      +'<button data-id="'+m.id+'" data-s="In progress" onclick="updateIssueStatus(this.dataset.id,this.dataset.s)" style="font-size:11px;padding:2px 7px;border-radius:4px;border:1px solid var(--border);background:'+(s==='In progress'?'var(--navy)':'var(--off)')+';color:'+(s==='In progress'?'#fff':'var(--muted)')+';cursor:pointer;font-family:var(--font)">In progress</button> '
+      +'<button data-id="'+m.id+'" data-s="Resolved" onclick="updateIssueStatus(this.dataset.id,this.dataset.s)" style="font-size:11px;padding:2px 7px;border-radius:4px;border:1px solid var(--border);background:'+(s==='Resolved'?'var(--green)':'var(--off)')+';color:'+(s==='Resolved'?'#fff':'var(--muted)')+';cursor:pointer;font-family:var(--font)">Done</button>'
+      +'</td></tr>';
+  });
+  html+='</tbody></table></div>';
+  if(pm.length>5) html+='<div style="font-size:11px;color:var(--muted);padding:8px 0">Showing 5 of '+pm.length+'</div>';
+  return html;
+}
+
 function pgPropDetail(pid){
   const p=P(pid); if(!p)return pgProperties();
   const t=D.tenants.find(x=>String(x.prop_id)===String(pid));
@@ -1250,6 +1303,12 @@ function pgPropDetail(pid){
 
     <div class="coll"><div class="coll-hd" onclick="toggleColl('ten')"><span class="coll-l">👤 Tenants <span class="coll-cnt">${t?1:0}</span></span><div class="coll-r"><button class="btn btn-sm" onclick="event.stopPropagation();moTenant('${pid}')">+ Add tenant</button><span class="coll-arr op" id="ca-ten">▾</span></div></div>
     <div class="coll-body" id="cb-ten">${t?`<div style="display:flex;align-items:center;gap:12px"><div class="t-av">${INI(t.name)}</div><div style="flex:1"><div style="font-weight:500">${t.name}</div><div style="font-size:12px;color:var(--muted)">${t.email||'—'}</div></div><div style="text-align:right"><div style="font-size:12px;font-weight:600">£${(t.rent||0).toLocaleString()}/mo</div><div style="font-size:11px;color:var(--muted)">${FMS(t.start)} – ${FMS(t.end)}</div></div>${B(t.status)}</div>`:'<div style="color:var(--muted);font-size:13px">No active tenants</div>'}</div></div>
+
+    <div class="coll"><div class="coll-hd" onclick="toggleColl('rent-p${pid}')"><span class="coll-l">💷 Rent <span class="coll-cnt">${D.rent.filter(r=>String(r.prop_id)===String(pid)).length}</span></span><div class="coll-r"><button class="btn btn-sm" onclick="event.stopPropagation();nav('rent')">View all</button><span class="coll-arr op" id="ca-rent-p${pid}">▾</span></div></div>
+    <div class="coll-body" id="cb-rent-p${pid}">${propRentHtml(pid)}</div></div>
+
+    <div class="coll"><div class="coll-hd" onclick="toggleColl('mnt-p${pid}')"><span class="coll-l">🔧 Maintenance <span class="coll-cnt">${D.maintenance.filter(m=>String(m.prop_id)===String(pid)).length}</span></span><div class="coll-r"><button class="btn btn-sm" onclick="event.stopPropagation();moIssue('${pid}')">+ Report</button><span class="coll-arr op" id="ca-mnt-p${pid}">▾</span></div></div>
+    <div class="coll-body" id="cb-mnt-p${pid}">${propMaintHtml(pid)}</div></div>
 
     <div class="coll"><div class="coll-hd" onclick="toggleColl('doc')"><span class="coll-l">📄 Documents <span class="coll-cnt">${pc.filter(c=>c.file||c.has_file).length}</span></span><div class="coll-r"><button class="btn btn-sm" onclick="event.stopPropagation();moCert('${pid}')">+ Add</button><span class="coll-arr op" id="ca-doc">▾</span></div></div>
     <div class="coll-body" id="cb-doc">${pc.length?`<div class="tw"><table><thead><tr><th>Document</th><th>Status</th><th>Expiry</th><th>Engineer</th><th>Served</th></tr></thead><tbody>${pc.map(c=>`<tr><td class="td-bold">${c.type}</td><td>${B(c.status)}</td><td>${FMT(c.expiry)}</td><td style="font-size:12px;color:var(--muted)">${c.engineer||'—'}</td><td>${c.served?B('Served'):'—'}</td></tr>`).join('')}</tbody></table></div>`:'<div style="color:var(--muted);font-size:13px">No documents yet</div>'}</div></div>
