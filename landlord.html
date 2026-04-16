@@ -2359,14 +2359,12 @@ function checkPlaceholders() {
   const sendBtn = document.getElementById('send-tenant-btn');
   if (!el) return;
   const text = el.textContent || '';
-  const bracketMatches = [...text.matchAll(/\[[^\]]{1,80}\]/g)].map(m => m[0]);
-  const underscoreMatches = [...text.matchAll(/_{4,}/g)].map(() => '[unfilled field]');
-  const matches = [...bracketMatches, ...underscoreMatches];
+  const matches = [...text.matchAll(/\[[^\]]{1,80}\]/g)].map(m => m[0]);
   const has = matches.length > 0;
   if (warn) {
     warn.style.display = has ? 'block' : 'none';
     warn.innerHTML = has
-      ? `⚠️ <strong>${matches.length} placeholder${matches.length > 1 ? 's' : ''} to fill:</strong> ${matches.slice(0, 4).map(m => `<code style="background:rgba(217,119,6,0.15);padding:1px 6px;border-radius:3px;font-size:11px">${m}</code>`).join(' ')}${matches.length > 4 ? ' …' : ''} — click the document above to edit`
+      ? `⚠️ <strong>${matches.length} field${matches.length > 1 ? 's' : ''} to complete:</strong> ${matches.slice(0, 4).map(m => `<code style="background:rgba(217,119,6,0.15);padding:1px 6px;border-radius:3px;font-size:11px">${m}</code>`).join(' ')}${matches.length > 4 ? ' …' : ''} — click the document and replace each [field] with real text`
       : '';
   }
   if (pdfBtn) pdfBtn.disabled = has;
