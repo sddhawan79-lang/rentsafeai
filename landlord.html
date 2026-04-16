@@ -307,6 +307,7 @@ let currentUser = null;
 const D = {
   properties: [], tenants: [], certs: [], maintenance: [], rent: [], insurance: [],
   emailLog: [],
+  customTemplates: [],
   chat: [{role:'ai', text:'Hello! I\'m your AI compliance assistant. Ask me anything about UK landlord law — Section 8, Renters Rights Act, Awaab\'s Law, deposits, or anything else.'}]
 };
 
@@ -427,7 +428,7 @@ async function logout() {
 
 // ── LOAD DATA ──
 async function loadData() {
-  const [p, t, c, m, r, i, el] = await Promise.all([
+  const [p, t, c, m, r, i, el, ct] = await Promise.all([
     sb.from('properties').select('*').order('created_at', {ascending: false}),
     sb.from('tenants').select('*'),
     sb.from('certificates').select('*'),
@@ -435,6 +436,7 @@ async function loadData() {
     sb.from('rent_payments').select('*').order('due_date', {ascending: false}),
     sb.from('insurance').select('*'),
     sb.from('email_log').select('*').order('sent_at', {ascending: false}),
+    sb.from('custom_templates').select('*').order('created_at', {ascending: false}),
   ]);
 
   if (p.data?.length) {
@@ -472,6 +474,7 @@ async function loadData() {
   }
   if (i.data?.length) D.insurance = i.data;
   if (el.data?.length) D.emailLog = el.data;
+  if (ct.data?.length) D.customTemplates = ct.data;
 }
 
 // ── INIT ──
@@ -2102,11 +2105,44 @@ function pgTemplates() {
           </div>
         </div>
       `).join('')}
+
+      ${D.customTemplates.length ? `
+        <div class="coll" style="margin-bottom:14px">
+          <div class="coll-hd" onclick="toggleColl('tmpl-custom')">
+            <div class="coll-l">
+              <span style="font-size:16px">📁</span>
+              My Templates
+              <span class="coll-cnt">${D.customTemplates.length}</span>
+            </div>
+            <div class="coll-r">
+              <button class="btn btn-sm" onclick="event.stopPropagation();moUploadTemplate()">+ Add</button>
+              <span class="coll-arr op" id="ca-tmpl-custom">▼</span>
+            </div>
+          </div>
+          <div class="coll-body" id="cb-tmpl-custom">
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
+              ${D.customTemplates.map(t => `
+                <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:8px">
+                  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+                    <div style="font-size:13px;font-weight:600;color:var(--txt)">${t.name}</div>
+                    <span class="badge b-blue" style="flex-shrink:0">${t.category || 'Custom'}</span>
+                  </div>
+                  <div style="font-size:12px;color:var(--muted);flex:1">${t.content.slice(0,80)}…</div>
+                  <div style="display:flex;gap:6px;margin-top:4px">
+                    <button class="btn btn-sm btn-navy" onclick="moGenerate('custom-${t.id}', ${JSON.stringify(t.content).replace(/'/g, '&#39;')})">✦ Generate with AI</button>
+                    <button class="btn btn-sm" style="color:var(--red);border-color:var(--red)" onclick="deleteCustomTemplate('${t.id}')">✕</button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      ` : ''}
     </div>`;
 }
 
 // ── TEMPLATE GENERATOR MODAL ──
-function moGenerate(templateId) {
+function moGenerate(templateId, customContent = null) {
   const titles = {
     section8: 'Section 8 Notice',
     section13: 'Section 13 Notice',
@@ -2146,18 +2182,20 @@ function moGenerate(templateId) {
     <div class="fg"><label>Tenant</label><select id="gen-tenant">${tenantOpts}</select></div>
     <div class="fg"><label>Additional notes (optional)</label><textarea id="gen-notes" placeholder="Any specific details to include…"></textarea></div>
     <div id="gen-output" style="display:none;margin-top:16px">
-      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:8px">✦ Generated document</div>
-      <div id="gen-text" style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:16px;font-size:13px;line-height:1.8;max-height:360px;overflow-y:auto;color:var(--txt)"></div>
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:8px">✦ Generated document — click to edit</div>
+      <div id="gen-text" contenteditable="true" spellcheck="false" oninput="checkPlaceholders()" style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:16px;font-size:13px;line-height:1.8;max-height:360px;overflow-y:auto;color:var(--txt);outline:none;cursor:text"></div>
+      <div id="gen-placeholder-warn" style="display:none;background:var(--amber-bg);border:1px solid var(--amber);border-radius:7px;padding:8px 12px;font-size:12px;color:var(--amber);margin-top:8px"></div>
       <div id="gen-actions" style="display:flex;gap:8px;margin-top:10px">
         <button class="btn btn-sm" onclick="copyTemplate()">📋 Copy</button>
-        <button class="btn btn-sm" onclick="downloadAsPDF()">↓ Download PDF</button>
-        <button class="btn btn-sm btn-navy" onclick="moSendToTenant()">✉ Send to Tenant</button>
+        <button class="btn btn-sm" id="pdf-btn" onclick="downloadAsPDF()">↓ Download PDF</button>
+        <button class="btn btn-sm btn-navy" id="send-tenant-btn" onclick="moSendToTenant()">✉ Send to Tenant</button>
       </div>
     </div>
     `,
     `<button class="btn" onclick="closeMo()">Cancel</button>
      <button class="btn btn-navy" id="gen-btn" onclick="runGenerate('${templateId}')">✦ Generate document</button>`
   );
+  if (customContent) window._customTemplateContent = customContent;
 }
 
 async function runGenerate(templateId) {
@@ -2203,7 +2241,12 @@ Today's date: ${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'lon
     rentincrease: `Generate a friendly Rent Increase Cover Letter to accompany a Section 13 Notice using:\n${contextInfo}\n\nInclude: reason for increase (market rates, costs), amount of increase, effective date, reassurance about tenancy continuing. Warm but professional. End with disclaimer.`,
   };
 
-  const prompt = prompts[templateId] || `Generate a professional UK landlord document for: ${templateId}\n${contextInfo}`;
+  // Custom template: AI fills placeholders using property/tenant data
+  const customContent = window._customTemplateContent;
+  window._customTemplateContent = null;
+  const prompt = customContent
+    ? `You are helping a UK landlord fill in their own template document. Fill in ALL placeholder values (like [Tenant Name], [Address], [Date], [Rent] etc.) using the data below. Return the complete filled document only — do not add commentary.\n\nTemplate:\n${customContent}\n\nData:\n${contextInfo}`
+    : (prompts[templateId] || `Generate a professional UK landlord document for: ${templateId}\n${contextInfo}`);
 
   try {
     const res = await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor', {
@@ -2229,6 +2272,7 @@ Today's date: ${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'lon
       tenantId: document.getElementById('gen-tenant')?.value,
       rawText: text
     };
+    checkPlaceholders();
     await logAudit('GENERATE_TEMPLATE', 'templates', templateId, `Generated: ${templateId}`);
   } catch(e) {
     toast('Error generating document. Please try again.', true);
@@ -2271,21 +2315,66 @@ function copyTemplate() {
 }
 
 function moUploadTemplate() {
-  openMo('Upload template', 'Add your own custom template to the library',
-    `<div class="fg"><label>Template name</label><input type="text" placeholder="e.g. My custom tenancy agreement"></div>
+  openMo('Upload your template', 'AI will auto-fill your placeholders using property & tenant data',
+    `<div class="fg"><label>Template name <span class="req">*</span></label>
+       <input type="text" id="ct-name" placeholder="e.g. My custom tenancy agreement"></div>
      <div class="fg"><label>Category</label>
-       <select><option>Legal Notices</option><option>Tenancy Documents</option><option>Compliance</option><option>Communications</option></select>
+       <select id="ct-cat"><option>Legal Notices</option><option>Tenancy Documents</option><option>Compliance</option><option>Communications</option><option>Other</option></select>
      </div>
-     <div class="scan-box"><input type="file" accept=".pdf,.doc,.docx"><div class="scan-ic">📄</div><div class="scan-t">Upload document</div><div class="scan-s">PDF or Word document</div></div>`,
+     <div class="fg"><label>Template content <span class="req">*</span></label>
+       <textarea id="ct-content" style="min-height:160px;font-family:monospace;font-size:12px" placeholder="Paste your template here. Use [Tenant Name], [Property Address], [Rent], [Date] etc. as placeholders — AI will fill them from your property data."></textarea>
+     </div>
+     <div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--blue)">
+       💡 Use <strong>[square brackets]</strong> for placeholders. AI will replace them with real data when you generate.
+     </div>`,
     `<button class="btn" onclick="closeMo()">Cancel</button>
-     <button class="btn btn-navy" onclick="toast('Upload coming soon — building storage next!');closeMo()">Upload</button>`
+     <button class="btn btn-navy" onclick="saveCustomTemplate()">Save template</button>`
   );
+}
+
+async function saveCustomTemplate() {
+  const name = document.getElementById('ct-name')?.value.trim();
+  const category = document.getElementById('ct-cat')?.value;
+  const content = document.getElementById('ct-content')?.value.trim();
+  if (!name) { toast('Please enter a template name', true); return; }
+  if (!content) { toast('Please paste your template content', true); return; }
+  const { data, error } = await sb.from('custom_templates').insert({
+    user_id: currentUser.id, name, category, content
+  }).select().single();
+  if (error) { toast('Error saving: ' + error.message, true); return; }
+  D.customTemplates.unshift({ ...data });
+  await logAudit('ADD_CUSTOM_TEMPLATE', 'custom_templates', data.id, `Added: ${name}`);
+  closeMo();
+  toast('✓ Template saved!');
+  nav('templates');
+}
+
+// ── PLACEHOLDER DETECTION ──
+function checkPlaceholders() {
+  const el = document.getElementById('gen-text');
+  const warn = document.getElementById('gen-placeholder-warn');
+  const pdfBtn = document.getElementById('pdf-btn');
+  const sendBtn = document.getElementById('send-tenant-btn');
+  if (!el) return;
+  const text = el.textContent || '';
+  const matches = [...text.matchAll(/\[[^\]]{1,80}\]/g)].map(m => m[0]);
+  const has = matches.length > 0;
+  if (warn) {
+    warn.style.display = has ? 'block' : 'none';
+    warn.innerHTML = has
+      ? `⚠️ <strong>${matches.length} placeholder${matches.length > 1 ? 's' : ''} to fill:</strong> ${matches.slice(0, 4).map(m => `<code style="background:rgba(217,119,6,0.15);padding:1px 6px;border-radius:3px;font-size:11px">${m}</code>`).join(' ')}${matches.length > 4 ? ' …' : ''} — click the document above to edit`
+      : '';
+  }
+  if (pdfBtn) pdfBtn.disabled = has;
+  if (sendBtn) sendBtn.disabled = has;
+  if (window._genContext) window._genContext.rawText = text;
 }
 // ── S4: PDF DOWNLOAD ──
 function downloadAsPDF() {
   const ctx = window._genContext;
-  const raw = document.getElementById('gen-text')?.dataset?.raw || '';
-  if (!raw) { toast('Generate a document first', true); return; }
+  const el = document.getElementById('gen-text');
+  const content = el?.innerHTML || '';
+  if (!content) { toast('Generate a document first', true); return; }
   const title = ctx?.templateName || 'Document';
   const win = window.open('', '_blank');
   if (!win) { toast('Please allow pop-ups to download PDF', true); return; }
@@ -2301,7 +2390,7 @@ function downloadAsPDF() {
       <strong style="font-size:16px;color:#0B1E3D">RentSafe AI</strong>
       <span style="color:#999;font-size:12px;margin-left:12px">${title}</span>
     </div>
-    ${mdToHtml(raw)}
+    ${content}
     <div style="margin-top:32px;padding-top:12px;border-top:1px solid #eee;font-size:10px;color:#999">
       Generated by RentSafe AI · ${new Date().toLocaleDateString('en-GB')} · For reference only — not legal advice
     </div>
@@ -2314,6 +2403,9 @@ function downloadAsPDF() {
 function moSendToTenant() {
   const ctx = window._genContext;
   if (!ctx?.rawText) { toast('Generate a document first', true); return; }
+  const el = document.getElementById('gen-text');
+  const liveContent = el?.innerHTML || ctx.rawText;
+  ctx.liveContent = liveContent;
   const tenant = D.tenants.find(t => String(t.id) === String(ctx.tenantId));
   const prop = D.properties.find(p => String(p.id) === String(ctx.propId));
   const defaultSubject = '[RentSafe AI] ' + ctx.templateName + (prop ? ' — ' + prop.address : '');
@@ -2326,7 +2418,7 @@ function moSendToTenant() {
     </div>
     <div style="margin-bottom:14px">
       <div style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Document preview</div>
-      <div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:12.5px;line-height:1.7;max-height:200px;overflow-y:auto;color:var(--txt)">${mdToHtml(ctx.rawText)}</div>
+      <div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:12.5px;line-height:1.7;max-height:200px;overflow-y:auto;color:var(--txt)">${liveContent}</div>
     </div>
     <div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--blue)">
       Sent from: <strong>documents@rentsafeai.co.uk</strong> · A timestamped record will be saved to this tenant's profile
@@ -2349,7 +2441,7 @@ async function sendEmailNow() {
       <span style="font-size:18px;font-weight:700;color:#0B1E3D">Rent<span style="color:#00C896">Safe AI</span></span>
       <span style="color:#999;font-size:12px;margin-left:8px">${ctx.templateName}</span>
     </div>
-    <div style="font-size:13px;line-height:1.8">${mdToHtml(ctx.rawText).replace(/var\(--[\w-]+\)/g,'#333')}</div>
+    <div style="font-size:13px;line-height:1.8">${(ctx.liveContent || mdToHtml(ctx.rawText)).replace(/var\(--[\w-]+\)/g,'#333')}</div>
     <div style="margin-top:32px;padding-top:14px;border-top:1px solid #eee;font-size:11px;color:#999">
       Sent via RentSafe AI · documents@rentsafeai.co.uk · This document is for reference only and does not constitute legal advice.
     </div>
@@ -2396,6 +2488,16 @@ function propEmailLogHtml(pid) {
       <td style="font-size:12px;white-space:nowrap">${FMT(e.sent_at)}</td>
       <td>${B(e.status||'Sent')}</td>
     </tr>`).join('')}</tbody></table></div>`;
+}
+
+// ── DELETE CUSTOM TEMPLATE ──
+async function deleteCustomTemplate(id) {
+  if (!confirm('Delete this template? This cannot be undone.')) return;
+  const { error } = await sb.from('custom_templates').delete().eq('id', id);
+  if (error) { toast('Error: ' + error.message, true); return; }
+  D.customTemplates = D.customTemplates.filter(t => t.id !== id);
+  toast('Template deleted');
+  nav('templates');
 }
 
 // ── START ──
