@@ -2141,6 +2141,111 @@ function pgTemplates() {
     </div>`;
 }
 
+// ── TEMPLATE GUIDED FIELDS CONFIG ──
+const TEMPLATE_FIELDS = {
+  section8: [
+    { id:'tf_arrears',  label:'Total arrears (£)',      type:'number', placeholder:'e.g. 1200', required:true },
+    { id:'tf_date',     label:'Date of this notice',    type:'date',   required:true },
+    { id:'tf_grounds',  label:'Grounds for possession', type:'select', required:true,
+      options:['Ground 8 — 2+ months arrears (mandatory)','Ground 10 — some arrears at date of notice','Ground 11 — persistent late payment','Grounds 8, 10 and 11 (recommended)'] },
+    { id:'tf_service',  label:'Method of service',      type:'select',
+      options:['First class post','Hand delivered','Email (if agreed in tenancy agreement)'] },
+  ],
+  section13: [
+    { id:'tf_newrent',  label:'New monthly rent (£)',   type:'number', placeholder:'e.g. 1300', required:true },
+    { id:'tf_effdate',  label:'Effective from',         type:'date',   required:true },
+  ],
+  noticetoquit: [
+    { id:'tf_enddate',  label:'Tenancy end date',       type:'date', required:true },
+    { id:'tf_reason',   label:'Reason (optional)',      type:'text', placeholder:'e.g. Landlord requires property' },
+  ],
+  writtenstatement: [
+    { id:'tf_startdate',label:'Tenancy start date',     type:'date' },
+    { id:'tf_petpol',   label:'Pet policy',             type:'select',
+      options:['No pets without prior written consent','Pets allowed subject to landlord approval','No pets permitted'] },
+  ],
+  petpermission: [
+    { id:'tf_pettype',  label:'Type of pet',            type:'text', placeholder:'e.g. Dog (Labrador)', required:true },
+    { id:'tf_petname',  label:'Pet name (optional)',    type:'text', placeholder:'e.g. Max' },
+    { id:'tf_conditions',label:'Any conditions',        type:'text', placeholder:'e.g. must be kept off furniture' },
+  ],
+  endoftenancy: [
+    { id:'tf_enddate',  label:'Tenancy end date',       type:'date', required:true },
+    { id:'tf_depstatus',label:'Deposit status',         type:'select',
+      options:['Full return expected','Deductions likely — to be assessed','Already agreed with tenant'] },
+  ],
+  depositdeduction: [
+    { id:'tf_totalded', label:'Total deduction (£)',    type:'number', required:true },
+    { id:'tf_items',    label:'Deduction items',        type:'textarea', placeholder:'e.g.\nDeep clean: £150\nCarpet damage: £200\nMissing keys: £50' },
+  ],
+  depositreturn: [
+    { id:'tf_retamt',   label:'Deposit amount (£)',     type:'number', required:true },
+    { id:'tf_timeline', label:'Transfer timeline',      type:'select',
+      options:['Within 3 working days','Within 5 working days','Within 10 working days'] },
+  ],
+  rentarrears1: [
+    { id:'tf_arrears',  label:'Amount owed (£)',        type:'number', required:true },
+    { id:'tf_duedate',  label:'Original due date',      type:'date' },
+    { id:'tf_deadline', label:'Pay by date',            type:'date' },
+  ],
+  rentarrears2: [
+    { id:'tf_totarr',   label:'Total arrears (£)',      type:'number', required:true },
+    { id:'tf_legaldate',label:'Legal action date (if unpaid)', type:'date' },
+  ],
+  maintenanceack: [
+    { id:'tf_issue',    label:'Issue reported',         type:'text', placeholder:'e.g. Boiler not working', required:true },
+    { id:'tf_urgency',  label:'Urgency',                type:'select',
+      options:['Urgent — attend within 24 hours','Routine — within 7 days','Non-urgent — within 28 days'] },
+  ],
+  contractoraccess: [
+    { id:'tf_visitdate',label:'Visit date',             type:'date', required:true },
+    { id:'tf_visittime',label:'Visit time',             type:'text', placeholder:'e.g. 10:00am – 12:00pm' },
+    { id:'tf_contractor',label:'Contractor name',       type:'text', placeholder:'e.g. City Gas Services', required:true },
+    { id:'tf_trade',    label:'Reason for visit',       type:'text', placeholder:'e.g. Annual gas safety inspection' },
+  ],
+  inspection: [
+    { id:'tf_date',     label:'Inspection date',        type:'date', required:true },
+    { id:'tf_inspector',label:'Inspector name',         type:'text', placeholder:'e.g. Your name or agent' },
+    { id:'tf_type',     label:'Inspection type',        type:'select',
+      options:['Routine','Move-in','Move-out','Emergency','Annual'] },
+  ],
+  movein: [
+    { id:'tf_date',     label:'Move-in date',           type:'date', required:true },
+    { id:'tf_gas',      label:'Gas meter reading',      type:'text', placeholder:'e.g. 12345' },
+    { id:'tf_elec',     label:'Electric meter reading', type:'text', placeholder:'e.g. 67890' },
+    { id:'tf_water',    label:'Water meter (if applicable)', type:'text', placeholder:'e.g. 00123' },
+  ],
+  moveout: [
+    { id:'tf_date',     label:'Move-out date',          type:'date', required:true },
+    { id:'tf_gas',      label:'Final gas reading',      type:'text', placeholder:'e.g. 12345' },
+    { id:'tf_elec',     label:'Final electric reading', type:'text', placeholder:'e.g. 67890' },
+  ],
+  rentincrease: [
+    { id:'tf_newrent',  label:'New monthly rent (£)',   type:'number', required:true },
+    { id:'tf_effdate',  label:'Effective from',         type:'date',   required:true },
+  ],
+};
+
+function renderGuidedFields(templateId) {
+  const fields = TEMPLATE_FIELDS[templateId];
+  if (!fields || !fields.length) return '';
+  return `
+    <div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--blue)">
+      ✦ Just fill in the fields below — property, tenant & rent are auto-filled from your data
+    </div>
+    ${fields.map(f => `
+      <div class="fg">
+        <label>${f.label}${f.required ? ' <span class="req">*</span>' : ''}</label>
+        ${f.type === 'select'
+          ? `<select id="${f.id}" data-label="${f.label}">${f.options.map(o => `<option>${o}</option>`).join('')}</select>`
+          : f.type === 'textarea'
+          ? `<textarea id="${f.id}" data-label="${f.label}" placeholder="${f.placeholder || ''}"></textarea>`
+          : `<input type="${f.type}" id="${f.id}" data-label="${f.label}" placeholder="${f.placeholder || ''}">`
+        }
+      </div>
+    `).join('')}`;
+}
+
 // ── TEMPLATE GENERATOR MODAL ──
 function moGenerate(templateId, customContent = null) {
   const titles = {
@@ -2173,22 +2278,25 @@ function moGenerate(templateId, customContent = null) {
 
   openMo(
     titles[templateId] || 'Generate Template',
-    '✦ AI will auto-fill from your property & tenant data',
+    '✦ AI auto-fills from your property & tenant data',
     `
-    <div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:var(--muted)">
-      ⚠️ This template is for reference only and does not constitute legal advice. Seek independent legal advice before serving.
+    <div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--muted)">
+      ⚠️ For reference only — not legal advice. Always verify with a qualified solicitor.
     </div>
-    <div class="fg"><label>Property</label><select id="gen-prop">${propOpts}</select></div>
-    <div class="fg"><label>Tenant</label><select id="gen-tenant">${tenantOpts}</select></div>
-    <div class="fg"><label>Additional notes (optional)</label><textarea id="gen-notes" placeholder="Any specific details to include…"></textarea></div>
+    <div class="fg-row">
+      <div class="fg"><label>Property</label><select id="gen-prop">${propOpts}</select></div>
+      <div class="fg"><label>Tenant</label><select id="gen-tenant">${tenantOpts}</select></div>
+    </div>
+    ${renderGuidedFields(templateId)}
+    <div class="fg"><label>Additional notes (optional)</label><textarea id="gen-notes" placeholder="Any extra details to include…"></textarea></div>
     <div id="gen-output" style="display:none;margin-top:16px">
       <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:8px">✦ Generated document — click to edit</div>
       <div id="gen-text" contenteditable="true" spellcheck="false" oninput="checkPlaceholders()" style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:16px;font-size:13px;line-height:1.8;max-height:360px;overflow-y:auto;color:var(--txt);outline:none;cursor:text"></div>
-      <div id="gen-placeholder-warn" style="display:none;background:var(--amber-bg);border:1px solid var(--amber);border-radius:7px;padding:8px 12px;font-size:12px;color:var(--amber);margin-top:8px"></div>
+      <div id="gen-placeholder-warn" style="display:none;background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:7px;padding:8px 12px;font-size:12px;color:var(--blue);margin-top:8px"></div>
       <div id="gen-actions" style="display:flex;gap:8px;margin-top:10px">
         <button class="btn btn-sm" onclick="copyTemplate()">📋 Copy</button>
-        <button class="btn btn-sm" id="pdf-btn" onclick="downloadAsPDF()">↓ Download PDF</button>
-        <button class="btn btn-sm btn-navy" id="send-tenant-btn" onclick="moSendToTenant()">✉ Send to Tenant</button>
+        <button class="btn btn-sm" onclick="downloadAsPDF()">↓ Download PDF</button>
+        <button class="btn btn-sm btn-navy" onclick="moSendToTenant()">✉ Send to Tenant</button>
       </div>
     </div>
     `,
@@ -2210,6 +2318,10 @@ async function runGenerate(templateId) {
   const prop = D.properties.find(p => String(p.id) === String(propId));
   const tenant = D.tenants.find(t => String(t.id) === String(tenantId));
 
+  // Collect guided form fields
+  const guidedInputs = document.querySelectorAll('[id^="tf_"]');
+  const guidedData = [...guidedInputs].filter(f => f.value).map(f => `${f.dataset.label || f.id}: ${f.value}`).join('\n');
+
   const contextInfo = `
 Property: ${prop ? `${prop.address}, ${prop.city}, ${prop.postcode}` : 'Not specified'}
 Monthly rent: ${prop ? '£' + prop.rent : 'Not specified'}
@@ -2218,11 +2330,12 @@ Tenant: ${tenant ? tenant.name : 'Not specified'}
 Tenant email: ${tenant?.email || 'Not specified'}
 Tenancy start: ${tenant?.start_date || 'Not specified'}
 Tenancy end: ${tenant?.end_date || 'Periodic'}
-Additional notes: ${notes || 'None'}
 Today's date: ${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'})}
+${guidedData ? '\nAdditional details provided:\n' + guidedData : ''}
+${notes ? '\nLandlord notes: ' + notes : ''}
   `.trim();
 
-  const PLACEHOLDER_RULE = `CRITICAL RULE — YOU MUST FOLLOW THIS: Any value the landlord must supply themselves (signature, specific date not already provided, witness name, arrears amount, reference number, court details) MUST be written as [FIELD NAME] in square brackets. Never use underscores, dashes, or blank spaces as placeholders. Always use [square brackets] so the landlord knows exactly what to fill in.\n\n`;
+  const PLACEHOLDER_RULE = `Use [FIELD NAME] in square brackets only for any value genuinely unknown from the data provided. Prefer filling in based on context over leaving blanks.\n\n`;
 
   const prompts = {
     section8: `${PLACEHOLDER_RULE}Generate a formal UK Section 8 Notice (Housing Act 1988) using these details:\n${contextInfo}\n\nInclude: header, property address, tenant name, grounds for possession (Ground 8 — rent arrears), required notice period (2 weeks minimum), date, landlord signature block. Format professionally. End with a clear disclaimer that this is a template only and not legal advice.`,
@@ -2355,20 +2468,15 @@ async function saveCustomTemplate() {
 function checkPlaceholders() {
   const el = document.getElementById('gen-text');
   const warn = document.getElementById('gen-placeholder-warn');
-  const pdfBtn = document.getElementById('pdf-btn');
-  const sendBtn = document.getElementById('send-tenant-btn');
   if (!el) return;
   const text = el.textContent || '';
   const matches = [...text.matchAll(/\[[^\]]{1,80}\]/g)].map(m => m[0]);
-  const has = matches.length > 0;
   if (warn) {
-    warn.style.display = has ? 'block' : 'none';
-    warn.innerHTML = has
-      ? `⚠️ <strong>${matches.length} field${matches.length > 1 ? 's' : ''} to complete:</strong> ${matches.slice(0, 4).map(m => `<code style="background:rgba(217,119,6,0.15);padding:1px 6px;border-radius:3px;font-size:11px">${m}</code>`).join(' ')}${matches.length > 4 ? ' …' : ''} — click the document and replace each [field] with real text`
+    warn.style.display = matches.length > 0 ? 'block' : 'none';
+    warn.innerHTML = matches.length > 0
+      ? `ℹ️ <strong>${matches.length} field${matches.length>1?'s':''} to review:</strong> ${matches.slice(0,4).map(m=>`<code style="background:rgba(59,111,232,0.12);padding:1px 6px;border-radius:3px;font-size:11px">${m}</code>`).join(' ')}${matches.length>4?' …':''} — click the document to edit`
       : '';
   }
-  if (pdfBtn) pdfBtn.disabled = has;
-  if (sendBtn) sendBtn.disabled = has;
   if (window._genContext) window._genContext.rawText = text;
 }
 // ── S4: PDF DOWNLOAD ──
