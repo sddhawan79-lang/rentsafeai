@@ -2335,7 +2335,14 @@ ${guidedData ? '\nAdditional details provided:\n' + guidedData : ''}
 ${notes ? '\nLandlord notes: ' + notes : ''}
   `.trim();
 
-  const PLACEHOLDER_RULE = `Use [FIELD NAME] in square brackets only for any value genuinely unknown from the data provided. Prefer filling in based on context over leaving blanks.\n\n`;
+  const PLACEHOLDER_RULE = `FORMATTING RULES — follow exactly:
+1. DATE: Use today's date (${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'})}) for the document date unless a different date was provided in the guided fields. Never write "**Date**" or leave it blank.
+2. SIGNATURE: End every document with a proper signature block in this exact format:
+   Signed: ________________________
+   Name: ${(currentUser?.email||'Landlord').split('@')[0]}
+   Date: ${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'})}
+3. Use plain text only — no markdown bold (**) or asterisks in dates, names or signature lines.
+4. Use [FIELD NAME] in square brackets only for values genuinely unknown and not provided above.\n\n`;
 
   const prompts = {
     section8: `${PLACEHOLDER_RULE}Generate a formal UK Section 8 Notice (Housing Act 1988) using these details:\n${contextInfo}\n\nInclude: header, property address, tenant name, grounds for possession (Ground 8 — rent arrears), required notice period (2 weeks minimum), date, landlord signature block. Format professionally. End with a clear disclaimer that this is a template only and not legal advice.`,
