@@ -334,6 +334,53 @@ function B(s){
   return `<span class="badge b-${m[s]||'gray'}">${s}</span>`;
 }
 
+// ── CHECKLIST & METER SUPABASE HELPERS ──
+const _checkCache = {};  // key: `${prefix}_${pid}` → {itemId: true}
+const _meterCache = {};  // key: pid → {gas_in: '12345', ...}
+
+async function sbLoadChecklist(pid, prefix) {
+  const cacheKey = prefix + '_' + pid;
+  if (_checkCache[cacheKey] !== undefined) return _checkCache[cacheKey];
+  try {
+    const { data } = await sb.from('checklist_progress')
+      .select('data')
+      .eq('prop_id', String(pid))
+      .eq('prefix', prefix)
+      .single();
+    _checkCache[cacheKey] = data?.data || {};
+  } catch(e) { _checkCache[cacheKey] = {}; }
+  return _checkCache[cacheKey];
+}
+
+async function sbSaveChecklist(pid, prefix, saved) {
+  if (!currentUser) return;
+  _checkCache[prefix + '_' + pid] = saved;
+  try {
+    await sb.from('checklist_progress').upsert({
+      user_id: currentUser.id,
+      prop_id: String(pid),
+      prefix,
+      data: saved,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id,prop_id,prefix' });
+  } catch(e) { console.warn('Checklist save failed:', e); }
+}
+
+async function sbLoadMeters(pid) {
+  if (_meterCache[pid] !== undefined) return _meterCache[pid];
+  try {
+    const { data } = await sb.from('meter_readings')
+      .select('type, reading')
+      .eq('prop_id', parseInt(pid))
+      .eq('user_id', currentUser.id)
+      .order('created_at', { ascending: false });
+    const result = {};
+    (data || []).forEach(r => { if (!result[r.type]) result[r.type] = String(r.reading); });
+    _meterCache[pid] = result;
+  } catch(e) { _meterCache[pid] = {}; }
+  return _meterCache[pid];
+}
+
 // ── COMPLIANCE RAG SCORE ──
 function calcRAG(pid) {
   const certs = CF(pid);
@@ -1169,12 +1216,10 @@ function getPropCheckItems(mode){
   ];
 }
 
-function renderPropChecklist(prefix, pid, mode){
+function renderPropChecklist(prefix, pid, mode, saved, meters){
   var ITEMS = getPropCheckItems(mode);
-  var key='rsa_prop_'+prefix+'_'+pid;
-  var mkey='rsa_prop_meters_'+pid;
-  var saved=JSON.parse(localStorage.getItem(key)||'{}');
-  var meters=JSON.parse(localStorage.getItem(mkey)||'{}');
+  saved = saved || {};
+  meters = meters || {};
   var total=ITEMS.length, done=ITEMS.filter(function(i){return saved[i.id];}).length;
   var pct=Math.round(done/total*100);
   var col=pct===100?'#00C896':pct>=50?'#D97706':'#E53E3E';
@@ -1210,22 +1255,43 @@ function renderPropChecklist(prefix, pid, mode){
   return html;
 }
 
-function togglePropCheck(prefix,pid,itemId){
-  var key='rsa_prop_'+prefix+'_'+pid;
-  var saved=JSON.parse(localStorage.getItem(key)||'{}');
+async function togglePropCheck(prefix,pid,itemId){
+  const cacheKey = prefix + '_' + pid;
+  const saved = await sbLoadChecklist(pid, prefix);
   if(saved[itemId]) delete saved[itemId]; else saved[itemId]=true;
-  localStorage.setItem(key,JSON.stringify(saved));
-  var el=document.getElementById('cb-'+prefix+'-'+pid);
-  if(el) el.innerHTML=renderPropChecklist(prefix,pid,prefix==='ob'?'onboard':'deboard');
+  _checkCache[cacheKey] = saved;
+  const meters = _meterCache[pid] || {};
+  const el=document.getElementById('cb-'+prefix+'-'+pid);
+  if(el) el.innerHTML=renderPropChecklist(prefix,pid,prefix==='ob'?'onboard':'deboard',saved,meters);
+  await sbSaveChecklist(pid, prefix, saved);
 }
 
-function saveMeterReading(pid,mkey,val){
-  var key='rsa_prop_meters_'+pid;
-  var meters=JSON.parse(localStorage.getItem(key)||'{}');
-  meters[mkey]=val;
-  localStorage.setItem(key,JSON.stringify(meters));
+async function saveMeterReading(pid,mkey,val){
+  if (!val || !currentUser) return;
+  // Update local cache immediately so UI stays in sync
+  if (!_meterCache[pid]) _meterCache[pid] = {};
+  _meterCache[pid][mkey] = val;
+  try {
+    await sb.from('meter_readings').insert({
+      user_id: currentUser.id,
+      prop_id: parseInt(pid),
+      type: mkey,
+      reading: parseFloat(val) || 0,
+      read_date: new Date().toISOString().split('T')[0],
+      read_type: mkey.endsWith('_in') ? 'in' : 'out'
+    });
+  } catch(e) { console.warn('Meter save failed:', e); }
 }
 
+
+async function initPropChecklist(prefix, pid, mode) {
+  const [saved, meters] = await Promise.all([
+    sbLoadChecklist(pid, prefix),
+    sbLoadMeters(pid)
+  ]);
+  const el = document.getElementById('cb-'+prefix+'-'+pid);
+  if (el) el.innerHTML = renderPropChecklist(prefix, pid, mode, saved, meters);
+}
 
 // ── PROPERTY RENT PANEL ──
 function propRentHtml(pid){
@@ -1355,10 +1421,10 @@ function pgPropDetail(pid){
     <div class="coll-body" id="cb-insp">${(p.inspections||[]).length?`<div class="tw"><table><thead><tr><th>Date</th><th>Type</th><th>Inspector</th><th>Notes</th></tr></thead><tbody>${(p.inspections||[]).map(i=>`<tr><td>${FMS(i.date)}</td><td><span class="badge b-blue">${i.type}</span></td><td>${i.inspector||'—'}</td><td style="font-size:12px;max-width:200px">${i.notes||'—'}</td></tr>`).join('')}</tbody></table></div>`:'<div style="color:var(--muted);font-size:13px">No inspections yet</div>'}</div></div>
 
     <div class="coll"><div class="coll-hd" onclick="toggleColl('ob-'+pid)"><span class="coll-l">🟢 Onboarding checklist <span class="coll-cnt" id="ob-cnt-${pid}"></span></span><span class="coll-arr op" id="ca-ob-${pid}">▾</span></div>
-    <div class="coll-body" id="cb-ob-${pid}">${renderPropChecklist('ob',pid,'onboard')}</div></div>
+    <div class="coll-body" id="cb-ob-${pid}"><div style="padding:16px;color:var(--muted);font-size:13px">Loading checklist…</div></div></div>
 
     <div class="coll"><div class="coll-hd" onclick="toggleColl('db-'+pid)"><span class="coll-l">🔴 Deboarding checklist <span class="coll-cnt" id="db-cnt-${pid}"></span></span><span class="coll-arr op" id="ca-db-${pid}">▾</span></div>
-    <div class="coll-body" id="cb-db-${pid}">${renderPropChecklist('db',pid,'deboard')}</div></div>
+    <div class="coll-body" id="cb-db-${pid}"><div style="padding:16px;color:var(--muted);font-size:13px">Loading checklist…</div></div></div>
 
     <div class="coll"><div class="coll-hd" onclick="toggleColl('notes')"><span class="coll-l">📝 Notes</span><span class="coll-arr op" id="ca-notes">▾</span></div>
     <div class="coll-body" id="cb-notes">${p.notes?`<div style="font-size:13.5px;line-height:1.7;white-space:pre-wrap">${p.notes}</div>`:'<div style="color:var(--muted);font-size:13px">No notes added</div>'}<button class="btn btn-sm" style="margin-top:12px" onclick="moEditProp('${pid}')">✎ Edit notes</button></div></div>
@@ -1788,8 +1854,8 @@ function pgOnboarding(){
     { id:'db16', section:'Admin',               icon:'🛠️', label:'Maintenance issues identified & logged',    detail:'Log any repairs needed before next tenancy begins. Get quotes where needed.' },
   ];
 
-  const savedOb = JSON.parse(localStorage.getItem('rsa_ob_checks')||'{}');
-  const savedDb = JSON.parse(localStorage.getItem('rsa_db_checks')||'{}');
+  const savedOb = _checkCache['ob_global'] || {};
+  const savedDb = _checkCache['db_global'] || {};
 
   function renderSection(items, saved, prefix){
     let sections = {};
@@ -1852,17 +1918,29 @@ function pgOnboarding(){
   </div>`;
 }
 
-function toggleCheck(prefix,id){
-  const key='rsa_'+prefix+'_checks';
-  const saved=JSON.parse(localStorage.getItem(key)||'{}');
+async function toggleCheck(prefix,id){
+  const saved = await sbLoadChecklist('global', prefix);
   if(saved[id]) delete saved[id]; else saved[id]=true;
-  localStorage.setItem(key,JSON.stringify(saved));
+  await sbSaveChecklist('global', prefix, saved);
   nav('onboarding');
 }
 
-function resetChecks(prefix){
-  localStorage.removeItem('rsa_'+prefix+'_checks');
+async function resetChecks(prefix){
+  _checkCache[prefix+'_global'] = {};
+  await sbSaveChecklist('global', prefix, {});
   nav('onboarding');
+}
+
+async function initOnboardingChecklist() {
+  await Promise.all([
+    sbLoadChecklist('global', 'ob'),
+    sbLoadChecklist('global', 'db')
+  ]);
+  // Re-render page with loaded data
+  const el = document.getElementById('main');
+  if (el && document.querySelector('.nav-item[data-page="onboarding"]')?.classList.contains('active')) {
+    main.innerHTML = pgOnboarding();
+  }
 }
 
 // ── ROUTER ──
@@ -1989,6 +2067,13 @@ function moFinancials(pid){
     console.error('Nav error on page '+page+':', err);
   }
   main.scrollTo(0,0);
+  // Async post-render hooks
+  if (page === 'prop-detail' && param) {
+    initPropChecklist('ob', param, 'onboard');
+    initPropChecklist('db', param, 'deboard');
+  } else if (page === 'onboarding') {
+    initOnboardingChecklist();
+  }
 }
 // ── PAGE: TEMPLATES ──
 function pgTemplates() {
