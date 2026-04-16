@@ -306,6 +306,7 @@ let currentUser = null;
 // ── DATA STORE ──
 const D = {
   properties: [], tenants: [], certs: [], maintenance: [], rent: [], insurance: [],
+  emailLog: [],
   chat: [{role:'ai', text:'Hello! I\'m your AI compliance assistant. Ask me anything about UK landlord law — Section 8, Renters Rights Act, Awaab\'s Law, deposits, or anything else.'}]
 };
 
@@ -326,7 +327,7 @@ function toast(msg, err=false) {
 }
 
 function B(s){
-  const m={Valid:'green',Active:'green',Paid:'green',Resolved:'green',Protected:'green',Served:'green',Missing:'red',Expired:'red',Open:'red',Urgent:'red',Late:'red',Due:'amber','In progress':'amber',High:'amber','No expiry':'gray',AST:'gray',DPS:'gray',MyDeposits:'gray',TDS:'gray',Low:'blue',Vacant:'gray',Uploaded:'blue'};
+  const m={Valid:'green',Active:'green',Paid:'green',Resolved:'green',Protected:'green',Served:'green',Sent:'green',Missing:'red',Expired:'red',Open:'red',Urgent:'red',Late:'red',Due:'amber','In progress':'amber',High:'amber','No expiry':'gray',AST:'gray',DPS:'gray',MyDeposits:'gray',TDS:'gray',Low:'blue',Vacant:'gray',Uploaded:'blue'};
   return `<span class="badge b-${m[s]||'gray'}">${s}</span>`;
 }
 
@@ -426,13 +427,14 @@ async function logout() {
 
 // ── LOAD DATA ──
 async function loadData() {
-  const [p, t, c, m, r, i] = await Promise.all([
+  const [p, t, c, m, r, i, el] = await Promise.all([
     sb.from('properties').select('*').order('created_at', {ascending: false}),
     sb.from('tenants').select('*'),
     sb.from('certificates').select('*'),
     sb.from('maintenance').select('*').order('issue_date', {ascending: false}),
     sb.from('rent_payments').select('*').order('due_date', {ascending: false}),
     sb.from('insurance').select('*'),
+    sb.from('email_log').select('*').order('sent_at', {ascending: false}),
   ]);
 
   if (p.data?.length) {
@@ -469,6 +471,7 @@ async function loadData() {
     }));
   }
   if (i.data?.length) D.insurance = i.data;
+  if (el.data?.length) D.emailLog = el.data;
 }
 
 // ── INIT ──
@@ -1428,6 +1431,9 @@ function pgPropDetail(pid){
     <div class="coll"><div class="coll-hd" onclick="toggleColl('ten')"><span class="coll-l">👤 Tenants <span class="coll-cnt">${t?1:0}</span></span><div class="coll-r"><button class="btn btn-sm" onclick="event.stopPropagation();moTenant('${pid}')">+ Add tenant</button><span class="coll-arr op" id="ca-ten">▾</span></div></div>
     <div class="coll-body" id="cb-ten">${t?`<div style="display:flex;align-items:center;gap:12px"><div class="t-av">${INI(t.name)}</div><div style="flex:1"><div style="font-weight:500">${t.name}</div><div style="font-size:12px;color:var(--muted)">${t.email||'—'}</div></div><div style="text-align:right"><div style="font-size:12px;font-weight:600">£${(t.rent||0).toLocaleString()}/mo</div><div style="font-size:11px;color:var(--muted)">${FMS(t.start)} – ${FMS(t.end)}</div></div>${B(t.status)}</div>`:'<div style="color:var(--muted);font-size:13px">No active tenants</div>'}</div></div>
 
+    <div class="coll"><div class="coll-hd" onclick="toggleColl('email-p${pid}')"><span class="coll-l">✉ Email Log <span class="coll-cnt">${D.emailLog.filter(e=>String(e.prop_id)===String(pid)).length}</span></span><div class="coll-r"><button class="btn btn-sm" onclick="event.stopPropagation();nav('templates')">+ Send document</button><span class="coll-arr op" id="ca-email-p${pid}">▾</span></div></div>
+    <div class="coll-body" id="cb-email-p${pid}">${propEmailLogHtml(pid)}</div></div>
+
     <div class="coll"><div class="coll-hd" onclick="toggleColl('rent-p${pid}')"><span class="coll-l">💷 Rent <span class="coll-cnt">${D.rent.filter(r=>String(r.prop_id)===String(pid)).length}</span></span><div class="coll-r"><button class="btn btn-sm" onclick="event.stopPropagation();nav('rent')">View all</button><span class="coll-arr op" id="ca-rent-p${pid}">▾</span></div></div>
     <div class="coll-body" id="cb-rent-p${pid}">${propRentHtml(pid)}</div></div>
 
@@ -2142,9 +2148,10 @@ function moGenerate(templateId) {
     <div id="gen-output" style="display:none;margin-top:16px">
       <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:8px">✦ Generated document</div>
       <div id="gen-text" style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:16px;font-size:13px;line-height:1.8;max-height:360px;overflow-y:auto;color:var(--txt)"></div>
-      <div style="display:flex;gap:8px;margin-top:10px">
+      <div id="gen-actions" style="display:flex;gap:8px;margin-top:10px">
         <button class="btn btn-sm" onclick="copyTemplate()">📋 Copy</button>
-        <button class="btn btn-sm" onclick="toast('PDF export coming soon')">↓ Download PDF</button>
+        <button class="btn btn-sm" onclick="downloadAsPDF()">↓ Download PDF</button>
+        <button class="btn btn-sm btn-navy" onclick="moSendToTenant()">✉ Send to Tenant</button>
       </div>
     </div>
     `,
@@ -2215,6 +2222,13 @@ Today's date: ${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'lon
     document.getElementById('gen-output').style.display = 'block';
     btn.disabled = false;
     btn.innerHTML = '✦ Regenerate';
+    window._genContext = {
+      templateId,
+      templateName: document.getElementById('mo-t')?.textContent || templateId,
+      propId: document.getElementById('gen-prop')?.value,
+      tenantId: document.getElementById('gen-tenant')?.value,
+      rawText: text
+    };
     await logAudit('GENERATE_TEMPLATE', 'templates', templateId, `Generated: ${templateId}`);
   } catch(e) {
     toast('Error generating document. Please try again.', true);
@@ -2267,6 +2281,123 @@ function moUploadTemplate() {
      <button class="btn btn-navy" onclick="toast('Upload coming soon — building storage next!');closeMo()">Upload</button>`
   );
 }
+// ── S4: PDF DOWNLOAD ──
+function downloadAsPDF() {
+  const ctx = window._genContext;
+  const raw = document.getElementById('gen-text')?.dataset?.raw || '';
+  if (!raw) { toast('Generate a document first', true); return; }
+  const title = ctx?.templateName || 'Document';
+  const win = window.open('', '_blank');
+  if (!win) { toast('Please allow pop-ups to download PDF', true); return; }
+  win.document.write(`<!DOCTYPE html><html><head><title>${title}</title>
+    <style>body{font-family:Georgia,serif;font-size:13px;line-height:1.8;padding:48px;max-width:680px;margin:0 auto;color:#1A2B45}
+    h3{font-size:16px;font-weight:700;margin:18px 0 6px;color:#0B1E3D}
+    h4{font-size:14px;font-weight:700;margin:16px 0 5px;color:#0B1E3D}
+    h5{font-size:13px;font-weight:700;margin:14px 0 4px}
+    strong{font-weight:600}hr{border:none;border-top:1px solid #ddd;margin:12px 0}
+    @media print{body{padding:0}}</style>
+    </head><body>
+    <div style="border-bottom:2px solid #0B1E3D;margin-bottom:24px;padding-bottom:12px">
+      <strong style="font-size:16px;color:#0B1E3D">RentSafe AI</strong>
+      <span style="color:#999;font-size:12px;margin-left:12px">${title}</span>
+    </div>
+    ${mdToHtml(raw)}
+    <div style="margin-top:32px;padding-top:12px;border-top:1px solid #eee;font-size:10px;color:#999">
+      Generated by RentSafe AI · ${new Date().toLocaleDateString('en-GB')} · For reference only — not legal advice
+    </div>
+    <script>window.onload=function(){window.print();}<\/script>
+    </body></html>`);
+  win.document.close();
+}
+
+// ── S4: SEND TO TENANT MODAL ──
+function moSendToTenant() {
+  const ctx = window._genContext;
+  if (!ctx?.rawText) { toast('Generate a document first', true); return; }
+  const tenant = D.tenants.find(t => String(t.id) === String(ctx.tenantId));
+  const prop = D.properties.find(p => String(p.id) === String(ctx.propId));
+  const defaultSubject = '[RentSafe AI] ' + ctx.templateName + (prop ? ' — ' + prop.address : '');
+  openMo('Send to Tenant', '✉ Email this document directly to your tenant', `
+    <div class="fg"><label>To <span class="req">*</span></label>
+      <input type="email" id="send-to" value="${tenant?.email || ''}" placeholder="tenant@example.com">
+    </div>
+    <div class="fg"><label>Subject</label>
+      <input type="text" id="send-subject" value="${defaultSubject}">
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Document preview</div>
+      <div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:12.5px;line-height:1.7;max-height:200px;overflow-y:auto;color:var(--txt)">${mdToHtml(ctx.rawText)}</div>
+    </div>
+    <div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--blue)">
+      Sent from: <strong>documents@rentsafeai.co.uk</strong> · A timestamped record will be saved to this tenant's profile
+    </div>
+  `, `<button class="btn" onclick="closeMo()">Cancel</button>
+      <button class="btn btn-navy" id="send-btn" onclick="sendEmailNow()">✉ Send email</button>`);
+}
+
+// ── S4: SEND EMAIL VIA RESEND ──
+async function sendEmailNow() {
+  const btn = document.getElementById('send-btn');
+  const to = document.getElementById('send-to')?.value.trim();
+  const subject = document.getElementById('send-subject')?.value.trim();
+  const ctx = window._genContext;
+  if (!to) { toast('Please enter a recipient email', true); return; }
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span>Sending…';
+  const htmlBody = `<div style="font-family:sans-serif;max-width:680px;margin:0 auto;padding:32px 24px;color:#1A2B45">
+    <div style="border-bottom:2px solid #0B1E3D;padding-bottom:14px;margin-bottom:24px">
+      <span style="font-size:18px;font-weight:700;color:#0B1E3D">Rent<span style="color:#00C896">Safe AI</span></span>
+      <span style="color:#999;font-size:12px;margin-left:8px">${ctx.templateName}</span>
+    </div>
+    <div style="font-size:13px;line-height:1.8">${mdToHtml(ctx.rawText).replace(/var\(--[\w-]+\)/g,'#333')}</div>
+    <div style="margin-top:32px;padding-top:14px;border-top:1px solid #eee;font-size:11px;color:#999">
+      Sent via RentSafe AI · documents@rentsafeai.co.uk · This document is for reference only and does not constitute legal advice.
+    </div>
+  </div>`;
+  try {
+    const res = await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'send_email', to, subject, html: htmlBody })
+    });
+    const data = await res.json();
+    if (data.error || !res.ok) throw new Error(data.error || 'Send failed');
+    const logEntry = {
+      user_id: currentUser.id,
+      tenant_id: ctx.tenantId ? parseInt(ctx.tenantId) : null,
+      prop_id: ctx.propId ? parseInt(ctx.propId) : null,
+      template_id: ctx.templateId,
+      template_name: ctx.templateName,
+      sent_to: to,
+      subject,
+      status: 'Sent'
+    };
+    const { data: logData } = await sb.from('email_log').insert(logEntry).select().single();
+    D.emailLog.unshift({ ...logEntry, sent_at: new Date().toISOString(), id: logData?.id });
+    await logAudit('SEND_EMAIL', 'email_log', ctx.templateId, `Sent to ${to}`);
+    closeMo();
+    toast('✉ Email sent successfully!');
+  } catch(e) {
+    btn.disabled = false;
+    btn.innerHTML = '✉ Send email';
+    toast('Send failed — check domain verification in Resend', true);
+    console.error('Email send error:', e);
+  }
+}
+
+// ── S4: EMAIL LOG HTML (prop detail) ──
+function propEmailLogHtml(pid) {
+  const logs = D.emailLog.filter(e => String(e.prop_id) === String(pid));
+  if (!logs.length) return '<div style="color:var(--muted);font-size:13px">No emails sent yet — generate a template and use ✉ Send to Tenant</div>';
+  return `<div class="tw"><table><thead><tr><th>Document</th><th>Sent to</th><th>Date</th><th>Status</th></tr></thead>
+    <tbody>${logs.map(e=>`<tr>
+      <td class="td-bold" style="font-size:12px">${e.template_name||e.template_id||'—'}</td>
+      <td style="font-size:12px;color:var(--muted)">${e.sent_to||'—'}</td>
+      <td style="font-size:12px;white-space:nowrap">${FMT(e.sent_at)}</td>
+      <td>${B(e.status||'Sent')}</td>
+    </tr>`).join('')}</tbody></table></div>`;
+}
+
 // ── START ──
 // Wire nav clicks
 document.querySelectorAll('.nav-item[data-page]').forEach(btn => {
