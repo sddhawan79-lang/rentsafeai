@@ -1257,11 +1257,11 @@ function renderPropChecklist(prefix, pid, mode, saved, meters){
     } else {
       html+='<span style="font-size:11px;color:var(--muted)">'+grpDone+'/'+gitems.length+'</span>';
     }
-    html+='<span id="'+grpId+'-arr" style="font-size:10px;color:var(--muted);transition:transform .2s;display:inline-block">▾</span>';
+    html+='<span id="'+grpId+'-arr" style="font-size:10px;color:var(--muted);transition:transform .2s;display:inline-block;transform:rotate(-90deg)">▾</span>';
     html+='</div></div>';
 
-    // Group body (open by default)
-    html+='<div id="'+grpId+'-body" style="padding:8px 12px 10px">';
+    // Group body (closed by default)
+    html+='<div id="'+grpId+'-body" style="padding:8px 12px 10px;display:none">';
     gitems.forEach(function(item){
       var checked=saved[item.id]?true:false;
       html+='<div data-prefix="'+prefix+'" data-pid="'+pid+'" data-id="'+item.id+'" onclick="togglePropCheck(this.dataset.prefix,this.dataset.pid,this.dataset.id)" ';
