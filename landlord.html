@@ -474,7 +474,7 @@ async function scanAndFill(file, onResult){
   const msgContent=isImg
     ?[{type:'image',source:{type:'base64',media_type:file.type,data:b64}},{type:'text',text:'UK property compliance certificate. Extract: certificate type, issue date (YYYY-MM-DD), expiry date (YYYY-MM-DD), engineer or provider name, address. Return JSON only, keys: type, issued, expiry, engineer, address.'}]
     :[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:'UK property compliance certificate. Extract: certificate type, issue date (YYYY-MM-DD), expiry date (YYYY-MM-DD), engineer or provider name, address. Return JSON only, keys: type, issued, expiry, engineer, address.'}];
-  const res=await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/ai-proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:300,messages:[{role:'user',content:msgContent}]})});
+  const res=await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:300,messages:[{role:'user',content:msgContent}]})});
   const data=await res.json();
   const txt=data.content?.[0]?.text||'{}';
   try {
@@ -1514,7 +1514,7 @@ async function sendChat(){
   cm.innerHTML+=`<div class="msg user">${q}</div><div class="msg ai" id="at"><div class="mlbl">Rent Safe AI</div><span style="color:var(--muted)">Thinking…</span></div>`;
   cm.scrollTop=cm.scrollHeight;
   try{
-    const r=await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/ai-proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,system:'UK landlord compliance assistant. Expert in RRA, Section 8/21, Awaab\'s Law, EPC, EICR, gas safety, deposits. Concise, practical, under 200 words.',messages:D.chat.filter(m=>m.role!=='system').map(m=>({role:m.role==='ai'?'assistant':'user',content:m.text}))})});
+    const r=await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,system:'UK landlord compliance assistant. Expert in RRA, Section 8/21, Awaab\'s Law, EPC, EICR, gas safety, deposits. Concise, practical, under 200 words.',messages:D.chat.filter(m=>m.role!=='system').map(m=>({role:m.role==='ai'?'assistant':'user',content:m.text}))})});
     const d=await r.json(),reply=d.content?.[0]?.text||'No response.';
     D.chat.push({role:'ai',text:reply});
     document.getElementById('at').innerHTML=`<div class="mlbl">Rent Safe AI</div>${reply}`;
@@ -2197,7 +2197,7 @@ Today's date: ${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'lon
   const prompt = prompts[templateId] || `Generate a professional UK landlord document for: ${templateId}\n${contextInfo}`;
 
   try {
-    const res = await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/ai-proxy', {
+    const res = await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
