@@ -334,6 +334,36 @@ function B(s){
   return `<span class="badge b-${m[s]||'gray'}">${s}</span>`;
 }
 
+// ── COMPLIANCE RAG SCORE ──
+function calcRAG(pid) {
+  const certs = CF(pid);
+  if (!certs.length) return { rag: 'red', label: 'No documents', score: 0 };
+
+  // Critical cert types that must be present and valid
+  const criticalTypes = ['gas', 'eicr', 'electrical', 'epc', 'energy', 'deposit'];
+  const hasCritical = type => certs.some(c => c.type && c.type.toLowerCase().includes(type));
+  const criticalMissing = criticalTypes.filter(t => !hasCritical(t)).length;
+
+  // Count by status
+  const valid   = certs.filter(c => c.status === 'Valid').length;
+  const expired = certs.filter(c => c.status === 'Expired').length;
+  const missing = certs.filter(c => c.status === 'Missing').length;
+  const due     = certs.filter(c => c.status === 'Due').length;
+  const total   = certs.length || 1;
+
+  // Score: start at 100, deduct for problems
+  let score = Math.round((valid / total) * 100);
+  score = Math.max(0, score - (expired * 15) - (missing * 10) - (due * 5) - (criticalMissing * 10));
+  score = Math.min(100, Math.max(0, score));
+
+  let rag, label;
+  if (score >= 80) { rag = 'green'; label = 'Compliant'; }
+  else if (score >= 50) { rag = 'amber'; label = 'Action needed'; }
+  else { rag = 'red'; label = 'At risk'; }
+
+  return { rag, label, score };
+}
+
 // ── AUDIT LOG ──
 async function logAudit(action, tableName, recordId, details) {
   if (!currentUser) return;
@@ -1043,8 +1073,6 @@ function pgDashboard(){
   const today=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   return`<div class="topbar"><span class="tb-title">Dashboard</span><div class="tb-right">
     <button class="btn" onclick="moCert()">+ Add certificate</button>
-    <button class="btn" onclick="alert('S.13 — coming next')">S.13 Notice</button>
-    <button class="btn" onclick="alert('S.8 — coming next')">S.8 Notice</button>
     <button class="btn" onclick="moIssue()">Report issue</button>
   </div></div>
   <div class="content">
@@ -1341,7 +1369,6 @@ function pgPropDetail(pid){
 function pgCompliance(){
   const grps=D.properties.map(p=>{const c=CF(p.id),v=c.filter(x=>x.status!=='Missing').length,n=c.length||1,pct=Math.round(v/n*100);return{p,c,v,n:c.length,pct}});
   return`<div class="topbar"><span class="tb-title">Compliance</span><div class="tb-right">
-    <button class="btn" onclick="alert('S.8 — coming next')">S.8 Notice</button>
     <button class="btn btn-navy" onclick="moCert()">+ Add certificate</button>
   </div></div>
   <div class="content">
@@ -2139,7 +2166,7 @@ function moGenerate(templateId) {
     <div class="fg"><label>Additional notes (optional)</label><textarea id="gen-notes" placeholder="Any specific details to include…"></textarea></div>
     <div id="gen-output" style="display:none;margin-top:16px">
       <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:8px">✦ Generated document</div>
-      <div id="gen-text" style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:16px;font-size:13px;line-height:1.8;white-space:pre-wrap;max-height:320px;overflow-y:auto;color:var(--txt)"></div>
+      <div id="gen-text" style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:16px;font-size:13px;line-height:1.8;max-height:360px;overflow-y:auto;color:var(--txt)"></div>
       <div style="display:flex;gap:8px;margin-top:10px">
         <button class="btn btn-sm" onclick="copyTemplate()">📋 Copy</button>
         <button class="btn btn-sm" onclick="toast('PDF export coming soon')">↓ Download PDF</button>
@@ -2208,7 +2235,8 @@ Today's date: ${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'lon
     });
     const data = await res.json();
     const text = data.content?.[0]?.text || 'Could not generate document. Please try again.';
-    document.getElementById('gen-text').textContent = text;
+    document.getElementById('gen-text').innerHTML = '<p style="margin:0">' + mdToHtml(text) + '</p>';
+    document.getElementById('gen-text').dataset.raw = text;
     document.getElementById('gen-output').style.display = 'block';
     btn.disabled = false;
     btn.innerHTML = '✦ Regenerate';
@@ -2220,8 +2248,33 @@ Today's date: ${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'lon
   }
 }
 
+// ── MARKDOWN → HTML (for template output) ──
+function mdToHtml(md) {
+  if (!md) return '';
+  return md
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    // Headings
+    .replace(/^### (.+)$/gm,'<h5 style="font-size:13px;font-weight:700;margin:14px 0 4px;color:var(--txt)">$1</h5>')
+    .replace(/^## (.+)$/gm,'<h4 style="font-size:14px;font-weight:700;margin:16px 0 5px;color:var(--txt)">$1</h4>')
+    .replace(/^# (.+)$/gm,'<h3 style="font-size:16px;font-weight:700;margin:18px 0 6px;color:var(--navy)">$1</h3>')
+    // Bold & italic
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    // Horizontal rule
+    .replace(/^---$/gm,'<hr style="border:none;border-top:1px solid var(--border);margin:12px 0">')
+    // Numbered lists
+    .replace(/^\d+\. (.+)$/gm,'<div style="display:flex;gap:8px;margin:3px 0"><span style="color:var(--muted);min-width:18px;font-size:12px">•</span><span>$1</span></div>')
+    // Bullet lists
+    .replace(/^[-*] (.+)$/gm,'<div style="display:flex;gap:8px;margin:3px 0"><span style="color:var(--muted);min-width:18px">–</span><span>$1</span></div>')
+    // Paragraphs (double newline)
+    .replace(/\n\n/g,'</p><p style="margin:8px 0">')
+    // Single newlines
+    .replace(/\n/g,'<br>');
+}
+
 function copyTemplate() {
-  const text = document.getElementById('gen-text')?.textContent;
+  const el = document.getElementById('gen-text');
+  const text = el?.dataset?.raw || el?.textContent;
   if (text) {
     navigator.clipboard.writeText(text);
     toast('✓ Copied to clipboard!');
