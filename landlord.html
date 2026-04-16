@@ -1925,38 +1925,7 @@ function moFinancials(pid){
   `,'<button class="btn" onclick="closeMo()">Close</button><button class="btn btn-navy" onclick="alert(\'PDF export coming soon!\')">📄 Export PDF</button>');
 }
 
-function moFinancials(pid){
-  const p=P(pid);
-  const ins=D.insurance.filter(i=>String(i.prop_id)===String(pid)).reduce((s,i)=>s+(i.premium||0)/12,0);
-  const mort=p.mortgage_monthly||0;
-  const maint=D.maintenance.filter(m=>String(m.prop_id)===String(pid)&&m.status==='Resolved').length*150/12;
-  const income=p.rent||0;
-  const expenses=mort+ins+maint;
-  const profit=income-expenses;
-  const yld=p.mortgage_outstanding?((income*12/p.mortgage_outstanding)*100).toFixed(1):'N/A';
-  const taxBasic=Math.max(0,profit)*0.2;
-  const taxHigher=Math.max(0,profit)*0.4;
-  openMo(`P&L — ${p.address}`,'Monthly financial breakdown',`
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
-      <div style="background:var(--green-bg);border:1px solid rgba(0,200,150,0.2);border-radius:10px;padding:16px;text-align:center">
-        <div style="font-size:11px;color:var(--green-dark);font-weight:600;margin-bottom:4px">MONTHLY INCOME</div>
-        <div style="font-size:28px;font-weight:600;color:var(--green-dark)">£${income.toLocaleString()}</div>
-      </div>
-      <div style="background:var(--red-bg);border:1px solid rgba(229,62,62,0.2);border-radius:10px;padding:16px;text-align:center">
-        <div style="font-size:11px;color:var(--red);font-weight:600;margin-bottom:4px">MONTHLY EXPENSES</div>
-        <div style="font-size:28px;font-weight:600;color:var(--red)">£${Math.round(expenses).toLocaleString()}</div>
-      </div>
-    </div>
-    <div class="fg-sec">Expense breakdown</div>
-    ${[['🏦 Mortgage',mort],['🛡 Insurance (monthly)',Math.round(ins)],['🔧 Maintenance (avg)',Math.round(maint)]].map(([l,v])=>`<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px">${l}</span><span style="font-weight:600;color:var(--red)">£${v.toLocaleString()}/mo</span></div>`).join('')}
-    <div style="display:flex;justify-content:space-between;padding:14px 0;border-bottom:2px solid var(--navy)"><span style="font-size:14px;font-weight:600">Net profit</span><span style="font-size:18px;font-weight:600;color:${profit>=0?'var(--green-dark)':'var(--red)'}">£${Math.round(profit).toLocaleString()}/mo</span></div>
-    <div class="fg-div"></div>
-    <div class="fg-sec">Tax estimates (UK)</div>
-    ${[['Basic rate (20%)',Math.round(taxBasic)],['Higher rate (40%)',Math.round(taxHigher)],['Annual profit',Math.round(profit*12)]].map(([l,v])=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--muted)">${l}</span><span style="font-weight:500">£${v.toLocaleString()}${l.includes('rate')?'/mo':'/yr'}</span></div>`).join('')}
-    <div class="fg-div"></div>
-    <div style="background:var(--off);border-radius:8px;padding:14px;font-size:12px;color:var(--muted)"><strong style="color:var(--txt)">Gross yield: ${yld}%</strong> — ${parseFloat(yld)>=5?'✅ Strong yield':'⚠️ Consider reviewing rent levels'}. Tax estimates are indicative only.</div>
-  `,'<button class="btn" onclick="closeMo()">Close</button><button class="btn btn-navy" onclick="alert(\'PDF export coming soon!\')">📄 Export PDF</button>');
-}function nav(page, param){
+function nav(page, param){
   document.querySelectorAll('.nav-item[data-page]').forEach(el=>{
     const base=page==='prop-detail'?'properties':page;
     el.classList.toggle('active',el.dataset.page===base);
