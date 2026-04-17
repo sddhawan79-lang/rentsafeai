@@ -1170,6 +1170,27 @@ function pgDashboard(){
     <div class="ph"><h1>Dashboard</h1><p>${acts.length} urgent, ${acts.filter(a=>a.b==='amber').length} due soon</p></div>
 
     ${(function(){
+      const daysLeft = Math.ceil((new Date('2026-05-31') - new Date()) / 864e5);
+      if (daysLeft < 0 || !D.tenants.length) return '';
+      const sentIds = new Set(D.emailLog.filter(e=>e.template_id==='rra_info_sheet'&&e.status==='Sent').map(e=>String(e.tenant_id)));
+      const unsent = D.tenants.filter(t => !sentIds.has(String(t.id)));
+      if (!unsent.length) return '';
+      const urgCol = daysLeft <= 7 ? '#E53E3E' : '#D97706';
+      const urgBg = daysLeft <= 7 ? 'rgba(229,62,62,0.08)' : 'rgba(217,119,6,0.08)';
+      return `<div style="background:${urgBg};border:2px solid ${urgCol};border-radius:12px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="font-size:26px">📋</div>
+          <div>
+            <div style="font-size:11px;font-weight:700;color:${urgCol};text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">⚠️ Action required — ${daysLeft} day${daysLeft!==1?'s':''} left</div>
+            <div style="font-size:14px;font-weight:700;color:var(--txt)">RRA 2025 Information Sheet</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">${unsent.length} tenant${unsent.length!==1?'s':''} not yet sent · Deadline 31 May 2026 · Fine up to <strong>£7,000</strong> per breach</div>
+          </div>
+        </div>
+        <button class="btn btn-sm" style="background:${urgCol};color:#fff;border:none;font-weight:600;flex-shrink:0" onclick="moRRASheet()">Send now →</button>
+      </div>`;
+    })()}
+
+    ${(function(){
       const props = D.properties;
       if (!props.length) return '';
       const btn = props.length === 1
@@ -1551,6 +1572,7 @@ function pdTabContent(pid, tab) {
           <div style="display:flex;gap:6px;flex-wrap:wrap">
             ${t.email?`<a href="mailto:${t.email}" class="btn btn-sm">✉ Email</a>`:''}
             ${t.phone?`<a href="tel:${t.phone}" class="btn btn-sm">📞 Call</a>`:''}
+            <button class="btn btn-sm" style="border-color:var(--amber);color:var(--amber)" onclick="moRRASheet()">📋 RRA Sheet</button>
           </div>
         </div>
       </div>
@@ -3556,6 +3578,187 @@ function moTenantDetail(tid) {
      </div>`,
     `<button class="btn" onclick="closeMo()">Close</button><button class="btn btn-navy" onclick="closeMo();moTenant('${t.prop_id}')">✎ Edit tenant</button>`
   );
+}
+
+// ══════════════════════════════════════════════════
+// RRA INFORMATION SHEET MANAGER
+// ══════════════════════════════════════════════════
+
+async function moRRASheet() {
+  if (!D.tenants.length) {
+    toast('Add tenants first before sending the RRA sheet', true); return;
+  }
+
+  // Check which tenants have already been sent the sheet via email_log
+  const sentTenantIds = new Set(
+    D.emailLog
+      .filter(e => e.template_id === 'rra_info_sheet' && e.status === 'Sent')
+      .map(e => String(e.tenant_id))
+  );
+
+  const daysLeft = Math.ceil((new Date('2026-05-31') - new Date()) / 864e5);
+  const urgency = daysLeft <= 7 ? 'var(--red)' : daysLeft <= 14 ? 'var(--amber)' : 'var(--green-dark)';
+
+  const rows = D.tenants.map(t => {
+    const p = P(t.prop_id) || { address: '—' };
+    const sent = sentTenantIds.has(String(t.id));
+    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)" id="rra-row-${t.id}">
+      <div class="t-av" style="flex-shrink:0">${INI(t.name)}</div>
+      <div style="flex:1">
+        <div style="font-weight:500;font-size:13px">${t.name}</div>
+        <div style="font-size:11px;color:var(--muted)">${p.address} · ${t.email || 'No email'}</div>
+      </div>
+      <div id="rra-status-${t.id}">
+        ${sent
+          ? `<span class="badge b-green">✓ Sent</span>`
+          : t.email
+            ? `<button class="btn btn-sm btn-navy" onclick="rraSendOne('${t.id}')">✉ Send</button>`
+            : `<span style="font-size:11px;color:var(--muted)">No email</span>`
+        }
+      </div>
+    </div>`;
+  }).join('');
+
+  const unsentWithEmail = D.tenants.filter(t => t.email && !sentTenantIds.has(String(t.id)));
+
+  openMo(
+    "RRA 2025 Information Sheet",
+    "Must be sent to all existing tenants by 31 May 2026",
+    `<div style="background:var(--amber-bg);border:1px solid var(--amber);border-radius:8px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
+      <div style="font-size:20px">⚠️</div>
+      <div style="flex:1;font-size:12px;color:var(--txt)">
+        <strong style="color:var(--amber)">Deadline: 31 May 2026</strong> — 
+        <span style="color:${urgency};font-weight:700">${daysLeft} days left</span><br>
+        Fine up to <strong>£7,000</strong> per tenant if missed. Must be sent as a PDF attachment — a link is not valid.
+      </div>
+    </div>
+
+    <div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:var(--blue)">
+      💡 We'll send a covering letter email to each tenant. You must also attach the official 
+      <strong>GOV.UK RRA 2025 Information Sheet PDF</strong> — 
+      <a href="https://www.gov.uk/government/publications/renters-rights-act-information-sheet-2026" target="_blank" style="color:var(--blue);font-weight:600">download it here ↗</a>
+      and attach it manually to the email in your inbox, or forward it to tenants alongside this notice.
+    </div>
+
+    <div style="margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Your tenants (${D.tenants.length})</div>
+      ${unsentWithEmail.length > 1 ? `<button class="btn btn-sm btn-navy" id="rra-all-btn" onclick="rraSendAll()">✉ Send to all ${unsentWithEmail.length} →</button>` : ''}
+    </div>
+    <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:0 14px">${rows}</div>`,
+    `<button class="btn" onclick="closeMo()">Close</button>`
+  );
+}
+
+async function rraSendOne(tid) {
+  const t = D.tenants.find(x => String(x.id) === String(tid));
+  if (!t?.email) { toast('No email address for this tenant', true); return; }
+
+  const btn = document.querySelector(`#rra-status-${tid} button`);
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span>'; }
+
+  const p = P(t.prop_id) || { address: '[Property address]', city: '', postcode: '' };
+
+  // Generate covering letter via AI
+  try {
+    const prompt = `Generate a short, friendly covering letter to a tenant explaining the Renters' Rights Act 2025 Information Sheet.
+
+Tenant: ${t.name}
+Property: ${p.address}, ${p.city}, ${p.postcode}
+Landlord: ${(currentUser?.email||'Your landlord').split('@')[0]}
+Today's date: ${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'})}
+
+The letter should:
+1. Explain they are receiving the official GOV.UK RRA 2025 Information Sheet as a PDF attachment
+2. Summarise the key changes in plain English: fixed terms abolished (all tenancies become periodic/rolling from 1 May 2026), Section 21 no-fault evictions abolished, rent can only be increased once per year using Form 4A, tenants can end tenancy with 2 months notice
+3. Reassure them their tenancy continues and nothing changes immediately
+4. Tell them to read the attached PDF for full details
+5. End with a proper sign-off and landlord name
+
+Keep it under 200 words. Professional but warm. Plain text, no markdown.`;
+
+    const aiRes = await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 600, messages: [{ role: 'user', content: prompt }] })
+    });
+    const aiData = await aiRes.json();
+    const letter = aiData.content?.[0]?.text || 'Please see the attached RRA 2025 Information Sheet.';
+
+    const htmlBody = `<div style="font-family:sans-serif;max-width:680px;margin:0 auto;padding:32px 24px;color:#1A2B45">
+      <div style="border-bottom:2px solid #0B1E3D;padding-bottom:14px;margin-bottom:24px">
+        <span style="font-size:18px;font-weight:700;color:#0B1E3D">Rent<span style="color:#00C896">Safe AI</span></span>
+        <span style="color:#999;font-size:12px;margin-left:8px">Renters' Rights Act 2025 — Important Information</span>
+      </div>
+      <pre style="font-family:Georgia,serif;font-size:13px;line-height:1.8;white-space:pre-wrap">${letter}</pre>
+      <div style="margin-top:24px;padding:14px;background:#fffbeb;border:1px solid #D97706;border-radius:8px;font-size:12px;color:#92400E">
+        <strong>⚠️ Action required:</strong> The official GOV.UK Renters' Rights Act 2025 Information Sheet PDF should be attached to this email or sent separately. Download it at: gov.uk/government/publications/renters-rights-act-information-sheet-2026
+      </div>
+      <div style="margin-top:24px;padding-top:14px;border-top:1px solid #eee;font-size:11px;color:#999">
+        Sent via RentSafe AI · documents@rentsafeai.co.uk
+      </div>
+    </div>`;
+
+    const emailRes = await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'send_email',
+        to: t.email,
+        subject: `Important: Renters' Rights Act 2025 Information — ${p.address}`,
+        html: htmlBody
+      })
+    });
+    const emailData = await emailRes.json();
+    if (emailData.error || !emailRes.ok) throw new Error(emailData.error || 'Send failed');
+
+    // Log it
+    const logEntry = {
+      user_id: currentUser.id,
+      tenant_id: parseInt(t.id),
+      prop_id: t.prop_id ? parseInt(t.prop_id) : null,
+      template_id: 'rra_info_sheet',
+      template_name: "RRA 2025 Information Sheet",
+      sent_to: t.email,
+      subject: `Important: Renters' Rights Act 2025 Information — ${p.address}`,
+      status: 'Sent'
+    };
+    await sb.from('email_log').insert(logEntry);
+    D.emailLog.unshift({ ...logEntry, sent_at: new Date().toISOString() });
+    await logAudit('SEND_RRA_SHEET', 'email_log', t.id, `RRA sheet sent to ${t.email}`);
+
+    // Update UI
+    const statusEl = document.getElementById(`rra-status-${tid}`);
+    if (statusEl) statusEl.innerHTML = `<span class="badge b-green">✓ Sent</span>`;
+    toast(`✉ RRA sheet sent to ${t.name}`);
+
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.innerHTML = '✉ Send'; }
+    toast('Send failed — check Resend domain verification', true);
+    console.error(e);
+  }
+}
+
+async function rraSendAll() {
+  const btn = document.getElementById('rra-all-btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Sending…'; }
+
+  const sentTenantIds = new Set(
+    D.emailLog
+      .filter(e => e.template_id === 'rra_info_sheet' && e.status === 'Sent')
+      .map(e => String(e.tenant_id))
+  );
+  const toSend = D.tenants.filter(t => t.email && !sentTenantIds.has(String(t.id)));
+
+  let sent = 0;
+  for (const t of toSend) {
+    await rraSendOne(t.id);
+    sent++;
+    if (btn) btn.innerHTML = `<span class="spin"></span>Sent ${sent}/${toSend.length}…`;
+    await new Promise(r => setTimeout(r, 800)); // small delay between sends
+  }
+
+  if (btn) { btn.disabled = true; btn.innerHTML = `✓ All ${sent} sent`; }
+  toast(`✉ RRA Information Sheet sent to ${sent} tenant${sent!==1?'s':''}!`);
 }
 
 // ── START ──
