@@ -1772,53 +1772,176 @@ function pdTabContent(pid, tab) {
 
 // ── PAGE: COMPLIANCE ──
 function pgCompliance(){
-  const grps=D.properties.map(p=>{const c=CF(p.id),v=c.filter(x=>x.status!=='Missing').length,n=c.length||1,pct=Math.round(v/n*100);return{p,c,v,n:c.length,pct}});
-  return`<div class="topbar"><span class="tb-title">Compliance</span><div class="tb-right">
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  // Build enriched cert list with days-to-expiry
+  const allCerts = D.certs.map(c => {
+    const p = P(c.prop_id) || { address: '—', city: '' };
+    const daysLeft = c.expiry ? Math.round((new Date(c.expiry) - today) / 864e5) : null;
+    const urgency = !c.expiry ? 'none'
+      : daysLeft < 0 ? 'expired'
+      : daysLeft <= 14 ? 'critical'
+      : daysLeft <= 60 ? 'soon'
+      : 'ok';
+    return { ...c, p, daysLeft, urgency };
+  });
+
+  // Portfolio health score — weighted calculation
+  const total = allCerts.length;
+  const expired = allCerts.filter(c => c.urgency === 'expired').length;
+  const critical = allCerts.filter(c => c.urgency === 'critical').length;
+  const soon = allCerts.filter(c => c.urgency === 'soon').length;
+  const ok = allCerts.filter(c => c.urgency === 'ok').length;
+  const noExpiry = allCerts.filter(c => c.urgency === 'none').length;
+
+  let score = 100;
+  if (total > 0) {
+    score = Math.round(((ok + noExpiry * 0.8) / total) * 100);
+    score = Math.max(0, score - (expired * 15) - (critical * 5));
+    score = Math.min(100, Math.max(0, score));
+  }
+  if (!total) score = 0;
+
+  // Score colour and label
+  const scoreCol = score >= 80 ? '#00C896' : score >= 50 ? '#D97706' : '#E53E3E';
+  const scoreLabel = score >= 80 ? 'Healthy' : score >= 50 ? 'Needs attention' : 'At risk';
+  const scoreSub = score >= 80 ? 'Your portfolio is well maintained' : score >= 50 ? 'Some items need your attention' : 'Urgent action required';
+
+  // SVG circular gauge
+  const r = 54, cx = 70, cy = 70;
+  const circumference = 2 * Math.PI * r;
+  const dashOffset = circumference - (score / 100) * circumference;
+  const gauge = `<svg width="140" height="140" viewBox="0 0 140 140">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="10"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${scoreCol}" stroke-width="10"
+      stroke-dasharray="${circumference}" stroke-dashoffset="${dashOffset}"
+      stroke-linecap="round" transform="rotate(-90 ${cx} ${cy})"
+      style="transition:stroke-dashoffset 1s ease,stroke .5s ease"/>
+    <text x="${cx}" y="${cy - 8}" text-anchor="middle" fill="#fff" font-size="28" font-weight="700" font-family="DM Sans,sans-serif">${score}</text>
+    <text x="${cx}" y="${cy + 12}" text-anchor="middle" fill="${scoreCol}" font-size="11" font-weight="600" font-family="DM Sans,sans-serif">${scoreLabel.toUpperCase()}</text>
+    <text x="${cx}" y="${cy + 26}" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="9" font-family="DM Sans,sans-serif">out of 100</text>
+  </svg>`;
+
+  // Action items — sorted by urgency then days
+  const actionItems = allCerts
+    .filter(c => c.urgency === 'expired' || c.urgency === 'critical' || c.urgency === 'soon')
+    .sort((a,b) => (a.daysLeft ?? 999) - (b.daysLeft ?? 999));
+
+  const actionHtml = actionItems.length ? actionItems.map(c => {
+    const isExpired = c.urgency === 'expired';
+    const isCritical = c.urgency === 'critical';
+    const dayStr = isExpired
+      ? `${Math.abs(c.daysLeft)} day${Math.abs(c.daysLeft)!==1?'s':''} overdue`
+      : c.daysLeft === 0 ? 'Expires today'
+      : `${c.daysLeft} day${c.daysLeft!==1?'s':''} left`;
+    const urgCol = isExpired ? 'var(--red)' : isCritical ? '#D97706' : 'var(--blue)';
+    const urgBg = isExpired ? 'rgba(229,62,62,0.07)' : isCritical ? 'rgba(217,119,6,0.07)' : 'rgba(59,111,232,0.07)';
+
+    return `<div style="display:flex;align-items:center;gap:14px;padding:12px 18px;border-bottom:1px solid var(--border);background:${urgBg};transition:background .15s" onmouseenter="this.style.background='rgba(0,0,0,0.02)'" onmouseleave="this.style.background='${urgBg}'">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600;color:var(--txt)">${c.type}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">${c.p.address}, ${c.p.city}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:13px;font-weight:700;color:${urgCol}">${dayStr}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:1px">${c.expiry ? FMT(c.expiry) : '—'}</div>
+      </div>
+      <div style="flex-shrink:0">
+        ${!(c.file||c.has_file)
+          ? `<label style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--blue);padding:5px 10px;border:1px solid var(--blue);border-radius:6px;background:var(--blue-bg)">✦ Upload<input type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="uploadScanCert(${c.id},this)"></label>`
+          : `<button onclick="nav('prop-detail','${c.prop_id}')" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--white);color:var(--muted);cursor:pointer;font-family:var(--font)">View →</button>`
+        }
+      </div>
+    </div>`;
+  }).join('') : `<div style="padding:28px;text-align:center">
+    <div style="font-size:28px;margin-bottom:8px">✅</div>
+    <div style="font-size:14px;font-weight:600;color:var(--txt);margin-bottom:4px">All clear</div>
+    <div style="font-size:12px;color:var(--muted)">No certificates expiring in the next 60 days</div>
+  </div>`;
+
+  // Property breakdown table
+  const propRows = D.properties.map(p => {
+    const pc = CF(p.id);
+    const propExpired = pc.filter(c => {
+      const d = c.expiry ? Math.round((new Date(c.expiry)-today)/864e5) : null;
+      return d !== null && d < 0;
+    }).length;
+    const propCritical = pc.filter(c => {
+      const d = c.expiry ? Math.round((new Date(c.expiry)-today)/864e5) : null;
+      return d !== null && d >= 0 && d <= 14;
+    }).length;
+    const propScore = pc.length ? Math.max(0, 100 - propExpired*20 - propCritical*8) : 0;
+    const pCol = propScore >= 80 ? 'var(--green-dark)' : propScore >= 50 ? 'var(--amber)' : 'var(--red)';
+    const pBg = propScore >= 80 ? 'rgba(0,200,150,0.08)' : propScore >= 50 ? 'rgba(217,119,6,0.08)' : 'rgba(229,62,62,0.08)';
+    return `<tr style="cursor:pointer" onclick="nav('prop-detail','${p.id}');setTimeout(()=>pdSetTab('${p.id}','compliance'),100)">
+      <td class="td-bold">${p.address}, ${p.city}</td>
+      <td><div style="display:flex;align-items:center;gap:8px">
+        <div style="flex:1;height:5px;background:var(--border);border-radius:100px;overflow:hidden;max-width:80px"><div style="height:100%;width:${propScore}%;background:${pCol};border-radius:100px"></div></div>
+        <span style="font-size:12px;font-weight:700;color:${pCol}">${propScore}</span>
+      </div></td>
+      <td>${pc.length} cert${pc.length!==1?'s':''}</td>
+      <td>${propExpired ? `<span style="color:var(--red);font-weight:600;font-size:12px">${propExpired} expired</span>` : propCritical ? `<span style="color:var(--amber);font-weight:600;font-size:12px">${propCritical} critical</span>` : '<span style="color:var(--green-dark);font-size:12px">✓ Clear</span>'}</td>
+      <td><button class="btn btn-sm" onclick="event.stopPropagation();moCert('${p.id}')">+ Add</button></td>
+    </tr>`;
+  }).join('');
+
+  return `<div class="topbar"><span class="tb-title">Compliance</span><div class="tb-right">
     <button class="btn btn-navy" onclick="moCert()">+ Add certificate</button>
   </div></div>
   <div class="content">
-    <div class="ph"><h1>Compliance</h1><p>Track certificates across your portfolio</p></div>
-    ${grps.length?grps.map(g=>`<div class="panel">
-      <div class="prop-group">
-        <span style="font-size:12px;font-weight:600;text-transform:uppercase">${g.p.address}, ${g.p.city}</span>
-        <div style="display:flex;align-items:center;gap:10px">
-          <div class="prog-wrap"><div class="prog-fill" style="width:${g.pct}%"></div></div>
-          <span class="badge ${g.pct===100?'b-green':g.pct>=60?'b-amber':'b-red'}">${g.v}/${g.n} complete</span>
+
+    ${!D.properties.length ? `<div class="empty"><div class="empty-ic">🛡</div><div class="empty-t">No properties yet</div><div class="empty-s">Add a property to start tracking compliance</div></div>` : `
+
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:18px;margin-bottom:22px;align-items:stretch">
+
+      <!-- Health score card -->
+      <div style="background:var(--navy);border-radius:14px;padding:24px 28px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:200px">
+        ${gauge}
+        <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:8px;text-align:center">${scoreSub}</div>
+      </div>
+
+      <!-- Stats strip -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+        <div style="background:var(--white);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+          <div style="font-size:28px;font-weight:700;color:var(--txt)">${total}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">Total certs</div>
+        </div>
+        <div style="background:${expired?'rgba(229,62,62,0.07)':'var(--white)'};border:1px solid ${expired?'rgba(229,62,62,0.2)':'var(--border)'};border-radius:12px;padding:16px;text-align:center">
+          <div style="font-size:28px;font-weight:700;color:${expired?'var(--red)':'var(--muted)'}">${expired}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">Expired</div>
+        </div>
+        <div style="background:${critical?'rgba(217,119,6,0.07)':'var(--white)'};border:1px solid ${critical?'rgba(217,119,6,0.2)':'var(--border)'};border-radius:12px;padding:16px;text-align:center">
+          <div style="font-size:28px;font-weight:700;color:${critical?'var(--amber)':'var(--muted)'}">${critical}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">Critical</div>
+        </div>
+        <div style="background:rgba(0,200,150,0.07);border:1px solid rgba(0,200,150,0.15);border-radius:12px;padding:16px;text-align:center">
+          <div style="font-size:28px;font-weight:700;color:var(--green-dark)">${ok + noExpiry}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">Compliant</div>
         </div>
       </div>
-      ${(function(){
-        const docGroups={
-          'Gas Safety':g.c.filter(x=>x.type&&x.type.toLowerCase().includes('gas')),
-          'Electrical (EICR)':g.c.filter(x=>x.type&&x.type.toLowerCase().includes('eicr')||x.type&&x.type.toLowerCase().includes('electrical')),
-          'EPC':g.c.filter(x=>x.type&&x.type.toLowerCase().includes('epc')||x.type&&x.type.toLowerCase().includes('energy')),
-          'Deposit Protection':g.c.filter(x=>x.type&&x.type.toLowerCase().includes('deposit')),
-          'Tenancy Documents':g.c.filter(x=>x.type&&(x.type.toLowerCase().includes('tenancy')||x.type.toLowerCase().includes('statement')||x.type.toLowerCase().includes('how to rent')||x.type.toLowerCase().includes('rra'))),
-          'Other':g.c.filter(x=>{
-            const t=(x.type||'').toLowerCase();
-            return !t.includes('gas')&&!t.includes('eicr')&&!t.includes('electrical')&&!t.includes('epc')&&!t.includes('energy')&&!t.includes('deposit')&&!t.includes('tenancy')&&!t.includes('statement')&&!t.includes('how to rent')&&!t.includes('rra');
-          })
-        };
-        const nonEmpty=Object.entries(docGroups).filter(([,v])=>v.length>0);
-        if(!nonEmpty.length) return '<div style="padding:14px 18px;font-size:13px;color:var(--muted)">No certificates yet — <a href=\'#\' onclick=\'moCert()\' style=\'color:var(--navy);font-weight:500\'>add one</a></div>';
-        return nonEmpty.map(([grpName,certs])=>`
-          <div style="padding:8px 14px 0;border-top:1px solid var(--border)">
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:8px 0 6px">${grpName}</div>
-          </div>
-          <div class="tw"><table><thead><tr><th>Type</th><th>Expiry</th><th>Status</th><th>File</th><th>Served</th><th>Engineer</th></tr></thead>
-          <tbody>${certs.map(c=>`<tr><td class="td-bold">${c.type}</td><td>${FMT(c.expiry)}</td><td>${B(c.status)}</td>
-            <td>${(c.file||c.has_file)
-              ?'<span class=\'badge b-green\'>✓ Uploaded</span>'
-              :`<label id="scan-lbl-${c.id}" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--blue);padding:3px 8px;border:1px solid var(--blue);border-radius:6px;background:var(--blue-bg)">✦ Upload & Scan<input type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="uploadScanCert(${c.id},this)"></label>`}
-            </td>
-            <td>${c.served
-              ?`<button onclick="markServed(${c.id})" style="background:var(--green-bg);border:1px solid var(--green);color:var(--green-dark);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font)">✓ Served</button>`
-              :`<button onclick="markServed(${c.id})" style="background:var(--off);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;font-family:var(--font)">Mark served</button>`}
-            </td>
-            <td style="font-size:12px;color:var(--muted)">${c.engineer||'—'}</td>
-          </tr>`).join('')}</tbody></table></div>
-        `).join('');
-      })()}:'<div style="padding:14px 18px;font-size:13px;color:var(--muted)">No certificates yet — <a href="#" onclick="moCert()" style="color:var(--navy);font-weight:500">add one</a></div>'}
-    </div>`).join(''):'<div class="empty"><div class="empty-ic">✓</div><div class="empty-t">No properties yet</div><div class="empty-s">Add a property to start tracking compliance</div></div>'}
+    </div>
+
+    <!-- Action list -->
+    <div class="panel" style="margin-bottom:18px">
+      <div class="ph2">
+        <div>
+          <h2>Action required</h2>
+          <p>${actionItems.length ? `${actionItems.length} item${actionItems.length!==1?'s':''} need attention` : 'Nothing to do right now'}</p>
+        </div>
+      </div>
+      ${actionHtml}
+    </div>
+
+    <!-- Property breakdown -->
+    ${D.properties.length > 1 ? `<div class="panel">
+      <div class="ph2"><div><h2>Property breakdown</h2><p>Click a property to manage its certificates</p></div></div>
+      <div class="tw"><table>
+        <thead><tr><th>Property</th><th>Score</th><th>Certificates</th><th>Status</th><th></th></tr></thead>
+        <tbody>${propRows}</tbody>
+      </table></div>
+    </div>` : ''}
+
+    `}
   </div>`;
 }
 
