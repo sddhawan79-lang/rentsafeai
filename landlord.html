@@ -684,16 +684,31 @@ async function savePropToDB() {
   btn.innerHTML = '<span class="spin"></span>Saving…';
 
   const prop = {
-    address: document.getElementById('p-addr')?.value.trim(),
-    city: document.getElementById('p-city')?.value.trim(),
-    postcode: document.getElementById('p-post')?.value.trim(),
-    type: document.getElementById('p-type')?.value || 'FLAT',
-    beds: parseInt(document.getElementById('p-beds')?.value) || null,
-    bathrooms: parseInt(document.getElementById('p-bath')?.value) || null,
-    rent: parseFloat(document.getElementById('p-rent')?.value) || 0,
+    address:       document.getElementById('p-addr')?.value.trim(),
+    city:          document.getElementById('p-city')?.value.trim(),
+    postcode:      document.getElementById('p-post')?.value.trim(),
+    country:       document.getElementById('p-country')?.value || 'England',
+    type:          document.getElementById('p-type')?.value || 'Flat',
+    beds:          parseInt(document.getElementById('p-beds')?.value) || null,
+    bathrooms:     parseInt(document.getElementById('p-bath')?.value) || null,
+    year_built:    parseInt(document.getElementById('p-year')?.value) || null,
+    sqft:          parseInt(document.getElementById('p-sqft')?.value) || null,
+    description:   document.getElementById('p-desc')?.value.trim() || null,
+    rent:          parseFloat(document.getElementById('p-rent')?.value) || 0,
     council_tax_band: document.getElementById('p-ctb')?.value || null,
-    user_id: currentUser.id,
-    score: 50, licence_type: 'None', rooms: [], inspections: []
+    purchase_price:  parseFloat(document.getElementById('p-purchase')?.value) || null,
+    purchase_date:   document.getElementById('p-purchase-date')?.value || null,
+    current_value:   parseFloat(document.getElementById('p-value')?.value) || null,
+    ownership_type:  document.getElementById('p-ownership')?.value || 'Personal',
+    mortgage_outstanding: parseFloat(document.getElementById('p-mortgage')?.value) || null,
+    licence_type:    document.getElementById('p-licence')?.value || 'None',
+    licence_ref:     document.getElementById('p-lic-ref')?.value.trim() || null,
+    licence_expiry:  document.getElementById('p-lic-expiry')?.value || null,
+    epc_rating:      document.getElementById('p-epc')?.value || null,
+    epc_expiry:      document.getElementById('p-epc-expiry')?.value || null,
+    notes:           document.getElementById('p-notes')?.value.trim() || null,
+    user_id:         currentUser.id,
+    score: 50, rooms: [], inspections: []
   };
 
   const { data, error } = await sb.from('properties').insert(prop).select().single();
@@ -709,9 +724,16 @@ async function savePropToDB() {
   const tname = document.getElementById('p-tname')?.value.trim();
   if (tname) {
     const tenant = {
-      name: tname, email: document.getElementById('p-temail')?.value.trim() || null,
-      prop_id: data.id, start_date: document.getElementById('p-tstart')?.value || null,
-      rent: prop.rent, status: 'Active', user_id: currentUser.id, deposit: 0
+      name: tname,
+      email: document.getElementById('p-temail')?.value.trim() || null,
+      prop_id: data.id,
+      start_date: document.getElementById('p-tstart')?.value || null,
+      end_date: document.getElementById('p-tend')?.value || null,
+      rent: prop.rent,
+      deposit: parseFloat(document.getElementById('p-deposit')?.value) || 0,
+      deposit_scheme: document.getElementById('p-dep-scheme')?.value || null,
+      status: 'Active',
+      user_id: currentUser.id
     };
     const { data: td, error: te } = await sb.from('tenants').insert(tenant).select().single();
     if (!te && td) {
@@ -722,7 +744,33 @@ async function savePropToDB() {
 
   closeMo();
   toast('✓ Property saved!');
-  nav('properties');
+
+  // Show "what's next" guided prompt
+  const pid = data.id;
+  const hasTenant = !!tname;
+  openMo('🎉 Property added!', `${prop.address}, ${prop.city}`,`
+    <div style="margin-bottom:16px;font-size:13px;color:var(--muted)">Here's what to set up next to be fully compliant:</div>
+    <div class="ap-next-item" onclick="closeMo();moCert(${pid})" style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:8px;transition:background .15s" onmouseover="this.style.background='var(--off)'" onmouseout="this.style.background=''">
+      <div style="width:36px;height:36px;border-radius:8px;background:var(--green-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📋</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:600">Add compliance certificates</div><div style="font-size:12px;color:var(--muted)">Gas Safety, EICR, EPC — AI will scan and fill details</div></div>
+      <div style="color:var(--muted)">›</div>
+    </div>
+    ${!hasTenant ? `<div onclick="closeMo();moTenant(${pid})" style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:8px;transition:background .15s" onmouseover="this.style.background='var(--off)'" onmouseout="this.style.background=''">
+      <div style="width:36px;height:36px;border-radius:8px;background:var(--blue-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">👤</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:600">Add tenant details</div><div style="font-size:12px;color:var(--muted)">Name, email, tenancy dates and deposit</div></div>
+      <div style="color:var(--muted)">›</div>
+    </div>` : ''}
+    <div onclick="closeMo();moMortgage(${pid})" style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:8px;transition:background .15s" onmouseover="this.style.background='var(--off)'" onmouseout="this.style.background=''">
+      <div style="width:36px;height:36px;border-radius:8px;background:var(--amber-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🏦</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:600">Add mortgage details</div><div style="font-size:12px;color:var(--muted)">Lender, rate, monthly payment and end date</div></div>
+      <div style="color:var(--muted)">›</div>
+    </div>
+    <div onclick="closeMo();nav('prop-detail','${pid}')" style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:8px;transition:background .15s" onmouseover="this.style.background='var(--off)'" onmouseout="this.style.background=''">
+      <div style="width:36px;height:36px;border-radius:8px;background:var(--off);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🏠</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:600">View property page</div><div style="font-size:12px;color:var(--muted)">See full details, compliance score and documents</div></div>
+      <div style="color:var(--muted)">›</div>
+    </div>
+  `, `<button class="btn" onclick="closeMo();nav('properties')">Go to properties</button>`);
 }
 
 // ── SAVE: CERTIFICATE ──
@@ -1010,77 +1058,200 @@ async function scanDoc(input){
   }catch(e){sb2.innerHTML=`<div style="font-size:13px;color:var(--amber);font-weight:500">Could not scan — please fill in manually</div>`;}
 }
 
-// ── MODAL: ADD PROPERTY (multi-step) ──
+// ── MODAL: ADD PROPERTY (5-step guided flow) ──
 function moAddProp(){
-  document.getElementById('mo-t').textContent='Add property';
-  document.getElementById('mo-s').textContent='';
-  document.getElementById('mo-b').innerHTML=`
-    <div class="step-bar">
+  document.getElementById('mo-t').textContent = 'Add property';
+  document.getElementById('mo-s').textContent = 'Step 1 of 5 — address';
+  document.querySelector('.mo-box').classList.add('mo-wide');
+  document.getElementById('mo-b').innerHTML = `
+    <div class="step-bar" style="display:flex;gap:4px;margin-bottom:20px">
       <div class="step-bar-seg done" id="seg1"></div>
       <div class="step-bar-seg" id="seg2"></div>
       <div class="step-bar-seg" id="seg3"></div>
+      <div class="step-bar-seg" id="seg4"></div>
+      <div class="step-bar-seg" id="seg5"></div>
     </div>
+
+    <!-- STEP 1: Address -->
     <div class="step-box active" id="step1">
-      <div style="font-size:16px;font-weight:600;margin-bottom:4px">Where is the property?</div>
-      <div class="step-title">Step 1 of 3 — basic address</div>
-      <div class="fg"><label>Address <span class="req">*</span></label><input type="text" id="p-addr" placeholder="e.g. 14 Maple Street"></div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:2px">Where is the property?</div>
+      <div class="step-title">Full address — this appears on all notices and documents</div>
+      <div class="fg"><label>Street address <span class="req">*</span></label><input type="text" id="p-addr" placeholder="e.g. 14 Maple Street"></div>
       <div class="fg-row">
         <div class="fg"><label>City / town <span class="req">*</span></label><input type="text" id="p-city" placeholder="e.g. Manchester"></div>
-        <div class="fg"><label>Postcode <span class="req">*</span></label><input type="text" id="p-post" placeholder="e.g. M4 1AQ"></div>
+        <div class="fg"><label>Postcode <span class="req">*</span></label><input type="text" id="p-post" placeholder="e.g. M4 1AQ" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
+      </div>
+      <div class="fg"><label>Country</label>
+        <select id="p-country">
+          <option value="England" selected>England</option>
+          <option value="Wales">Wales</option>
+          <option value="Scotland">Scotland</option>
+          <option value="Northern Ireland">Northern Ireland</option>
+        </select>
+      </div>
+      <div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--blue);margin-top:4px">
+        ℹ️ The Renters Rights Act 2025 applies to England only. Wales, Scotland and Northern Ireland have separate legislation.
       </div>
     </div>
+
+    <!-- STEP 2: Property details -->
     <div class="step-box" id="step2">
-      <div style="font-size:16px;font-weight:600;margin-bottom:4px">Property details</div>
-      <div class="step-title">Step 2 of 3</div>
-      <div class="fg"><label>Type</label>
-        <select id="p-type"><option>FLAT</option><option>HOUSE</option><option>Terraced</option><option>Semi-detached</option><option>Detached</option><option>Bungalow</option><option>Studio</option><option>HMO</option></select>
+      <div style="font-size:15px;font-weight:600;margin-bottom:2px">Property details</div>
+      <div class="step-title">Type, size and basic info</div>
+      <div class="fg"><label>Property type</label>
+        <select id="p-type">
+          <option value="Flat">Flat / Apartment</option>
+          <option value="Terraced">Terraced house</option>
+          <option value="Semi-detached">Semi-detached house</option>
+          <option value="Detached">Detached house</option>
+          <option value="Bungalow">Bungalow</option>
+          <option value="Studio">Studio</option>
+          <option value="HMO">HMO (House of Multiple Occupation)</option>
+          <option value="Commercial">Commercial</option>
+        </select>
       </div>
       <div class="fg-row">
-        <div class="fg"><label>Bedrooms</label><input type="number" id="p-beds" placeholder="e.g. 2" min="0"></div>
-        <div class="fg"><label>Bathrooms</label><input type="number" id="p-bath" placeholder="e.g. 1" min="0"></div>
+        <div class="fg"><label>Bedrooms</label><input type="number" id="p-beds" placeholder="e.g. 2" min="0" max="20"></div>
+        <div class="fg"><label>Bathrooms</label><input type="number" id="p-bath" placeholder="e.g. 1" min="0" max="10"></div>
       </div>
       <div class="fg-row">
-        <div class="fg"><label>Monthly rent (£)</label><input type="number" id="p-rent" placeholder="e.g. 1200"></div>
+        <div class="fg"><label>Year built</label><input type="number" id="p-year" placeholder="e.g. 1985" min="1800" max="2030"></div>
+        <div class="fg"><label>Floor area (sq ft)</label><input type="number" id="p-sqft" placeholder="e.g. 850" min="0"></div>
+      </div>
+      <div class="fg"><label>Description (optional)</label><textarea id="p-desc" placeholder="e.g. Ground floor flat, communal garden, on-street parking…" style="min-height:60px"></textarea></div>
+    </div>
+
+    <!-- STEP 3: Financial details -->
+    <div class="step-box" id="step3">
+      <div style="font-size:15px;font-weight:600;margin-bottom:2px">Financial details</div>
+      <div class="step-title">Rent, council tax and purchase info</div>
+      <div class="fg-row">
+        <div class="fg"><label>Monthly rent (£) <span class="req">*</span></label><input type="number" id="p-rent" placeholder="e.g. 1200" min="0"></div>
         <div class="fg"><label>Council tax band</label>
-          <select id="p-ctb"><option value="">Not set</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option><option>H</option></select>
+          <select id="p-ctb">
+            <option value="">Not set</option>
+            <option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option><option>H</option>
+          </select>
         </div>
       </div>
+      <div class="fg-row">
+        <div class="fg"><label>Purchase price (£)</label><input type="number" id="p-purchase" placeholder="e.g. 185000" min="0"></div>
+        <div class="fg"><label>Purchase date</label><input type="date" id="p-purchase-date"></div>
+      </div>
+      <div class="fg-row">
+        <div class="fg"><label>Current estimated value (£)</label><input type="number" id="p-value" placeholder="e.g. 220000" min="0"></div>
+        <div class="fg"><label>Ownership type</label>
+          <select id="p-ownership">
+            <option value="Personal">Personal (individual)</option>
+            <option value="Joint">Joint ownership</option>
+            <option value="Limited company">Limited company</option>
+            <option value="Trust">Trust / other</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg"><label>Mortgage outstanding (£)</label><input type="number" id="p-mortgage" placeholder="Leave blank if owned outright" min="0"></div>
     </div>
-    <div class="step-box" id="step3">
-      <div style="font-size:16px;font-weight:600;margin-bottom:4px">Who lives there?</div>
-      <div class="step-title">Step 3 of 3 — optional, add later</div>
-      <div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--muted);margin-bottom:16px">You can add tenant details later if the property is vacant.</div>
-      <div class="fg"><label>Tenant name</label><input type="text" id="p-tname" placeholder="John Smith"></div>
-      <div class="fg"><label>Tenant email</label><input type="email" id="p-temail" placeholder="john@example.com"></div>
-      <div class="fg"><label>Tenancy start date</label><input type="date" id="p-tstart"></div>
+
+    <!-- STEP 4: Compliance & licence -->
+    <div class="step-box" id="step4">
+      <div style="font-size:15px;font-weight:600;margin-bottom:2px">Compliance setup</div>
+      <div class="step-title">Licence type and compliance notes — we'll remind you what to upload next</div>
+      <div class="fg"><label>Licence type</label>
+        <select id="p-licence">
+          <option value="None">None required</option>
+          <option value="Mandatory HMO">Mandatory HMO licence</option>
+          <option value="Additional HMO">Additional HMO licence</option>
+          <option value="Selective Licence">Selective licence</option>
+          <option value="Article 4">Article 4 direction</option>
+          <option value="Short-term Let">Short-term let licence</option>
+        </select>
+      </div>
+      <div class="fg-row">
+        <div class="fg"><label>Licence reference</label><input type="text" id="p-lic-ref" placeholder="e.g. SL-2024-00412"></div>
+        <div class="fg"><label>Licence expiry</label><input type="date" id="p-lic-expiry"></div>
+      </div>
+      <div class="fg-row">
+        <div class="fg"><label>EPC rating</label>
+          <select id="p-epc">
+            <option value="">Unknown</option>
+            <option>A</option><option>B</option><option>C</option><option>D</option>
+            <option>E — minimum legal standard</option><option>F — below standard</option><option>G — below standard</option>
+          </select>
+        </div>
+        <div class="fg"><label>EPC expiry date</label><input type="date" id="p-epc-expiry"></div>
+      </div>
+      <div class="fg"><label>Landlord notes</label><textarea id="p-notes" placeholder="Internal notes — access codes, managing agent, special instructions…" style="min-height:60px"></textarea></div>
+    </div>
+
+    <!-- STEP 5: Tenant -->
+    <div class="step-box" id="step5">
+      <div style="font-size:15px;font-weight:600;margin-bottom:2px">Who lives there?</div>
+      <div class="step-title">Step 5 of 5 — skip if vacant, add later</div>
+      <div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--muted);margin-bottom:16px">
+        Leave blank if the property is vacant. You can add tenant details any time from the property page.
+      </div>
+      <div class="fg-row">
+        <div class="fg"><label>Tenant full name</label><input type="text" id="p-tname" placeholder="e.g. John Smith"></div>
+        <div class="fg"><label>Tenant email</label><input type="email" id="p-temail" placeholder="john@example.com"></div>
+      </div>
+      <div class="fg-row">
+        <div class="fg"><label>Tenancy start date</label><input type="date" id="p-tstart"></div>
+        <div class="fg"><label>Tenancy end date</label><input type="date" id="p-tend"></div>
+      </div>
+      <div class="fg-row">
+        <div class="fg"><label>Deposit amount (£)</label><input type="number" id="p-deposit" placeholder="e.g. 1500" min="0"></div>
+        <div class="fg"><label>Deposit scheme</label>
+          <select id="p-dep-scheme">
+            <option value="">Not set</option>
+            <option>DPS (Deposit Protection Service)</option>
+            <option>MyDeposits</option>
+            <option>TDS (Tenancy Deposit Scheme)</option>
+          </select>
+        </div>
+      </div>
     </div>`;
-  document.getElementById('mo-f').innerHTML=`
+
+  document.getElementById('mo-f').innerHTML = `
     <div class="mo-nav" style="padding:0;border:none;width:100%;justify-content:space-between">
       <button class="btn-back" id="mo-back-btn" onclick="propStepBack()" style="visibility:hidden">← Back</button>
+      <div style="font-size:12px;color:var(--muted)" id="prop-step-label">Step 1 of 5</div>
       <button class="btn btn-navy" id="mo-next-btn" onclick="propStepNext()">Next →</button>
     </div>`;
   document.getElementById('mo').classList.add('open');
-  window._propStep=1;
+  window._propStep = 1;
 }
 
 function propStepNext(){
-  const s=window._propStep;
-  if(s===1){
-    if(!document.getElementById('p-addr').value.trim()||!document.getElementById('p-city').value.trim()||!document.getElementById('p-post').value.trim()){toast('Please fill in address, city and postcode.',true);return;}
+  const s = window._propStep;
+  if(s === 1){
+    const addr = document.getElementById('p-addr')?.value.trim();
+    const city = document.getElementById('p-city')?.value.trim();
+    const post = document.getElementById('p-post')?.value.trim();
+    if(!addr || !city || !post){ toast('Please fill in address, city and postcode.', true); return; }
     goStep(2);
-  } else if(s===2){
+  } else if(s === 2){
     goStep(3);
-  } else if(s===3){
+  } else if(s === 3){
+    const rent = document.getElementById('p-rent')?.value;
+    if(!rent){ toast('Please enter the monthly rent.', true); return; }
+    goStep(4);
+  } else if(s === 4){
+    goStep(5);
+  } else if(s === 5){
     savePropToDB();
   }
 }
-function propStepBack(){if(window._propStep>1)goStep(window._propStep-1);}
+function propStepBack(){ if(window._propStep > 1) goStep(window._propStep - 1); }
 function goStep(n){
-  window._propStep=n;
-  document.querySelectorAll('.step-box').forEach((el,i)=>el.classList.toggle('active',i+1===n));
-  document.querySelectorAll('.step-bar-seg').forEach((el,i)=>el.classList.toggle('done',i<n));
-  document.getElementById('mo-back-btn').style.visibility=n===1?'hidden':'visible';
-  document.getElementById('mo-next-btn').textContent=n===3?'Add property ✓':'Next →';
+  window._propStep = n;
+  document.querySelectorAll('.step-box').forEach((el,i) => el.classList.toggle('active', i+1 === n));
+  document.querySelectorAll('.step-bar-seg').forEach((el,i) => el.classList.toggle('done', i < n));
+  document.getElementById('mo-back-btn').style.visibility = n === 1 ? 'hidden' : 'visible';
+  document.getElementById('mo-next-btn').textContent = n === 5 ? 'Add property ✓' : 'Next →';
+  const labels = ['1 — address','2 — property details','3 — financials','4 — compliance','5 — tenant'];
+  document.getElementById('mo-s').textContent = 'Step ' + labels[n-1];
+  const lbl = document.getElementById('prop-step-label');
+  if(lbl) lbl.textContent = 'Step ' + n + ' of 5';
 }
 
 // ── MODAL: EDIT PROPERTY ──
@@ -1352,6 +1523,7 @@ function pgDashboard(){
   const acts=UA(),tot=D.properties.reduce((s,p)=>s+(p.rent||0),0),open=D.maintenance.filter(m=>m.status!=='Resolved').length;
   const today=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   return`<div class="topbar"><span class="tb-title">Dashboard</span><div class="tb-right">
+    <button class="btn btn-navy" onclick="moAddProp()">+ Add property</button>
     <button class="btn" onclick="moCert()">+ Add certificate</button>
     <button class="btn" onclick="moIssue()">Report issue</button>
   </div></div>
