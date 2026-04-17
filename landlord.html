@@ -297,6 +297,11 @@ tr:hover td{background:rgba(246,248,251,.8)}
       <span class="sb-label">Tools</span>
     </button>
 
+    <button class="sb-item" data-page="contractors">
+      <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.5 2.5a3 3 0 00-4 4L2 11a1.5 1.5 0 002 2l4.5-4.5a3 3 0 004-4l-2 2-1.5-1.5 2-2z"/></svg>
+      <span class="sb-label">Contractors</span>
+    </button>
+
     <div class="sb-divider"></div>
     <div class="sb-section">AI</div>
 
@@ -480,8 +485,7 @@ let currentUser = null;
 // ── DATA STORE ──
 const D = {
   properties: [], tenants: [], certs: [], maintenance: [], rent: [], insurance: [],
-  emailLog: [],
-  customTemplates: [],
+  emailLog: [], customTemplates: [], contractors: [],
   chat: [{role:'ai', text:'Hello! I\'m your AI compliance assistant. Ask me anything about UK landlord law — Section 8, Renters Rights Act, Awaab\'s Law, deposits, or anything else.'}]
 };
 
@@ -602,7 +606,7 @@ async function logout() {
 
 // ── LOAD DATA ──
 async function loadData() {
-  const [p, t, c, m, r, i, el, ct] = await Promise.all([
+  const [p, t, c, m, r, i, el, ct, con] = await Promise.all([
     sb.from('properties').select('*').order('created_at', {ascending: false}),
     sb.from('tenants').select('*'),
     sb.from('certificates').select('*'),
@@ -611,6 +615,7 @@ async function loadData() {
     sb.from('insurance').select('*'),
     sb.from('email_log').select('*').order('sent_at', {ascending: false}),
     sb.from('custom_templates').select('*').order('created_at', {ascending: false}),
+    sb.from('contractors').select('*').order('name', {ascending: true}),
   ]);
 
   if (p.data?.length) {
@@ -649,6 +654,7 @@ async function loadData() {
   if (i.data?.length) D.insurance = i.data;
   if (el.data?.length) D.emailLog = el.data;
   if (ct.data?.length) D.customTemplates = ct.data;
+  if (con.data?.length) D.contractors = con.data;
 }
 
 // ── INIT ──
@@ -1232,7 +1238,10 @@ function moIssue(pid){
     </div>
 
     <div class="fg-row">
-      <div class="fg"><label>Assigned to (contractor)</label><input type="text" id="i-contractor" placeholder="e.g. City Gas Services"></div>
+      <div class="fg"><label>Assigned to (contractor)</label>
+        <input type="text" id="i-contractor" placeholder="e.g. City Gas Services" list="con-list">
+        <datalist id="con-list">${(D.contractors||[]).map(c=>`<option value="${c.name}">${c.trade?' — '+c.trade:''}</option>`).join('')}</datalist>
+      </div>
       <div class="fg"><label>Estimated cost (£)</label><input type="number" id="i-cost" placeholder="e.g. 150"></div>
     </div>
     <div class="fg-row">
@@ -1609,31 +1618,41 @@ function propRentHtml(pid){
 
 // ── PROPERTY MAINTENANCE PANEL ──
 function propMaintHtml(pid){
-  var pm=D.maintenance.filter(function(m){return String(m.prop_id)===String(pid);});
-  if(!pm.length) return '<div style="color:var(--muted);font-size:13px;padding:4px 0">No issues logged yet</div>';
-  var opn=pm.filter(function(m){return m.status!=='Resolved';}).length;
-  var res=pm.filter(function(m){return m.status==='Resolved';}).length;
-  var aw=pm.filter(function(m){return m.awaab;}).length;
-  var html='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">'
-    +'<div style="background:var(--red-bg);border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--muted)">Open</div><div style="font-size:16px;font-weight:600;color:var(--red)">'+opn+'</div></div>'
-    +'<div style="background:var(--green-bg);border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--muted)">Resolved</div><div style="font-size:16px;font-weight:600;color:var(--green-dark)">'+res+'</div></div>'
-    +'<div style="background:var(--amber-bg);border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--muted)">Awaab flagged</div><div style="font-size:16px;font-weight:600;color:var(--amber)">'+aw+'</div></div>'
-    +'</div>';
-  html+='<div class="tw" style="overflow-x:auto"><table><thead><tr><th>Date</th><th>Description</th><th>Priority</th><th>Flags</th><th>Status</th></tr></thead><tbody>';
-  pm.slice(0,5).forEach(function(m){
-    var s=m.status;
-    html+='<tr><td style="font-size:12px;white-space:nowrap">'+FMT(m.date||m.issue_date)+'</td>'
-      +'<td style="font-size:12px;max-width:180px;white-space:normal">'+(m.desc||m.description||'—')+'</td>'
-      +'<td>'+B(m.priority)+'</td>'
-      +'<td>'+(m.awaab?'<span class="badge b-red">Awaab</span>':'—')+'</td>'
-      +'<td style="white-space:nowrap">'
-      +'<button data-id="'+m.id+'" data-s="Open" onclick="updateIssueStatus(this.dataset.id,this.dataset.s)" style="font-size:11px;padding:2px 7px;border-radius:4px;border:1px solid var(--border);background:'+(s==='Open'?'var(--navy)':'var(--off)')+';color:'+(s==='Open'?'#fff':'var(--muted)')+';cursor:pointer;font-family:var(--font)">Open</button> '
-      +'<button data-id="'+m.id+'" data-s="In progress" onclick="updateIssueStatus(this.dataset.id,this.dataset.s)" style="font-size:11px;padding:2px 7px;border-radius:4px;border:1px solid var(--border);background:'+(s==='In progress'?'var(--navy)':'var(--off)')+';color:'+(s==='In progress'?'#fff':'var(--muted)')+';cursor:pointer;font-family:var(--font)">In progress</button> '
-      +'<button data-id="'+m.id+'" data-s="Resolved" onclick="updateIssueStatus(this.dataset.id,this.dataset.s)" style="font-size:11px;padding:2px 7px;border-radius:4px;border:1px solid var(--border);background:'+(s==='Resolved'?'var(--green)':'var(--off)')+';color:'+(s==='Resolved'?'#fff':'var(--muted)')+';cursor:pointer;font-family:var(--font)">Done</button>'
-      +'</td></tr>';
-  });
-  html+='</tbody></table></div>';
-  if(pm.length>5) html+='<div style="font-size:11px;color:var(--muted);padding:8px 0">Showing 5 of '+pm.length+'</div>';
+  const pm=D.maintenance.filter(m=>String(m.prop_id)===String(pid));
+  if(!pm.length) return '<div style="color:var(--muted);font-size:13px;padding:4px 0">No issues logged yet — <a href="#" onclick="moIssue(\''+pid+'\')" style="color:var(--navy);font-weight:500">log one</a></div>';
+  const opn=pm.filter(m=>m.status!=='Resolved').length;
+  const res=pm.filter(m=>m.status==='Resolved').length;
+  const aw=pm.filter(m=>m.awaab&&m.status!=='Resolved').length;
+  const totalCost=pm.filter(m=>m.cost).reduce((s,m)=>s+(m.cost||0),0);
+  const stageCol={'Reported':'#7A8FA6','Assigned':'#3B6FE8','In Progress':'#D97706','Completed':'#00C896','Closed':'#556678'};
+
+  let html=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">
+    <div style="background:${opn?'rgba(229,62,62,0.07)':'rgba(0,200,150,0.07)'};border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--muted)">Open</div><div style="font-size:16px;font-weight:600;color:${opn?'var(--red)':'var(--green-dark)'}">${opn}</div></div>
+    <div style="background:rgba(0,200,150,0.07);border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--muted)">Resolved</div><div style="font-size:16px;font-weight:600;color:var(--green-dark)">${res}</div></div>
+    <div style="background:${aw?'rgba(229,62,62,0.07)':'var(--off)'};border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--muted)">Awaab</div><div style="font-size:16px;font-weight:600;color:${aw?'var(--red)':'var(--muted)'}">${aw}</div></div>
+    <div style="background:rgba(0,200,150,0.07);border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--muted)">Total costs</div><div style="font-size:16px;font-weight:600;color:var(--green-dark)">£${totalCost.toLocaleString()}</div></div>
+  </div>`;
+
+  html+=pm.slice(0,6).map(m=>{
+    const stage=m.stage||'Reported';
+    const sc=stageCol[stage]||'#7A8FA6';
+    const priCol=m.priority==='Urgent'?'var(--red)':m.priority==='High'?'var(--amber)':'var(--muted)';
+    return`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="moIssueDetail('${m.id}')" onmouseenter="this.style.background='var(--off)'" onmouseleave="this.style.background='transparent'">
+      <div style="width:8px;height:8px;border-radius:50%;background:${sc};flex-shrink:0"></div>
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:500;color:var(--txt)">${m.title||m.desc||'—'}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:1px">${m.cat||'—'}${m.assigned_to?' · 👷 '+m.assigned_to:''}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        ${m.awaab?'<span style="font-size:10px;font-weight:700;color:var(--red)">⚠</span>':''}
+        <span style="font-size:10px;font-weight:600;color:${priCol}">${m.priority||'Low'}</span>
+        <span style="font-size:10px;font-weight:600;color:${sc};background:rgba(0,0,0,0.04);padding:2px 7px;border-radius:100px">${stage}</span>
+        ${m.cost?`<span style="font-size:11px;font-weight:600;color:var(--green-dark)">£${m.cost}</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+
+  if(pm.length>6) html+=`<div style="font-size:11px;color:var(--muted);padding:8px 0">${pm.length-6} more — <a href="#" onclick="nav('maintenance')" style="color:var(--navy);font-weight:500">view all</a></div>`;
   return html;
 }
 
@@ -2604,6 +2623,7 @@ const PAGES={
   'prop-detail':(id)=>pgPropDetail(id),
   financials:()=>pgFinancials(),
   templates:()=>pgTemplates(),
+  contractors:()=>pgContractors(),
 };
 
 // ── PAGE: P&L FINANCIALS ──
@@ -4440,6 +4460,87 @@ function invDownloadPDF(){
     </div><script>window.onload=function(){window.print();}<\/script>
     </body></html>`);
   win.document.close();
+}
+
+// ── S6b: CONTRACTORS BOOK ──
+function pgContractors(){
+  const contractors = D.contractors || [];
+  const trades = ['Plumber','Electrician','Gas Engineer','Builder','Roofer','Carpenter','Painter & Decorator','Pest Control','Locksmith','Cleaner','Landscaper','Other'];
+
+  return`<div class="topbar"><span class="tb-title">Contractors</span><div class="tb-right">
+    <button class="btn btn-navy" onclick="moAddContractor()">+ Add contractor</button>
+  </div></div>
+  <div class="content">
+    <div class="ph"><h1>Contractors</h1><p>Your trusted tradespeople — auto-fills when logging maintenance jobs</p></div>
+    ${contractors.length ? `<div class="panel"><div class="tw"><table>
+      <thead><tr><th>Name</th><th>Trade</th><th>Phone</th><th>Email</th><th>Notes</th><th></th></tr></thead>
+      <tbody>${contractors.map(c=>`<tr>
+        <td class="td-bold">${c.name}</td>
+        <td><span class="badge b-blue">${c.trade||'Other'}</span></td>
+        <td style="font-size:12px">${c.phone?`<a href="tel:${c.phone}" style="color:var(--blue)">${c.phone}</a>`:'—'}</td>
+        <td style="font-size:12px;color:var(--muted)">${c.email||'—'}</td>
+        <td style="font-size:12px;color:var(--muted);max-width:160px">${c.notes||'—'}</td>
+        <td><div style="display:flex;gap:4px">
+          <button class="btn btn-sm" onclick="moEditContractor('${c.id}')">✎</button>
+          <button class="btn btn-sm" style="color:var(--red);border-color:var(--red)" onclick="deleteContractor('${c.id}')">✕</button>
+        </div></td>
+      </tr>`).join('')}</tbody>
+    </table></div></div>`
+    : `<div class="empty"><div class="empty-ic">👷</div><div class="empty-t">No contractors yet</div><div class="empty-s">Add your trusted tradespeople — they'll appear as options when logging maintenance jobs</div><button class="btn btn-navy" style="margin-top:14px" onclick="moAddContractor()">+ Add first contractor</button></div>`}
+  </div>`;
+}
+
+function moAddContractor(id){
+  const c = id ? (D.contractors||[]).find(x=>String(x.id)===String(id)) : null;
+  const trades = ['Plumber','Electrician','Gas Engineer','Builder','Roofer','Carpenter','Painter & Decorator','Pest Control','Locksmith','Cleaner','Landscaper','Other'];
+  openMo(c?'Edit contractor':'Add contractor', c?'Update details':'Add to your contacts book', `
+    <div class="fg"><label>Name <span class="req">*</span></label><input type="text" id="con-name" value="${c?.name||''}" placeholder="e.g. City Gas Services"></div>
+    <div class="fg"><label>Trade</label><select id="con-trade">${trades.map(t=>`<option${(c?.trade||'Other')===t?' selected':''}>${t}</option>`).join('')}</select></div>
+    <div class="fg-row">
+      <div class="fg"><label>Phone</label><input type="tel" id="con-phone" value="${c?.phone||''}" placeholder="07..."></div>
+      <div class="fg"><label>Email</label><input type="email" id="con-email" value="${c?.email||''}" placeholder="name@example.com"></div>
+    </div>
+    <div class="fg"><label>Notes (optional)</label><textarea id="con-notes" placeholder="e.g. Available evenings, good for emergency callouts">${c?.notes||''}</textarea></div>
+  `, `<button class="btn" onclick="closeMo()">Cancel</button>
+     <button class="btn btn-navy" onclick="saveContractor(${c?`'${c.id}'`:'null'})">${c?'Save changes':'Add contractor'}</button>`);
+}
+
+function moEditContractor(id){ moAddContractor(id); }
+
+async function saveContractor(id){
+  const name = document.getElementById('con-name')?.value.trim();
+  if(!name){toast('Name is required',true);return;}
+  const contractor = {
+    name, trade: document.getElementById('con-trade')?.value,
+    phone: document.getElementById('con-phone')?.value.trim()||null,
+    email: document.getElementById('con-email')?.value.trim()||null,
+    notes: document.getElementById('con-notes')?.value.trim()||null,
+    user_id: currentUser.id
+  };
+  if(id){
+    const{error}=await sb.from('contractors').update(contractor).eq('id',id);
+    if(error){toast('Error: '+error.message,true);return;}
+    const i=(D.contractors||[]).findIndex(x=>String(x.id)===String(id));
+    if(i>-1) D.contractors[i]={...D.contractors[i],...contractor};
+    toast('✓ Contractor updated!');
+  } else {
+    const{data,error}=await sb.from('contractors').insert(contractor).select().single();
+    if(error){toast('Error: '+error.message,true);return;}
+    if(!D.contractors) D.contractors=[];
+    D.contractors.push(data);
+    toast('✓ Contractor added!');
+  }
+  closeMo();
+  nav('contractors');
+}
+
+async function deleteContractor(id){
+  if(!confirm('Delete this contractor?')) return;
+  const{error}=await sb.from('contractors').delete().eq('id',id);
+  if(error){toast('Error: '+error.message,true);return;}
+  D.contractors=(D.contractors||[]).filter(x=>String(x.id)!==String(id));
+  toast('Contractor deleted');
+  nav('contractors');
 }
 
 // ── START ──
