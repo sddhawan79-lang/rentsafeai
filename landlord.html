@@ -345,7 +345,132 @@ tr:hover td{background:rgba(246,248,251,.8)}
 <!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
 <script>
-// ── SUPABASE ──
+// ══════════════════════════════════════════════════════════════
+// RENTSAFE AI — CODE MAP (auto-generated, update each session)
+// File: landlord.html · Lines: ~3973
+// ══════════════════════════════════════════════════════════════
+//
+// ── SETUP & CONFIG ──────────────────────────────────────────
+// 348  Supabase config (URL, anon key)
+// 355  Data store (D object — properties, tenants, certs etc.)
+// 363  UI helpers (P, CF, INI, FMT, FMS, toast, B badge)
+// 384  Checklist & meter Supabase helpers
+// 431  Compliance RAG score calculator
+// 461  Audit log
+//
+// ── AUTH & DATA ─────────────────────────────────────────────
+// 472  logout()
+// 478  loadData() — loads all tables from Supabase
+// 529  initApp() — auth check, load data, boot dashboard
+//
+// ── SAVE FUNCTIONS ──────────────────────────────────────────
+// 549  savePropToDB() — add property
+// 598  scanAndFill() — AI certificate scanner
+// 617  markServed() — mark cert as served
+// 629  uploadScanCert() — upload & AI scan existing cert
+// 654  saveCertToDB() — save certificate
+// 682  saveTenantToDB() — add tenant
+// 723  saveIssueToDB() — log maintenance issue
+// 761  saveEditPropToDB() — edit property
+// 789  saveLicenceToDB() — save property licence
+// 805  saveMortgageToDB() — save mortgage details
+// 1031 saveInspectionToDB() — log inspection
+// 2863 saveCustomTemplate() — save custom template
+//
+// ── MODAL HELPERS ───────────────────────────────────────────
+// 822  openMo() / closeMo() — generic modal open/close
+//
+// ── MODALS ──────────────────────────────────────────────────
+// 837  moCert() — add certificate modal
+// 879  moAddProp() — add property (multi-step)
+// 952  moEditProp() — edit property
+// 973  moLicence() — property licence
+// 992  moMortgage() — mortgage details
+// 1014 moInspection() — log inspection
+// 1049 moTenant() — add tenant
+// 1082 moIssue() — report maintenance issue (S6 upgraded)
+// 1693 moTenantDetail() — tenant detail panel
+// 2322 moFinancials() — P&L detail modal per property
+// 2656 moGenerate() — template generator modal
+// 2925 moSendToTenant() — send email to tenant modal
+// 3016 s8LaunchFromTemplates() — launch S8 from templates page
+// 3221 moSection8() — Section 8 generator (S5)
+// 3732 moRRASheet() — RRA information sheet sender
+// 3805 rraSendOne() / rraSendAll() — send RRA sheet to tenant(s)
+//
+// ── UI HELPERS ──────────────────────────────────────────────
+// 1099 toggleColl() — toggle collapsible sections
+// 1104 UA() — urgent action items for dashboard
+// 1132 pgComplianceSection() — compliance section helper
+// 1153 getTodayEventsHtml() — dashboard today widget
+// 2082 getCalEvents() — calendar events engine
+// 2139 calDayLabel() — calendar day label formatter
+// 2246 calNav() — calendar month navigation
+// 2254 showCalDay() — show events for a day
+// 2635 renderGuidedFields() — template guided fields
+// 2813 mdToHtml() — markdown to HTML converter
+// 2836 copyTemplate() — copy generated template
+// 2845 moUploadTemplate() — upload custom template modal
+// 2880 checkPlaceholders() — detect unfilled placeholders
+// 2895 downloadAsPDF() — PDF download (window.print)
+// 2954 sendEmailNow() — send email via Resend
+// 3004 propEmailLogHtml() — email log for property detail
+// 3924 updateNavBadges() — update sidebar badge counts
+//
+// ── PAGE RENDERERS ──────────────────────────────────────────
+// 1172 pgDashboard() — dashboard page
+// 1197 pgProperties() — properties list page
+// 1250 pgPropDetail() — property detail (5-tab layout) ← S5
+//   └─ pdSetTab() / pdTabContent() — tab switching
+// 1774 pgCompliance() — compliance health score page ← redesigned
+// 1825 pgTenants() — tenants list page
+// 1843 pgRent() — rent tracking page
+// 1989 pgMaintenance() — kanban job board ← S6 upgraded
+//   └─ moveStage() / moIssueDetail() / updateIssueStatus()
+// 2035 pgInsurance() — insurance page
+// 2052 pgAssistant() — AI assistant chat page
+// 2148 pgCalendar() — calendar page
+// 2291 pgFinancials() — P&L financials page
+// 2383 pgTemplates() — templates page
+//
+// ── ROUTER ──────────────────────────────────────────────────
+// 2275 PAGES{} — page router map
+// 2355 nav(page, param) — navigate to page
+//
+// ── S5: SECTION 8 GENERATOR ─────────────────────────────────
+// 3036 S8_GROUNDS[] — all 37 RRA 2025 grounds data
+// 3216 S8_CATS[] — category definitions for guided flow
+// 3219 _s8{} — Section 8 state object
+// 3221 moSection8() — launch generator
+// 3239 s8Render() / s8BodyHtml() / s8FooterHtml()
+// 3267 s8Step1() — pre-conditions checker
+// 3303 s8Step2() — reason/category selection
+// 3321 s8Step3() — ground selection (all 37)
+// 3368 s8Step4() — notice details & auto-calculations
+// 3430 s8Step5() — review screen
+// 3484 s8Nav() / s8ShowConsent() / s8Generate()
+// 3612 s8CopyText() / s8DownloadPDF() / s8SendToTenant()
+//
+// ── RRA INFORMATION SHEET ───────────────────────────────────
+// 3732 moRRASheet() — modal with 2-step flow
+// 3805 rraSendOne() — send covering letter to one tenant
+// 3900 rraSendAll() — send to all unsent tenants
+//
+// ── KNOWN TECHNICAL DEBT ────────────────────────────────────
+// - Email via super-processor (not ideal — needs dedicated fn)
+// - PDF via window.print (needs jsPDF)
+// - Section 8 is draft only (handoff to GOV.UK Form 3A)
+// - No tenant data validation
+// - No offline/error recovery states
+//
+// ── OUTSTANDING BUGS ────────────────────────────────────────
+// - Resend DKIM/SPF verification pending
+// - HTTPS "Not secure" — GitHub Pages SSL needs enabling
+// - MX record missing (parked post-launch)
+// - RRA PDF attachment — needs embedding (PDF not yet uploaded)
+// - moFinancials PDF export says "coming soon"
+//
+// ══════════════════════════════════════════════════════════════
 const SUPABASE_URL = 'https://mahtcfukgzbonwibtsxz.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1haHRjZnVrZ3pib253aWJ0c3h6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2MjQ2MDAsImV4cCI6MjA5MTIwMDYwMH0.-wC55rGp1WFKfjKR3EhuXqAPDiWJ4w_e2LBXjHr_y5Y';
 const { createClient } = supabase;
