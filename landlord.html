@@ -2667,7 +2667,68 @@ function moFinancials(pid){
     ${[['Basic rate (20%)',Math.round(taxBasic)],['Higher rate (40%)',Math.round(taxHigher)],['Annual profit',Math.round(profit*12)]].map(([l,v])=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--muted)">${l}</span><span style="font-weight:500">£${v.toLocaleString()}${l.includes('rate')?'/mo':'/yr'}</span></div>`).join('')}
     <div class="fg-div"></div>
     <div style="background:var(--off);border-radius:8px;padding:14px;font-size:12px;color:var(--muted)"><strong style="color:var(--txt)">Gross yield: ${yld}%</strong> — ${parseFloat(yld)>=5?'✅ Strong yield':'⚠️ Consider reviewing rent levels'}. Tax estimates are indicative only.</div>
-  `,'<button class="btn" onclick="closeMo()">Close</button><button class="btn btn-navy" onclick="alert(\'PDF export coming soon!\')">📄 Export PDF</button>');
+  `,'<button class="btn" onclick="closeMo()">Close</button><button class="btn btn-navy" onclick="exportFinancialsPDF(\''+pid+'\')">📄 Export PDF</button>');
+}
+
+function exportFinancialsPDF(pid){
+  const p=P(pid);
+  const ins=D.insurance.filter(i=>String(i.prop_id)===String(pid)).reduce((s,i)=>s+(i.premium||0)/12,0);
+  const mort=p.mortgage_monthly||0;
+  const maint=D.maintenance.filter(m=>String(m.prop_id)===String(pid)&&m.status==='Resolved').length*150/12;
+  const income=p.rent||0;
+  const expenses=mort+ins+maint;
+  const profit=income-expenses;
+  const yld=p.mortgage_outstanding?((income*12/p.mortgage_outstanding)*100).toFixed(1):'N/A';
+  const taxBasic=Math.max(0,profit)*0.2;
+  const taxHigher=Math.max(0,profit)*0.4;
+  const date=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+
+  const win=window.open('','_blank');
+  if(!win){toast('Please allow pop-ups to export PDF',true);return;}
+  win.document.write(`<!DOCTYPE html><html><head><title>P&L Report — ${p.address}</title>
+  <style>
+    body{font-family:Georgia,serif;font-size:13px;line-height:1.8;padding:48px;max-width:680px;margin:0 auto;color:#1A2B45}
+    h1{font-size:20px;font-weight:700;color:#0B1E3D;margin-bottom:4px}
+    h2{font-size:14px;font-weight:700;color:#0B1E3D;margin:20px 0 8px}
+    .header{border-bottom:2px solid #0B1E3D;margin-bottom:28px;padding-bottom:14px;display:flex;justify-content:space-between;align-items:flex-end}
+    .logo{font-size:18px;font-weight:700;color:#0B1E3D}
+    .logo span{color:#00C896}
+    .cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+    .card{border-radius:10px;padding:16px;text-align:center}
+    .card.income{background:#f0fdf9;border:1px solid rgba(0,200,150,0.2)}
+    .card.expense{background:#fff5f5;border:1px solid rgba(229,62,62,0.2)}
+    .card-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+    .card-val{font-size:28px;font-weight:700}
+    .income .card-label{color:#009970}.income .card-val{color:#009970}
+    .expense .card-label{color:#E53E3E}.expense .card-val{color:#E53E3E}
+    .row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #E4EAF1;font-size:13px}
+    .row.total{border-bottom:2px solid #0B1E3D;font-weight:700;font-size:15px;padding:14px 0}
+    .footer{margin-top:32px;padding-top:12px;border-top:1px solid #eee;font-size:10px;color:#999}
+    @media print{body{padding:24px}}
+  </style></head><body>
+  <div class="header">
+    <div><div class="logo"><span>Rent</span>Safe AI</div><div style="font-size:11px;color:#999;margin-top:2px">Financial Report</div></div>
+    <div style="text-align:right;font-size:12px;color:#666">${p.address}, ${p.city}<br>${date}</div>
+  </div>
+  <h1>${p.address}</h1>
+  <p style="color:#666;font-size:12px;margin-bottom:24px">${p.city}, ${p.postcode} · ${p.type||'Property'} · ${p.beds||'—'} bed</p>
+  <div class="cards">
+    <div class="card income"><div class="card-label">Monthly Income</div><div class="card-val">£${income.toLocaleString()}</div></div>
+    <div class="card expense"><div class="card-label">Monthly Expenses</div><div class="card-val">£${Math.round(expenses).toLocaleString()}</div></div>
+  </div>
+  <h2>Expense Breakdown</h2>
+  ${[['🏦 Mortgage',mort,'#E53E3E'],['🛡 Insurance (monthly)',Math.round(ins),'#E53E3E'],['🔧 Maintenance (avg est.)',Math.round(maint),'#E53E3E']].map(([l,v,c])=>`<div class="row"><span>${l}</span><span style="font-weight:600;color:${c}">£${v.toLocaleString()}/mo</span></div>`).join('')}
+  <div class="row total"><span>Net Profit</span><span style="color:${profit>=0?'#009970':'#E53E3E'}">£${Math.round(profit).toLocaleString()}/mo</span></div>
+  <h2>Tax Estimates (UK)</h2>
+  ${[['Basic rate (20%)',Math.round(taxBasic),'/mo'],['Higher rate (40%)',Math.round(taxHigher),'/mo'],['Annual profit',Math.round(profit*12),'/yr']].map(([l,v,s])=>`<div class="row"><span>${l}</span><span style="font-weight:500">£${v.toLocaleString()}${s}</span></div>`).join('')}
+  <div style="background:#f6f8fb;border-radius:8px;padding:14px;margin-top:20px;font-size:12px">
+    <strong>Gross yield: ${yld}%</strong> — ${parseFloat(yld)>=5?'✅ Strong yield':'⚠️ Consider reviewing rent levels'}.<br>
+    Tax estimates are indicative only. Consult a qualified accountant for tax advice.
+  </div>
+  <div class="footer">Generated by RentSafe AI · ${date} · For reference only — not financial advice</div>
+  <script>window.onload=function(){window.print();}<\/script>
+  </body></html>`);
+  win.document.close();
 }
 
 function nav(page, param){
