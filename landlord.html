@@ -199,6 +199,33 @@ tr:hover td{background:rgba(246,248,251,.8)}
 .toast.err{background:var(--red)}
 @keyframes spin{to{transform:rotate(360deg)}}
 .spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px}
+/* ── S5: SECTION 8 GENERATOR ── */
+.mo-wide{width:700px!important;max-width:96vw!important}
+.s8-step-bar{display:flex;gap:4px;margin-bottom:20px}
+.s8-seg{flex:1;height:3px;border-radius:100px;background:var(--border);transition:background .3s}
+.s8-seg.done{background:var(--navy)}
+.s8-seg.active{background:var(--blue)}
+.s8-pre-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px}
+.s8-pre-row:last-child{border-bottom:none}
+.s8-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.s8-cat-card{border:1px solid var(--border);border-radius:10px;padding:14px 16px;cursor:pointer;transition:all .15s;background:var(--white);margin-bottom:10px;display:flex;align-items:center;gap:12px}
+.s8-cat-card:hover{border-color:var(--navy);background:var(--off)}
+.s8-cat-card.sel{border-color:var(--blue);background:var(--blue-bg)}
+.s8-ground-card{border:1px solid var(--border);border-radius:8px;padding:11px 14px;cursor:pointer;transition:all .15s;background:var(--white);margin-bottom:8px;position:relative}
+.s8-ground-card:hover{border-color:var(--navy)}
+.s8-ground-card.sel{border-color:var(--blue);background:var(--blue-bg)}
+.s8-badge-m{background:rgba(229,62,62,0.1);color:var(--red);font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;text-transform:uppercase}
+.s8-badge-d{background:var(--blue-bg);color:var(--blue);font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;text-transform:uppercase}
+.s8-notice-chip{font-size:10px;font-weight:600;color:var(--muted);background:var(--off);border:1px solid var(--border);padding:2px 7px;border-radius:100px;margin-left:6px}
+.s8-review-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.s8-review-row:last-child{border-bottom:none}
+.s8-consent-box{background:var(--amber-bg);border:1px solid var(--amber);border-radius:10px;padding:16px;margin-top:14px}
+/* Tenant detail */
+.t-det-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px}
+.t-det-row:last-child{border-bottom:none}
+.t-det-row .lbl{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+/* Dashboard S8 card */
+.s8-dash-card{background:linear-gradient(135deg,#0B1E3D 0%,#1a3a6b 100%);border-radius:12px;padding:20px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between;gap:16px;border:none}
 </style>
 </head>
 <body>
@@ -778,7 +805,11 @@ function openMo(t,s,b,f){
   
   document.getElementById('mo').classList.add('open');
 }
-function closeMo(){document.getElementById('mo').classList.remove('open')}
+function closeMo(){
+  document.getElementById('mo').classList.remove('open');
+  const box = document.querySelector('.mo-box');
+  if (box) box.classList.remove('mo-wide');
+}
 
 // ── MODAL: ADD CERTIFICATE ──
 function moCert(pid){
@@ -1126,7 +1157,23 @@ function pgDashboard(){
   </div></div>
   <div class="content">
     <div class="ph"><h1>Dashboard</h1><p>${acts.length} urgent, ${acts.filter(a=>a.b==='amber').length} due soon</p></div>
-    
+
+    ${(function(){
+      const props = D.properties;
+      if (!props.length) return '';
+      const btn = props.length === 1
+        ? `<button class="btn btn-sm" style="background:#00C896;color:#0B1E3D;border:none;font-weight:600" onclick="moSection8('${props[0].id}')">Generate notice →</button>`
+        : `<select id="s8-dash-sel" style="padding:6px 10px;border-radius:7px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:#fff;font-family:var(--font);font-size:12px;cursor:pointer"><option value="">Select property…</option>${props.map(p=>`<option value="${p.id}">${p.address}</option>`).join('')}</select><button class="btn btn-sm" style="background:#00C896;color:#0B1E3D;border:none;font-weight:600;margin-left:6px" onclick="const v=document.getElementById('s8-dash-sel').value;if(v)moSection8(v);else toast('Please select a property',true)">Go →</button>`;
+      return `<div class="s8-dash-card">
+        <div>
+          <div style="font-size:10px;font-weight:700;color:#00C896;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px">✦ RRA 2025 — Section 21 abolished 1 May 2026</div>
+          <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:4px">Section 8 Notice Generator</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.6)">All 37 RRA 2025 grounds · Auto-filled · PDF download · Email to tenant</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${btn}</div>
+      </div>`;
+    })()}
+
     <div class="metrics">
       <div class="mc"><div class="mc-top"><span class="mc-label">Properties</span><div class="mc-icon">🏠</div></div><div class="mc-val">${D.properties.length}</div><div class="mc-sub">Active</div></div>
       <div class="mc"><div class="mc-top"><span class="mc-label">Active tenants</span><div class="mc-icon">👤</div></div><div class="mc-val">${D.tenants.length}</div><div class="mc-sub">All active</div></div>
@@ -1432,7 +1479,11 @@ function pgPropDetail(pid){
     <div class="coll-body" id="cb-lic"><div class="det-grid">${[['Licence type',p.licence_type||'None'],['Reference',p.licence_ref||'—'],['Expiry',FMS(p.licence_expiry)],['Max occupants',p.licence_max||'—']].map(([l,v])=>`<div class="det-f"><label>${l}</label><span>${v}</span></div>`).join('')}</div></div></div>
 
     <div class="coll"><div class="coll-hd" onclick="toggleColl('ten')"><span class="coll-l">👤 Tenants <span class="coll-cnt">${t?1:0}</span></span><div class="coll-r"><button class="btn btn-sm" onclick="event.stopPropagation();moTenant('${pid}')">+ Add tenant</button><span class="coll-arr op" id="ca-ten">▾</span></div></div>
-    <div class="coll-body" id="cb-ten">${t?`<div style="display:flex;align-items:center;gap:12px"><div class="t-av">${INI(t.name)}</div><div style="flex:1"><div style="font-weight:500">${t.name}</div><div style="font-size:12px;color:var(--muted)">${t.email||'—'}</div></div><div style="text-align:right"><div style="font-size:12px;font-weight:600">£${(t.rent||0).toLocaleString()}/mo</div><div style="font-size:11px;color:var(--muted)">${FMS(t.start)} – ${FMS(t.end)}</div></div>${B(t.status)}</div>`:'<div style="color:var(--muted);font-size:13px">No active tenants</div>'}</div></div>
+    <div class="coll-body" id="cb-ten">${t?`<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px"><div class="t-av" style="cursor:pointer" onclick="moTenantDetail('${t.id}')">${INI(t.name)}</div><div style="flex:1;cursor:pointer" onclick="moTenantDetail('${t.id}')"><div style="font-weight:500">${t.name}</div><div style="font-size:12px;color:var(--muted)">${t.email||'—'} · ${t.phone||'No phone'}</div></div><div style="text-align:right"><div style="font-size:12px;font-weight:600">£${(t.rent||0).toLocaleString()}/mo</div><div style="font-size:11px;color:var(--muted)">${FMS(t.start)} – ${t.end?FMS(t.end):'Periodic'}</div></div>${B(t.status)}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-sm" onclick="moTenantDetail('${t.id}')">👤 View details</button>
+      <button class="btn btn-sm" style="background:var(--navy);color:#fff;border-color:var(--navy)" onclick="moSection8('${pid}')">⚖️ Generate Section 8 Notice</button>
+    </div>`:'<div style="color:var(--muted);font-size:13px">No active tenants</div>'}</div></div>
 
     <div class="coll"><div class="coll-hd" onclick="toggleColl('email-p${pid}')"><span class="coll-l">✉ Email Log <span class="coll-cnt">${D.emailLog.filter(e=>String(e.prop_id)===String(pid)).length}</span></span><div class="coll-r"><button class="btn btn-sm" onclick="event.stopPropagation();nav('templates')">+ Send document</button><span class="coll-arr op" id="ca-email-p${pid}">▾</span></div></div>
     <div class="coll-body" id="cb-email-p${pid}">${propEmailLogHtml(pid)}</div></div>
@@ -1522,10 +1573,10 @@ function pgCompliance(){
 function pgTenants(){
   return`<div class="topbar"><span class="tb-title">Tenants</span><div class="tb-right"><button class="btn btn-navy" onclick="moTenant()">+ Add tenant</button></div></div>
   <div class="content">
-    <div class="ph"><h1>Tenants</h1><p>${D.tenants.length} active tenant${D.tenants.length!==1?'s':''}</p></div>
+    <div class="ph"><h1>Tenants</h1><p>${D.tenants.length} active tenant${D.tenants.length!==1?'s':''} · Click any row to view details</p></div>
     ${D.tenants.length?`<div class="panel"><div class="tw"><table>
       <thead><tr><th>Name</th><th>Property</th><th>Email</th><th>Start</th><th>End</th><th>Deposit</th><th>Status</th></tr></thead>
-      <tbody>${D.tenants.map(t=>{const p=P(t.prop_id)||{address:'—'};return`<tr>
+      <tbody>${D.tenants.map(t=>{const p=P(t.prop_id)||{address:'—'};return`<tr style="cursor:pointer" onclick="moTenantDetail('${t.id}')">
         <td><div style="display:flex;align-items:center;gap:10px"><div class="t-av">${INI(t.name)}</div><div><div class="td-bold">${t.name}</div><div style="font-size:11px;color:var(--muted)">${t.phone||'—'}</div></div></div></td>
         <td>${p.address}</td><td style="font-size:12px;color:var(--muted)">${t.email||'—'}</td>
         <td>${FMS(t.start||t.start_date)}</td><td>${FMS(t.end||t.end_date)}</td>
@@ -1952,7 +2003,7 @@ function pgTemplates() {
       label: 'Legal Notices',
       badge: null,
       templates: [
-        { id: 'section8', name: 'Section 8 Notice', desc: 'Notice seeking possession — rent arrears or breach of tenancy', tag: 'Possession', ai: true },
+        { id: 'section8', name: 'Section 8 Notice', desc: 'RRA 2025 compliant — all 37 grounds, guided flow, auto-filled, PDF & email. The only tool you need.', tag: 'Possession', ai: true, s8:true },
         { id: 'section13', name: 'Section 13 Notice', desc: 'Formal rent increase notice under the Housing Act 1988', tag: 'Rent increase', ai: true },
         { id: 'noticetoquit', name: 'Notice to Quit', desc: 'Landlord notice to end a periodic tenancy', tag: 'Periodic', ai: true },
       ]
@@ -2065,7 +2116,7 @@ function pgTemplates() {
                   </div>
                   <div style="font-size:12px;color:var(--muted);flex:1">${t.desc}</div>
                   <div style="display:flex;gap:6px;margin-top:4px">
-                    ${t.ai ? `<button class="btn btn-sm btn-navy" onclick="moGenerate('${t.id}')">✦ Generate with AI</button>` : `<button class="btn btn-sm btn-navy" onclick="moGenerate('${t.id}')">Generate</button>`}
+                    ${t.s8 ? `<button class="btn btn-sm btn-navy" onclick="s8LaunchFromTemplates()">⚖️ Open Section 8 Generator</button>` : t.ai ? `<button class="btn btn-sm btn-navy" onclick="moGenerate('${t.id}')">✦ Generate with AI</button>` : `<button class="btn btn-sm btn-navy" onclick="moGenerate('${t.id}')">Generate</button>`}
                     <button class="btn btn-sm" onclick="moUploadTemplate()">↑ Use my own</button>
                   </div>
                 </div>
@@ -2576,6 +2627,16 @@ function propEmailLogHtml(pid) {
     </tr>`).join('')}</tbody></table></div>`;
 }
 
+function s8LaunchFromTemplates() {
+  // Launch Section 8 generator — pick property if multiple
+  if (!D.properties.length) { toast('Add a property first', true); return; }
+  if (D.properties.length === 1) { moSection8(D.properties[0].id); return; }
+  openMo('Section 8 Generator', 'Select the property',
+    `<div class="fg"><label>Which property?</label><select id="s8-prop-sel">${D.properties.map(p=>`<option value="${p.id}">${p.address}, ${p.city}</option>`).join('')}</select></div>`,
+    `<button class="btn" onclick="closeMo()">Cancel</button><button class="btn btn-navy" onclick="const v=document.getElementById('s8-prop-sel').value;closeMo();moSection8(v)">Start →</button>`
+  );
+}
+
 // ── DELETE CUSTOM TEMPLATE ──
 async function deleteCustomTemplate(id) {
   if (!confirm('Delete this template? This cannot be undone.')) return;
@@ -2584,6 +2645,695 @@ async function deleteCustomTemplate(id) {
   D.customTemplates = D.customTemplates.filter(t => t.id !== id);
   toast('Template deleted');
   nav('templates');
+}
+
+// ══════════════════════════════════════════════════
+// S5: SECTION 8 GENERATOR
+// ══════════════════════════════════════════════════
+
+// All 37 RRA 2025 grounds (20 mandatory, 17 discretionary)
+const S8_GROUNDS = [
+  // ── MANDATORY GROUNDS ──
+  { num:'1',   type:'M', cat:'landlord', label:'Landlord or family moving in',
+    plain:'You, or a close family member, intend to occupy the property as their only or principal home.',
+    notice:'4 months', days:122, restrict12:true,
+    evidence:'Written notice served at tenancy start that this ground may be used. State who is moving in.',
+    fields:[
+      {id:'s8_occupant', label:'Who is moving in?', type:'text', placeholder:'e.g. My daughter Jane Smith', req:true},
+      {id:'s8_relation', label:'Relationship to you', type:'select', opts:['Landlord (me)','Spouse / civil partner','Parent','Child','Sibling','Grandparent','Grandchild'], req:true}
+    ]},
+  { num:'1A',  type:'M', cat:'landlord', label:'Landlord intends to sell the property',
+    plain:'You intend to sell the property with vacant possession. (New ground under RRA 2025 — replaces many Section 21 "I want to sell" cases.)',
+    notice:'4 months', days:122, restrict12:true,
+    evidence:'Estate agent instructions, valuation report, or marketing evidence confirming intent to sell.',
+    fields:[]},
+  { num:'2',   type:'M', cat:'other', label:'Mortgagee seeking possession',
+    plain:'The property is subject to a mortgage and the lender is entitled to possession.',
+    notice:'2 months', days:61, restrict12:false,
+    evidence:'Mortgage documentation and lender possession order.',
+    fields:[]},
+  { num:'3',   type:'M', cat:'other', label:'Former holiday let',
+    plain:'The tenancy was for 8 months or less and the property was a holiday let in the prior 12 months.',
+    notice:'2 weeks', days:14, restrict12:false,
+    evidence:'Evidence of previous holiday letting.',
+    fields:[]},
+  { num:'4',   type:'M', cat:'other', label:'Educational institution letting',
+    plain:'Let by an educational institution for 12 months or less.',
+    notice:'2 weeks', days:14, restrict12:false,
+    evidence:'Educational institution documentation.',
+    fields:[]},
+  { num:'4A',  type:'M', cat:'other', label:'Student HMO — end of academic year',
+    plain:'At least half the occupants are full-time students and the tenancy was for 12 months or less.',
+    notice:'4 months', days:122, restrict12:false,
+    evidence:'Student status of occupants. Written notice at start of tenancy that Ground 4A may be used.',
+    fields:[]},
+  { num:'5',   type:'M', cat:'other', label:'Property needed for minister of religion',
+    plain:'The property is held for occupation by a minister of religion and is required for that purpose.',
+    notice:'2 months', days:61, restrict12:false,
+    evidence:'Religious organisation documentation.',
+    fields:[]},
+  { num:'6',   type:'M', cat:'landlord', label:'Landlord intends to demolish or redevelop',
+    plain:'You intend to demolish, reconstruct or carry out substantial works requiring vacant possession.',
+    notice:'4 months', days:122, restrict12:true,
+    evidence:'Planning permission, architect drawings, building regulations approval, or detailed builder quotes.',
+    fields:[
+      {id:'s8_works', label:'Describe the planned works', type:'textarea', placeholder:'e.g. Full structural renovation — new roof, rewire, new bathroom and extension', req:true}
+    ]},
+  { num:'6A',  type:'M', cat:'other', label:'Registered provider refurbishment',
+    plain:'The landlord is a registered provider needing possession for refurbishment, providing suitable alternative accommodation.',
+    notice:'4 months', days:122, restrict12:false,
+    evidence:'Registered provider status. Alternative accommodation details.',
+    fields:[]},
+  { num:'6B',  type:'M', cat:'other', label:'Compliance with enforcement action',
+    plain:'Possession needed to comply with enforcement action by a local authority or other body.',
+    notice:'4 months', days:122, restrict12:false,
+    evidence:'Local authority enforcement notice or order.',
+    fields:[]},
+  { num:'7',   type:'M', cat:'other', label:'Death of tenant — no succession right',
+    plain:'The tenancy passed on the tenant\'s death but the successor does not have the right to remain.',
+    notice:'2 months', days:61, restrict12:false,
+    evidence:'Death certificate. Succession documentation.',
+    fields:[]},
+  { num:'7A',  type:'M', cat:'asb', label:'Serious anti-social behaviour / criminal conviction',
+    plain:'The tenant, household member or visitor has been convicted of a serious offence, breached an ASB order, or there is a closure order in place.',
+    notice:'Immediate', days:0, restrict12:false,
+    evidence:'Court conviction records, ASB orders, police reports, closure order.',
+    fields:[
+      {id:'s8_7a_detail', label:'Describe the conviction or order', type:'textarea', placeholder:'e.g. Convicted of drug supply offences at the property on [date]. Case ref: [X]', req:true}
+    ]},
+  { num:'7B',  type:'M', cat:'asb', label:'No right to rent in the UK',
+    plain:'A condition of the tenancy is that the tenant has the right to rent in the UK, and that condition is no longer met.',
+    notice:'2 weeks', days:14, restrict12:false,
+    evidence:'Home Office notice confirming no right to rent. Right to Rent check documentation.',
+    fields:[]},
+  { num:'8',   type:'M', cat:'arrears', label:'Serious rent arrears (3+ months)',
+    plain:'The tenant owes at least 3 months\' rent (monthly tenancy) or 13 weeks\' rent (weekly/fortnightly) BOTH at the date of this notice AND at the court hearing date. Note: Universal Credit delays must be excluded.',
+    notice:'4 weeks', days:28, restrict12:false, ucWarning:true,
+    evidence:'Full rent ledger showing every payment due and received. UC warning: any arrears caused solely by Universal Credit delays must be excluded.',
+    fields:[
+      {id:'s8_arr8', label:'Total arrears (£) — excluding any UC delays', type:'number', placeholder:'e.g. 3600', req:true},
+      {id:'s8_arr8_date', label:'Arrears calculated as at', type:'date', req:true},
+      {id:'s8_uc8', label:'Do any arrears relate to Universal Credit delays?', type:'select', opts:['No — all arrears are the tenant\'s responsibility','Yes — UC delays account for some (I have excluded those above)'], req:true}
+    ]},
+  { num:'8A',  type:'M', cat:'arrears', label:'Persistent rent arrears (new RRA 2025)',
+    plain:'The tenant has been at least 2 months in arrears on at least 3 separate occasions in the preceding 3 years. This closes the "pay before the hearing" loophole.',
+    notice:'4 weeks', days:28, restrict12:false,
+    evidence:'Full rent ledger for 3 years showing 3+ separate periods where arrears reached 2 months.',
+    fields:[
+      {id:'s8_per1', label:'First arrears period (from – to)', type:'text', placeholder:'e.g. March 2023 – May 2023', req:true},
+      {id:'s8_per2', label:'Second arrears period (from – to)', type:'text', placeholder:'e.g. November 2023 – January 2024', req:true},
+      {id:'s8_per3', label:'Third arrears period (from – to)', type:'text', placeholder:'e.g. June 2024 – August 2024', req:true}
+    ]},
+  // ── DISCRETIONARY GROUNDS ──
+  { num:'9',   type:'D', cat:'other', label:'Suitable alternative accommodation available',
+    plain:'Suitable alternative accommodation is available (or will be) when the possession order takes effect.',
+    notice:'2 months', days:61, restrict12:false,
+    evidence:'Details of the alternative accommodation — address, size, rent level, proximity to services.',
+    fields:[
+      {id:'s8_alt', label:'Alternative accommodation address', type:'text', placeholder:'e.g. 42 Oak Street, Manchester, M1 2AB', req:true}
+    ]},
+  { num:'10',  type:'D', cat:'arrears', label:'Rent arrears (any amount)',
+    plain:'Some rent is lawfully due and unpaid at the date of the notice AND at the hearing date. Useful as a fallback if Ground 8 arrears drop below 3 months before court.',
+    notice:'4 weeks', days:28, restrict12:false, ucWarning:true,
+    evidence:'Rent ledger. Note: court has discretion — may order payment in instalments.',
+    fields:[
+      {id:'s8_arr10', label:'Total arrears (£)', type:'number', placeholder:'e.g. 1200', req:true},
+      {id:'s8_arr10_date', label:'Arrears as at date', type:'date', req:true}
+    ]},
+  { num:'11',  type:'D', cat:'arrears', label:'Persistently late rent payments',
+    plain:'The tenant persistently delays paying rent, even if no arrears exist at the hearing date.',
+    notice:'4 weeks', days:28, restrict12:false,
+    evidence:'Rent ledger showing repeated late payments with specific dates rent was due vs dates actually paid.',
+    fields:[
+      {id:'s8_late', label:'Describe the pattern of late payments', type:'textarea', placeholder:'e.g. Rent due 1st of each month. Paid late: Jan (14th), Feb (22nd), March (11th), April (19th)', req:true}
+    ]},
+  { num:'12',  type:'D', cat:'breach', label:'Breach of tenancy agreement',
+    plain:'The tenant has broken one or more obligations of the tenancy (other than rent payment).',
+    notice:'2 weeks', days:14, restrict12:false,
+    evidence:'Copy of tenancy showing relevant clause. Evidence of breach (photos, letters, complaints).',
+    fields:[
+      {id:'s8_br_clause', label:'Which clause was breached?', type:'text', placeholder:'e.g. Clause 7 — no pets without written consent', req:true},
+      {id:'s8_br_detail', label:'Describe the breach', type:'textarea', placeholder:'e.g. Tenant has kept a dog at the property since March 2025 without consent', req:true}
+    ]},
+  { num:'13',  type:'D', cat:'breach', label:'Deterioration of the property',
+    plain:'The condition of the property (or common parts) has deteriorated due to waste, neglect or default by the tenant or anyone living with them.',
+    notice:'2 weeks', days:14, restrict12:false,
+    evidence:'Move-in photos vs current dated photos. Inspection reports.',
+    fields:[
+      {id:'s8_det', label:'Describe the deterioration', type:'textarea', placeholder:'e.g. Kitchen floor damaged, walls heavily marked, bathroom tiles cracked and mouldy', req:true}
+    ]},
+  { num:'14',  type:'D', cat:'asb', label:'Nuisance or anti-social behaviour',
+    plain:'The tenant or someone living with them has caused nuisance or annoyance to neighbours, or used the property for illegal or immoral purposes.',
+    notice:'Immediate', days:0, restrict12:false,
+    evidence:'Diary of incidents with dates, times, descriptions. Neighbour statements. Police reports.',
+    fields:[
+      {id:'s8_asb', label:'Describe the incidents', type:'textarea', placeholder:'e.g. Loud music 11pm–3am on 14/03, 21/03, 28/03. Police called. Neighbours have provided statements.', req:true}
+    ]},
+  { num:'14A', type:'D', cat:'other', label:'Domestic violence — social landlord',
+    plain:'One partner has left because of violence or threats by the other, and the landlord is a social landlord. (Rarely applies to private landlords.)',
+    notice:'2 weeks', days:14, restrict12:false,
+    evidence:'Police report or court injunction. Confirmation tenant left due to domestic abuse.',
+    fields:[]},
+  { num:'15',  type:'D', cat:'breach', label:'Deterioration of furniture',
+    plain:'Furniture provided under the tenancy has deteriorated due to ill-treatment by the tenant.',
+    notice:'2 weeks', days:14, restrict12:false,
+    evidence:'Move-in inventory with furniture photos. Current photos showing damage.',
+    fields:[
+      {id:'s8_furn', label:'Describe the furniture damage', type:'textarea', placeholder:'e.g. Sofa torn, dining table deeply scratched, bed frame broken', req:true}
+    ]},
+  { num:'16',  type:'D', cat:'other', label:'Tenant was an employee',
+    plain:'The tenancy was granted because the tenant was employed by the landlord, and the employment has ended.',
+    notice:'2 months', days:61, restrict12:false,
+    evidence:'Employment contract. Termination documentation.',
+    fields:[]},
+  { num:'17',  type:'D', cat:'breach', label:'Tenant gave false information',
+    plain:'The tenant (or someone acting for them) gave false or misleading information to obtain the tenancy — for example, fake references or forged payslips.',
+    notice:'2 weeks', days:14, restrict12:false,
+    evidence:'Evidence of false information (original fraudulent documents, employer denial).',
+    fields:[
+      {id:'s8_false', label:'Describe the false information given', type:'textarea', placeholder:'e.g. Tenant provided forged payslips. Employer confirms no record of employment.', req:true}
+    ]},
+  { num:'18',  type:'D', cat:'other', label:'Supported accommodation — refused support',
+    plain:'The tenancy is supported accommodation and the tenant has refused to co-operate with the support services provider.',
+    notice:'2 weeks', days:14, restrict12:false,
+    evidence:'Documentation of support offered and tenant refusal.',
+    fields:[]},
+];
+
+// Category definitions for guided flow
+const S8_CATS = [
+  { id:'arrears', icon:'💷', label:'Tenant owes rent',          sub:'Arrears, late payments, persistent non-payment' },
+  { id:'landlord', icon:'🏠', label:'I need the property back',  sub:'Selling, moving back in, redevelopment' },
+  { id:'breach',  icon:'📋', label:'Tenant broke the agreement', sub:'Pets, damage, subletting, false info' },
+  { id:'asb',     icon:'⚠️', label:'Tenant is causing problems', sub:'Nuisance, anti-social behaviour, criminal activity' },
+  { id:'other',   icon:'📂', label:'Other / show all grounds',   sub:'View the full list of all 37 RRA 2025 grounds' },
+];
+
+// State for Section 8 generator
+let _s8 = {};
+
+function moSection8(pid) {
+  const p = D.properties.find(x => String(x.id) === String(pid));
+  const t = D.tenants.find(x => String(x.prop_id) === String(pid));
+  if (!p) { toast('Property not found', true); return; }
+
+  _s8 = { pid: String(pid), tid: t ? String(t.id) : null, step: 1, category: null,
+          selectedGrounds: [], fields: {}, prop: p, tenant: t };
+
+  // Widen the modal
+  const box = document.querySelector('.mo-box');
+  if (box) box.classList.add('mo-wide');
+
+  document.getElementById('mo-t').textContent = 'Section 8 Notice Generator';
+  document.getElementById('mo-s').textContent = 'RRA 2025 compliant · All grounds included';
+  document.getElementById('mo').classList.add('open');
+  s8Render();
+}
+
+function s8Render() {
+  const titles = ['Pre-conditions','Reason','Select Grounds','Details','Review & Generate'];
+  document.getElementById('mo-s').textContent = `Step ${_s8.step} of 5 — ${titles[_s8.step-1]}`;
+  document.getElementById('mo-b').innerHTML = s8BodyHtml();
+  document.getElementById('mo-f').innerHTML = s8FooterHtml();
+}
+
+function s8BodyHtml() {
+  const bar = `<div class="s8-step-bar">${[1,2,3,4,5].map(n=>`<div class="s8-seg ${n<_s8.step?'done':n===_s8.step?'active':''}"></div>`).join('')}</div>`;
+  if (_s8.step === 1) return bar + s8Step1();
+  if (_s8.step === 2) return bar + s8Step2();
+  if (_s8.step === 3) return bar + s8Step3();
+  if (_s8.step === 4) return bar + s8Step4();
+  if (_s8.step === 5) return bar + s8Step5();
+  return '';
+}
+
+function s8FooterHtml() {
+  const back = _s8.step > 1 ? `<button class="btn" onclick="s8Nav(-1)">← Back</button>` : `<button class="btn" onclick="closeMo()">Cancel</button>`;
+  if (_s8.step < 5) {
+    const next = _s8.step === 3 && _s8.selectedGrounds.length === 0
+      ? `<button class="btn btn-navy" disabled>Select at least one ground →</button>`
+      : `<button class="btn btn-navy" onclick="s8Nav(1)">${_s8.step === 4 ? 'Review →' : 'Next →'}</button>`;
+    return `<div style="display:flex;justify-content:space-between;width:100%">${back}${next}</div>`;
+  }
+  return `<div style="display:flex;justify-content:space-between;width:100%">${back}<button class="btn btn-navy" onclick="s8ShowConsent()">⚖️ Generate Notice Draft</button></div>`;
+}
+
+function s8Step1() {
+  const p = _s8.prop, t = _s8.tenant;
+  // Pre-conditions checks
+  const tenancyAge = t?.start_date ? Math.floor((new Date() - new Date(t.start_date)) / (1000*60*60*24)) : null;
+  const over12mo = tenancyAge !== null && tenancyAge >= 365;
+  const depositProtected = t?.scheme && t.scheme !== 'None' && t.scheme !== '';
+  const howToRentServed = true; // we can't easily check checklist here, so note it
+
+  const checks = [
+    { ok: !!t, label: 'Tenant on record', detail: t ? t.name : 'No tenant linked to this property', required: true },
+    { ok: !!t?.email, label: 'Tenant email on file', detail: t?.email || 'No email — you won\'t be able to send the notice by email', required: false },
+    { ok: depositProtected, label: 'Deposit protected', detail: depositProtected ? `${t.scheme} — ref: ${t.scheme_ref || 'not recorded'}` : '⚠️ No deposit scheme recorded. Courts may reject most Section 8 grounds if deposit is unprotected.', required: true },
+    { ok: over12mo, label: 'Tenancy over 12 months', detail: tenancyAge !== null ? `Tenancy started ${FMS(t.start_date)} (${Math.floor(tenancyAge/30)} months ago)` : 'Start date not recorded — Grounds 1, 1A and 6 cannot be used in first 12 months', required: false },
+    { ok: true, label: 'How to Rent guide', detail: 'Check your compliance checklist — must be served or most grounds fail', required: false },
+    { ok: true, label: 'RRA 2025 Info Sheet', detail: 'Must be sent to all tenants by 31 May 2026 (fine up to £7,000 if missed)', required: false },
+  ];
+
+  const rows = checks.map(c => {
+    const col = c.ok ? 'var(--green)' : c.required ? 'var(--red)' : 'var(--amber)';
+    const icon = c.ok ? '✓' : c.required ? '✗' : '⚠';
+    return `<div class="s8-pre-row">
+      <div style="width:20px;height:20px;border-radius:50%;background:${col};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0">${icon}</div>
+      <div style="flex:1"><div style="font-weight:500;font-size:13px">${c.label}</div><div style="font-size:11px;color:var(--muted);margin-top:1px">${c.detail}</div></div>
+    </div>`;
+  }).join('');
+
+  const allOk = checks.filter(c=>c.required).every(c=>c.ok);
+  const warn = !allOk ? `<div style="background:var(--red-bg);border:1px solid var(--red);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--red);margin-bottom:14px">⚠️ Some required conditions are not met. You can continue to prepare the draft, but address these before serving.</div>` : `<div style="background:var(--green-bg);border:1px solid var(--green);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green-dark);margin-bottom:14px">✓ Pre-conditions look good — you're ready to proceed.</div>`;
+
+  return `<div style="font-size:15px;font-weight:600;margin-bottom:4px">Pre-conditions check</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">These must be in place before a Section 8 notice is valid</div>
+    ${warn}
+    <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:4px 14px">${rows}</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:12px">Property: <strong>${p.address}, ${p.city}</strong> · Tenant: <strong>${t ? t.name : 'Not linked'}</strong></div>`;
+}
+
+function s8Step2() {
+  const cards = S8_CATS.map(c => `
+    <div class="s8-cat-card${_s8.category===c.id?' sel':''}" onclick="s8SetCat('${c.id}')">
+      <div style="font-size:26px;min-width:40px;text-align:center">${c.icon}</div>
+      <div><div style="font-weight:600;font-size:13px">${c.label}</div><div style="font-size:12px;color:var(--muted);margin-top:2px">${c.sub}</div></div>
+      ${_s8.category===c.id ? '<div style="margin-left:auto;color:var(--blue);font-size:16px">✓</div>' : ''}
+    </div>`).join('');
+  return `<div style="font-size:15px;font-weight:600;margin-bottom:4px">Why do you need possession?</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">We'll show you the most relevant grounds — you can also view all 37</div>
+    ${cards}`;
+}
+
+function s8SetCat(cat) {
+  _s8.category = cat;
+  _s8.selectedGrounds = [];
+  s8Render();
+}
+
+function s8Step3() {
+  const grounds = _s8.category === 'other'
+    ? S8_GROUNDS
+    : S8_GROUNDS.filter(g => g.cat === _s8.category);
+
+  const t = _s8.tenant;
+  const tenancyAge = t?.start_date ? Math.floor((new Date()-new Date(t.start_date))/(1000*60*60*24)) : 999;
+  const under12 = tenancyAge < 365;
+
+  const cards = grounds.map(g => {
+    const sel = _s8.selectedGrounds.includes(g.num);
+    const restricted = g.restrict12 && under12;
+    const chips = `<span class="${g.type==='M'?'s8-badge-m':'s8-badge-d'}">${g.type==='M'?'Mandatory':'Discretionary'}</span><span class="s8-notice-chip">Notice: ${g.notice}</span>${restricted?'<span style="font-size:9px;font-weight:700;color:var(--amber);background:var(--amber-bg);padding:2px 6px;border-radius:4px;margin-left:4px">⚠ 12-mo rule</span>':''}`;
+    return `<div class="s8-ground-card${sel?' sel':''}" onclick="s8ToggleGround('${g.num}')">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap">
+            <span style="font-size:11px;font-weight:700;color:var(--muted)">Ground ${g.num}</span>
+            ${chips}
+          </div>
+          <div style="font-size:13px;font-weight:600;color:var(--txt)">${g.label}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px;line-height:1.45">${g.plain}</div>
+          ${g.ucWarning?`<div style="font-size:10px;color:var(--amber);margin-top:4px;font-weight:600">⚠ Universal Credit delays must be excluded from arrears calculation</div>`:''}
+        </div>
+        <div style="width:18px;height:18px;border-radius:4px;border:2px solid ${sel?'var(--blue)':'#C5D0DD'};background:${sel?'var(--blue)':'transparent'};flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center">
+          ${sel?'<svg width="8" height="8" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>':''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const selCount = _s8.selectedGrounds.length;
+  const tip = `<div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:8px;padding:9px 13px;font-size:12px;color:var(--blue);margin-bottom:14px">💡 <strong>Tip:</strong> Select multiple grounds where possible — if one fails, others can succeed. For arrears, always tick both Ground 8 AND 10.</div>`;
+
+  return `<div style="font-size:15px;font-weight:600;margin-bottom:4px">Select grounds for possession</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">${_s8.category==='other'?'All 37 RRA 2025 grounds':'Grounds relevant to your situation'} · ${selCount} selected</div>
+    ${tip}
+    <div style="max-height:380px;overflow-y:auto;padding-right:4px">${cards}</div>`;
+}
+
+function s8ToggleGround(num) {
+  const i = _s8.selectedGrounds.indexOf(num);
+  if (i === -1) _s8.selectedGrounds.push(num);
+  else _s8.selectedGrounds.splice(i, 1);
+  s8Render();
+}
+
+function s8Step4() {
+  const p = _s8.prop, t = _s8.tenant;
+  const today = new Date().toISOString().slice(0,10);
+
+  // Calculate longest notice period from selected grounds
+  const selectedData = S8_GROUNDS.filter(g => _s8.selectedGrounds.includes(g.num));
+  const maxDays = selectedData.reduce((m,g) => Math.max(m, g.days), 14);
+  const expiry = new Date(Date.now() + maxDays * 864e5).toISOString().slice(0,10);
+  const courtDate = new Date(Date.now() + (maxDays+1) * 864e5).toISOString().slice(0,10);
+
+  // Auto-filled info row
+  const autoFill = `<div style="background:var(--green-bg);border:1px solid rgba(0,200,150,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green-dark);margin-bottom:16px">
+    ✦ Auto-filled from your data: property address, tenant name, rent amount, tenancy start date
+  </div>`;
+
+  // Notice period info
+  const noticeInfo = `<div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:16px">
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px">Calculated notice periods</div>
+    ${selectedData.map(g=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)"><span>Ground ${g.num} — ${g.label}</span><strong>${g.notice}</strong></div>`).join('')}
+    <div style="display:flex;justify-content:space-between;font-size:12px;padding:8px 0;margin-top:4px"><span style="font-weight:600">Notice expires (earliest court date)</span><strong style="color:var(--blue)">${FMS(expiry)}</strong></div>
+    <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0"><span style="font-weight:600">Earliest court application date</span><strong style="color:var(--blue)">${FMS(courtDate)}</strong></div>
+  </div>`;
+
+  // Core fields
+  const coreFields = `
+    <div class="fg-row">
+      <div class="fg"><label>Date of this notice <span class="req">*</span></label><input type="date" id="s8_notice_date" value="${today}"></div>
+      <div class="fg"><label>Method of service</label><select id="s8_service"><option>First class post</option><option>Hand delivered to tenant</option><option>Email (and post)</option><option>All methods — post, email and hand delivery</option></select></div>
+    </div>`;
+
+  // Ground-specific fields
+  const groundFields = selectedData.map(g => {
+    if (!g.fields || !g.fields.length) return '';
+    return `<div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:10px">Ground ${g.num} — ${g.label}</div>
+      ${g.fields.map(f => `<div class="fg">
+        <label>${f.label}${f.req?' <span class="req">*</span>':''}</label>
+        ${f.type==='select'
+          ? `<select id="${f.id}">${f.opts.map((o,i)=>`<option${i===0?' selected':''}>${o}</option>`).join('')}</select>`
+          : f.type==='textarea'
+          ? `<textarea id="${f.id}" placeholder="${f.placeholder||''}"></textarea>`
+          : `<input type="${f.type}" id="${f.id}" placeholder="${f.placeholder||''}">`}
+      </div>`).join('')}
+    </div>`;
+  }).join('');
+
+  // Evidence reminder
+  const evidence = selectedData.map(g => `<div style="display:flex;gap:8px;margin-bottom:6px"><span style="color:var(--blue);font-weight:700;font-size:11px;min-width:70px">Ground ${g.num}</span><span style="font-size:11px;color:var(--txt)">${g.evidence}</span></div>`).join('');
+  const evidenceBox = `<div style="background:var(--amber-bg);border:1px solid var(--amber);border-radius:8px;padding:12px 14px;margin-top:14px">
+    <div style="font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;margin-bottom:8px">📋 Evidence you'll need at court</div>
+    ${evidence}
+  </div>`;
+
+  return `<div style="font-size:15px;font-weight:600;margin-bottom:4px">Notice details</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Complete the details below — we'll auto-fill everything we already know</div>
+    ${autoFill}
+    ${noticeInfo}
+    ${coreFields}
+    ${groundFields}
+    ${evidenceBox}`;
+}
+
+function s8Step5() {
+  const p = _s8.prop, t = _s8.tenant;
+  const today = new Date().toISOString().slice(0,10);
+  const noticeDate = document.getElementById('s8_notice_date')?.value || today;
+  const serviceMethod = document.getElementById('s8_service')?.value || 'First class post';
+  const selectedData = S8_GROUNDS.filter(g => _s8.selectedGrounds.includes(g.num));
+  const maxDays = selectedData.reduce((m,g) => Math.max(m, g.days), 14);
+  const expiry = new Date(new Date(noticeDate).getTime() + maxDays * 864e5).toISOString().slice(0,10);
+
+  // Capture all field values
+  selectedData.forEach(g => {
+    (g.fields||[]).forEach(f => {
+      const el = document.getElementById(f.id);
+      if (el) _s8.fields[f.id] = el.value;
+    });
+  });
+  _s8.noticeDate = noticeDate;
+  _s8.serviceMethod = serviceMethod;
+  _s8.expiryDate = expiry;
+  _s8.maxDays = maxDays;
+
+  const rows = [
+    ['Property', `${p.address}, ${p.city}, ${p.postcode}`],
+    ['Tenant', t ? t.name : 'Not linked'],
+    ['Tenant email', t?.email || '—'],
+    ['Monthly rent', p.rent ? `£${p.rent.toLocaleString()}` : '—'],
+    ['Tenancy start', FMS(t?.start_date)],
+    ['Date of notice', FMS(noticeDate)],
+    ['Service method', serviceMethod],
+    ['Grounds selected', selectedData.map(g=>`Ground ${g.num}`).join(', ')],
+    ['Notice period (longest)', selectedData.find(g=>g.days===maxDays)?.notice || '—'],
+    ['Notice expires', FMS(expiry)],
+    ['Earliest court date', FMS(new Date(new Date(expiry).getTime()+864e5).toISOString().slice(0,10))],
+  ].map(([l,v]) => `<div class="s8-review-row"><span style="color:var(--muted);font-size:12px">${l}</span><span style="font-weight:500;text-align:right;max-width:55%">${v}</span></div>`).join('');
+
+  const groundRows = selectedData.map(g => {
+    const fieldVals = (g.fields||[]).map(f => `<div style="font-size:11px;color:var(--muted);margin-top:3px">${f.label}: <strong>${_s8.fields[f.id]||'—'}</strong></div>`).join('');
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:8px"><span class="${g.type==='M'?'s8-badge-m':'s8-badge-d'}">${g.type==='M'?'M':'D'}</span><span style="font-weight:600;font-size:13px">Ground ${g.num} — ${g.label}</span><span class="s8-notice-chip">${g.notice}</span></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">${g.plain}</div>
+      ${fieldVals}
+    </div>`;
+  }).join('');
+
+  return `<div style="font-size:15px;font-weight:600;margin-bottom:4px">Review your notice</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Check everything below before generating your draft</div>
+    <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:4px 14px;margin-bottom:16px">${rows}</div>
+    <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px;letter-spacing:.4px">Grounds selected</div>
+    <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:4px 14px;margin-bottom:16px">${groundRows}</div>
+    <div style="background:var(--amber-bg);border:1px solid var(--amber);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--txt)">
+      <strong>⚠️ Important:</strong> This tool generates a draft particulars statement to help you prepare. For legal proceedings, you must use the official <strong>Form 3A from GOV.UK</strong> (published 1 May 2026). Transfer these details into the official form before serving.
+    </div>`;
+}
+
+function s8Nav(dir) {
+  if (_s8.step + dir < 1 || _s8.step + dir > 5) return;
+  if (_s8.step === 2 && dir === 1 && !_s8.category) { toast('Please select a reason', true); return; }
+  _s8.step += dir;
+  s8Render();
+}
+
+function s8ShowConsent() {
+  const box = document.getElementById('mo-b');
+  const footer = document.getElementById('mo-f');
+
+  box.innerHTML = `
+    <div style="font-size:15px;font-weight:600;margin-bottom:4px">Landlord confirmation</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Please read and confirm before generating your notice</div>
+    <div class="s8-consent-box">
+      <div style="font-size:13px;font-weight:600;color:var(--amber);margin-bottom:10px">⚖️ By generating this notice draft, I confirm:</div>
+      <label style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;cursor:pointer"><input type="checkbox" id="s8_c1" style="margin-top:2px;flex-shrink:0"><span style="font-size:13px">I believe the grounds I have selected apply to my situation and I can evidence them at court.</span></label>
+      <label style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;cursor:pointer"><input type="checkbox" id="s8_c2" style="margin-top:2px;flex-shrink:0"><span style="font-size:13px">I understand this is a <strong>draft particulars statement only</strong> — I must complete the official <strong>GOV.UK Form 3A</strong> before serving.</span></label>
+      <label style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;cursor:pointer"><input type="checkbox" id="s8_c3" style="margin-top:2px;flex-shrink:0"><span style="font-size:13px">I understand that serving an invalid notice can result in fines of up to <strong>£7,000</strong> and having to restart proceedings.</span></label>
+      <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" id="s8_c4" style="margin-top:2px;flex-shrink:0"><span style="font-size:13px">I take full responsibility for this notice and will seek independent legal advice if unsure about my grounds.</span></label>
+    </div>`;
+
+  footer.innerHTML = `<div style="display:flex;justify-content:space-between;width:100%">
+    <button class="btn" onclick="s8Render()">← Back</button>
+    <button class="btn btn-navy" id="s8-gen-btn" onclick="s8Generate()">✦ Generate draft</button>
+  </div>`;
+}
+
+async function s8Generate() {
+  const checks = ['s8_c1','s8_c2','s8_c3','s8_c4'].map(id => document.getElementById(id)?.checked);
+  if (!checks.every(Boolean)) { toast('Please confirm all four points', true); return; }
+
+  const btn = document.getElementById('s8-gen-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span>Generating draft…';
+
+  const p = _s8.prop, t = _s8.tenant;
+  const selectedData = S8_GROUNDS.filter(g => _s8.selectedGrounds.includes(g.num));
+
+  // Build ground details for prompt
+  const groundDetails = selectedData.map(g => {
+    const fieldVals = (g.fields||[]).map(f => `${f.label}: ${_s8.fields[f.id]||'[not provided]'}`).join('\n');
+    return `GROUND ${g.num} (${g.type==='M'?'Mandatory':'Discretionary'}) — ${g.label}
+Legal description: ${g.plain}
+Notice period: ${g.notice}
+${fieldVals ? 'Specific details:\n' + fieldVals : ''}
+Evidence required: ${g.evidence}`;
+  }).join('\n\n---\n\n');
+
+  const prompt = `You are generating a Section 8 Notice Particulars Statement for a UK landlord under the Housing Act 1988 as amended by the Renters' Rights Act 2025.
+
+PROPERTY & TENANCY DETAILS:
+Property: ${p.address}, ${p.city}, ${p.postcode}
+Monthly rent: £${p.rent || '[unknown]'}
+Landlord name: ${(currentUser?.email||'Landlord').split('@')[0]}
+Tenant name: ${t ? t.name : '[Tenant name]'}
+Tenant email: ${t?.email || '[unknown]'}
+Tenancy start date: ${FMS(t?.start_date) || '[unknown]'}
+Date of this notice: ${FMS(_s8.noticeDate)}
+Method of service: ${_s8.serviceMethod}
+Notice expiry date: ${FMS(_s8.expiryDate)}
+Earliest date landlord can apply to court: ${FMS(new Date(new Date(_s8.expiryDate).getTime()+864e5).toISOString().slice(0,10))}
+
+GROUNDS FOR POSSESSION:
+${groundDetails}
+
+INSTRUCTIONS:
+1. Generate a formal Section 8 Notice Particulars Statement using the above.
+2. Include a proper header with "SECTION 8 NOTICE — NOTICE SEEKING POSSESSION" and all property/tenant details.
+3. For each ground, include the full legal wording (as required by Form 3A) plus the specific facts stated above.
+4. Calculate and state the notice period and expiry date clearly.
+5. Include a proper signature block at the end.
+6. End with this disclaimer in full: "IMPORTANT: This is a draft particulars statement prepared using RentSafe AI. Before serving, this must be transferred to the official Form 3A available from GOV.UK (published 1 May 2026). This document does not constitute legal advice. The landlord takes full responsibility for serving a valid notice."
+7. Use plain text formatting. No markdown bold markers in dates or names.`;
+
+  try {
+    const res = await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 1500, messages: [{ role: 'user', content: prompt }] })
+    });
+    const data = await res.json();
+    const text = data.content?.[0]?.text || 'Generation failed. Please try again.';
+
+    _s8.generatedText = text;
+
+    // Log to email_log table as a record
+    try {
+      await sb.from('email_log').insert({
+        user_id: currentUser.id,
+        tenant_id: t ? parseInt(t.id) : null,
+        prop_id: parseInt(p.id),
+        template_id: 'section8_notice',
+        template_name: `Section 8 Notice — Grounds ${selectedData.map(g=>g.num).join(', ')}`,
+        sent_to: t?.email || null,
+        subject: `Section 8 Notice — ${p.address}`,
+        status: 'Draft'
+      });
+      D.emailLog.unshift({ template_name: `Section 8 Notice`, sent_to: t?.email||'—', sent_at: new Date().toISOString(), status: 'Draft', prop_id: parseInt(p.id) });
+    } catch(e) { /* non-critical */ }
+
+    await logAudit('GENERATE_S8', 'section8', p.id, `Grounds: ${selectedData.map(g=>g.num).join(', ')}`);
+
+    // Show result
+    document.getElementById('mo-b').innerHTML = `
+      <div style="font-size:15px;font-weight:600;margin-bottom:4px;color:var(--green-dark)">✓ Draft notice generated!</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Review your draft below. Download as PDF, then transfer to GOV.UK Form 3A before serving.</div>
+      <div style="background:var(--amber-bg);border:1px solid var(--amber);border-radius:8px;padding:9px 13px;font-size:11px;color:var(--txt);margin-bottom:14px">
+        <strong>Next steps:</strong> (1) Download this draft PDF · (2) Complete official GOV.UK <strong>Form 3A</strong> using these particulars · (3) Serve on ALL named tenants · (4) Keep proof of service
+      </div>
+      <div id="s8-output" style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:16px;font-size:12.5px;line-height:1.8;max-height:320px;overflow-y:auto;white-space:pre-wrap;font-family:Georgia,serif">${text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
+
+    document.getElementById('mo-f').innerHTML = `
+      <div style="display:flex;justify-content:space-between;width:100%;gap:8px;flex-wrap:wrap">
+        <button class="btn" onclick="closeMo()">Close</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn" onclick="s8CopyText()">📋 Copy</button>
+          <button class="btn" onclick="s8DownloadPDF()">📄 Download PDF</button>
+          ${t?.email ? `<button class="btn btn-navy" onclick="s8SendToTenant()">✉ Send to ${t.name.split(' ')[0]}</button>` : ''}
+        </div>
+      </div>`;
+  } catch(e) {
+    toast('Generation failed — please try again', true);
+    btn.disabled = false;
+    btn.innerHTML = '✦ Generate draft';
+  }
+}
+
+function s8CopyText() {
+  navigator.clipboard.writeText(_s8.generatedText || '');
+  toast('✓ Copied to clipboard!');
+}
+
+function s8DownloadPDF() {
+  const text = _s8.generatedText;
+  if (!text) { toast('Generate the draft first', true); return; }
+  const p = _s8.prop;
+  const win = window.open('', '_blank');
+  if (!win) { toast('Please allow pop-ups to download PDF', true); return; }
+  win.document.write(`<!DOCTYPE html><html><head><title>Section 8 Notice — ${p.address}</title>
+    <style>body{font-family:Georgia,serif;font-size:13px;line-height:1.8;padding:48px;max-width:680px;margin:0 auto;color:#1A2B45}
+    h3{font-size:16px;font-weight:700;margin:18px 0 6px;color:#0B1E3D}
+    strong{font-weight:600}pre{white-space:pre-wrap;font-family:Georgia,serif}
+    @media print{body{padding:0}}</style></head><body>
+    <div style="border-bottom:2px solid #0B1E3D;margin-bottom:24px;padding-bottom:12px">
+      <strong style="font-size:16px;color:#0B1E3D">RentSafe AI</strong>
+      <span style="color:#999;font-size:12px;margin-left:12px">Section 8 Notice Draft — ${p.address}</span>
+    </div>
+    <pre>${text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+    <div style="margin-top:32px;padding-top:12px;border-top:1px solid #eee;font-size:10px;color:#999">
+      Generated by RentSafe AI · ${new Date().toLocaleDateString('en-GB')} · Draft only — transfer to GOV.UK Form 3A before serving
+    </div>
+    <script>window.onload=function(){window.print();}<\/script>
+    </body></html>`);
+  win.document.close();
+}
+
+async function s8SendToTenant() {
+  const t = _s8.tenant, p = _s8.prop;
+  if (!t?.email) { toast('No tenant email on file', true); return; }
+  const text = _s8.generatedText;
+
+  const subject = `Section 8 Notice — ${p.address}`;
+  const htmlBody = `<div style="font-family:sans-serif;max-width:680px;margin:0 auto;padding:32px 24px;color:#1A2B45">
+    <div style="border-bottom:2px solid #0B1E3D;padding-bottom:14px;margin-bottom:24px">
+      <span style="font-size:18px;font-weight:700;color:#0B1E3D">Rent<span style="color:#00C896">Safe AI</span></span>
+      <span style="color:#999;font-size:12px;margin-left:8px">Section 8 Notice</span>
+    </div>
+    <pre style="font-family:Georgia,serif;font-size:13px;line-height:1.8;white-space:pre-wrap">${text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+    <div style="margin-top:32px;padding-top:14px;border-top:1px solid #eee;font-size:11px;color:#999">
+      Sent via RentSafe AI · documents@rentsafeai.co.uk · This is a draft. The official Form 3A must also be served in accordance with the Housing Act 1988. Service by email alone may not be sufficient — also serve by first class post.
+    </div>
+  </div>`;
+
+  const btn = document.querySelector('#mo-f .btn-navy');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Sending…'; }
+
+  try {
+    const res = await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'send_email', to: t.email, subject, html: htmlBody })
+    });
+    const data = await res.json();
+    if (data.error || !res.ok) throw new Error(data.error || 'Send failed');
+
+    // Update log entry to 'Sent'
+    const logEntry = {
+      user_id: currentUser.id,
+      tenant_id: parseInt(t.id),
+      prop_id: parseInt(p.id),
+      template_id: 'section8_notice',
+      template_name: `Section 8 Notice — Grounds ${_s8.selectedGrounds.join(', ')}`,
+      sent_to: t.email,
+      subject,
+      status: 'Sent'
+    };
+    await sb.from('email_log').insert(logEntry).select().single();
+    D.emailLog.unshift({ ...logEntry, sent_at: new Date().toISOString() });
+
+    if (btn) { btn.disabled = false; btn.innerHTML = '✓ Sent!'; }
+    toast(`✉ Section 8 notice sent to ${t.email}`);
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.innerHTML = '✉ Send to ' + t.name.split(' ')[0]; }
+    toast('Send failed — check Resend domain verification', true);
+  }
+}
+
+// ── TENANT DETAIL MODAL ──
+function moTenantDetail(tid) {
+  const t = D.tenants.find(x => String(x.id) === String(tid));
+  if (!t) return;
+  const p = P(t.prop_id) || { address: '—', city: '' };
+
+  const rows = [
+    ['Full name', t.name],
+    ['Email', t.email || '—'],
+    ['Phone', t.phone || '—'],
+    ['Property', `${p.address}, ${p.city}`],
+    ['Tenancy start', FMS(t.start_date)],
+    ['Tenancy end', t.end_date ? FMS(t.end_date) : 'Periodic (ongoing)'],
+    ['Monthly rent', t.rent ? `£${t.rent.toLocaleString()}` : '—'],
+    ['Deposit amount', t.deposit ? `£${t.deposit.toLocaleString()}` : '—'],
+    ['Deposit scheme', t.scheme || 'Not set'],
+    ['Scheme reference', t.scheme_ref || '—'],
+    ['Tenancy type', t.type || 'AST'],
+    ['Rent due day', t.rent_day ? `${t.rent_day}${['','st','nd','rd'][t.rent_day]||'th'} of month` : '—'],
+    ['Status', t.status || 'Active'],
+  ].map(([l,v]) => `<div class="t-det-row"><span class="lbl">${l}</span><span style="font-weight:500;text-align:right">${v}</span></div>`).join('');
+
+  openMo(`${t.name}`, `Tenant at ${p.address}`,
+    `<div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:4px 14px;margin-bottom:14px">${rows}</div>
+     <div style="display:flex;gap:8px;flex-wrap:wrap">
+       ${t.email ? `<a href="mailto:${t.email}" class="btn btn-sm">✉ Email tenant</a>` : ''}
+       ${t.phone ? `<a href="tel:${t.phone}" class="btn btn-sm">📞 Call</a>` : ''}
+       <button class="btn btn-sm" onclick="closeMo();moSection8('${t.prop_id}')">⚖️ Generate Section 8</button>
+     </div>`,
+    `<button class="btn" onclick="closeMo()">Close</button><button class="btn btn-navy" onclick="closeMo();moTenant('${t.prop_id}')">✎ Edit tenant</button>`
+  );
 }
 
 // ── START ──
