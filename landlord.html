@@ -199,7 +199,19 @@ tr:hover td{background:rgba(246,248,251,.8)}
 .toast.err{background:var(--red)}
 @keyframes spin{to{transform:rotate(360deg)}}
 .spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px}
-/* ── S5: SECTION 8 GENERATOR ── */
+/* ── PROPERTY DETAIL TABS ── */
+.pd-tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:22px;gap:0;overflow-x:auto}
+.pd-tab{padding:10px 18px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border:none;background:none;font-family:var(--font);border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .15s;display:flex;align-items:center;gap:6px}
+.pd-tab:hover{color:var(--txt)}
+.pd-tab.active{color:var(--navy);font-weight:600;border-bottom-color:var(--navy)}
+.pd-tab .pd-cnt{font-size:10px;font-weight:700;background:var(--off);border:1px solid var(--border);color:var(--muted);padding:1px 6px;border-radius:100px}
+.pd-tab.active .pd-cnt{background:var(--navy);border-color:var(--navy);color:#fff}
+/* Stat pills on property header */
+.pd-stat{display:flex;align-items:center;gap:10px;background:var(--white);border:1px solid var(--border);border-radius:10px;padding:12px 16px;flex:1;min-width:120px}
+.pd-stat-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.pd-stat-val{font-size:20px;font-weight:700;color:var(--txt);line-height:1}
+.pd-stat-lbl{font-size:11px;color:var(--muted);margin-top:2px}
+</style>
 .mo-wide{width:700px!important;max-width:96vw!important}
 .s8-step-bar{display:flex;gap:4px;margin-bottom:20px}
 .s8-seg{flex:1;height:3px;border-radius:100px;background:var(--border);transition:background .3s}
@@ -355,7 +367,7 @@ function toast(msg, err=false) {
 }
 
 function B(s){
-  const m={Valid:'green',Active:'green',Paid:'green',Resolved:'green',Protected:'green',Served:'green',Sent:'green',Missing:'red',Expired:'red',Open:'red',Urgent:'red',Late:'red',Due:'amber','In progress':'amber',High:'amber','No expiry':'gray',AST:'gray',DPS:'gray',MyDeposits:'gray',TDS:'gray',Low:'blue',Vacant:'gray',Uploaded:'blue'};
+  const m={Valid:'green',Active:'green',Paid:'green',Resolved:'green',Protected:'green',Served:'green',Sent:'green',Missing:'red',Expired:'red',Open:'red',Urgent:'red',Late:'red',Due:'amber','In progress':'amber',High:'amber','No expiry':'gray',AST:'gray',APT:'blue',DPS:'gray',MyDeposits:'gray',TDS:'gray',Low:'blue',Vacant:'gray',Uploaded:'blue'};
   return `<span class="badge b-${m[s]||'gray'}">${s}</span>`;
 }
 
@@ -676,7 +688,7 @@ async function saveTenantToDB() {
     deposit: parseFloat(document.getElementById('t-deposit')?.value) || 0,
     start_date: document.getElementById('t-start')?.value || null,
     end_date: document.getElementById('t-end')?.value || null,
-    type: document.getElementById('t-type')?.value || 'AST',
+    type: document.getElementById('t-type')?.value || 'APT',
     rent_day: parseInt(document.getElementById('t-day')?.value) || 1,
     scheme: document.getElementById('t-scheme')?.value || null,
     scheme_ref: document.getElementById('t-ref')?.value.trim() || null,
@@ -1044,7 +1056,7 @@ function moTenant(pid){
       <div class="fg"><label>Tenancy end</label><input type="date" id="t-end"></div>
     </div>
     <div class="fg-row">
-      <div class="fg"><label>Tenancy type</label><select id="t-type"><option>AST</option><option>Periodic</option><option>Company let</option></select></div>
+      <div class="fg"><label>Tenancy type</label><select id="t-type"><option value="APT">APT — Assured Periodic (from 1 May 2026)</option><option value="AST">AST — legacy (pre 1 May 2026)</option><option value="Company let">Company let</option></select></div>
       <div class="fg"><label>Rent due day</label><input type="number" id="t-day" min="1" max="28" placeholder="1"></div>
     </div>
     <div class="fg-div"></div>
@@ -1425,96 +1437,304 @@ function propMaintHtml(pid){
   return html;
 }
 
-function pgPropDetail(pid){
-  const p=P(pid); if(!p)return pgProperties();
-  const t=D.tenants.find(x=>String(x.prop_id)===String(pid));
-  const pc=CF(pid),pi=D.insurance.filter(i=>String(i.prop_id)===String(pid));
-  const pm=D.maintenance.filter(m=>String(m.prop_id)===String(pid)&&m.status!=='Resolved');
-  const licBadge={None:'b-gray','Mandatory HMO':'b-red','Additional HMO':'b-amber','Selective Licence':'b-blue','Article 4':'b-navy','Short-term Let':'b-amber'}[p.licence_type]||'b-gray';
-  return`<div class="topbar"><span class="tb-title">Properties</span><div class="tb-right">
-    <button class="btn" onclick="alert('P&L — coming next')">📊 P&L</button>
-    <button class="btn btn-navy" onclick="moEditProp('${pid}')">✎ Edit</button>
+// ── PROPERTY DETAIL — TAB STATE ──
+if (!window._pdTab) window._pdTab = {};
+
+function pgPropDetail(pid) {
+  const p = P(pid); if (!p) return pgProperties();
+  const t = D.tenants.find(x => String(x.prop_id) === String(pid));
+  const pc = CF(pid);
+  const pm = D.maintenance.filter(m => String(m.prop_id) === String(pid) && m.status !== 'Resolved');
+  const rag = calcRAG(pid);
+  const ragCol = rag.rag === 'red' ? 'var(--red)' : rag.rag === 'amber' ? 'var(--amber)' : 'var(--green)';
+  const activeTab = window._pdTab[pid] || 'tenant';
+
+  // Stat cards
+  const stats = [
+    { icon:'💷', bg:'rgba(0,200,150,0.1)', col:'var(--green-dark)', val: p.rent ? `£${p.rent.toLocaleString()}` : 'Vacant', lbl:'Monthly rent' },
+    { icon:'👤', bg:'rgba(59,111,232,0.09)', col:'var(--blue)', val: t ? t.name.split(' ')[0] : 'Vacant', lbl: t ? (t.status||'Active') : 'No tenant' },
+    { icon:'🛡', bg: rag.rag==='red'?'rgba(229,62,62,0.09)':rag.rag==='amber'?'rgba(217,119,6,0.09)':'rgba(0,200,150,0.1)', col:ragCol, val:`${rag.score}/100`, lbl:`Compliance: ${rag.label}` },
+    { icon:'🔧', bg: pm.length ? 'rgba(229,62,62,0.09)' : 'rgba(0,200,150,0.1)', col: pm.length ? 'var(--red)' : 'var(--green-dark)', val: pm.length, lbl: pm.length ? 'Open issue' + (pm.length!==1?'s':'') : 'No open issues' },
+  ];
+
+  const statHtml = `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px">
+    ${stats.map(s=>`<div class="pd-stat" style="background:${s.bg};border-color:transparent">
+      <div class="pd-stat-icon" style="background:rgba(255,255,255,0.5)">${s.icon}</div>
+      <div><div class="pd-stat-val" style="color:${s.col}">${s.val}</div><div class="pd-stat-lbl">${s.lbl}</div></div>
+    </div>`).join('')}
+  </div>`;
+
+  // Tabs
+  const tabDefs = [
+    { id:'tenant',      icon:'👤', label:'Tenant',      cnt: t ? 1 : 0 },
+    { id:'financials',  icon:'💷', label:'Financials',  cnt: D.rent.filter(r=>String(r.prop_id)===String(pid)).length },
+    { id:'compliance',  icon:'🛡', label:'Compliance',  cnt: pc.length },
+    { id:'maintenance', icon:'🔧', label:'Maintenance', cnt: D.maintenance.filter(m=>String(m.prop_id)===String(pid)).length },
+    { id:'property',    icon:'🏠', label:'Property',    cnt: 0 },
+  ];
+
+  const tabBar = `<div class="pd-tabs">${tabDefs.map(tb=>`
+    <button class="pd-tab${tb.id===activeTab?' active':''}" data-tab="${tb.id}" onclick="pdSetTab('${pid}','${tb.id}')">
+      ${tb.icon} ${tb.label}
+      ${tb.cnt > 0 ? `<span class="pd-cnt">${tb.cnt}</span>` : ''}
+    </button>`).join('')}</div>`;
+
+  return `<div class="topbar"><span class="tb-title">Properties</span><div class="tb-right">
+    <button class="btn" onclick="moEditProp('${pid}')">✎ Edit</button>
   </div></div>
   <div class="content">
-    <button class="detail-back" onclick="nav('properties')"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3L5 8l5 5"/></svg>Back to properties</button>
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:12px">
-      <div><h1 style="font-size:22px;font-weight:600;margin-bottom:3px">${p.address}, ${p.city}</h1><p style="font-size:13px;color:var(--muted)">${p.city}, ${p.postcode}</p></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">${B(t?'Active':'Vacant')}<span class="badge b-gray">${p.type||'—'}</span>${p.beds?`<span class="badge b-gray">${p.beds} bed · ${p.bathrooms||1} bath</span>`:''}<span class="badge ${licBadge}">${p.licence_type||'No licence'}</span></div>
+    <button class="detail-back" onclick="nav('properties')"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3L5 8l5 5"/></svg> Back to properties</button>
+
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div>
+        <h1 style="font-size:21px;font-weight:700;margin-bottom:3px">${p.address}</h1>
+        <p style="font-size:13px;color:var(--muted)">${p.city}, ${p.postcode}</p>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        ${B(t?'Active':'Vacant')}
+        <span class="badge b-gray">${p.type||'—'}</span>
+        ${p.beds?`<span class="badge b-gray">${p.beds} bed · ${p.bathrooms||1} bath</span>`:''}
+        ${p.licence_type&&p.licence_type!=='None'?`<span class="badge b-amber">${p.licence_type}</span>`:''}
+      </div>
     </div>
-    <div class="metrics">
-      <div class="mc"><div class="mc-top"><span class="mc-label">Monthly rent</span></div><div class="mc-val">${p.rent?'£'+p.rent.toLocaleString():'Vacant'}</div></div>
-      <div class="mc"><div class="mc-top"><span class="mc-label">Tenants</span></div><div class="mc-val">${t?1:0}</div></div>
-      <div class="mc"><div class="mc-top"><span class="mc-label">Documents</span></div><div class="mc-val">${pc.filter(c=>c.file||c.has_file).length}</div></div>
-      <div class="mc"><div class="mc-top"><span class="mc-label">Open issues</span></div><div class="mc-val">${pm.length}</div></div>
-    </div>
 
-    ${(function(){
-      var r=calcRAG(pid);
-      var col=r.rag==='red'?'#E53E3E':r.rag==='amber'?'#D97706':'#00C896';
-      var bg=r.rag==='red'?'#fff5f5':r.rag==='amber'?'#fffbeb':'#f0fdf9';
-      var icon=r.rag==='red'?'⚠️':r.rag==='amber'?'⚡':'✅';
-      return '<div style="background:'+bg+';border:1px solid '+col+';border-radius:12px;padding:16px 20px;margin-bottom:22px;display:flex;align-items:center;gap:16px">'
-        +'<div style="font-size:28px">'+icon+'</div>'
-        +'<div style="flex:1">'
-        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
-        +'<div style="font-size:13px;font-weight:600;color:'+col+'">Compliance: '+r.label+'</div>'
-        +'<div style="font-size:20px;font-weight:700;color:'+col+'">'+r.score+'/100</div>'
-        +'</div>'
-        +'<div style="height:6px;background:#E4EAF1;border-radius:100px;overflow:hidden">'
-        +'<div style="height:100%;width:'+r.score+'%;background:'+col+';border-radius:100px;transition:width .4s ease"></div>'
-        +'</div>'
-        +'<div style="font-size:11px;color:#7A8FA6;margin-top:6px">Based on '+pc.length+' certificate'+(pc.length!==1?'s':'')+' · '+pc.filter(c=>c.status==='Valid').length+' valid, '+pc.filter(c=>c.status==='Missing').length+' missing</div>'
-        +'</div></div>';
-    })()}
-
-    <div class="coll"><div class="coll-hd" onclick="toggleColl('det')"><span class="coll-l">🏠 Property details</span><span class="coll-arr op" id="ca-det">▾</span></div>
-    <div class="coll-body" id="cb-det"><div class="det-grid">
-      ${[['Address',p.address],['City',p.city],['Postcode',p.postcode],['Type',p.type],['Built',p.built||'—'],['Council',p.council||'—'],['Council tax band',p.council_tax_band||'—'],['EPC rating',p.epc||'—'],['EPC expiry',FMS(p.epc_expiry)],['Monthly rent',p.rent?'£'+p.rent.toLocaleString():'Vacant'],['Bedrooms',p.beds||'—'],['Bathrooms',p.bathrooms||'—']].map(([l,v])=>`<div class="det-f"><label>${l}</label><span>${v}</span></div>`).join('')}
-    </div></div></div>
-
-    <div class="coll"><div class="coll-hd" onclick="toggleColl('rooms')"><span class="coll-l">📐 Rooms <span class="coll-cnt">${(p.rooms||[]).length}</span></span><div class="coll-r"><button class="btn btn-sm" onclick="event.stopPropagation();alert('Add room — coming next')">+ Add</button><span class="coll-arr op" id="ca-rooms">▾</span></div></div>
-    <div class="coll-body" id="cb-rooms">${(p.rooms||[]).length?`<div class="tw"><table><thead><tr><th>Room</th><th>Floor</th><th>Size (m²)</th></tr></thead><tbody>${(p.rooms||[]).map(r=>`<tr><td class="td-bold">${r.name}</td><td>${r.floor}</td><td>${r.size} m²</td></tr>`).join('')}</tbody></table></div>`:'<div style="color:var(--muted);font-size:13px">No rooms added yet</div>'}</div></div>
-
-    <div class="coll"><div class="coll-hd" onclick="toggleColl('lic')"><span class="coll-l">📋 Property licence <span class="coll-cnt badge ${licBadge}" style="font-size:10px">${p.licence_type||'None'}</span></span><div class="coll-r"><button class="btn btn-sm" onclick="event.stopPropagation();moLicence('${pid}')">✎ Edit</button><span class="coll-arr op" id="ca-lic">▾</span></div></div>
-    <div class="coll-body" id="cb-lic"><div class="det-grid">${[['Licence type',p.licence_type||'None'],['Reference',p.licence_ref||'—'],['Expiry',FMS(p.licence_expiry)],['Max occupants',p.licence_max||'—']].map(([l,v])=>`<div class="det-f"><label>${l}</label><span>${v}</span></div>`).join('')}</div></div></div>
-
-    <div class="coll"><div class="coll-hd" onclick="toggleColl('ten')"><span class="coll-l">👤 Tenants <span class="coll-cnt">${t?1:0}</span></span><div class="coll-r"><button class="btn btn-sm" onclick="event.stopPropagation();moTenant('${pid}')">+ Add tenant</button><span class="coll-arr op" id="ca-ten">▾</span></div></div>
-    <div class="coll-body" id="cb-ten">${t?`<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px"><div class="t-av" style="cursor:pointer" onclick="moTenantDetail('${t.id}')">${INI(t.name)}</div><div style="flex:1;cursor:pointer" onclick="moTenantDetail('${t.id}')"><div style="font-weight:500">${t.name}</div><div style="font-size:12px;color:var(--muted)">${t.email||'—'} · ${t.phone||'No phone'}</div></div><div style="text-align:right"><div style="font-size:12px;font-weight:600">£${(t.rent||0).toLocaleString()}/mo</div><div style="font-size:11px;color:var(--muted)">${FMS(t.start)} – ${t.end?FMS(t.end):'Periodic'}</div></div>${B(t.status)}</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn btn-sm" onclick="moTenantDetail('${t.id}')">👤 View details</button>
-      <button class="btn btn-sm" style="background:var(--navy);color:#fff;border-color:var(--navy)" onclick="moSection8('${pid}')">⚖️ Generate Section 8 Notice</button>
-    </div>`:'<div style="color:var(--muted);font-size:13px">No active tenants</div>'}</div></div>
-
-    <div class="coll"><div class="coll-hd" onclick="toggleColl('email-p${pid}')"><span class="coll-l">✉ Email Log <span class="coll-cnt">${D.emailLog.filter(e=>String(e.prop_id)===String(pid)).length}</span></span><div class="coll-r"><button class="btn btn-sm" onclick="event.stopPropagation();nav('templates')">+ Send document</button><span class="coll-arr op" id="ca-email-p${pid}">▾</span></div></div>
-    <div class="coll-body" id="cb-email-p${pid}">${propEmailLogHtml(pid)}</div></div>
-
-    <div class="coll"><div class="coll-hd" onclick="toggleColl('rent-p${pid}')"><span class="coll-l">💷 Rent <span class="coll-cnt">${D.rent.filter(r=>String(r.prop_id)===String(pid)).length}</span></span><div class="coll-r"><button class="btn btn-sm" onclick="event.stopPropagation();nav('rent')">View all</button><span class="coll-arr op" id="ca-rent-p${pid}">▾</span></div></div>
-    <div class="coll-body" id="cb-rent-p${pid}">${propRentHtml(pid)}</div></div>
-
-    <div class="coll"><div class="coll-hd" onclick="toggleColl('mnt-p${pid}')"><span class="coll-l">🔧 Maintenance <span class="coll-cnt">${D.maintenance.filter(m=>String(m.prop_id)===String(pid)).length}</span></span><div class="coll-r"><button class="btn btn-sm" onclick="event.stopPropagation();moIssue('${pid}')">+ Report</button><span class="coll-arr op" id="ca-mnt-p${pid}">▾</span></div></div>
-    <div class="coll-body" id="cb-mnt-p${pid}">${propMaintHtml(pid)}</div></div>
-
-    <div class="coll"><div class="coll-hd" onclick="toggleColl('doc')"><span class="coll-l">📄 Documents <span class="coll-cnt">${pc.filter(c=>c.file||c.has_file).length}</span></span><div class="coll-r"><button class="btn btn-sm" onclick="event.stopPropagation();moCert('${pid}')">+ Add</button><span class="coll-arr op" id="ca-doc">▾</span></div></div>
-    <div class="coll-body" id="cb-doc">${pc.length?`<div class="tw"><table><thead><tr><th>Document</th><th>Status</th><th>Expiry</th><th>Engineer</th><th>Served</th></tr></thead><tbody>${pc.map(c=>`<tr><td class="td-bold">${c.type}</td><td>${B(c.status)}</td><td>${FMT(c.expiry)}</td><td style="font-size:12px;color:var(--muted)">${c.engineer||'—'}</td><td>${c.served?B('Served'):'—'}</td></tr>`).join('')}</tbody></table></div>`:'<div style="color:var(--muted);font-size:13px">No documents yet</div>'}</div></div>
-
-    <div class="coll"><div class="coll-hd" onclick="toggleColl('mort')"><span class="coll-l">🏦 Mortgage</span><div class="coll-r"><button class="btn btn-sm" onclick="event.stopPropagation();moMortgage('${pid}')">✎ Edit</button><span class="coll-arr op" id="ca-mort">▾</span></div></div>
-    <div class="coll-body" id="cb-mort">${p.mortgage_lender?`<div class="det-grid">${[['Lender',p.mortgage_lender],['Account',p.mortgage_account||'—'],['Monthly','£'+(p.mortgage_monthly||0).toLocaleString()],['Rate',p.mortgage_rate?p.mortgage_rate+'%':'—'],['Type',p.mortgage_type||'—'],['End date',FMS(p.mortgage_end)],['Outstanding','£'+(p.mortgage_outstanding||0).toLocaleString()]].map(([l,v])=>`<div class="det-f"><label>${l}</label><span>${v}</span></div>`).join('')}</div>`:'<div style="color:var(--muted);font-size:13px">No mortgage details yet</div>'}</div></div>
-
-    <div class="coll"><div class="coll-hd" onclick="toggleColl('ins')"><span class="coll-l">🛡 Insurance <span class="coll-cnt">${pi.length}</span></span><span class="coll-arr op" id="ca-ins">▾</span></div>
-    <div class="coll-body" id="cb-ins">${pi.length?pi.map(i=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)"><div><div style="font-weight:500">${i.type}</div><div style="font-size:12px;color:var(--muted)">${i.provider} · ${i.policy}</div></div><div style="text-align:right"><div style="font-size:12px;font-weight:600">£${i.premium}/yr</div><div style="font-size:11px;color:var(--muted)">Expires ${FMS(i.expiry)}</div></div></div>`).join(''):'<div style="color:var(--muted);font-size:13px">No insurance policies</div>'}</div></div>
-
-    <div class="coll"><div class="coll-hd" onclick="toggleColl('insp')"><span class="coll-l">🔍 Inspections <span class="coll-cnt">${(p.inspections||[]).length}</span></span><div class="coll-r"><button class="btn btn-sm" onclick="event.stopPropagation();moInspection('${pid}')">+ Log</button><span class="coll-arr op" id="ca-insp">▾</span></div></div>
-    <div class="coll-body" id="cb-insp">${(p.inspections||[]).length?`<div class="tw"><table><thead><tr><th>Date</th><th>Type</th><th>Inspector</th><th>Notes</th></tr></thead><tbody>${(p.inspections||[]).map(i=>`<tr><td>${FMS(i.date)}</td><td><span class="badge b-blue">${i.type}</span></td><td>${i.inspector||'—'}</td><td style="font-size:12px;max-width:200px">${i.notes||'—'}</td></tr>`).join('')}</tbody></table></div>`:'<div style="color:var(--muted);font-size:13px">No inspections yet</div>'}</div></div>
-
-    <div class="coll"><div class="coll-hd" onclick="toggleColl('ob-'+pid)"><span class="coll-l">✅ Tenancy Start Guide <span class="coll-cnt" id="ob-cnt-${pid}"></span></span><span class="coll-arr op" id="ca-ob-${pid}">▾</span></div>
-    <div class="coll-body" id="cb-ob-${pid}"><div style="padding:16px;color:var(--muted);font-size:13px">Loading checklist…</div></div></div>
-
-    <div class="coll"><div class="coll-hd" onclick="toggleColl('db-'+pid)"><span class="coll-l">📋 Tenancy End Guide <span class="coll-cnt" id="db-cnt-${pid}"></span></span><span class="coll-arr op" id="ca-db-${pid}">▾</span></div>
-    <div class="coll-body" id="cb-db-${pid}"><div style="padding:16px;color:var(--muted);font-size:13px">Loading checklist…</div></div></div>
-
-    <div class="coll"><div class="coll-hd" onclick="toggleColl('notes')"><span class="coll-l">📝 Notes</span><span class="coll-arr op" id="ca-notes">▾</span></div>
-    <div class="coll-body" id="cb-notes">${p.notes?`<div style="font-size:13.5px;line-height:1.7;white-space:pre-wrap">${p.notes}</div>`:'<div style="color:var(--muted);font-size:13px">No notes added</div>'}<button class="btn btn-sm" style="margin-top:12px" onclick="moEditProp('${pid}')">✎ Edit notes</button></div></div>
+    ${statHtml}
+    ${tabBar}
+    <div id="pd-tab-content">${pdTabContent(pid, activeTab)}</div>
   </div>`;
+}
+
+function pdSetTab(pid, tab) {
+  window._pdTab[pid] = tab;
+  document.querySelectorAll('.pd-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  const el = document.getElementById('pd-tab-content');
+  if (el) el.innerHTML = pdTabContent(pid, tab);
+  if (tab === 'tenant') {
+    initPropChecklist('ob', pid, 'onboard');
+    initPropChecklist('db', pid, 'deboard');
+  }
+}
+
+function pdTabContent(pid, tab) {
+  const p = P(pid);
+  const t = D.tenants.find(x => String(x.prop_id) === String(pid));
+  const pc = CF(pid);
+  const pi = D.insurance.filter(i => String(i.prop_id) === String(pid));
+
+  // ── TENANT TAB ──
+  if (tab === 'tenant') {
+    const tenantCard = t ? `
+      <div class="panel" style="margin-bottom:16px">
+        <div class="ph2">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="t-av" style="width:42px;height:42px;font-size:14px">${INI(t.name)}</div>
+            <div>
+              <div style="font-size:15px;font-weight:600">${t.name}</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:1px">${t.email||'No email'} · ${t.phone||'No phone'}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-sm" onclick="moTenantDetail('${t.id}')">✎ Edit</button>
+            <button class="btn btn-sm btn-navy" onclick="moSection8('${pid}')">⚖️ Section 8</button>
+          </div>
+        </div>
+        <div style="padding:14px 18px">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px">
+            ${[
+              ['Tenancy start', FMS(t.start_date)],
+              ['Tenancy end', t.end_date ? FMS(t.end_date) : 'Periodic (APT)'],
+              ['Monthly rent', t.rent ? `£${t.rent.toLocaleString()}` : '—'],
+              ['Deposit', t.deposit ? `£${t.deposit.toLocaleString()}` : 'Not set'],
+              ['Deposit scheme', t.scheme || 'Not set'],
+              ['Scheme ref', t.scheme_ref || '—'],
+            ].map(([l,v])=>`<div class="det-f"><label>${l}</label><span>${v}</span></div>`).join('')}
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            ${t.email?`<a href="mailto:${t.email}" class="btn btn-sm">✉ Email</a>`:''}
+            ${t.phone?`<a href="tel:${t.phone}" class="btn btn-sm">📞 Call</a>`:''}
+          </div>
+        </div>
+      </div>
+
+      <div style="background:linear-gradient(135deg,#0B1E3D,#1a3a6b);border-radius:10px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <div>
+          <div style="font-size:10px;font-weight:700;color:var(--green);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px">⚖️ Section 8 — RRA 2025</div>
+          <div style="font-size:13px;font-weight:600;color:#fff">Need to serve notice? Generate a Section 8 draft</div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px">All 37 grounds · Auto-filled · PDF + email</div>
+        </div>
+        <button class="btn btn-sm" style="background:var(--green);color:#0B1E3D;border:none;font-weight:700;flex-shrink:0" onclick="moSection8('${pid}')">Generate →</button>
+      </div>
+
+      <div class="panel" style="margin-bottom:16px">
+        <div class="ph2"><div><h2>✉ Email log</h2><p>Documents sent to this tenant</p></div><button class="btn btn-sm" onclick="nav('templates')">+ Send document</button></div>
+        <div style="padding:14px 18px">${propEmailLogHtml(pid)}</div>
+      </div>
+
+      <div class="panel" style="margin-bottom:16px">
+        <div class="ph2"><div><h2>✅ Tenancy start guide</h2><p>Onboarding checklist</p></div></div>
+        <div style="padding:14px 18px"><div id="cb-ob-${pid}"><div style="color:var(--muted);font-size:13px">Loading…</div></div></div>
+      </div>
+
+      <div class="panel">
+        <div class="ph2"><div><h2>📋 Tenancy end guide</h2><p>Offboarding checklist</p></div></div>
+        <div style="padding:14px 18px"><div id="cb-db-${pid}"><div style="color:var(--muted);font-size:13px">Loading…</div></div></div>
+      </div>` 
+    : `<div class="panel"><div style="padding:40px;text-align:center">
+        <div style="font-size:32px;margin-bottom:10px">👤</div>
+        <div style="font-size:14px;font-weight:500;margin-bottom:4px">No tenant linked</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Add a tenant to this property to track rent, generate notices and manage the tenancy.</div>
+        <button class="btn btn-navy" onclick="moTenant('${pid}')">+ Add tenant</button>
+      </div></div>`;
+    return tenantCard;
+  }
+
+  // ── FINANCIALS TAB ──
+  if (tab === 'financials') {
+    const ins = pi.reduce((s,i)=>s+(i.premium||0)/12, 0);
+    const mort = p.mortgage_monthly || 0;
+    const profit = (p.rent||0) - mort - ins;
+    const profCol = profit >= 0 ? 'var(--green-dark)' : 'var(--red)';
+    return `
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px">
+        <div class="mc" style="background:rgba(0,200,150,0.08);border-color:transparent"><div class="mc-top"><span class="mc-label">Monthly income</span></div><div class="mc-val" style="color:var(--green-dark)">£${(p.rent||0).toLocaleString()}</div><div class="mc-sub">Rent</div></div>
+        <div class="mc" style="background:rgba(229,62,62,0.07);border-color:transparent"><div class="mc-top"><span class="mc-label">Monthly costs</span></div><div class="mc-val" style="color:var(--red)">£${Math.round(mort+ins).toLocaleString()}</div><div class="mc-sub">Mortgage + insurance</div></div>
+        <div class="mc" style="background:${profit>=0?'rgba(0,200,150,0.08)':'rgba(229,62,62,0.07)'};border-color:transparent"><div class="mc-top"><span class="mc-label">Net profit</span></div><div class="mc-val" style="color:${profCol}">£${Math.round(profit).toLocaleString()}</div><div class="mc-sub">Per month</div></div>
+      </div>
+
+      <div class="panel" style="margin-bottom:16px">
+        <div class="ph2"><div><h2>💷 Rent records</h2></div><button class="btn btn-sm" onclick="nav('rent')">View all rent</button></div>
+        <div style="padding:14px 18px">${propRentHtml(pid)}</div>
+      </div>
+
+      <div class="panel" style="margin-bottom:16px">
+        <div class="ph2"><div><h2>🏦 Mortgage</h2></div><button class="btn btn-sm" onclick="moMortgage('${pid}')">✎ Edit</button></div>
+        <div style="padding:14px 18px">${p.mortgage_lender
+          ? `<div class="det-grid">${[['Lender',p.mortgage_lender],['Monthly','£'+(p.mortgage_monthly||0).toLocaleString()],['Rate',p.mortgage_rate?p.mortgage_rate+'%':'—'],['Type',p.mortgage_type||'—'],['Outstanding','£'+(p.mortgage_outstanding||0).toLocaleString()],['End date',FMS(p.mortgage_end)]].map(([l,v])=>`<div class="det-f"><label>${l}</label><span>${v}</span></div>`).join('')}</div>`
+          : `<div style="color:var(--muted);font-size:13px">No mortgage details — <a href="#" onclick="moMortgage('${pid}')" style="color:var(--navy)">add mortgage</a></div>`}
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="ph2"><div><h2>🛡 Insurance</h2></div></div>
+        <div style="padding:14px 18px">${pi.length
+          ? pi.map(i=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)"><div><div style="font-weight:500">${i.type}</div><div style="font-size:12px;color:var(--muted)">${i.provider} · ${i.policy}</div></div><div style="text-align:right"><div style="font-size:13px;font-weight:600">£${i.premium}/yr</div><div style="font-size:11px;color:var(--muted)">Expires ${FMS(i.expiry)}</div></div></div>`).join('')
+          : `<div style="color:var(--muted);font-size:13px">No insurance policies added yet</div>`}
+        </div>
+      </div>`;
+  }
+
+  // ── COMPLIANCE TAB ──
+  if (tab === 'compliance') {
+    const rag = calcRAG(pid);
+    const ragCol = rag.rag==='red'?'#E53E3E':rag.rag==='amber'?'#D97706':'#00C896';
+    const ragBg = rag.rag==='red'?'#fff5f5':rag.rag==='amber'?'#fffbeb':'#f0fdf9';
+    return `
+      <div style="background:${ragBg};border:1px solid ${ragCol};border-radius:10px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:14px">
+        <div style="font-size:26px">${rag.rag==='red'?'⚠️':rag.rag==='amber'?'⚡':'✅'}</div>
+        <div style="flex:1">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <div style="font-size:13px;font-weight:600;color:${ragCol}">Compliance: ${rag.label}</div>
+            <div style="font-size:18px;font-weight:700;color:${ragCol}">${rag.score}/100</div>
+          </div>
+          <div style="height:5px;background:#E4EAF1;border-radius:100px;overflow:hidden"><div style="height:100%;width:${rag.score}%;background:${ragCol};border-radius:100px"></div></div>
+          <div style="font-size:11px;color:#7A8FA6;margin-top:5px">${pc.length} certificate${pc.length!==1?'s':''} · ${pc.filter(c=>c.status==='Valid').length} valid · ${pc.filter(c=>c.status==='Missing').length} missing</div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-bottom:16px">
+        <div class="ph2"><div><h2>📄 Documents & certificates</h2></div><button class="btn btn-sm btn-navy" onclick="moCert('${pid}')">+ Add certificate</button></div>
+        ${pc.length
+          ? `<div class="tw"><table><thead><tr><th>Document</th><th>Status</th><th>Expiry</th><th>Engineer</th><th>Served</th><th>File</th></tr></thead>
+              <tbody>${pc.map(c=>`<tr>
+                <td class="td-bold">${c.type}</td>
+                <td>${B(c.status)}</td>
+                <td>${FMT(c.expiry)}</td>
+                <td style="font-size:12px;color:var(--muted)">${c.engineer||'—'}</td>
+                <td>${c.served?`<button onclick="markServed(${c.id})" style="background:var(--green-bg);border:1px solid var(--green);color:var(--green-dark);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font)">✓ Served</button>`:`<button onclick="markServed(${c.id})" style="background:var(--off);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;font-family:var(--font)">Mark served</button>`}</td>
+                <td>${(c.file||c.has_file)?'<span class="badge b-green">✓</span>':`<label style="cursor:pointer;font-size:11px;font-weight:600;color:var(--blue);padding:3px 8px;border:1px solid var(--blue);border-radius:6px;background:var(--blue-bg)">Upload<input type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="uploadScanCert(${c.id},this)"></label>`}</td>
+              </tr>`).join('')}</tbody>
+            </table></div>`
+          : `<div style="padding:14px 18px;font-size:13px;color:var(--muted)">No certificates yet — <a href="#" onclick="moCert('${pid}')" style="color:var(--navy);font-weight:500">add one</a></div>`}
+      </div>
+
+      <div class="panel">
+        <div class="ph2"><div><h2>🔍 Inspections</h2></div><button class="btn btn-sm" onclick="moInspection('${pid}')">+ Log inspection</button></div>
+        <div style="padding:14px 18px">${(p.inspections||[]).length
+          ? `<div class="tw"><table><thead><tr><th>Date</th><th>Type</th><th>Inspector</th><th>Notes</th></tr></thead><tbody>${(p.inspections||[]).map(i=>`<tr><td>${FMS(i.date)}</td><td>${B(i.type||'Routine')}</td><td>${i.inspector||'—'}</td><td style="font-size:12px;max-width:200px">${i.notes||'—'}</td></tr>`).join('')}</tbody></table></div>`
+          : `<div style="color:var(--muted);font-size:13px">No inspections logged yet</div>`}
+        </div>
+      </div>`;
+  }
+
+  // ── MAINTENANCE TAB ──
+  if (tab === 'maintenance') {
+    const allM = D.maintenance.filter(m => String(m.prop_id) === String(pid));
+    const open = allM.filter(m => m.status !== 'Resolved');
+    const resolved = allM.filter(m => m.status === 'Resolved');
+    const awaab = allM.filter(m => m.awaab && m.status !== 'Resolved');
+    return `
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px">
+        <div class="mc" style="background:${open.length?'rgba(229,62,62,0.07)':'rgba(0,200,150,0.08)'};border-color:transparent"><div class="mc-top"><span class="mc-label">Open issues</span></div><div class="mc-val" style="color:${open.length?'var(--red)':'var(--green-dark)'}">${open.length}</div></div>
+        <div class="mc" style="background:rgba(0,200,150,0.08);border-color:transparent"><div class="mc-top"><span class="mc-label">Resolved</span></div><div class="mc-val" style="color:var(--green-dark)">${resolved.length}</div></div>
+        <div class="mc" style="background:${awaab.length?'rgba(229,62,62,0.07)':'var(--off)'};border-color:transparent"><div class="mc-top"><span class="mc-label">Awaab flagged</span></div><div class="mc-val" style="color:${awaab.length?'var(--red)':'var(--muted)'}">${awaab.length}</div></div>
+      </div>
+
+      <div class="panel">
+        <div class="ph2"><div><h2>🔧 Issues</h2></div><button class="btn btn-sm btn-navy" onclick="moIssue('${pid}')">+ Report issue</button></div>
+        ${allM.length
+          ? `<div class="tw"><table><thead><tr><th>Date</th><th>Description</th><th>Priority</th><th>Flags</th><th>Status</th></tr></thead>
+              <tbody>${allM.map(m=>`<tr>
+                <td style="font-size:12px;white-space:nowrap">${FMT(m.date||m.issue_date)}</td>
+                <td style="max-width:220px;font-size:13px">${m.desc||m.description||'—'}</td>
+                <td>${B(m.priority)}</td>
+                <td>${m.awaab?'<span class="badge b-red">Awaab</span>':'—'}</td>
+                <td><div class="sf">
+                  <button class="sf-btn${m.status==='Open'?' sf-on':''}" onclick="updateIssueStatus('${m.id}','Open')">Open</button>
+                  <span style="color:var(--muted);font-size:11px">→</span>
+                  <button class="sf-btn${m.status==='In progress'?' sf-on':''}" onclick="updateIssueStatus('${m.id}','In progress')">In progress</button>
+                  ${m.status!=='Resolved'?`<span style="color:var(--muted)">→</span><button class="sf-btn" onclick="updateIssueStatus('${m.id}','Resolved')">Resolve</button>`:'<span class="badge b-green">Resolved</span>'}
+                </div></td>
+              </tr>`).join('')}</tbody>
+            </table></div>`
+          : `<div style="padding:32px;text-align:center"><div style="font-size:28px;opacity:.3;margin-bottom:8px">✓</div><div style="font-size:13px;color:var(--muted)">No maintenance issues</div></div>`}
+      </div>`;
+  }
+
+  // ── PROPERTY TAB ──
+  if (tab === 'property') {
+    const licBadge = {None:'b-gray','Mandatory HMO':'b-red','Additional HMO':'b-amber','Selective Licence':'b-blue','Article 4':'b-navy','Short-term Let':'b-amber'}[p.licence_type]||'b-gray';
+    return `
+      <div class="panel" style="margin-bottom:16px">
+        <div class="ph2"><div><h2>🏠 Property details</h2></div><button class="btn btn-sm" onclick="moEditProp('${pid}')">✎ Edit</button></div>
+        <div style="padding:14px 18px"><div class="det-grid">
+          ${[['Address',p.address],['City',p.city],['Postcode',p.postcode],['Type',p.type||'—'],['Bedrooms',p.beds||'—'],['Bathrooms',p.bathrooms||'—'],['Monthly rent',p.rent?'£'+p.rent.toLocaleString():'—'],['Council tax band',p.council_tax_band||'—'],['EPC rating',p.epc||'—'],['EPC expiry',FMS(p.epc_expiry)]].map(([l,v])=>`<div class="det-f"><label>${l}</label><span>${v}</span></div>`).join('')}
+        </div></div>
+      </div>
+
+      <div class="panel" style="margin-bottom:16px">
+        <div class="ph2"><div><h2>📋 Property licence</h2><p>${p.licence_type||'None'}</p></div><button class="btn btn-sm" onclick="moLicence('${pid}')">✎ Edit</button></div>
+        <div style="padding:14px 18px"><div class="det-grid">
+          ${[['Licence type',p.licence_type||'None'],['Reference',p.licence_ref||'—'],['Expiry',FMS(p.licence_expiry)],['Max occupants',p.licence_max||'—']].map(([l,v])=>`<div class="det-f"><label>${l}</label><span>${v}</span></div>`).join('')}
+        </div></div>
+      </div>
+
+      <div class="panel" style="margin-bottom:16px">
+        <div class="ph2"><div><h2>📐 Rooms</h2></div><button class="btn btn-sm" onclick="alert('Add rooms — coming soon')">+ Add</button></div>
+        <div style="padding:14px 18px">${(p.rooms||[]).length
+          ? `<div class="tw"><table><thead><tr><th>Room</th><th>Floor</th><th>Size (m²)</th></tr></thead><tbody>${(p.rooms||[]).map(r=>`<tr><td class="td-bold">${r.name}</td><td>${r.floor}</td><td>${r.size} m²</td></tr>`).join('')}</tbody></table></div>`
+          : `<div style="color:var(--muted);font-size:13px">No rooms added yet</div>`}
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="ph2"><div><h2>📝 Notes</h2></div><button class="btn btn-sm" onclick="moEditProp('${pid}')">✎ Edit</button></div>
+        <div style="padding:14px 18px">${p.notes
+          ? `<div style="font-size:13.5px;line-height:1.7;white-space:pre-wrap">${p.notes}</div>`
+          : `<div style="color:var(--muted);font-size:13px">No notes added</div>`}
+        </div>
+      </div>`;
+  }
+  return '';
 }
 
 // ── PAGE: COMPLIANCE ──
@@ -1990,8 +2210,11 @@ function nav(page, param){
   main.scrollTo(0,0);
   // Async post-render hooks
   if (page === 'prop-detail' && param) {
-    initPropChecklist('ob', param, 'onboard');
-    initPropChecklist('db', param, 'deboard');
+    const activeTab = window._pdTab && window._pdTab[param] || 'tenant';
+    if (activeTab === 'tenant') {
+      initPropChecklist('ob', param, 'onboard');
+      initPropChecklist('db', param, 'deboard');
+    }
   }
 }
 // ── PAGE: TEMPLATES ──
@@ -3320,7 +3543,7 @@ function moTenantDetail(tid) {
     ['Deposit amount', t.deposit ? `£${t.deposit.toLocaleString()}` : '—'],
     ['Deposit scheme', t.scheme || 'Not set'],
     ['Scheme reference', t.scheme_ref || '—'],
-    ['Tenancy type', t.type || 'AST'],
+    ['Tenancy type', t.type === 'AST' ? 'AST (converts to APT 1 May 2026)' : t.type || 'APT'],
     ['Rent due day', t.rent_day ? `${t.rent_day}${['','st','nd','rd'][t.rent_day]||'th'} of month` : '—'],
     ['Status', t.status || 'Active'],
   ].map(([l,v]) => `<div class="t-det-row"><span class="lbl">${l}</span><span style="font-weight:500;text-align:right">${v}</span></div>`).join('');
