@@ -865,6 +865,9 @@ async function saveIssueToDB() {
     cat: document.getElementById('i-cat')?.value || 'Other',
     priority: document.getElementById('i-pri')?.value || 'Low',
     status: 'Open',
+    stage: 'Reported',
+    assigned_to: document.getElementById('i-contractor')?.value?.trim() || null,
+    cost: parseFloat(document.getElementById('i-cost')?.value) || null,
     issue_date: new Date().toISOString().slice(0,10),
     awaab: awaabVal.startsWith('Yes'),
     user_id: currentUser.id
@@ -1207,18 +1210,58 @@ function moTenant(pid){
 // ── MODAL: MAINTENANCE ISSUE ──
 function moIssue(pid){
   const opts=D.properties.map(p=>`<option value="${p.id}"${p.id==pid?' selected':''}>${p.address}, ${p.city}</option>`).join('');
-  openMo('Report maintenance issue','',`
-    <div class="fg"><label>Property</label><select id="i-prop">${opts}</select></div>
+  openMo('Report maintenance issue','Log a new job for this property',`
+    <div class="fg"><label>Property <span class="req">*</span></label><select id="i-prop">${opts}</select></div>
     <div class="fg-row">
-      <div class="fg"><label>Category</label><select id="i-cat"><option>Plumbing</option><option>Heating</option><option>Electrical</option><option>Pest Control</option><option>Structural</option><option>Damp & Mould</option><option>Other</option></select></div>
-      <div class="fg"><label>Priority</label><select id="i-pri"><option>Low</option><option>High</option><option>Urgent</option></select></div>
+      <div class="fg"><label>Category</label><select id="i-cat" onchange="checkAwaabAuto()">
+        <option>Plumbing</option><option>Heating / Boiler</option><option>Electrical</option>
+        <option>Pest Control</option><option>Structural</option><option>Damp & Mould</option>
+        <option>Roofing</option><option>Windows & Doors</option><option>Appliances</option>
+        <option>Decoration</option><option>Garden</option><option>Other</option>
+      </select></div>
+      <div class="fg"><label>Priority</label><select id="i-pri"><option>Low</option><option>Medium</option><option>High</option><option>Urgent</option></select></div>
     </div>
     <div class="fg"><label>Description <span class="req">*</span></label><textarea id="i-desc" placeholder="Describe the issue in detail…"></textarea></div>
+
+    <div id="awaab-warning" style="display:none;background:rgba(229,62,62,0.09);border:1px solid var(--red);border-radius:8px;padding:10px 14px;margin-bottom:14px;display:none;align-items:center;gap:10px">
+      <div style="font-size:20px">⚠️</div>
+      <div>
+        <div style="font-size:13px;font-weight:600;color:var(--red)">Awaab's Law applies</div>
+        <div style="font-size:11px;color:var(--txt);margin-top:2px">Damp & Mould is a health hazard under Awaab's Law. You must investigate within 14 days and fix within a reasonable timeframe. This issue will be flagged automatically.</div>
+      </div>
+    </div>
+
     <div class="fg-row">
-      <div class="fg"><label>Source</label><select id="i-src"><option>Landlord</option><option>Tenant portal</option><option>Inspection</option></select></div>
+      <div class="fg"><label>Assigned to (contractor)</label><input type="text" id="i-contractor" placeholder="e.g. City Gas Services"></div>
+      <div class="fg"><label>Estimated cost (£)</label><input type="number" id="i-cost" placeholder="e.g. 150"></div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Reported by</label><select id="i-src"><option>Landlord</option><option>Tenant</option><option>Inspection</option><option>Contractor</option></select></div>
       <div class="fg"><label>Awaab's Law flag</label><select id="i-awaab"><option>No</option><option>Yes — hazard affecting health</option></select></div>
     </div>
+    <div class="fg"><label>Photos (optional)</label>
+      <div class="scan-box" style="padding:12px;margin-bottom:0" id="i-photo-box">
+        <input type="file" accept="image/*" multiple id="i-photos" onchange="issuePhotosSelected(this)">
+        <div style="font-size:13px;color:var(--muted)">📷 Upload photos of the issue</div>
+      </div>
+    </div>
   `,`<button class="btn" onclick="closeMo()">Cancel</button><button class="btn btn-navy" onclick="saveIssueToDB()">Log issue</button>`);
+}
+
+function checkAwaabAuto() {
+  const cat = document.getElementById('i-cat')?.value;
+  const isAwaab = cat === 'Damp & Mould';
+  const warn = document.getElementById('awaab-warning');
+  const sel = document.getElementById('i-awaab');
+  if (warn) warn.style.display = isAwaab ? 'flex' : 'none';
+  if (sel && isAwaab) sel.value = 'Yes — hazard affecting health';
+  if (sel && !isAwaab) sel.value = 'No';
+}
+
+function issuePhotosSelected(input) {
+  const files = [...input.files];
+  const box = document.getElementById('i-photo-box');
+  if (box) box.innerHTML = `<div style="font-size:13px;color:var(--green-dark);font-weight:600">✓ ${files.length} photo${files.length!==1?'s':''} selected</div><div style="font-size:11px;color:var(--muted);margin-top:3px">${files.map(f=>f.name).slice(0,3).join(', ')}${files.length>3?'…':''}</div>`;
 }
 
 function toggleColl(id){
@@ -1714,13 +1757,23 @@ function pdTabContent(pid, tab) {
         </div>
       </div>
 
-      <div style="background:linear-gradient(135deg,#0B1E3D,#1a3a6b);border-radius:10px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px">
-        <div>
-          <div style="font-size:10px;font-weight:700;color:var(--green);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px">⚖️ Section 8 — RRA 2025</div>
-          <div style="font-size:13px;font-weight:600;color:#fff">Need to serve notice? Generate a Section 8 draft</div>
-          <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px">All 37 grounds · Auto-filled · PDF + email</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div style="background:linear-gradient(135deg,#0B1E3D,#1a3a6b);border-radius:10px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--green);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px">⚖️ Section 8 — RRA 2025</div>
+            <div style="font-size:13px;font-weight:600;color:#fff">Generate Section 8 draft</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px">All 37 grounds · Auto-filled</div>
+          </div>
+          <button class="btn btn-sm" style="background:var(--green);color:#0B1E3D;border:none;font-weight:700;flex-shrink:0" onclick="moSection8('${pid}')">Generate →</button>
         </div>
-        <button class="btn btn-sm" style="background:var(--green);color:#0B1E3D;border:none;font-weight:700;flex-shrink:0" onclick="moSection8('${pid}')">Generate →</button>
+        <div style="background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:10px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <div>
+            <div style="font-size:10px;font-weight:700;color:#3B6FE8;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px">✦ AI Powered</div>
+            <div style="font-size:13px;font-weight:600;color:#fff">Inventory Report</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px">Move-in · Move-out · Saves £150–300</div>
+          </div>
+          <button class="btn btn-sm" style="background:var(--blue);color:#fff;border:none;font-weight:700;flex-shrink:0" onclick="moInventoryReport('${pid}')">Generate →</button>
+        </div>
       </div>
 
       <div class="panel" style="margin-bottom:16px">
@@ -2112,47 +2165,123 @@ function pgRent(){
 }
 
 // ── PAGE: MAINTENANCE ──
-let mtab='open';
+let _mview = 'kanban';
+
 function pgMaintenance(){
-  const opn=D.maintenance.filter(m=>m.status!=='Resolved'),res=D.maintenance.filter(m=>m.status==='Resolved'),cur=mtab==='open'?opn:res;
-  return`<div class="topbar"><span class="tb-title">Maintenance</span><div class="tb-right"><button class="btn btn-navy" onclick="moIssue()">+ Report issue</button></div></div>
+  const opn=D.maintenance.filter(m=>m.status!=='Resolved');
+  const res=D.maintenance.filter(m=>m.status==='Resolved');
+  const awaab=D.maintenance.filter(m=>m.awaab&&m.status!=='Resolved');
+  const totalCost=D.maintenance.filter(m=>m.cost).reduce((s,m)=>s+(m.cost||0),0);
+  const stages=['Reported','Assigned','In Progress','Completed','Closed'];
+  const stageCol={'Reported':'#7A8FA6','Assigned':'#3B6FE8','In Progress':'#D97706','Completed':'#00C896','Closed':'#556678'};
+
+  const kanbanHtml=`<div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;align-items:flex-start">
+    ${stages.map(stage=>{
+      const items=D.maintenance.filter(m=>(m.stage||'Reported')===stage);
+      const col=stageCol[stage];
+      return`<div style="min-width:210px;flex:1">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <div style="width:9px;height:9px;border-radius:50%;background:${col};flex-shrink:0"></div>
+          <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)">${stage}</span>
+          <span style="font-size:10px;font-weight:700;background:var(--off);border:1px solid var(--border);color:var(--muted);padding:1px 6px;border-radius:100px">${items.length}</span>
+        </div>
+        ${items.length?items.map(m=>{
+          const p=P(m.prop_id)||{address:'—'};
+          const priCol=m.priority==='Urgent'?'var(--red)':m.priority==='High'?'var(--amber)':'var(--muted)';
+          return`<div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer;transition:box-shadow .15s;border-left:3px solid ${col}" onclick="moIssueDetail('${m.id}')" onmouseenter="this.style.boxShadow='0 2px 12px rgba(0,0,0,0.08)'" onmouseleave="this.style.boxShadow='none'">
+            <div style="font-size:12px;font-weight:600;color:var(--txt);margin-bottom:4px;line-height:1.4">${m.title||m.desc||'—'}</div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:8px">${p.address}</div>
+            <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:8px">
+              <span style="font-size:10px;font-weight:600;color:${priCol};background:${m.priority==='Urgent'?'rgba(229,62,62,0.08)':m.priority==='High'?'rgba(217,119,6,0.08)':'var(--off)'};padding:2px 7px;border-radius:100px">${m.priority||'Low'}</span>
+              ${m.cat?`<span style="font-size:10px;color:var(--muted);background:var(--off);padding:2px 7px;border-radius:100px">${m.cat}</span>`:''}
+              ${m.awaab?'<span style="font-size:10px;font-weight:700;color:var(--red)">⚠ Awaab</span>':''}
+              ${m.cost?`<span style="font-size:10px;font-weight:600;color:var(--green-dark);margin-left:auto">£${m.cost}</span>`:''}
+            </div>
+            ${m.assigned_to?`<div style="font-size:10px;color:var(--blue);margin-bottom:8px">👷 ${m.assigned_to}</div>`:''}
+            <div style="display:flex;gap:4px;flex-wrap:wrap">
+              ${stages.filter(s=>s!==stage).map(s=>`<button onclick="event.stopPropagation();moveStage('${m.id}','${s}')" style="font-size:10px;padding:2px 7px;border-radius:4px;border:1px solid var(--border);background:var(--off);color:var(--muted);cursor:pointer;font-family:var(--font)" onmouseenter="this.style.background='${stageCol[s]}';this.style.color='#fff';this.style.borderColor='${stageCol[s]}'" onmouseleave="this.style.background='var(--off)';this.style.color='var(--muted)';this.style.borderColor='var(--border)'">${s}</button>`).join('')}
+            </div>
+          </div>`;
+        }).join(''):`<div style="border:2px dashed var(--border);border-radius:10px;padding:20px;text-align:center;color:var(--muted);font-size:12px">No jobs</div>`}
+      </div>`;
+    }).join('')}
+  </div>`;
+
+  return`<div class="topbar"><span class="tb-title">Maintenance</span><div class="tb-right">
+    <button class="btn btn-navy" onclick="moIssue()">+ Report issue</button>
+  </div></div>
   <div class="content">
-    <div class="ph"><h1>Maintenance</h1><p>Track and manage issues</p></div>
-    <div class="metrics metrics-3">
-      <div class="mc"><div class="mc-top"><span class="mc-label">Open issues</span><div class="mc-icon">🔧</div></div><div class="mc-val">${opn.length}</div></div>
-      <div class="mc"><div class="mc-top"><span class="mc-label">Resolved</span><div class="mc-icon">✅</div></div><div class="mc-val">${res.length}</div></div>
-      <div class="mc"><div class="mc-top"><span class="mc-label">Awaab's Law</span><div class="mc-icon">⏱</div></div><div class="mc-val" style="color:var(--red)">${D.maintenance.filter(m=>m.awaab).length}</div></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px">
+      <div class="mc" style="background:${opn.length?'rgba(229,62,62,0.07)':'rgba(0,200,150,0.07)'};border-color:transparent">
+        <div class="mc-top"><span class="mc-label">Open jobs</span></div><div class="mc-val" style="color:${opn.length?'var(--red)':'var(--green-dark)'}">${opn.length}</div></div>
+      <div class="mc" style="background:rgba(0,200,150,0.07);border-color:transparent">
+        <div class="mc-top"><span class="mc-label">Resolved</span></div><div class="mc-val" style="color:var(--green-dark)">${res.length}</div></div>
+      <div class="mc" style="background:${awaab.length?'rgba(229,62,62,0.07)':'var(--off)'};border-color:transparent">
+        <div class="mc-top"><span class="mc-label">Awaab flagged</span></div><div class="mc-val" style="color:${awaab.length?'var(--red)':'var(--muted)'}">${awaab.length}</div></div>
+      <div class="mc" style="background:rgba(0,200,150,0.07);border-color:transparent">
+        <div class="mc-top"><span class="mc-label">Total costs</span></div><div class="mc-val" style="color:var(--green-dark)">£${totalCost.toLocaleString()}</div></div>
     </div>
-    <div class="tabs">
-      <button class="tab${mtab==='open'?' active':''}" onclick="mtab='open';nav('maintenance')">Open (${opn.length})</button>
-      <button class="tab${mtab==='resolved'?' active':''}" onclick="mtab='resolved';nav('maintenance')">Resolved (${res.length})</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="font-size:13px;font-weight:600;color:var(--txt)">Job board</div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-sm${_mview==='kanban'?' btn-navy':''}" onclick="_mview='kanban';nav('maintenance')">⊞ Board</button>
+        <button class="btn btn-sm${_mview==='list'?' btn-navy':''}" onclick="_mview='list';nav('maintenance')">☰ List</button>
+      </div>
     </div>
-    <div class="panel"><div class="tw"><table>
-      <thead><tr><th>Date</th><th>Property</th><th>Description</th><th>Category</th><th>Priority</th><th>Flags</th><th>Status</th></tr></thead>
-      <tbody>${cur.length?cur.map(m=>{const p=P(m.prop_id)||{address:'—',id:0};return`<tr>
-        <td style="white-space:nowrap;font-size:12px">${FMT(m.date||m.issue_date)}</td>
-        <td><button style="background:none;border:none;color:var(--blue);cursor:pointer;font-weight:500;font-size:13px;font-family:var(--font)" onclick="nav('prop-detail','${p.id}')">${p.address}</button></td>
-        <td style="max-width:220px;font-size:13px;white-space:normal">${m.desc||m.description||'—'}</td>
-        <td style="font-size:12px">${m.cat}</td><td>${B(m.priority)}</td>
-        <td>${m.awaab?'<span class="badge b-red">Awaab</span>':'—'}</td>
-        <td><div class="sf">
-          <button class="sf-btn${m.status==='Open'?' sf-on':''}" onclick="updateIssueStatus('${m.id}','Open')">Open</button>
-          <span style="color:var(--muted);font-size:11px">→</span>
-          <button class="sf-btn${m.status==='In progress'?' sf-on':''}" onclick="updateIssueStatus('${m.id}','In progress')">In progress</button>
-          ${mtab==='open'?`<span style="color:var(--muted)">→</span><button class="sf-btn" onclick="updateIssueStatus('${m.id}','Resolved')">Resolve</button>`:''}
-        </div></td>
-      </tr>`}).join(''):`<tr><td colspan="7"><div class="empty"><div class="empty-ic">✓</div><div class="empty-t">No ${mtab} issues</div></div></td></tr>`}
-      </tbody>
-    </table></div></div>
+    ${_mview==='kanban'?kanbanHtml:`<div class="panel"><div class="tw"><table>
+      <thead><tr><th>Date</th><th>Property</th><th>Description</th><th>Category</th><th>Priority</th><th>Assigned</th><th>Cost</th><th>Stage</th></tr></thead>
+      <tbody>${D.maintenance.length?D.maintenance.map(m=>{const p=P(m.prop_id)||{address:'—',id:0};const sc=stageCol[m.stage||'Reported'];return`<tr onclick="moIssueDetail('${m.id}')" style="cursor:pointer">
+        <td style="font-size:12px">${FMT(m.date||m.issue_date)}</td>
+        <td style="font-size:12px;color:var(--blue);font-weight:500">${p.address}</td>
+        <td style="max-width:200px;font-size:12px">${m.title||m.desc||'—'}</td>
+        <td style="font-size:12px">${m.cat||'—'}</td><td>${B(m.priority||'Low')}</td>
+        <td style="font-size:12px;color:var(--muted)">${m.assigned_to||'—'}</td>
+        <td style="font-size:12px;font-weight:600;color:var(--green-dark)">${m.cost?'£'+m.cost:'—'}</td>
+        <td><span style="font-size:11px;font-weight:600;color:${sc};background:rgba(0,0,0,0.04);padding:2px 8px;border-radius:100px">${m.stage||'Reported'}</span></td>
+      </tr>`}).join(''):`<tr><td colspan="8"><div class="empty"><div class="empty-ic">✓</div><div class="empty-t">No issues yet</div></div></td></tr>`}</tbody>
+    </table></div></div>`}
   </div>`;
 }
 
-async function updateIssueStatus(id, status) {
-  const { error } = await sb.from('maintenance').update({status}).eq('id', id);
-  if (error) { toast('Error: ' + error.message, true); return; }
-  const m = D.maintenance.find(x => String(x.id) === String(id));
-  if (m) m.status = status;
-  await logAudit('UPDATE_MAINTENANCE', 'maintenance', id, `Status → ${status}`);
+async function moveStage(id,stage){
+  const statusMap={'Reported':'Open','Assigned':'Open','In Progress':'Open','Completed':'Resolved','Closed':'Resolved'};
+  const{error}=await sb.from('maintenance').update({
+    stage,status:statusMap[stage]||'Open',
+    completed_date:(stage==='Completed'||stage==='Closed')?new Date().toISOString().slice(0,10):null
+  }).eq('id',id);
+  if(error){toast('Error: '+error.message,true);return;}
+  const m=D.maintenance.find(x=>String(x.id)===String(id));
+  if(m){m.stage=stage;m.status=statusMap[stage]||'Open';}
+  await logAudit('UPDATE_STAGE','maintenance',id,`Stage → ${stage}`);
+  toast(`✓ Moved to ${stage}`);
+  nav('maintenance');
+}
+
+function moIssueDetail(id){
+  const m=D.maintenance.find(x=>String(x.id)===String(id));
+  if(!m)return;
+  const p=P(m.prop_id)||{address:'—'};
+  const stages=['Reported','Assigned','In Progress','Completed','Closed'];
+  const stageCol={'Reported':'#7A8FA6','Assigned':'#3B6FE8','In Progress':'#D97706','Completed':'#00C896','Closed':'#556678'};
+  openMo(m.title||'Maintenance job',`${p.address} · ${m.cat||'—'}`,`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      ${[['Property',p.address],['Category',m.cat||'—'],['Priority',m.priority||'Low'],['Reported',FMS(m.date||m.issue_date)],['Assigned to',m.assigned_to||'Not assigned'],['Cost',m.cost?'£'+m.cost:'Not set'],['Completed',m.completed_date?FMS(m.completed_date):'—'],['Awaab',m.awaab?'⚠️ Yes':'No']].map(([l,v])=>`<div class="det-f"><label>${l}</label><span>${v}</span></div>`).join('')}
+    </div>
+    <div style="background:var(--off);border-radius:8px;padding:12px;margin-bottom:14px;font-size:13px;line-height:1.6">${m.description||m.desc||'—'}</div>
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:8px">Move to stage</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      ${stages.map(s=>`<button onclick="moveStage('${m.id}','${s}');closeMo()" style="font-size:12px;padding:6px 12px;border-radius:6px;border:2px solid ${(m.stage||'Reported')===s?stageCol[s]:'var(--border)'};background:${(m.stage||'Reported')===s?stageCol[s]:'var(--white)'};color:${(m.stage||'Reported')===s?'#fff':'var(--muted)'};cursor:pointer;font-family:var(--font);font-weight:${(m.stage||'Reported')===s?'700':'400'}">${s}</button>`).join('')}
+    </div>
+  `,`<button class="btn" onclick="closeMo()">Close</button>`);
+}
+
+async function updateIssueStatus(id,status){
+  const stageMap={'Open':'Reported','In progress':'In Progress','Resolved':'Completed'};
+  const{error}=await sb.from('maintenance').update({status,stage:stageMap[status]||'Reported'}).eq('id',id);
+  if(error){toast('Error: '+error.message,true);return;}
+  const m=D.maintenance.find(x=>String(x.id)===String(id));
+  if(m){m.status=status;m.stage=stageMap[status]||m.stage;}
+  await logAudit('UPDATE_MAINTENANCE','maintenance',id,`Status → ${status}`);
   toast(`✓ Marked as ${status}`);
   nav('maintenance');
 }
@@ -4068,6 +4197,124 @@ function updateNavBadges() {
     if (vacBad > 0) { propEl.textContent = vacBad; propEl.className = 'nav-badge amber'; propEl.style.display = 'flex'; }
     else propEl.style.display = 'none';
   }
+}
+
+// ── AI INVENTORY REPORT ──
+function moInventoryReport(pid){
+  const propOpts=D.properties.map(p=>`<option value="${p.id}"${String(p.id)===String(pid)?' selected':''}>${p.address}, ${p.city}</option>`).join('');
+  openMo('AI Inventory Report','Upload room photos — AI generates a written condition report',`
+    <div style="background:linear-gradient(135deg,#0B1E3D,#1a3a6b);border-radius:10px;padding:14px 16px;margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">✦ Save £150–300 per inspection</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.85)">Upload photos of each room — AI writes a professional condition report for move-in/move-out, deposit disputes, and legal records.</div>
+    </div>
+    <div class="fg"><label>Property <span class="req">*</span></label><select id="inv-prop">${propOpts}</select></div>
+    <div class="fg"><label>Report type</label>
+      <select id="inv-type"><option>Move-in condition report</option><option>Move-out condition report</option><option>Mid-tenancy inspection</option><option>General inventory</option></select>
+    </div>
+    <div class="fg"><label>Upload room photos <span class="req">*</span></label>
+      <div class="scan-box" style="padding:14px" id="inv-upload-box">
+        <input type="file" accept="image/*" multiple id="inv-photos" onchange="invPhotosSelected(this)">
+        <div class="scan-ic">📷</div>
+        <div class="scan-t">Upload photos of all rooms</div>
+        <div class="scan-s">Select multiple — kitchen, living room, bedrooms, bathroom, exterior</div>
+      </div>
+    </div>
+    <div class="fg"><label>Additional notes (optional)</label>
+      <textarea id="inv-notes" placeholder="e.g. New carpet in bedroom 1, landlord's furniture in living room…"></textarea>
+    </div>
+    <div id="inv-output" style="display:none">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:8px">Generated report</div>
+      <div id="inv-report" style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:12.5px;line-height:1.8;max-height:280px;overflow-y:auto;white-space:pre-wrap;font-family:Georgia,serif"></div>
+    </div>
+  `,`<button class="btn" onclick="closeMo()">Cancel</button>
+    <button class="btn btn-navy" id="inv-gen-btn" onclick="generateInventoryReport()">✦ Generate report</button>`);
+}
+
+function invPhotosSelected(input){
+  const files=[...input.files];
+  const box=document.getElementById('inv-upload-box');
+  if(box) box.innerHTML=`<div style="font-size:13px;color:var(--green-dark);font-weight:600">✓ ${files.length} photo${files.length!==1?'s':''} selected</div><div style="font-size:11px;color:var(--muted);margin-top:3px">${files.map(f=>f.name).slice(0,3).join(', ')}${files.length>3?'…':''}</div>`;
+}
+
+async function generateInventoryReport(){
+  const btn=document.getElementById('inv-gen-btn');
+  const propId=document.getElementById('inv-prop')?.value;
+  const type=document.getElementById('inv-type')?.value;
+  const notes=document.getElementById('inv-notes')?.value.trim();
+  const files=document.getElementById('inv-photos')?.files;
+  const p=P(propId)||{address:'[Property]',city:'',postcode:'',beds:'—',type:'—'};
+  const t=D.tenants.find(x=>String(x.prop_id)===String(propId));
+  if(!files||!files.length){toast('Please upload at least one photo',true);return;}
+  btn.disabled=true;
+  btn.innerHTML='<span class="spin"></span>Analysing photos…';
+  try{
+    const photoPromises=[...files].slice(0,8).map(file=>new Promise((res,rej)=>{
+      const r=new FileReader();
+      r.onload=()=>res({b64:r.result.split(',')[1],type:file.type});
+      r.onerror=rej;
+      r.readAsDataURL(file);
+    }));
+    const photos=await Promise.all(photoPromises);
+    const content=[
+      ...photos.map(ph=>({type:'image',source:{type:'base64',media_type:ph.type,data:ph.b64}})),
+      {type:'text',text:`You are a professional UK property inventory clerk generating a formal condition report.
+Property: ${p.address}, ${p.city||''}, ${p.postcode||''}
+Property type: ${p.type||'—'} · ${p.beds||'—'} bedrooms
+Tenant: ${t?t.name:'Not specified'}
+Report type: ${type}
+Date: ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}
+${notes?'Additional notes: '+notes:''}
+
+Analyse all uploaded photos and generate a professional condition report. For each room/area visible:
+1. Identify the room
+2. Describe condition (walls, floors, ceiling, fixtures, furniture if present)
+3. Note any damage, wear, or issues
+4. Rate: Excellent / Good / Fair / Poor
+
+End with an overall summary. Be specific and factual. This may be used for deposit disputes.`}
+    ];
+    const res=await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1500,messages:[{role:'user',content}]})
+    });
+    const data=await res.json();
+    const report=data.content?.[0]?.text||'Could not generate report. Please try again.';
+    document.getElementById('inv-output').style.display='block';
+    document.getElementById('inv-report').textContent=report;
+    btn.disabled=false; btn.innerHTML='✦ Regenerate';
+    document.getElementById('mo-f').innerHTML=`
+      <button class="btn" onclick="closeMo()">Close</button>
+      <button class="btn" onclick="navigator.clipboard.writeText(document.getElementById('inv-report').textContent);toast('✓ Copied!')">📋 Copy</button>
+      <button class="btn btn-navy" onclick="invDownloadPDF()">📄 Download PDF</button>`;
+    await logAudit('GENERATE_INVENTORY','maintenance',propId,`${type} generated`);
+    toast('✓ Inventory report generated!');
+  }catch(e){
+    btn.disabled=false; btn.innerHTML='✦ Generate report';
+    toast('Error generating report — please try again',true);
+  }
+}
+
+function invDownloadPDF(){
+  const report=document.getElementById('inv-report')?.textContent;
+  const propId=document.getElementById('inv-prop')?.value;
+  const p=P(propId)||{address:'Property'};
+  const type=document.getElementById('inv-type')?.value||'Inventory Report';
+  if(!report)return;
+  const win=window.open('','_blank');
+  if(!win){toast('Please allow pop-ups',true);return;}
+  win.document.write(`<!DOCTYPE html><html><head><title>${type} — ${p.address}</title>
+    <style>body{font-family:Georgia,serif;font-size:13px;line-height:1.8;padding:48px;max-width:700px;margin:0 auto;color:#1A2B45}
+    pre{white-space:pre-wrap;font-family:Georgia,serif}@media print{body{padding:0}}</style></head><body>
+    <div style="border-bottom:2px solid #0B1E3D;margin-bottom:24px;padding-bottom:12px">
+      <strong style="font-size:16px;color:#0B1E3D">RentSafe AI</strong>
+      <span style="color:#999;font-size:12px;margin-left:12px">${type} — ${p.address}</span>
+    </div>
+    <pre>${report.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+    <div style="margin-top:32px;padding-top:12px;border-top:1px solid #eee;font-size:10px;color:#999">
+      Generated by RentSafe AI · ${new Date().toLocaleDateString('en-GB')} · AI-generated — verify against photos
+    </div><script>window.onload=function(){window.print();}<\/script>
+    </body></html>`);
+  win.document.close();
 }
 
 // ── START ──
