@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RentSafeAI — App Mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0B1E3D;--navy-mid:#132847;--navy-light:#1E3A5F;
+  --green:#00C896;--green-dark:#009970;
+  --white:#fff;--text-muted:#8A9BB0;--border:rgba(255,255,255,0.08);
+  --font:'DM Sans',system-ui,sans-serif;
+}
+body{font-family:var(--font);background:var(--navy);color:var(--white);font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+.layout{display:flex;height:100vh;overflow:hidden;}
+
+/* Sidebar */
+.sidebar{width:220px;flex-shrink:0;background:var(--navy-mid);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:0;}
+.sidebar-brand{padding:20px 20px 16px;border-bottom:1px solid var(--border);}
+.brand-name{font-size:15px;font-weight:600;color:var(--white);}
+.brand-name span{color:var(--green);}
+.sidebar-user{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.user-avatar{width:30px;height:30px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--navy);flex-shrink:0;}
+.user-info{min-width:0;}
+.user-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.user-plan{font-size:10px;color:var(--text-muted);}
+.nav{padding:8px 0;flex:1;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;transition:all .15s;color:var(--text-muted);font-size:12px;font-weight:400;border-left:2px solid transparent;}
+.nav-item svg{width:15px;height:15px;flex-shrink:0;}
+.nav-item.active{color:var(--white);background:rgba(255,255,255,0.06);border-left-color:var(--green);}
+.nav-item:hover{color:var(--white);background:rgba(255,255,255,0.04);}
+.nav-badge{margin-left:auto;background:var(--green);color:var(--navy);font-size:9px;font-weight:600;padding:1px 6px;border-radius:8px;}
+
+/* Main */
+.main{flex:1;overflow-y:auto;background:#0F1E35;}
+.topbar{padding:16px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--navy-mid);position:sticky;top:0;z-index:10;}
+.topbar-title{font-size:15px;font-weight:600;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.btn{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:none;font-family:var(--font);}
+.btn-primary{background:var(--green);color:var(--navy);}
+.btn-ghost{background:rgba(255,255,255,0.08);color:var(--white);}
+.content{padding:20px 24px;}
+
+/* Stats row */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.stat-card{background:var(--navy-mid);border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
+.stat-label{font-size:11px;color:var(--text-muted);margin-bottom:6px;font-weight:400;}
+.stat-value{font-size:22px;font-weight:600;color:var(--white);line-height:1;}
+.stat-sub{font-size:10px;color:var(--text-muted);margin-top:4px;}
+.stat-green{color:var(--green)!important;}
+.stat-amber{color:#F5A623!important;}
+.stat-red{color:#FF6B6B!important;}
+
+/* Grid 2 col */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.grid3{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;margin-bottom:16px;}
+
+/* Cards */
+.card{background:var(--navy-mid);border:1px solid var(--border);border-radius:10px;padding:16px;}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.card-title{font-size:13px;font-weight:600;}
+.card-action{font-size:11px;color:var(--green);cursor:pointer;}
+
+/* Compliance rows */
+.cert-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);}
+.cert-row:last-child{border-bottom:none;}
+.cert-name{font-size:12px;font-weight:500;}
+.cert-detail{font-size:10px;color:var(--text-muted);margin-top:1px;}
+.badge{padding:3px 8px;border-radius:10px;font-size:10px;font-weight:500;}
+.badge-valid{background:rgba(0,200,150,0.15);color:var(--green);}
+.badge-warn{background:rgba(245,166,35,0.15);color:#F5A623;}
+.badge-action{background:rgba(255,107,107,0.15);color:#FF6B6B;}
+
+/* Maintenance kanban */
+.kanban{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
+.kanban-col{background:rgba(255,255,255,0.04);border-radius:8px;padding:8px;}
+.kanban-col-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
+.kanban-count{background:rgba(255,255,255,0.1);padding:1px 5px;border-radius:8px;font-size:9px;}
+.kanban-card{background:var(--navy-mid);border:1px solid var(--border);border-radius:6px;padding:8px;margin-bottom:6px;cursor:pointer;}
+.kanban-card-title{font-size:11px;font-weight:500;margin-bottom:3px;}
+.kanban-card-meta{font-size:10px;color:var(--text-muted);}
+.kanban-card-flag{display:inline-block;background:rgba(255,107,107,0.2);color:#FF6B6B;font-size:9px;padding:1px 5px;border-radius:4px;margin-top:4px;}
+.kanban-card-flag-amber{background:rgba(245,166,35,0.2);color:#F5A623;}
+
+/* Property cards */
+.prop-card{display:flex;align-items:center;gap:12px;padding:10px;border-radius:8px;border:1px solid var(--border);margin-bottom:8px;cursor:pointer;transition:all .15s;}
+.prop-card:hover{border-color:rgba(0,200,150,0.3);}
+.prop-icon{width:36px;height:36px;background:rgba(0,200,150,0.1);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.prop-info{flex:1;min-width:0;}
+.prop-address{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.prop-tenant{font-size:10px;color:var(--text-muted);}
+.gauge-wrap{text-align:right;}
+.gauge-score{font-size:16px;font-weight:600;color:var(--green);}
+.gauge-label{font-size:9px;color:var(--text-muted);}
+
+/* AI chat */
+.ai-messages{display:flex;flex-direction:column;gap:10px;}
+.ai-msg{padding:10px 12px;border-radius:8px;font-size:12px;line-height:1.6;}
+.ai-msg-user{background:rgba(0,200,150,0.12);border:1px solid rgba(0,200,150,0.2);color:var(--white);align-self:flex-end;max-width:85%;}
+.ai-msg-ai{background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--white);max-width:95%;}
+.ai-msg-label{font-size:10px;color:var(--text-muted);margin-bottom:4px;font-weight:500;}
+
+/* Score gauge */
+.gauge-circle{width:80px;height:80px;position:relative;display:flex;align-items:center;justify-content:center;}
+.gauge-circle svg{position:absolute;top:0;left:0;transform:rotate(-90deg);}
+.gauge-inner{text-align:center;z-index:1;}
+.gauge-num{font-size:20px;font-weight:700;color:var(--green);}
+.gauge-txt{font-size:9px;color:var(--text-muted);}
+
+/* Alerts */
+.alert-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:7px;margin-bottom:6px;font-size:11px;}
+.alert-red{background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.2);}
+.alert-amber{background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.2);}
+.alert-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.alert-dot-red{background:#FF6B6B;}
+.alert-dot-amber{background:#F5A623;}
+
+.section-title{font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;}
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-name">Rent<span>Safe</span>AI</div>
+    </div>
+    <div class="sidebar-user">
+      <div class="user-avatar">SD</div>
+      <div class="user-info">
+        <div class="user-name">S. Dhawan</div>
+        <div class="user-plan">Landlord plan · 3 properties</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <div class="nav-item active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Properties
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Documents
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+        Maintenance
+        <span class="nav-badge">3</span>
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        Finance
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Tenants
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
+        AI Assistant
+      </div>
+    </nav>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-title">Dashboard</div>
+      <div class="topbar-right">
+        <div style="font-size:11px;color:var(--text-muted);">Fri 17 Apr 2026</div>
+        <button class="btn btn-primary">+ Add property</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- Stats -->
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-label">Portfolio compliance</div>
+          <div class="stat-value stat-green">91%</div>
+          <div class="stat-sub">3 properties tracked</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Open maintenance</div>
+          <div class="stat-value stat-amber">3</div>
+          <div class="stat-sub">1 urgent (Awaab)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Certs expiring soon</div>
+          <div class="stat-value stat-amber">2</div>
+          <div class="stat-sub">Within 90 days</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Monthly income</div>
+          <div class="stat-value">£4,200</div>
+          <div class="stat-sub stat-green">All rent received</div>
+        </div>
+      </div>
+
+      <!-- Urgent alerts -->
+      <div style="margin-bottom:16px;">
+        <div class="section-title">Urgent actions</div>
+        <div class="alert-row alert-red">
+          <div class="alert-dot alert-dot-red"></div>
+          <div style="flex:1"><strong>Awaab's Law:</strong> Damp reported at 7 Oak Close — 14-day repair deadline in 8 days</div>
+          <div style="color:#FF6B6B;font-size:10px;cursor:pointer;">View job →</div>
+        </div>
+        <div class="alert-row alert-amber">
+          <div class="alert-dot alert-dot-amber"></div>
+          <div style="flex:1">EPC expiring in 44 days — 12 Victoria Road, London</div>
+          <div style="color:#F5A623;font-size:10px;cursor:pointer;">Book assessor →</div>
+        </div>
+        <div class="alert-row alert-amber">
+          <div class="alert-dot alert-dot-amber"></div>
+          <div style="flex:1">Gas Safety Certificate due for renewal — 7 Oak Close, Manchester</div>
+          <div style="color:#F5A623;font-size:10px;cursor:pointer;">Schedule →</div>
+        </div>
+      </div>
+
+      <!-- Properties + Compliance -->
+      <div class="grid3">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Your properties</div>
+            <div class="card-action">View all</div>
+          </div>
+          <div class="prop-card">
+            <div class="prop-icon">🏠</div>
+            <div class="prop-info">
+              <div class="prop-address">12 Victoria Road, London</div>
+              <div class="prop-tenant">Tenant: James & Sarah Collins</div>
+            </div>
+            <div class="gauge-wrap">
+              <div class="gauge-score">94%</div>
+              <div class="gauge-label">compliant</div>
+            </div>
+          </div>
+          <div class="prop-card">
+            <div class="prop-icon">🏠</div>
+            <div class="prop-info">
+              <div class="prop-address">7 Oak Close, Manchester</div>
+              <div class="prop-tenant">Tenant: Mohammed Ali</div>
+            </div>
+            <div class="gauge-wrap">
+              <div class="gauge-score" style="color:#F5A623;">82%</div>
+              <div class="gauge-label">compliant</div>
+            </div>
+          </div>
+          <div class="prop-card">
+            <div class="prop-icon">🏠</div>
+            <div class="prop-info">
+              <div class="prop-address">3 Maple Ave, Bristol</div>
+              <div class="prop-tenant">Tenant: Emma Thompson</div>
+            </div>
+            <div class="gauge-wrap">
+              <div class="gauge-score">97%</div>
+              <div class="gauge-label">compliant</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">12 Victoria Rd — certificates</div>
+            <div class="card-action">All properties</div>
+          </div>
+          <div class="cert-row">
+            <div><div class="cert-name">Gas Safety (GSC)</div><div class="cert-detail">Exp. Sep 2026 · ABC Gas Ltd</div></div>
+            <span class="badge badge-valid">Valid</span>
+          </div>
+          <div class="cert-row">
+            <div><div class="cert-name">EICR</div><div class="cert-detail">Exp. Oct 2029 · SafeElect</div></div>
+            <span class="badge badge-valid">Valid</span>
+          </div>
+          <div class="cert-row">
+            <div><div class="cert-name">EPC</div><div class="cert-detail">Exp. Jun 2026 · Rating: C</div></div>
+            <span class="badge badge-warn">Due soon</span>
+          </div>
+          <div class="cert-row">
+            <div><div class="cert-name">Deposit protection</div><div class="cert-detail">DPS scheme · Lodged 01 Mar 2024</div></div>
+            <span class="badge badge-valid">Lodged</span>
+          </div>
+          <div class="cert-row">
+            <div><div class="cert-name">Section 8 notice</div><div class="cert-detail">All 37 RRA 2025 grounds</div></div>
+            <span class="badge badge-action">Generate</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Maintenance Kanban -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header">
+          <div class="card-title">Maintenance tracker</div>
+          <div class="card-action">+ Log job</div>
+        </div>
+        <div class="kanban">
+          <div class="kanban-col">
+            <div class="kanban-col-title">Reported <span class="kanban-count">2</span></div>
+            <div class="kanban-card">
+              <div class="kanban-card-title">Damp in bedroom</div>
+              <div class="kanban-card-meta">7 Oak Close · Tenant report</div>
+              <div class="kanban-card-flag">⚠ Awaab — 8 days</div>
+            </div>
+            <div class="kanban-card">
+              <div class="kanban-card-title">Broken window latch</div>
+              <div class="kanban-card-meta">3 Maple Ave · 14 Apr</div>
+            </div>
+          </div>
+          <div class="kanban-col">
+            <div class="kanban-col-title">Assigned <span class="kanban-count">1</span></div>
+            <div class="kanban-card">
+              <div class="kanban-card-title">Boiler service</div>
+              <div class="kanban-card-meta">12 Victoria Rd</div>
+              <div class="kanban-card-flag kanban-card-flag-amber">ABC Plumbing</div>
+            </div>
+          </div>
+          <div class="kanban-col">
+            <div class="kanban-col-title">In progress <span class="kanban-count">1</span></div>
+            <div class="kanban-card">
+              <div class="kanban-card-title">Kitchen tap leak</div>
+              <div class="kanban-card-meta">3 Maple Ave · Day 2</div>
+            </div>
+          </div>
+          <div class="kanban-col">
+            <div class="kanban-col-title">Completed <span class="kanban-count">3</span></div>
+            <div class="kanban-card">
+              <div class="kanban-card-title">Extractor fan</div>
+              <div class="kanban-card-meta">7 Oak Close · 11 Apr</div>
+            </div>
+          </div>
+          <div class="kanban-col">
+            <div class="kanban-col-title">Closed <span class="kanban-count">8</span></div>
+            <div class="kanban-card" style="opacity:0.5;">
+              <div class="kanban-card-title">Annual inspection</div>
+              <div class="kanban-card-meta">All properties · Mar 26</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Assistant preview -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">AI Compliance Assistant</div>
+          <div class="card-action">Open chat</div>
+        </div>
+        <div class="ai-messages">
+          <div class="ai-msg ai-msg-user">
+            <div class="ai-msg-label">You</div>
+            Is my Section 8 notice valid for 7 Oak Close given the current damp issue?
+          </div>
+          <div class="ai-msg ai-msg-ai">
+            <div class="ai-msg-label" style="color:var(--green);">RentSafeAI</div>
+            For 7 Oak Close, Ground 13 (deterioration of condition) and Ground 14 (nuisance/annoyance) from the RRA 2025 would be most relevant. However, given the active Awaab's Law flag on the damp report, I'd recommend resolving the repair within the 14-day window first — serving a Section 8 while a hazard is unresolved may weaken your position. Your GSC and EICR are both valid, which strengthens your compliance record. Want me to generate a draft Section 8 for review once the repair is complete?
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+</div>
+</body>
+</html>
