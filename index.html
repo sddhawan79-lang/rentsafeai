@@ -6,7 +6,6 @@
 <title>RentSafeAI — AI-Powered Compliance Protection for UK Landlords</title>
 <meta name="description" content="AI-powered Section 8 notices, maintenance tracking and compliance alerts — built for the Renters Rights Act 2025. Join free today.">
 <meta name="robots" content="index, follow">
-<!-- Open Graph -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="RentSafeAI">
 <meta property="og:title" content="RentSafeAI — AI-Powered Compliance Protection for UK Landlords">
@@ -15,7 +14,6 @@
 <meta property="og:image" content="https://rentsafeai.co.uk/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<!-- Twitter/X -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="RentSafeAI — AI-Powered Compliance Protection for UK Landlords">
 <meta name="twitter:description" content="AI-powered Section 8 notices, maintenance tracking and compliance alerts — built for the Renters Rights Act 2025. Join free today.">
@@ -348,7 +346,7 @@
     padding: 28px;
     transition: border-color 0.2s;
   }
-  .why-card:hover { border-color: rgba(0,200,150,0.3); }
+  .why-card { transition: border-color 0.2s, opacity 0.6s ease, transform 0.6s ease; }
   .why-card-icon {
     width: 44px; height: 44px;
     background: rgba(0,200,150,0.1);
@@ -736,8 +734,205 @@
     .hero-form input { min-width: unset; }
   }
 
-  /* ─── ANIMATIONS ─── */
-  @keyframes fadeUp {
+  .hero-free-pill {
+    display: inline-block;
+    background: rgba(0,200,150,0.12);
+    border: 1px solid rgba(0,200,150,0.3);
+    color: var(--green);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 16px;
+    border-radius: 100px;
+    margin-bottom: 28px;
+  }
+
+  /* ─── SCROLL ANIMATIONS ─── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .reveal-delay-1 { transition-delay: 0.1s; }
+  .reveal-delay-2 { transition-delay: 0.2s; }
+  .reveal-delay-3 { transition-delay: 0.3s; }
+
+  /* ─── APP SCREENSHOT ─── */
+  .app-screenshot-section { background: var(--navy); padding: 80px 40px; }
+  .app-screenshot-section .section-label { color: var(--green); }
+  .app-screenshot-section .section-title { color: var(--white); }
+  .app-screenshot-section .section-sub { color: rgba(255,255,255,0.55); }
+  .app-screenshot-wrap {
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 32px 80px rgba(0,0,0,0.5);
+  }
+  .app-iframe {
+    width: 100%;
+    height: 600px;
+    border: none;
+    display: block;
+    pointer-events: none;
+  }
+  .app-screenshot-overlay {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 40px;
+    background: linear-gradient(transparent, rgba(11,30,61,0.95));
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+  }
+
+  /* ─── PRICING TOGGLE ─── */
+  .pricing-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+  .toggle-label {
+    font-size: 14px;
+    color: var(--text-body);
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  .toggle-track {
+    width: 44px; height: 24px;
+    background: var(--border);
+    border-radius: 100px;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s;
+  }
+  .toggle-track.active { background: var(--navy); }
+  .toggle-thumb {
+    width: 18px; height: 18px;
+    background: var(--white);
+    border-radius: 50%;
+    position: absolute;
+    top: 3px; left: 3px;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+  .toggle-track.active .toggle-thumb { transform: translateX(20px); }
+  .annual-save {
+    font-size: 11px;
+    font-weight: 600;
+    background: rgba(0,200,150,0.12);
+    color: var(--green-dark);
+    border: 1px solid rgba(0,200,150,0.3);
+    padding: 3px 10px;
+    border-radius: 100px;
+    display: none;
+  }
+  .annual-save.show { display: inline-block; }
+
+  /* ─── FOUNDER SECTION ─── */
+  .founder-section {
+    background: var(--off-white);
+    padding: 80px 40px;
+    border-top: 1px solid var(--border);
+  }
+  .founder-inner {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 60px;
+    align-items: start;
+  }
+  .founder-photo-placeholder {
+    width: 160px; height: 160px;
+    background: var(--navy);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .founder-initials {
+    font-family: var(--font-display);
+    font-size: 48px;
+    color: var(--green);
+    font-weight: 400;
+  }
+
+  /* ─── FAQ ─── */
+  .faq-section {
+    background: var(--white);
+    padding: 80px 40px;
+    border-top: 1px solid var(--border);
+  }
+  .faq-list {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  .faq-item {
+    border-bottom: 1px solid var(--border);
+  }
+  .faq-question {
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 20px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: var(--font-body);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--navy);
+    cursor: pointer;
+    text-align: left;
+    gap: 16px;
+    transition: color 0.2s;
+  }
+  .faq-question:hover { color: var(--green-dark); }
+  .faq-icon {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--off-white);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    font-weight: 400;
+    flex-shrink: 0;
+    transition: transform 0.3s, background 0.2s;
+    line-height: 1;
+  }
+  .faq-item.open .faq-icon {
+    transform: rotate(45deg);
+    background: var(--navy);
+    color: var(--white);
+    border-color: var(--navy);
+  }
+  .faq-answer {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s ease, padding 0.35s ease;
+  }
+  .faq-item.open .faq-answer { max-height: 300px; }
+  .faq-answer p {
+    padding-bottom: 20px;
+    font-size: 15px;
+    color: var(--text-body);
+    line-height: 1.75;
+    font-weight: 300;
+  }
+
+  /* ─── RESPONSIVE ADDITIONS ─── */
+  @media (max-width: 900px) {
+    .founder-inner { grid-template-columns: 1fr; gap: 32px; }
+    .founder-photo-wrap { display: flex; justify-content: center; }
+    .app-iframe { height: 400px; }
+    .faq-section { padding: 60px 20px; }
+    .app-screenshot-section { padding: 60px 20px; }
+    .founder-section { padding: 60px 20px; }
+  }
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
   }
@@ -771,17 +966,18 @@
 <section class="hero">
   <div class="hero-inner">
     <div class="hero-content">
-      <div class="hero-badge">Renters Rights Act — are you prepared?</div>
-      <h1>The compliance platform every UK landlord <em>needs right now.</em></h1>
-      <p class="hero-sub">Track certificates. Log maintenance. Generate and serve Section 8 notices. Built around the Renters Rights Act — so you're always covered.</p>
+      <div class="hero-badge">Renters Rights Act 2025 — live from 1 May</div>
+      <h1>Your AI compliance guardian.<br><em>Court-ready records, automatically.</em></h1>
+      <p class="hero-sub">AI-powered Section 8 notices, Awaab's Law tracking and an immutable audit trail — so when a tenant disputes anything, you're already protected.</p>
+      <div class="hero-free-pill">First month free. Then from £9.99/mo. Cancel anytime.</div>
       <form class="hero-form" id="hero-form" action="https://formspree.io/f/xdapbzqv" method="POST">
         <input type="email" name="email" placeholder="Your email address" required>
         <button type="submit" class="btn-primary">Get early access</button>
       </form>
       <div class="hero-trust">
-        <span>Free to join</span>
+        <span>1 month free</span>
         <span>No credit card</span>
-        <span>Founder pricing on launch</span>
+        <span>Cancel anytime</span>
       </div>
       <div style="margin-top:16px">
         <a href="login.html" style="font-size:13px;color:rgba(255,255,255,0.5);text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:color 0.2s" onmouseover="this.style.color='rgba(255,255,255,0.9)'" onmouseout="this.style.color='rgba(255,255,255,0.5)'">
@@ -836,12 +1032,12 @@
 <!-- ─── TRUST BAR ─── -->
 <div class="trust-bar">
   <div class="trust-bar-inner">
-    <div class="trust-item"><div class="trust-icon">✓</div>RRA compliant</div>
+    <div class="trust-item"><div class="trust-icon">✓</div>Court-admissible records</div>
     <div class="trust-item"><div class="trust-icon">✓</div>Awaab's Law ready</div>
-    <div class="trust-item"><div class="trust-icon">✓</div>Section 8 notices</div>
+    <div class="trust-item"><div class="trust-icon">✓</div>All 37 Section 8 grounds</div>
     <div class="trust-item"><div class="trust-icon">✓</div>Tenant portal included</div>
     <div class="trust-item"><div class="trust-icon">✓</div>Built by a UK landlord</div>
-    <div class="trust-item"><div class="trust-icon">✓</div>No solicitor needed</div>
+    <div class="trust-item"><div class="trust-icon">✓</div>MTD-ready — coming soon</div>
   </div>
 </div>
 
@@ -852,17 +1048,17 @@
     <h2 class="section-title" style="color: var(--white);">The Renters Rights Act is here.<br>Are you protected?</h2>
     <p class="section-sub">Section 21 is gone. The Decent Homes Standard now applies. Awaab's Law creates repair deadlines. Landlords who aren't prepared face heavy fines — and invalid tenancies.</p>
     <div class="why-grid">
-      <div class="why-card">
+      <div class="why-card reveal">
         <div class="why-card-icon">🚫</div>
         <h3>Section 21 abolished</h3>
         <p>No-fault evictions are gone. You must now use Section 8 grounds with proper evidence, procedure, and documentation.</p>
       </div>
-      <div class="why-card">
+      <div class="why-card reveal reveal-delay-1">
         <div class="why-card-icon">🏠</div>
         <h3>Decent Homes Standard</h3>
         <p>Private rentals must now meet minimum conditions. Inspections and enforcement are increasing across the UK.</p>
       </div>
-      <div class="why-card">
+      <div class="why-card reveal reveal-delay-2">
         <div class="why-card-icon">⏱</div>
         <h3>Awaab's Law — repair deadlines</h3>
         <p>Mandatory timescales for hazard repairs. Every maintenance issue now carries legal time pressure and liability.</p>
@@ -995,46 +1191,212 @@
   </div>
 </section>
 
-<!-- ─── FOUNDER PRICING TEASER ─── -->
-<section class="pricing" id="pricing">
-  <div class="section-inner" style="text-align: center;">
-    <div class="section-label" style="text-align:center;">Early access</div>
-    <h2 class="section-title" style="margin: 0 auto 16px;">Founder pricing for the first members.</h2>
-    <p class="section-sub" style="margin: 0 auto 36px; text-align:center;">We're working directly with a small group of pilot landlords to shape the product. Early access members get locked-in founder pricing — before we launch publicly.</p>
-    <div style="display: flex; gap: 32px; justify-content: center; flex-wrap: wrap; margin-bottom: 40px;">
-      <div style="display: flex; align-items: center; gap: 10px; font-size: 15px; color: var(--text-body);">
-        <div style="width: 8px; height: 8px; background: var(--green); border-radius: 50%;"></div>
-        Locked-in rate — never increases
-      </div>
-      <div style="display: flex; align-items: center; gap: 10px; font-size: 15px; color: var(--text-body);">
-        <div style="width: 8px; height: 8px; background: var(--green); border-radius: 50%;"></div>
-        Direct input into the product roadmap
-      </div>
-      <div style="display: flex; align-items: center; gap: 10px; font-size: 15px; color: var(--text-body);">
-        <div style="width: 8px; height: 8px; background: var(--green); border-radius: 50%;"></div>
-        Full access from day one
+<!-- ─── APP SCREENSHOT ─── -->
+<section class="app-screenshot-section">
+  <div class="section-inner">
+    <div class="section-label" style="text-align:center;">See it in action</div>
+    <h2 class="section-title" style="text-align:center; margin:0 auto 16px;">Everything your portfolio needs, in one place.</h2>
+    <p class="section-sub" style="text-align:center; margin:0 auto 48px;">Real-time compliance scores. Maintenance kanban. AI that knows your properties by name.</p>
+    <div class="app-screenshot-wrap">
+      <iframe src="app-mockup.html" class="app-iframe" scrolling="no" title="RentSafeAI dashboard preview"></iframe>
+      <div class="app-screenshot-overlay">
+        <a href="login.html" class="btn-primary" style="font-size:15px;padding:13px 28px;">Try the live app →</a>
       </div>
     </div>
-    <a href="#waitlist" class="btn-primary" style="font-size: 16px; padding: 15px 36px;">Secure founder pricing →</a>
+  </div>
+</section>
+
+<!-- ─── PRICING ─── -->
+<section class="pricing" id="pricing">
+  <div class="section-inner" style="text-align:center;">
+    <div class="section-label" style="text-align:center;">Simple pricing</div>
+    <h2 class="section-title" style="margin:0 auto 16px;">First month free. Then simple, fair pricing.</h2>
+    <p class="section-sub" style="margin:0 auto 24px; text-align:center;">No hidden fees. No per-property surprises. Join before launch and your price is locked in forever. Annual plan saves 2 months.</p>
+
+    <!-- Toggle -->
+    <div class="pricing-toggle">
+      <span class="toggle-label" id="lbl-monthly" style="font-weight:600;color:var(--navy)">Monthly</span>
+      <div class="toggle-track" id="billing-toggle" onclick="toggleBilling()">
+        <div class="toggle-thumb" id="toggle-thumb"></div>
+      </div>
+      <span class="toggle-label" id="lbl-annual">Annual</span>
+      <span class="annual-save" id="annual-save">Save 2 months</span>
+    </div>
+
+    <div class="pricing-grid">
+
+      <!-- Starter -->
+      <div class="pricing-card reveal">
+        <div class="price-label">Starter</div>
+        <div class="price-amount" id="price-starter">£9.99</div>
+        <div class="price-period" id="period-starter">per month · 1 property</div>
+        <ul class="price-features">
+          <li>1 property</li>
+          <li>All compliance certificates</li>
+          <li>Section 8 notice generator</li>
+          <li>Maintenance log + Awaab flag</li>
+          <li>AI compliance advisor</li>
+          <li>Document storage</li>
+          <li>Court-admissible audit trail</li>
+        </ul>
+        <a href="#waitlist" class="btn-secondary">Start free month</a>
+      </div>
+
+      <!-- Landlord — Most Popular -->
+      <div class="pricing-card featured reveal reveal-delay-1">
+        <div class="pricing-badge">Most Popular</div>
+        <div class="price-label">Landlord</div>
+        <div class="price-amount" id="price-landlord">£19.99</div>
+        <div class="price-period" id="period-landlord">per month · up to 5 properties</div>
+        <ul class="price-features">
+          <li>Up to 5 properties</li>
+          <li>Everything in Starter</li>
+          <li>Tenant portal (per property)</li>
+          <li>Maintenance kanban board</li>
+          <li>Contractor management</li>
+          <li>Finance dashboard + PDF export</li>
+          <li>Priority email support</li>
+        </ul>
+        <a href="#waitlist" class="btn-primary-full">Start free month</a>
+      </div>
+
+      <!-- Portfolio -->
+      <div class="pricing-card reveal reveal-delay-2">
+        <div class="price-label">Portfolio</div>
+        <div class="price-amount" id="price-portfolio">£39.99</div>
+        <div class="price-period" id="period-portfolio">per month · unlimited properties</div>
+        <ul class="price-features">
+          <li>Unlimited properties</li>
+          <li>Everything in Landlord</li>
+          <li>Portfolio-wide compliance view</li>
+          <li>Bulk document generation</li>
+          <li>MTD-ready (coming soon)</li>
+          <li>Dedicated onboarding call</li>
+          <li>Direct founder access</li>
+        </ul>
+        <a href="#waitlist" class="btn-secondary">Start free month</a>
+      </div>
+
+    </div>
+    <p style="margin-top:24px;font-size:13px;color:var(--text-muted);">All plans include a <strong>1 month free trial</strong>. No credit card required. Founder pricing locked in for life at launch.</p>
+  </div>
+</section>
+
+<!-- ─── FOUNDER STORY ─── -->
+<section class="founder-section">
+  <div class="section-inner">
+    <div class="founder-inner">
+      <div class="founder-photo-wrap">
+        <div class="founder-photo-placeholder">
+          <div class="founder-initials">SD</div>
+        </div>
+      </div>
+      <div class="founder-text">
+        <div class="section-label">Why I built this</div>
+        <h2 class="section-title" style="margin-bottom:20px;">A landlord frustrated by paperwork.<br>Not a tech company.</h2>
+        <p style="font-size:16px;color:var(--text-body);line-height:1.8;margin-bottom:16px;font-weight:300;">I manage a small portfolio of properties and when the Renters Rights Act came in, I spent weeks trying to understand what I actually needed to do differently. Every answer led to more questions, more forms, and more solicitor fees.</p>
+        <p style="font-size:16px;color:var(--text-body);line-height:1.8;margin-bottom:16px;font-weight:300;">The tools that existed were either built for large agencies or hadn't been updated since before Section 21 was abolished. Nothing was built for someone like me — a working landlord trying to stay legal without spending hours on paperwork every month.</p>
+        <p style="font-size:16px;color:var(--text-body);line-height:1.8;margin-bottom:24px;font-weight:300;">So I built RentSafeAI. The AI handles the legal complexity. The audit trail protects you in disputes. And the whole thing takes under 10 minutes to set up. If you're a landlord in 2026, this is the tool I wish had existed.</p>
+        <div style="display:flex;align-items:center;gap:16px;">
+          <div>
+            <div style="font-weight:600;color:var(--navy);font-size:15px;">Saurabh Dhawan</div>
+            <div style="font-size:13px;color:var(--text-muted);">Founder, RentSafeAI · UK landlord since 2018</div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
 <!-- ─── FINAL CTA ─── -->
 <section class="final-cta" id="waitlist">
   <div class="section-inner" style="text-align:center;">
-    <div class="section-label" style="text-align:center;">Try it for free</div>
-    <h2 class="section-title">Protect your portfolio.<br><em style="font-style:italic; color: var(--green-dark);">Before the law catches you out.</em></h2>
-    <p class="section-sub" style="margin: 0 auto 36px; text-align:center;">Join landlords already on the waitlist. Get founder pricing and early access when we launch.</p>
+    <div class="section-label" style="text-align:center;">Join the waitlist</div>
+    <h2 class="section-title">Get founder pricing.<br><em style="font-style:italic; color: var(--green-dark);">Locked in for life.</em></h2>
+    <p class="section-sub" style="margin: 0 auto 36px; text-align:center;">The Renters Rights Act is live. Every week you wait is a week without an audit trail. Join landlords already on the list — your price locks in the moment you sign up.</p>
     <form id="cta-form" action="https://formspree.io/f/xdapbzqv" method="POST">
       <div class="cta-form">
         <input type="email" name="email" placeholder="Your email address" required>
-        <button type="submit" class="btn-primary">Try it for free</button>
+        <button type="submit" class="btn-primary">Secure my founder price →</button>
       </div>
     </form>
     <div class="form-success" id="form-success">
-      You're on the list. We'll send you founder pricing when we launch.
+      <div style="font-size:20px;margin-bottom:8px;">✅ You're on the list</div>
+      <div style="font-weight:600;margin-bottom:8px;">Check your inbox — a confirmation is on its way.</div>
+      <div style="font-size:13px;font-weight:400;opacity:0.8;">When we launch (targeting 31 May 2026), you'll get first access at your locked-in founder price — before we open publicly. You'll also get direct input into what we build next. We'll never spam you, and you can unsubscribe anytime.</div>
     </div>
-    <p class="cta-trust">Free to join · No credit card · Unsubscribe any time</p>
+    <p class="cta-trust">1 month free · No credit card · Founder price locked in at launch · Cancel anytime</p>
+  </div>
+</section>
+
+<!-- ─── FAQ ─── -->
+<section class="faq-section">
+  <div class="section-inner">
+    <div class="section-label" style="text-align:center;">FAQ</div>
+    <h2 class="section-title" style="text-align:center;margin:0 auto 48px;">Questions landlords ask us.</h2>
+    <div class="faq-list">
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          Is my data GDPR compliant?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer">
+          <p>Yes. All data is stored on UK-based servers and processed in accordance with UK GDPR. Tenant data is stored only as long as legally required (6 years from tenancy end) and is automatically deleted after that. You remain the data controller — we are purely a data processor on your behalf. Full details are in our Privacy Policy.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          Are the records court admissible?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer">
+          <p>Every action in RentSafeAI — maintenance reports, document serving, AI-assigned priorities — is timestamped and immutable once logged. Neither you nor your tenant can edit past records. This creates a clear, date-stamped evidence trail suitable for presenting in possession proceedings, deposit disputes, or Awaab's Law compliance checks. We cannot provide legal advice, but the records are designed to meet the standard required in UK civil proceedings.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          What happens to my data if I cancel?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer">
+          <p>You own your data. If you cancel, you'll have 30 days to export everything — documents, maintenance records, certificates, audit logs — as a PDF or CSV. After 30 days, your data is permanently deleted from our servers. We will never sell or share your data with third parties.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          Does it work for limited company landlords?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer">
+          <p>Yes. RentSafeAI works for both personal landlords and those operating through a limited company. The compliance obligations under the Renters Rights Act apply the same way regardless of ownership structure. MTD support (coming soon) will include both personal and Ltd company tax profiles, including Section 24 mortgage interest relief calculations relevant to personal landlords.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          Does it work for HMOs?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer">
+          <p>Yes. HMOs are supported — you can add multiple tenants per property, track room-level maintenance, and manage the additional compliance requirements that apply to HMOs. HMO licensing reminders are on the roadmap. If you have a specific HMO requirement, join the waitlist and tell us — early members directly shape what we build.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          Can I cancel anytime?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer">
+          <p>Yes, absolutely. No contracts, no cancellation fees. Cancel from your account settings at any time. Monthly plans end at the end of your billing period. Annual plans are non-refundable for the remainder of the year, but you'll keep full access until your year is up.</p>
+        </div>
+      </div>
+
+    </div>
   </div>
 </section>
 
@@ -1076,6 +1438,51 @@
       }
     });
   }
+
+  // ── Pricing toggle ──
+  var isAnnual = false;
+  function toggleBilling() {
+    isAnnual = !isAnnual;
+    var track = document.getElementById('billing-toggle');
+    var save = document.getElementById('annual-save');
+    var lblM = document.getElementById('lbl-monthly');
+    var lblA = document.getElementById('lbl-annual');
+    track.classList.toggle('active', isAnnual);
+    save.classList.toggle('show', isAnnual);
+    lblM.style.fontWeight = isAnnual ? '400' : '600';
+    lblM.style.color = isAnnual ? '' : 'var(--navy)';
+    lblA.style.fontWeight = isAnnual ? '600' : '400';
+    lblA.style.color = isAnnual ? 'var(--navy)' : '';
+    var prices = isAnnual
+      ? { starter:'£8.32', landlord:'£16.65', portfolio:'£33.32' }
+      : { starter:'£9.99', landlord:'£19.99', portfolio:'£39.99' };
+    var periods = isAnnual
+      ? { starter:'per month, billed annually · 1 property', landlord:'per month, billed annually · up to 5', portfolio:'per month, billed annually · unlimited' }
+      : { starter:'per month · 1 property', landlord:'per month · up to 5 properties', portfolio:'per month · unlimited properties' };
+    document.getElementById('price-starter').textContent = prices.starter;
+    document.getElementById('price-landlord').textContent = prices.landlord;
+    document.getElementById('price-portfolio').textContent = prices.portfolio;
+    document.getElementById('period-starter').textContent = periods.starter;
+    document.getElementById('period-landlord').textContent = periods.landlord;
+    document.getElementById('period-portfolio').textContent = periods.portfolio;
+  }
+
+  // ── FAQ accordion ──
+  function toggleFaq(btn) {
+    var item = btn.closest('.faq-item');
+    var isOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item.open').forEach(function(i){ i.classList.remove('open'); });
+    if (!isOpen) item.classList.add('open');
+  }
+
+  // ── Scroll reveal ──
+  var reveals = document.querySelectorAll('.reveal');
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) {
+      if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); }
+    });
+  }, { threshold: 0.12 });
+  reveals.forEach(function(el) { observer.observe(el); });
 
   handleForm('hero-form', null);
   handleForm('cta-form', 'form-success');
