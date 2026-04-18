@@ -381,8 +381,8 @@ tr:hover td{background:rgba(246,248,251,.8)}
     <div class="sb-divider"></div>
 
     <button class="sb-item" data-page="settings">
-      <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41"/></svg>
-      <span class="sb-label">Settings</span>
+      <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="2.5"/><path d="M2 13c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>
+      <span class="sb-label">Landlord Profile</span>
     </button>
   </nav>
 
@@ -394,8 +394,8 @@ tr:hover td{background:rgba(246,248,251,.8)}
       <span style="font-size:14px">🚀</span> Launch checklist
     </button>
     <div class="sb-user">
-      <div class="sb-avatar" id="th-av">—</div>
-      <span class="sb-username" id="sb-username">Loading…</span>
+      <div class="sb-avatar" id="th-av" onclick="nav('settings')" title="Edit your profile" style="cursor:pointer;transition:opacity .15s" onmouseenter="this.style.opacity='.75'" onmouseleave="this.style.opacity='1'">—</div>
+      <span class="sb-username" id="sb-username" onclick="nav('settings')" style="cursor:pointer" title="Edit your profile">Loading…</span>
       <button id="theme-btn" onclick="toggleTheme()" title="Toggle dark mode" style="font-size:15px;background:none;border:none;cursor:pointer;padding:2px 4px;border-radius:5px;transition:background .15s;flex-shrink:0" onmouseenter="this.style.background='rgba(255,255,255,0.1)'" onmouseleave="this.style.background='none'">🌙</button>
       <button class="sb-logout" onclick="logout()">Out</button>
     </div>
@@ -1586,7 +1586,9 @@ function getTodayEventsHtml(){
 function pgDashboard(){
   const acts=UA(),tot=D.properties.reduce((s,p)=>s+(p.rent||0),0),open=D.maintenance.filter(m=>m.status!=='Resolved').length;
   const today=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  const firstName = (currentUser?.email||'').split('@')[0].split('.')[0];
+  const firstName = _profileData?.display_name
+    ? _profileData.display_name.split(' ')[0]
+    : (currentUser?.email||'').split('@')[0].split('.')[0];
   const displayName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
 
   // ── EMPTY STATE: no properties ──
@@ -5845,9 +5847,9 @@ function pgSettings() {
       <div style="padding:20px">${content}</div>
     </div>`;
 
-  return `<div class="topbar"><span class="tb-title">Settings</span></div>
+  return `<div class="topbar"><span class="tb-title">Landlord Profile</span></div>
   <div class="content">
-    <div class="ph"><h1>Settings</h1><p>Manage your account, profile and preferences</p></div>
+    <div class="ph"><h1>Landlord Profile</h1><p>Your details appear on legal documents — Section 8 notices, tenancy agreements and compliance certificates</p></div>
     <div style="max-width:620px">
 
       ${section('👤','Profile','Your details appear on legal documents like Section 8 notices',`
@@ -6239,6 +6241,43 @@ function toggleTheme() {
   toast(next === 'dark' ? '🌙 Dark mode on' : '☀️ Light mode on');
 }
 
+// ── PROFILE SETUP (onboarding step 2) ──
+function openProfileSetup() {
+  // Pre-fill if already have data
+  const pd = _profileData || {};
+  const nameEl = document.getElementById('ps-name');
+  const phoneEl = document.getElementById('ps-phone');
+  if (nameEl && pd.display_name) nameEl.value = pd.display_name;
+  if (phoneEl && pd.phone) phoneEl.value = pd.phone;
+  document.getElementById('profile-setup-modal').style.display = 'flex';
+}
+async function saveProfileSetup() {
+  const name = document.getElementById('ps-name')?.value.trim();
+  const phone = document.getElementById('ps-phone')?.value.trim();
+  if (!name) { toast('Please enter your full name', true); return; }
+  const payload = {
+    user_id: currentUser.id,
+    display_name: name,
+    phone: phone || null,
+    updated_at: new Date().toISOString()
+  };
+  await sb.from('profiles').upsert(payload, { onConflict: 'user_id' });
+  _profileData = { ..._profileData, ...payload };
+  // Update sidebar with real name
+  document.getElementById('sb-username').textContent = name.split(' ')[0];
+  document.getElementById('th-av').textContent = name.slice(0,2).toUpperCase();
+  document.getElementById('profile-setup-modal').style.display = 'none';
+  const size = localStorage.getItem('rsa_portfolio_size');
+  toast(`✓ Welcome, ${name.split(' ')[0]}! Now let's add your first property.`);
+  setTimeout(() => moAddProp(), 600);
+}
+function skipProfileSetup() {
+  document.getElementById('profile-setup-modal').style.display = 'none';
+  const size = localStorage.getItem('rsa_portfolio_size');
+  toast(`✓ Got it — you can complete your profile anytime from Landlord Profile.`);
+  setTimeout(() => moAddProp(), 400);
+}
+
 // ── PORTFOLIO QUESTION ──
 function openPortfolioQuestion() {
   document.getElementById('portfolio-modal').style.display = 'flex';
@@ -6246,8 +6285,8 @@ function openPortfolioQuestion() {
 function selectPortfolioSize(size) {
   localStorage.setItem('rsa_portfolio_size', size);
   document.getElementById('portfolio-modal').style.display = 'none';
-  toast(`✓ Got it — welcome, ${size === '1' ? 'single property landlord' : size === '2-5' ? 'growing landlord' : 'portfolio landlord'}!`);
-  setTimeout(() => moAddProp(), 500);
+  // Open profile setup next
+  setTimeout(() => openProfileSetup(), 300);
 }
 
 // ── YOU'RE PROTECTED SCREEN ──
@@ -6412,6 +6451,27 @@ document.querySelectorAll('.sb-item[data-page]').forEach(btn => {
 document.addEventListener('click', () => closePropMenus());
 initApp();
 </script>
+
+<!-- PROFILE SETUP MODAL -->
+<div id="profile-setup-modal" style="display:none;position:fixed;inset:0;z-index:9100;background:rgba(11,30,61,0.6);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px">
+  <div style="background:var(--white);border-radius:16px;padding:32px 28px;width:100%;max-width:460px;box-shadow:0 24px 64px rgba(11,30,61,0.25)">
+    <div style="font-size:32px;text-align:center;margin-bottom:10px">👤</div>
+    <h2 style="font-size:18px;font-weight:700;color:var(--txt);margin-bottom:4px;text-align:center">Set up your landlord profile</h2>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:20px;text-align:center">Your name and phone appear on legal documents — takes 30 seconds</p>
+    <div class="fg" style="margin-bottom:12px">
+      <label style="font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px">Full name *</label>
+      <input type="text" id="ps-name" placeholder="e.g. Saurabh Dhawan" style="width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--off);color:var(--txt);font-family:var(--font);font-size:13px;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--green)'" onblur="this.style.borderColor='var(--border)'">
+    </div>
+    <div class="fg" style="margin-bottom:20px">
+      <label style="font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px">Phone number</label>
+      <input type="tel" id="ps-phone" placeholder="07…" style="width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--off);color:var(--txt);font-family:var(--font);font-size:13px;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--green)'" onblur="this.style.borderColor='var(--border)'">
+    </div>
+    <div style="display:flex;gap:10px">
+      <button onclick="skipProfileSetup()" class="btn" style="flex:1">Skip for now</button>
+      <button onclick="saveProfileSetup()" class="btn btn-navy" style="flex:2">Save & add my property →</button>
+    </div>
+  </div>
+</div>
 
 <!-- PORTFOLIO QUESTION MODAL -->
 <div id="portfolio-modal" style="display:none;position:fixed;inset:0;z-index:9100;background:rgba(11,30,61,0.6);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px">
