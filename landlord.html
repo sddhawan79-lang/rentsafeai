@@ -369,6 +369,13 @@ tr:hover td{background:rgba(246,248,251,.8)}
       <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5c3.5 0 6 2 6 4.5 0 1.5-1 2.8-2.5 3.5L13 12l-3-1.5c-.6.1-1.3.2-2 .2-3.5 0-6-2-6-4.5S4.5 1.5 8 1.5z"/><path d="M5.5 6h5M5.5 8.5h3"/></svg>
       <span class="sb-label">AI Assistant</span>
     </button>
+
+    <div class="sb-divider"></div>
+
+    <button class="sb-item" data-page="settings">
+      <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41"/></svg>
+      <span class="sb-label">Settings</span>
+    </button>
   </nav>
 
   <div class="sb-footer">
@@ -731,6 +738,7 @@ async function initApp() {
   document.getElementById('th-av').textContent = email.slice(0,2).toUpperCase();
 
   await loadData();
+  await loadProfile();
   updateNavBadges();
   try {
     nav('dashboard');
@@ -1541,28 +1549,27 @@ async function removeProp(pid) {
 // ── ACTION ITEMS ──
 function UA(){
   const today=new Date(); today.setHours(0,0,0,0);
-  const miss=D.certs.filter(c=>c.status==='Missing').map(c=>({b:'red',l:'Urgent',t:`Missing ${c.type}`,s:(P(c.prop_id)||{address:'—'}).address}));
-  const mnt=D.maintenance.filter(x=>x.status!=='Resolved').map(x=>({b:x.priority==='Urgent'?'red':'amber',l:x.awaab?'Awaab':x.priority,t:x.title,s:(P(x.prop_id)||{address:'—'}).address}));
-  const rnt=D.rent.filter(x=>x.status==='Due'||x.status==='Late').map(x=>({b:x.status==='Late'?'red':'amber',l:x.status,t:`Rent ${x.status.toLowerCase()} — ${x.month}`,s:(P(x.prop_id)||{address:'—'}).address}));
-  // Smart reminders from calendar
+  const miss=D.certs.filter(c=>c.status==='Missing').map(c=>({b:'red',l:'Urgent',t:`Missing ${c.type}`,s:(P(c.prop_id)||{address:'—'}).address,nav:'compliance'}));
+  const mnt=D.maintenance.filter(x=>x.status!=='Resolved').map(x=>({b:x.priority==='Urgent'?'red':'amber',l:x.awaab?'Awaab':x.priority,t:x.title||x.desc,s:(P(x.prop_id)||{address:'—'}).address,nav:'maintenance'}));
+  const rnt=D.rent.filter(x=>x.status==='Due'||x.status==='Late').map(x=>({b:x.status==='Late'?'red':'amber',l:x.status,t:`Rent ${x.status.toLowerCase()} — ${x.month}`,s:(P(x.prop_id)||{address:'—'}).address,nav:'rent'}));
   const reminders=[];
   D.certs.filter(c=>c.expiry).forEach(c=>{
     const d=new Date(c.expiry); d.setHours(0,0,0,0);
     const days=Math.round((d-today)/864e5);
     if(days>=0&&days<=30){
       const prop=(P(c.prop_id)||{address:'—'}).address;
-      reminders.push({b:days<=7?'red':'amber',l:days===0?'Today':days<=7?'This week':'Due soon',t:`${c.type} expires in ${days===0?'today':days+' days'}`,s:prop});
+      reminders.push({b:days<=7?'red':'amber',l:days===0?'Today':days<=7?'This week':'Due soon',t:`${c.type} expires in ${days===0?'today':days+' days'}`,s:prop,nav:'compliance'});
     }
   });
   D.properties.filter(p=>p.licence_expiry).forEach(p=>{
     const d=new Date(p.licence_expiry); d.setHours(0,0,0,0);
     const days=Math.round((d-today)/864e5);
-    if(days>=0&&days<=30) reminders.push({b:days<=7?'red':'amber',l:'Licence',t:`${p.licence_type||'Licence'} expires in ${days} days`,s:p.address});
+    if(days>=0&&days<=30) reminders.push({b:days<=7?'red':'amber',l:'Licence',t:`${p.licence_type||'Licence'} expires in ${days} days`,s:p.address,nav:'compliance'});
   });
   D.properties.filter(p=>p.mortgage_end).forEach(p=>{
     const d=new Date(p.mortgage_end); d.setHours(0,0,0,0);
     const days=Math.round((d-today)/864e5);
-    if(days>=0&&days<=30) reminders.push({b:days<=7?'red':'amber',l:'Mortgage',t:`Mortgage ends in ${days} days`,s:p.address});
+    if(days>=0&&days<=30) reminders.push({b:days<=7?'red':'amber',l:'Mortgage',t:`Mortgage ends in ${days} days`,s:p.address,nav:'financials'});
   });
   return[...miss,...reminders,...mnt,...rnt];
 }
@@ -1772,7 +1779,7 @@ function pgDashboard(){
       <div>
         <div class="panel" style="margin-bottom:16px">
           <div class="ph2"><div><h2>Action items</h2><p>Sorted by urgency</p></div></div>
-          ${acts.length?acts.map(a=>`<div class="ai-row"><span class="badge b-${a.b}">${a.l}</span><div class="ai-body"><div class="ai-title">${a.t}</div><div class="ai-sub">${a.s}</div></div><span style="color:var(--muted)">›</span></div>`).join(''):'<div class="empty"><div class="empty-ic">✓</div><div class="empty-t">All clear</div></div>'}
+          ${acts.length?acts.map(a=>`<div class="ai-row" onclick="nav('${a.nav||'dashboard'}')" style="cursor:pointer"><span class="badge b-${a.b}">${a.l}</span><div class="ai-body"><div class="ai-title">${a.t}</div><div class="ai-sub">${a.s}</div></div><span style="color:var(--muted);font-size:16px">›</span></div>`).join(''):'<div class="empty"><div class="empty-ic">✓</div><div class="empty-t">All clear</div></div>'}
         </div>
         <div class="panel">
           <div class="ph2">
@@ -2479,7 +2486,7 @@ function pdTabContent(pid, tab) {
       </div>
 
       <div class="panel" style="margin-bottom:16px">
-        <div class="ph2"><div><h2>📐 Rooms</h2></div><button class="btn btn-sm" onclick="alert('Add rooms — coming soon')">+ Add</button></div>
+        <div class="ph2"><div><h2>📐 Rooms</h2></div><button class="btn btn-sm" onclick="moAddRoom('${pid}')">+ Add room</button></div>
         <div style="padding:14px 18px">${(p.rooms||[]).length
           ? `<div class="tw"><table><thead><tr><th>Room</th><th>Floor</th><th>Size (m²)</th></tr></thead><tbody>${(p.rooms||[]).map(r=>`<tr><td class="td-bold">${r.name}</td><td>${r.floor}</td><td>${r.size} m²</td></tr>`).join('')}</tbody></table></div>`
           : `<div style="color:var(--muted);font-size:13px">No rooms added yet</div>`}
@@ -2694,7 +2701,7 @@ function pgRent(){
   const tot=D.properties.reduce((s,p)=>s+(p.rent||0),0);
   const paid=D.rent.filter(r=>r.status==='Paid').reduce((s,r)=>s+(r.amount||0),0);
   const due=D.rent.filter(r=>r.status==='Due').reduce((s,r)=>s+(r.amount||0),0);
-  return`<div class="topbar"><span class="tb-title">Rent</span><div class="tb-right"><button class="btn btn-navy" onclick="alert('Record payment — coming next')">+ Record payment</button></div></div>
+  return`<div class="topbar"><span class="tb-title">Rent</span><div class="tb-right"><button class="btn btn-navy" onclick="moRecordPayment()">+ Record payment</button></div></div>
   <div class="content">
     <div class="ph"><h1>Rent</h1><p>Track payments across your portfolio</p></div>
     <div class="metrics metrics-3">
@@ -3089,7 +3096,7 @@ async function updateIssueStatus(id,status){
 
 // ── PAGE: INSURANCE ──
 function pgInsurance(){
-  return`<div class="topbar"><span class="tb-title">Insurance</span><div class="tb-right"><button class="btn btn-navy" onclick="alert('Add policy — coming next')">+ Add policy</button></div></div>
+  return`<div class="topbar"><span class="tb-title">Insurance</span><div class="tb-right"><button class="btn btn-navy" onclick="moAddInsurance()">+ Add policy</button></div></div>
   <div class="content">
     <div class="ph"><h1>Insurance</h1><p>Track policies across your portfolio</p></div>
     ${D.insurance.length?`<div class="panel"><div class="tw"><table>
@@ -3102,6 +3109,120 @@ function pgInsurance(){
       </tr>`}).join('')}</tbody>
     </table></div></div>`:'<div class="empty"><div class="empty-ic">🛡</div><div class="empty-t">No insurance policies yet</div></div>'}
   </div>`;
+}
+
+// ── MODAL: RECORD RENT PAYMENT ──
+function moRecordPayment(pid) {
+  const opts = D.properties.map(p=>`<option value="${p.id}"${p.id==pid?' selected':''}>${p.address}</option>`).join('');
+  const now = new Date();
+  const monthStr = now.toLocaleString('en-GB',{month:'long',year:'numeric'});
+  const todayStr = now.toISOString().slice(0,10);
+  openMo('Record rent payment','Log a payment received',`
+    <div class="fg"><label>Property <span class="req">*</span></label><select id="rp-prop">${opts}</select></div>
+    <div class="fg-row">
+      <div class="fg"><label>Month <span class="req">*</span></label><input type="text" id="rp-month" value="${monthStr}" placeholder="e.g. April 2026"></div>
+      <div class="fg"><label>Amount (£) <span class="req">*</span></label><input type="number" id="rp-amount" placeholder="e.g. 1500" min="0"></div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Due date</label><input type="date" id="rp-due" value="${todayStr}"></div>
+      <div class="fg"><label>Date paid</label><input type="date" id="rp-paid" value="${todayStr}"></div>
+    </div>
+    <div class="fg"><label>Status</label>
+      <select id="rp-status"><option value="Paid">Paid</option><option value="Due">Due</option><option value="Late">Late</option></select>
+    </div>
+    <div class="fg"><label>Notes (optional)</label><textarea id="rp-notes" placeholder="e.g. Paid via bank transfer" style="min-height:50px"></textarea></div>
+  `,`<button class="btn" onclick="closeMo()">Cancel</button><button class="btn btn-navy" onclick="saveRentPayment()">Save payment</button>`);
+}
+async function saveRentPayment() {
+  const prop_id = document.getElementById('rp-prop')?.value;
+  const month   = document.getElementById('rp-month')?.value.trim();
+  const amount  = parseFloat(document.getElementById('rp-amount')?.value);
+  const due_date= document.getElementById('rp-due')?.value;
+  const paid_date=document.getElementById('rp-paid')?.value;
+  const status  = document.getElementById('rp-status')?.value;
+  const notes   = document.getElementById('rp-notes')?.value.trim();
+  if (!prop_id||!month||!amount){toast('Please fill in property, month and amount',true);return;}
+  const {data,error}=await sb.from('rent_payments').insert({
+    user_id:currentUser.id,prop_id,month,amount,due_date,paid_date,status,notes
+  }).select().single();
+  if(error){toast('Error: '+error.message,true);return;}
+  if(data) D.rent.unshift({...data,due:data.due_date,paid:data.paid_date});
+  await logAudit('RECORD_PAYMENT','rent_payments',data?.id,`£${amount} for ${month}`);
+  closeMo();toast('✓ Payment recorded');nav('rent');
+}
+
+// ── MODAL: ADD INSURANCE POLICY ──
+function moAddInsurance(pid) {
+  const opts = D.properties.map(p=>`<option value="${p.id}"${p.id==pid?' selected':''}>${p.address}</option>`).join('');
+  openMo('Add insurance policy','Record a policy for this portfolio',`
+    <div class="fg"><label>Property <span class="req">*</span></label><select id="ins-prop">${opts}</select></div>
+    <div class="fg-row">
+      <div class="fg"><label>Type <span class="req">*</span></label>
+        <select id="ins-type"><option>Buildings</option><option>Contents</option><option>Buildings & Contents</option><option>Landlord</option><option>Rent Guarantee</option><option>Liability</option></select>
+      </div>
+      <div class="fg"><label>Provider <span class="req">*</span></label><input type="text" id="ins-prov" placeholder="e.g. Direct Line"></div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Policy number</label><input type="text" id="ins-pol" placeholder="e.g. DL-123456"></div>
+      <div class="fg"><label>Annual premium (£)</label><input type="number" id="ins-prem" placeholder="e.g. 480" min="0"></div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Start date</label><input type="date" id="ins-start"></div>
+      <div class="fg"><label>Expiry date</label><input type="date" id="ins-exp"></div>
+    </div>
+  `,`<button class="btn" onclick="closeMo()">Cancel</button><button class="btn btn-navy" onclick="saveInsurance()">Save policy</button>`);
+}
+async function saveInsurance() {
+  const prop_id  = document.getElementById('ins-prop')?.value;
+  const type     = document.getElementById('ins-type')?.value;
+  const provider = document.getElementById('ins-prov')?.value.trim();
+  const policy   = document.getElementById('ins-pol')?.value.trim();
+  const premium  = parseFloat(document.getElementById('ins-prem')?.value)||0;
+  const start    = document.getElementById('ins-start')?.value;
+  const expiry   = document.getElementById('ins-exp')?.value;
+  if(!prop_id||!type||!provider){toast('Please fill in property, type and provider',true);return;}
+  const {data,error}=await sb.from('insurance').insert({
+    user_id:currentUser.id,prop_id,type,provider,policy,premium,start_date:start,expiry,status:'Active'
+  }).select().single();
+  if(error){toast('Error: '+error.message,true);return;}
+  if(data) D.insurance.push(data);
+  await logAudit('ADD_INSURANCE','insurance',data?.id,`${type} — ${provider}`);
+  closeMo();toast('✓ Insurance policy saved');nav('insurance');
+}
+
+// ── MODAL: ADD ROOM ──
+function moAddRoom(pid) {
+  openMo('Add room','Record a room for this property',`
+    <div class="fg-row">
+      <div class="fg"><label>Room name <span class="req">*</span></label><input type="text" id="rm-name" placeholder="e.g. Master Bedroom"></div>
+      <div class="fg"><label>Floor</label>
+        <select id="rm-floor"><option value="Ground">Ground floor</option><option value="1st">1st floor</option><option value="2nd">2nd floor</option><option value="Basement">Basement</option><option value="Loft">Loft</option></select>
+      </div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Size (m²)</label><input type="number" id="rm-size" placeholder="e.g. 14" step="0.1" min="0"></div>
+      <div class="fg"><label>Type</label>
+        <select id="rm-type"><option>Bedroom</option><option>Bathroom</option><option>Kitchen</option><option>Living room</option><option>Dining room</option><option>Study</option><option>Hallway</option><option>Other</option></select>
+      </div>
+    </div>
+    <div class="fg"><label>Notes</label><textarea id="rm-notes" placeholder="e.g. En-suite, built-in wardrobe…" style="min-height:50px"></textarea></div>
+  `,`<button class="btn" onclick="closeMo()">Cancel</button><button class="btn btn-navy" onclick="saveRoom('${pid}')">Add room</button>`);
+}
+async function saveRoom(pid) {
+  const name  = document.getElementById('rm-name')?.value.trim();
+  const floor = document.getElementById('rm-floor')?.value;
+  const size  = parseFloat(document.getElementById('rm-size')?.value)||0;
+  const type  = document.getElementById('rm-type')?.value;
+  const notes = document.getElementById('rm-notes')?.value.trim();
+  if(!name){toast('Please enter a room name',true);return;}
+  const p = P(pid);
+  if(!p){toast('Property not found',true);return;}
+  const rooms = [...(p.rooms||[]),{name,floor,size,type,notes}];
+  const {error}=await sb.from('properties').update({rooms}).eq('id',pid);
+  if(error){toast('Error: '+error.message,true);return;}
+  p.rooms=rooms;
+  await logAudit('ADD_ROOM','properties',pid,`Room added: ${name}`);
+  closeMo();toast(`✓ ${name} added`);nav('prop-detail',pid);
 }
 
 // ── AI CONTEXT BUILDER ──
@@ -3494,6 +3615,7 @@ const PAGES={
   financials:()=>pgFinancials(),
   templates:()=>pgTemplates(),
   contractors:()=>pgContractors(),
+  settings:()=>pgSettings(),
 };
 
 // ── FINANCE HELPERS ──
@@ -5422,6 +5544,170 @@ function invDownloadPDF(){
     </div><script>window.onload=function(){window.print();}<\/script>
     </body></html>`);
   win.document.close();
+}
+
+// ── PAGE: SETTINGS ──
+let _profileData = {};
+
+async function loadProfile() {
+  if (!currentUser) return;
+  try {
+    const { data } = await sb.from('profiles')
+      .select('*').eq('user_id', currentUser.id).single();
+    if (data) _profileData = data;
+  } catch(e) { _profileData = {}; }
+}
+
+async function saveProfile() {
+  const btn = document.getElementById('save-profile-btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin-dark"></span> Saving…'; }
+
+  const name     = document.getElementById('pf-name')?.value.trim();
+  const phone    = document.getElementById('pf-phone')?.value.trim();
+  const addr1    = document.getElementById('pf-addr1')?.value.trim();
+  const addr2    = document.getElementById('pf-addr2')?.value.trim();
+  const city     = document.getElementById('pf-city')?.value.trim();
+  const postcode = document.getElementById('pf-postcode')?.value.trim();
+
+  const payload = {
+    user_id: currentUser.id,
+    display_name: name,
+    phone, address_line1: addr1, address_line2: addr2, city, postcode,
+    updated_at: new Date().toISOString()
+  };
+
+  const { error } = await sb.from('profiles').upsert(payload, { onConflict: 'user_id' });
+  if (error) {
+    toast('Error saving profile: ' + error.message, true);
+    if (btn) { btn.disabled = false; btn.textContent = 'Save profile'; }
+    return;
+  }
+  _profileData = { ..._profileData, ...payload };
+  // Update sidebar username
+  if (name) document.getElementById('sb-username').textContent = name.split(' ')[0];
+  await logAudit('UPDATE_PROFILE', 'profiles', currentUser.id, 'Profile updated');
+  if (btn) { btn.disabled = false; btn.innerHTML = '✓ Saved'; setTimeout(() => { if(btn) btn.textContent = 'Save profile'; }, 2000); }
+  toast('✓ Profile saved');
+}
+
+function pgSettings() {
+  const email = currentUser?.email || '—';
+  const pd = _profileData;
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+  // Notification prefs from localStorage
+  const notifCertDays = localStorage.getItem('rsa_notif_cert_days') || '30';
+  const notifRentDays = localStorage.getItem('rsa_notif_rent_days') || '3';
+  const notifEmail    = localStorage.getItem('rsa_notif_email') !== 'false';
+
+  const section = (icon, title, sub, content) => `
+    <div class="panel" style="margin-bottom:18px">
+      <div class="ph2"><div><h2>${icon} ${title}</h2><p>${sub}</p></div></div>
+      <div style="padding:20px">${content}</div>
+    </div>`;
+
+  return `<div class="topbar"><span class="tb-title">Settings</span></div>
+  <div class="content">
+    <div class="ph"><h1>Settings</h1><p>Manage your account, profile and preferences</p></div>
+    <div style="max-width:620px">
+
+      ${section('👤','Profile','Your details appear on legal documents like Section 8 notices',`
+        <div class="fg-row">
+          <div class="fg"><label>Full name</label><input type="text" id="pf-name" value="${pd.display_name||''}" placeholder="e.g. Saurabh Dhawan"></div>
+          <div class="fg"><label>Phone</label><input type="tel" id="pf-phone" value="${pd.phone||''}" placeholder="07…"></div>
+        </div>
+        <div class="fg"><label>Address line 1</label><input type="text" id="pf-addr1" value="${pd.address_line1||''}" placeholder="e.g. 42 Oak Street"></div>
+        <div class="fg"><label>Address line 2 (optional)</label><input type="text" id="pf-addr2" value="${pd.address_line2||''}" placeholder="Flat, suite, etc."></div>
+        <div class="fg-row">
+          <div class="fg"><label>City</label><input type="text" id="pf-city" value="${pd.city||''}" placeholder="e.g. London"></div>
+          <div class="fg"><label>Postcode</label><input type="text" id="pf-postcode" value="${pd.postcode||''}" placeholder="e.g. SW1A 1AA"></div>
+        </div>
+        <div style="margin-top:4px">
+          <button id="save-profile-btn" class="btn btn-navy" onclick="saveProfile()">Save profile</button>
+        </div>
+      `)}
+
+      ${section('🔔','Notifications','How far in advance to alert you about upcoming deadlines',`
+        <div class="fg-row">
+          <div class="fg">
+            <label>Certificate expiry warning</label>
+            <select id="notif-cert" onchange="localStorage.setItem('rsa_notif_cert_days',this.value);toast('✓ Saved')">
+              ${['7','14','30','60','90'].map(d=>`<option value="${d}"${d===notifCertDays?' selected':''}>${d} days before</option>`).join('')}
+            </select>
+          </div>
+          <div class="fg">
+            <label>Rent due reminder</label>
+            <select id="notif-rent" onchange="localStorage.setItem('rsa_notif_rent_days',this.value);toast('✓ Saved')">
+              ${['1','3','5','7'].map(d=>`<option value="${d}"${d===notifRentDays?' selected':''}>${d} days before</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 0">
+          <input type="checkbox" id="notif-email" ${notifEmail?'checked':''} onchange="localStorage.setItem('rsa_notif_email',this.checked);toast('✓ Saved')" style="width:16px;height:16px;accent-color:var(--navy);cursor:pointer">
+          <label for="notif-email" style="font-size:13px;color:var(--txt);cursor:pointer;font-weight:500">Receive email reminders for expiring certificates and rent due dates</label>
+        </div>
+      `)}
+
+      ${section('🎨','Appearance','Switch between light and dark mode',`
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--txt)">${isDark?'🌙 Dark mode':'☀️ Light mode'}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">Toggle the interface colour scheme</div>
+          </div>
+          <button class="btn btn-outline" onclick="toggleTheme();nav('settings')">${isDark?'Switch to light mode':'Switch to dark mode'}</button>
+        </div>
+      `)}
+
+      ${section('🔐','Account','Your login and account details',`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+          <div>
+            <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;color:var(--muted)">Email address</div>
+            <div style="font-size:13px;color:var(--txt);margin-top:2px">${email}</div>
+          </div>
+          <span class="badge b-green">Verified</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--txt)">Password</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">Managed via your login provider</div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--txt)">Export your data</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">Download all your property and tenant data as CSV</div>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="exportAllDataCSV()">⬇ Export data</button>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--txt)">Sign out</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">Sign out of RentSafe AI on this device</div>
+          </div>
+          <button class="btn btn-sm" style="color:var(--red);border-color:var(--red)" onclick="logout()">Sign out</button>
+        </div>
+      `)}
+
+      <div style="font-size:11px;color:var(--muted);text-align:center;padding:8px 0 16px">
+        RentSafe AI · <a href="privacy.html" style="color:var(--muted)">Privacy Policy</a> · <a href="terms.html" style="color:var(--muted)">Terms</a> · Built for UK landlords
+      </div>
+    </div>
+  </div>`;
+}
+
+function exportAllDataCSV() {
+  const lines = ['Type,Property,Detail,Value,Date'];
+  D.properties.forEach(p => lines.push(`Property,"${p.address}","${p.city} ${p.postcode}","${p.type||''}","${p.created_at?.slice(0,10)||''}"`));
+  D.tenants.forEach(t => { const p=P(t.prop_id)||{address:'—'}; lines.push(`Tenant,"${p.address}","${t.name}","${t.email||''}","${t.start_date||''}"`); });
+  D.certs.forEach(c => { const p=P(c.prop_id)||{address:'—'}; lines.push(`Certificate,"${p.address}","${c.type}","${c.status}","${c.expiry||''}"`); });
+  D.maintenance.forEach(m => { const p=P(m.prop_id)||{address:'—'}; lines.push(`Maintenance,"${p.address}","${(m.title||m.desc||'').replace(/"/g,"'")}","${m.stage||''}","${m.date||''}"`); });
+  D.rent.forEach(r => { const p=P(r.prop_id)||{address:'—'}; lines.push(`Rent,"${p.address}","${r.month}","£${r.amount||0} ${r.status}","${r.paid_date||''}"`); });
+  const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `RentSafeAI_Data_Export_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+  toast('✓ Data exported');
 }
 
 // ── S6b: CONTRACTORS BOOK ──
