@@ -3635,7 +3635,15 @@ function getMaintCostTotal(pid){
   return fromJA + fromM;
 }
 function getMaintCostMonthly(pid){
-  return getMaintCostTotal(pid) / 12;
+  // Use actual months since first maintenance record, min 1 to avoid division by zero
+  const allDates = [
+    ...D.jobAssignments.filter(j=>j.tenant_maintenance&&String(j.tenant_maintenance.prop_id)===String(pid)).map(j=>j.completed_at),
+    ...D.maintenance.filter(m=>String(m.prop_id)===String(pid)).map(m=>m.resolved_at||m.actioned_at||m.created_at)
+  ].filter(Boolean).map(d=>new Date(d)).filter(d=>!isNaN(d));
+  if(!allDates.length) return 0;
+  const earliest = new Date(Math.min(...allDates));
+  const months = Math.max(1, Math.round((new Date()-earliest)/(1000*60*60*24*30)));
+  return getMaintCostTotal(pid) / months;
 }
 function getMonthlyPL(pid){
   const out = [];
@@ -3675,15 +3683,72 @@ function pgFinancials(){
   const totMaint=D.properties.reduce((s,p)=>s+getMaintCostMonthly(p.id),0);
   const totProfit=totRent-totMort-totIns-totMaint;
   const totYield=D.properties.length?((totRent*12)/(D.properties.reduce((s,p)=>s+(p.mortgage_outstanding||200000),0))*100).toFixed(1):0;
-  return`<div class="topbar"><span class="tb-title">P&L Overview</span></div>
+
+  // Build 6-month chart data from real rent_payments
+  const chartMonths=[];
+  const now=new Date();
+  for(let i=5;i>=0;i--){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    const label=d.toLocaleDateString('en-GB',{month:'short'});
+    const income=D.rent.filter(r=>r.status==='Paid').filter(r=>{const pd=r.paid_date||r.paid;return pd&&pd.startsWith(key);}).reduce((s,r)=>s+(r.amount||0),0);
+    const expenses=D.properties.reduce((s,p)=>{
+      const mort=p.mortgage_monthly||0;
+      const ins=D.insurance.filter(ii=>String(ii.prop_id)===String(p.id)).reduce((s2,ii)=>s2+(ii.premium||0)/12,0);
+      const maint=[...D.jobAssignments.filter(j=>j.tenant_maintenance&&String(j.tenant_maintenance.prop_id)===String(p.id)&&j.completed_at&&j.completed_at.startsWith(key)).reduce((s2,j)=>s2+(j.cost||0),0),...[D.maintenance.filter(m=>String(m.prop_id)===String(p.id)&&m.cost&&(m.resolved_at||m.actioned_at||'').startsWith(key)).reduce((s2,m)=>s2+(m.cost||0),0)]].reduce((a,b)=>a+b,0);
+      return s+mort+ins+maint;
+    },0);
+    chartMonths.push({label,income,expenses,profit:income?income-expenses:null});
+  }
+  const maxVal=Math.max(...chartMonths.flatMap(m=>[m.income,m.expenses]).filter(v=>v>0),1);
+
+  const chartBars=chartMonths.map(m=>`
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1">
+      <div style="width:100%;display:flex;gap:3px;align-items:flex-end;height:80px">
+        <div style="flex:1;background:var(--green);border-radius:3px 3px 0 0;height:${m.income?Math.max(4,Math.round(m.income/maxVal*80))+'px':'4px'};opacity:${m.income?1:0.2}" title="Income: £${m.income}"></div>
+        <div style="flex:1;background:var(--red);border-radius:3px 3px 0 0;height:${m.expenses?Math.max(4,Math.round(m.expenses/maxVal*80))+'px':'4px'};opacity:${m.expenses?1:0.2}" title="Expenses: £${Math.round(m.expenses)}"></div>
+      </div>
+      <div style="font-size:10px;color:var(--muted);font-weight:500">${m.label}</div>
+    </div>`).join('');
+
+  return`<div class="topbar">
+    <span class="tb-title">Finance & P&L</span>
+    <div class="tb-right">
+      <button class="btn btn-navy" onclick="exportPortfolioPDF()" style="font-size:12px">📄 Export Portfolio PDF</button>
+      <a href="mtd.html" class="btn" style="font-size:12px;background:rgba(0,200,150,0.1);border-color:rgba(0,200,150,0.3);color:var(--green-dark)">📊 MTD Tax →</a>
+    </div>
+  </div>
   <div class="content">
-    <div class="ph"><h1>P&L Overview</h1><p>Full financial overview across your portfolio — real data</p></div>
+    <div class="ph"><h1>Finance & P&L</h1><p>Full financial overview across your portfolio — real data</p></div>
+
     <div class="metrics">
       <div class="mc"><div class="mc-top"><span class="mc-label">Monthly income</span><div class="mc-icon">💰</div></div><div class="mc-val" style="color:var(--green-dark)">£${totRent.toLocaleString()}</div><div class="mc-sub">Rent (all properties)</div></div>
       <div class="mc"><div class="mc-top"><span class="mc-label">Mortgage + insurance</span><div class="mc-icon">🏦</div></div><div class="mc-val" style="color:var(--red)">£${Math.round(totMort+totIns).toLocaleString()}</div><div class="mc-sub">Fixed monthly costs</div></div>
       <div class="mc"><div class="mc-top"><span class="mc-label">Maintenance costs</span><div class="mc-icon">🔧</div></div><div class="mc-val" style="color:var(--amber)">£${Math.round(totMaint).toLocaleString()}</div><div class="mc-sub">Avg monthly (real data)</div></div>
       <div class="mc"><div class="mc-top"><span class="mc-label">Net profit</span><div class="mc-icon">📈</div></div><div class="mc-val" style="color:${totProfit>=0?'var(--green-dark)':'var(--red)'}">£${Math.round(totProfit).toLocaleString()}</div><div class="mc-sub">Per month after all costs</div></div>
     </div>
+
+    <!-- 6-Month Income Chart -->
+    <div class="panel" style="margin-bottom:20px">
+      <div class="ph2" style="display:flex;align-items:center;justify-content:space-between">
+        <div><h2>6-Month Income vs Expenses</h2><p>Actual rent received vs running costs</p></div>
+        <div style="display:flex;gap:16px;font-size:12px;color:var(--muted)">
+          <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:var(--green);display:inline-block"></span>Income</span>
+          <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:var(--red);display:inline-block"></span>Expenses</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;padding:8px 0 4px;align-items:flex-end">
+        ${chartBars}
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+        ${chartMonths.map(m=>`<div style="flex:1;text-align:center">
+          <div style="font-size:11px;font-weight:600;color:${m.profit===null?'var(--muted)':m.profit>=0?'var(--green-dark)':'var(--red)'}">${m.profit===null?'—':'£'+Math.round(m.profit).toLocaleString()}</div>
+          <div style="font-size:10px;color:var(--muted)">net</div>
+        </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- Property Breakdown -->
     <div class="panel">
       <div class="ph2"><h2>Property breakdown</h2><p>Per property P&L — click Detail for monthly view</p></div>
       <div class="tw"><table>
@@ -3709,6 +3774,25 @@ function pgFinancials(){
         }).join('')}${D.properties.length===0?`<tr><td colspan="9"><div class="empty"><div class="empty-ic">📊</div><div class="empty-t">No properties yet</div></div></td></tr>`:''}</tbody>
       </table></div>
     </div>
+
+    <!-- MTD Tax Link Card -->
+    <div class="panel" onclick="window.location.href='mtd.html'" style="cursor:pointer;background:linear-gradient(135deg,rgba(0,200,150,0.06),rgba(0,200,150,0.02));border:1px solid rgba(0,200,150,0.2);transition:all .15s" onmouseover="this.style.borderColor='rgba(0,200,150,0.45)'" onmouseout="this.style.borderColor='rgba(0,200,150,0.2)'">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0">
+        <div style="display:flex;align-items:center;gap:14px">
+          <div style="font-size:2rem">📊</div>
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--navy);display:flex;align-items:center;gap:8px">
+              Making Tax Digital — Quarterly Submissions
+              <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;background:rgba(220,38,38,0.12);color:#dc2626;border:1px solid rgba(220,38,38,0.25)">LIVE</span>
+            </div>
+            <div style="font-size:13px;color:var(--muted);margin-top:3px">Track income & HMRC expenses, Section 24 calculator, submission-ready PDF. First deadline: <strong style="color:var(--navy)">7 August 2026.</strong></div>
+          </div>
+        </div>
+        <div style="color:var(--green-dark);font-size:18px;font-weight:600">→</div>
+      </div>
+    </div>
+
+    <!-- AI Insight -->
     <div class="panel" style="background:linear-gradient(135deg,#0B1E3D,#132847);color:#fff;border:none">
       <div style="padding:20px">
         <div style="font-size:11px;font-weight:600;color:var(--green);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px">✦ AI Financial Insight</div>
@@ -3716,6 +3800,107 @@ function pgFinancials(){
       </div>
     </div>
   </div>`;
+}
+function exportPortfolioPDF(){
+  const totRent=D.properties.reduce((s,p)=>s+(p.rent||0),0);
+  const totMort=D.properties.reduce((s,p)=>s+(p.mortgage_monthly||0),0);
+  const totIns=D.insurance.reduce((s,ii)=>s+(ii.premium||0)/12,0);
+  const totMaint=D.properties.reduce((s,p)=>s+getMaintCostMonthly(p.id),0);
+  const totProfit=totRent-totMort-totIns-totMaint;
+  const date=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  const propRows=D.properties.map(p=>{
+    const ins=D.insurance.filter(ii=>String(ii.prop_id)===String(p.id)).reduce((s,ii)=>s+(ii.premium||0)/12,0);
+    const mort=p.mortgage_monthly||0;
+    const maint=getMaintCostMonthly(p.id);
+    const profit=(p.rent||0)-mort-ins-maint;
+    const yld=p.mortgage_outstanding?((p.rent||0)*12/p.mortgage_outstanding*100).toFixed(1)+'%':'—';
+    return`<tr>
+      <td style="font-weight:500">${p.address}</td>
+      <td style="color:#009970;font-weight:600;text-align:right">£${(p.rent||0).toLocaleString()}</td>
+      <td style="color:#E53E3E;text-align:right">£${mort.toLocaleString()}</td>
+      <td style="text-align:right">£${Math.round(ins).toLocaleString()}</td>
+      <td style="text-align:right">£${Math.round(maint).toLocaleString()}</td>
+      <td style="font-weight:600;color:${profit>=0?'#009970':'#E53E3E'};text-align:right">£${Math.round(profit).toLocaleString()}</td>
+      <td style="text-align:center">${yld}</td>
+    </tr>`;
+  }).join('');
+  const win=window.open('','_blank');
+  if(!win){toast('Allow pop-ups to export PDF',true);return;}
+  win.document.write(`<!DOCTYPE html><html><head><title>Portfolio P&L — RentSafeAI</title>
+  <style>
+    body{font-family:Georgia,serif;font-size:13px;line-height:1.8;padding:48px;max-width:900px;margin:0 auto;color:#1A2B45}
+    .header{border-bottom:2px solid #0B1E3D;margin-bottom:28px;padding-bottom:14px;display:flex;justify-content:space-between;align-items:flex-end}
+    .logo{font-size:18px;font-weight:700;color:#0B1E3D}.logo span{color:#00C896}
+    h1{font-size:22px;font-weight:700;color:#0B1E3D;margin-bottom:4px}
+    h2{font-size:14px;font-weight:700;color:#0B1E3D;margin:24px 0 8px;border-bottom:1px solid #E4EAF1;padding-bottom:4px}
+    .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px}
+    .card{border-radius:8px;padding:14px;text-align:center}
+    .card-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+    .card-val{font-size:20px;font-weight:700}
+    table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:12px}
+    th{text-align:left;padding:7px 10px;font-size:10px;font-weight:700;text-transform:uppercase;color:#7A8FA6;border-bottom:1px solid #E4EAF1;background:#F6F8FB}
+    td{padding:9px 10px;border-bottom:1px solid #F0F4F8}
+    .total-row{font-weight:700;border-top:2px solid #0B1E3D;background:#f6f8fb}
+    .footer{margin-top:32px;padding-top:12px;border-top:1px solid #eee;font-size:10px;color:#999;text-align:center}
+    @media print{body{padding:24px}}
+  </style></head><body>
+  <div class="header">
+    <div><div class="logo">Rent<span>Safe</span> AI</div><div style="font-size:11px;color:#999;margin-top:2px">Portfolio Financial Report</div></div>
+    <div style="text-align:right;font-size:12px;color:#666">${D.properties.length} properties · ${date}</div>
+  </div>
+  <h1>Portfolio P&L Overview</h1>
+  <div class="cards">
+    <div class="card" style="background:#f0fdf9;border:1px solid rgba(0,200,150,0.2)">
+      <div class="card-label" style="color:#009970">Monthly Income</div>
+      <div class="card-val" style="color:#009970">£${totRent.toLocaleString()}</div>
+    </div>
+    <div class="card" style="background:#fff5f5;border:1px solid rgba(229,62,62,0.2)">
+      <div class="card-label" style="color:#E53E3E">Mortgage & Insurance</div>
+      <div class="card-val" style="color:#E53E3E">£${Math.round(totMort+totIns).toLocaleString()}</div>
+    </div>
+    <div class="card" style="background:#fffbeb;border:1px solid rgba(217,119,6,0.2)">
+      <div class="card-label" style="color:#D97706">Maintenance (avg/mo)</div>
+      <div class="card-val" style="color:#D97706">£${Math.round(totMaint).toLocaleString()}</div>
+    </div>
+    <div class="card" style="background:#f0f4ff;border:1px solid rgba(59,111,232,0.2)">
+      <div class="card-label" style="color:#3B6FE8">Net Profit/mo</div>
+      <div class="card-val" style="color:${totProfit>=0?'#009970':'#E53E3E'}">£${Math.round(totProfit).toLocaleString()}</div>
+    </div>
+  </div>
+  <h2>Per Property Breakdown</h2>
+  <table>
+    <thead><tr><th>Property</th><th style="text-align:right">Rent/mo</th><th style="text-align:right">Mortgage</th><th style="text-align:right">Insurance</th><th style="text-align:right">Maintenance</th><th style="text-align:right">Net Profit</th><th style="text-align:center">Yield</th></tr></thead>
+    <tbody>
+      ${propRows}
+      <tr class="total-row">
+        <td>TOTAL (${D.properties.length} properties)</td>
+        <td style="color:#009970;text-align:right">£${totRent.toLocaleString()}</td>
+        <td style="color:#E53E3E;text-align:right">£${Math.round(totMort).toLocaleString()}</td>
+        <td style="text-align:right">£${Math.round(totIns).toLocaleString()}</td>
+        <td style="text-align:right">£${Math.round(totMaint).toLocaleString()}</td>
+        <td style="font-weight:700;color:${totProfit>=0?'#009970':'#E53E3E'};text-align:right">£${Math.round(totProfit).toLocaleString()}</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h2>Annual Projections</h2>
+  <table>
+    <tbody>
+      <tr><td>Annual rental income</td><td style="font-weight:600;color:#009970;text-align:right">£${Math.round(totRent*12).toLocaleString()}</td></tr>
+      <tr><td>Annual expenses (mortgage + insurance)</td><td style="text-align:right">£${Math.round((totMort+totIns)*12).toLocaleString()}</td></tr>
+      <tr><td>Annual maintenance (estimated)</td><td style="text-align:right">£${Math.round(totMaint*12).toLocaleString()}</td></tr>
+      <tr style="font-weight:700;border-top:2px solid #0B1E3D"><td>Annual net profit</td><td style="color:${totProfit>=0?'#009970':'#E53E3E'};text-align:right">£${Math.round(totProfit*12).toLocaleString()}</td></tr>
+      <tr><td style="color:#7A8FA6;font-size:12px">Tax estimate — basic rate (20%)</td><td style="color:#7A8FA6;text-align:right">~£${Math.round(Math.max(0,totProfit*12)*0.2).toLocaleString()}/yr</td></tr>
+      <tr><td style="color:#7A8FA6;font-size:12px">Tax estimate — higher rate (40%)</td><td style="color:#7A8FA6;text-align:right">~£${Math.round(Math.max(0,totProfit*12)*0.4).toLocaleString()}/yr</td></tr>
+    </tbody>
+  </table>
+  <div style="background:#f6f8fb;border-radius:8px;padding:14px;margin-top:20px;font-size:12px;color:#555">
+    Maintenance costs calculated from real job records. Tax estimates are indicative only — consult a qualified accountant.
+    For HMRC MTD quarterly submissions, use the MTD Tax module in RentSafeAI.
+  </div>
+  <div class="footer">Generated by RentSafe AI · ${date} · Confidential — not financial advice</div>
+  <script>window.onload=function(){window.print();}<\/script></body></html>`);
+  win.document.close();
 }
 function moFinancials(pid){
   const p=P(pid);
