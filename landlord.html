@@ -61,6 +61,8 @@ html,body{height:100%;font-family:var(--font);color:var(--txt);background:var(--
 .content{padding:24px 28px;flex:1}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;font-family:var(--font);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;border:1px solid var(--border);background:var(--white);color:var(--muted);text-decoration:none;white-space:nowrap}
 .btn:hover{border-color:#c5d0dd;background:var(--off);color:var(--txt)}
+.btn:active{transform:scale(0.95);opacity:.85;transition:transform .08s,opacity .08s}
+.btn-navy:active{transform:scale(0.95)}
 .btn-navy{background:var(--navy);color:#fff;border-color:var(--navy)}
 .btn-navy:hover{background:var(--navy-mid);color:#fff;border-color:var(--navy-mid)}
 .btn-navy:disabled{opacity:.6;cursor:not-allowed}
@@ -212,6 +214,7 @@ tr:hover td{background:rgba(246,248,251,.8)}
 .toast.err{background:var(--red)}
 @keyframes spin{to{transform:rotate(360deg)}}
 .spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px}
+.spin-dark{display:inline-block;width:12px;height:12px;border:2px solid rgba(0,0,0,.15);border-top-color:var(--navy);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:4px}
 /* ── PROPERTY DETAIL TABS ── */
 .pd-tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:22px;gap:0;overflow-x:auto}
 .pd-tab{padding:10px 18px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border:none;background:none;font-family:var(--font);border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .15s;display:flex;align-items:center;gap:6px}
@@ -1979,12 +1982,12 @@ function pdTabContent(pid, tab) {
       </div>
 
       <div class="panel" style="margin-bottom:16px">
-        <div class="ph2"><div><h2>✅ Tenancy start guide</h2><p>Onboarding checklist</p></div></div>
+        <div class="ph2"><div><h2>✅ Tenancy start guide</h2><p>Checklist + document kit</p></div><button class="btn btn-sm btn-navy" id="ob-kit-btn-${pid}" onclick="sendOnboardingKit('${pid}')">📦 Send Kit + Portal</button></div>
         <div style="padding:14px 18px"><div id="cb-ob-${pid}"><div style="color:var(--muted);font-size:13px">Loading…</div></div></div>
       </div>
 
       <div class="panel">
-        <div class="ph2"><div><h2>📋 Tenancy end guide</h2><p>Offboarding checklist</p></div></div>
+        <div class="ph2"><div><h2>📋 Tenancy end guide</h2><p>Offboarding checklist</p></div>${t && (t.invite_token || t.invite_used) ? `<button class="btn btn-sm" style="border-color:var(--red);color:var(--red)" id="revoke-btn-${t.id}" onclick="revokePortalAccess('${t.id}')">🔒 Revoke portal access</button>` : ''}</div>
         <div style="padding:14px 18px"><div id="cb-db-${pid}"><div style="color:var(--muted);font-size:13px">Loading…</div></div></div>
       </div>` 
     : `<div class="panel"><div style="padding:40px;text-align:center">
@@ -2059,7 +2062,9 @@ function pdTabContent(pid, tab) {
                 <td>${FMT(c.expiry)}</td>
                 <td style="font-size:12px;color:var(--muted)">${c.engineer||'—'}</td>
                 <td>${c.served?`<button onclick="markServed(${c.id})" style="background:var(--green-bg);border:1px solid var(--green);color:var(--green-dark);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font)">✓ Served</button>`:`<button onclick="markServed(${c.id})" style="background:var(--off);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;font-family:var(--font)">Mark served</button>`}</td>
-                <td>${(c.file||c.has_file)?'<span class="badge b-green">✓</span>':`<label style="cursor:pointer;font-size:11px;font-weight:600;color:var(--blue);padding:3px 8px;border:1px solid var(--blue);border-radius:6px;background:var(--blue-bg)">Upload<input type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="uploadScanCert(${c.id},this)"></label>`}</td>
+                <td>${(c.file||c.has_file)
+                  ?`<div style="display:flex;gap:4px;align-items:center"><span class="badge b-green">✓</span>${c.file?`<button onclick="viewCertFile(${c.id})" style="font-size:11px;font-weight:600;color:var(--blue);padding:2px 8px;border:1px solid var(--blue);border-radius:5px;background:var(--blue-bg);cursor:pointer;font-family:var(--font)">View</button>`:''}</div>`
+                  :`<label style="cursor:pointer;font-size:11px;font-weight:600;color:var(--blue);padding:3px 8px;border:1px solid var(--blue);border-radius:6px;background:var(--blue-bg);display:inline-block">Upload<input type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="uploadCertToStorage(${c.id},this)"></label>`}</td>
               </tr>`).join('')}</tbody>
             </table></div>`
           : `<div style="padding:14px 18px;font-size:13px;color:var(--muted)">No certificates yet — <a href="#" onclick="moCert('${pid}')" style="color:var(--navy);font-weight:500">add one</a></div>`}
@@ -4963,6 +4968,147 @@ async function deleteContractor(id){
   D.contractors=(D.contractors||[]).filter(x=>String(x.id)!==String(id));
   toast('Contractor deleted');
   nav('contractors');
+}
+
+// ── UPLOAD CERT FILE TO SUPABASE STORAGE ──
+async function uploadCertToStorage(certId, inputEl) {
+  const file = inputEl.files[0];
+  if (!file) return;
+  const label = inputEl.closest('label');
+  if (label) { label.style.opacity = '0.5'; label.style.pointerEvents = 'none'; }
+  toast('Uploading…');
+  const ext = file.name.split('.').pop().toLowerCase();
+  const path = `${currentUser.id}/${certId}.${ext}`;
+  const { error: upErr } = await sb.storage
+    .from('property-documents')
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (upErr) {
+    toast('Upload failed: ' + upErr.message, true);
+    if (label) { label.style.opacity = '1'; label.style.pointerEvents = 'auto'; }
+    return;
+  }
+  const { error: dbErr } = await sb.from('certs')
+    .update({ file: path, has_file: true })
+    .eq('id', certId);
+  if (dbErr) { toast('Save error: ' + dbErr.message, true); return; }
+  const cert = D.certs.find(c => String(c.id) === String(certId));
+  if (cert) { cert.file = path; cert.has_file = true; }
+  await logAudit('UPLOAD_CERT_FILE', 'certs', certId, `File uploaded: ${file.name}`);
+  toast('✓ Document uploaded');
+  const pid = cert?.prop_id;
+  if (pid) { window._pdTab[pid] = 'compliance'; nav('prop-detail', pid); }
+}
+
+async function viewCertFile(certId) {
+  const cert = D.certs.find(c => String(c.id) === String(certId));
+  if (!cert?.file) { toast('No file uploaded', true); return; }
+  const { data, error } = await sb.storage.from('property-documents').createSignedUrl(cert.file, 3600);
+  if (error || !data?.signedUrl) { toast('Could not load file', true); return; }
+  window.open(data.signedUrl, '_blank');
+}
+
+// ── SEND ONBOARDING KIT + PORTAL INVITE (COMBINED) ──
+async function sendOnboardingKit(pid) {
+  const p = P(pid);
+  const t = D.tenants.find(x => String(x.prop_id) === String(pid) && (x.status === 'Active' || !x.status));
+  if (!t || !t.email) { toast('No tenant email on file for this property', true); return; }
+  const btn = document.getElementById('ob-kit-btn-' + pid);
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Sending…'; }
+
+  // Generate new portal token
+  const newToken = crypto.randomUUID();
+  await sb.from('tenants').update({
+    invite_token: newToken, invite_used: false, landlord_email: currentUser.email
+  }).eq('id', t.id);
+  if (t) { t.invite_token = newToken; t.invite_used = false; }
+  const inviteLink = `${window.location.origin}/tenant.html?token=${newToken}`;
+
+  // Get signed URLs for all uploaded certs for this property
+  const uploadedCerts = D.certs.filter(c => String(c.prop_id) === String(pid) && c.file);
+  const certLinks = [];
+  for (const cert of uploadedCerts) {
+    const { data } = await sb.storage.from('property-documents').createSignedUrl(cert.file, 86400); // 24hr
+    if (data?.signedUrl) certLinks.push({ type: cert.type, url: data.signedUrl });
+  }
+
+  // Build combined email
+  const certRowsHtml = certLinks.length
+    ? `<div style="margin-bottom:22px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#7A8FA6;margin-bottom:10px">📄 Your Tenancy Documents</div>
+        <div style="background:#F6F8FB;border-radius:8px;padding:4px 14px">
+          <table style="width:100%;border-collapse:collapse">
+            ${certLinks.map(c=>`<tr>
+              <td style="padding:9px 0;border-bottom:1px solid #eee;font-size:13px;color:#1A2B45">${c.type}</td>
+              <td style="padding:9px 0;border-bottom:1px solid #eee;text-align:right">
+                <a href="${c.url}" style="color:#3B6FE8;font-weight:600;font-size:12px;text-decoration:none">Download →</a>
+              </td>
+            </tr>`).join('')}
+          </table>
+        </div>
+        <p style="font-size:11px;color:#aaa;margin-top:6px">Document links expire in 24 hours. Please save copies for your records.</p>
+      </div>`
+    : '';
+
+  const html = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:28px 24px;color:#1A2B45">
+    <div style="border-bottom:2px solid #0B1E3D;padding-bottom:12px;margin-bottom:22px">
+      <span style="font-size:17px;font-weight:700;color:#0B1E3D">Rent<span style="color:#00C896">Safe</span>AI</span>
+    </div>
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:6px">Welcome to your new home 🏠</h2>
+    <p style="font-size:13px;color:#7A8FA6;margin-bottom:22px">Hi ${t.name}, here is everything you need for the start of your tenancy at <strong>${p.address}</strong>.</p>
+    ${certRowsHtml}
+    <div style="background:#0B1E3D;border-radius:10px;padding:20px 22px;margin-bottom:22px">
+      <div style="font-size:11px;font-weight:700;color:#00C896;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">🔗 Your Tenant Portal</div>
+      <p style="font-size:13px;color:rgba(255,255,255,0.7);margin-bottom:16px">Report maintenance issues, track repairs and stay in touch with your landlord — all in one place. Click below to set your password and get started.</p>
+      <div style="text-align:center">
+        <a href="${inviteLink}" style="background:#00C896;color:#0B1E3D;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;display:inline-block">Set up your portal →</a>
+      </div>
+      <p style="font-size:11px;color:rgba(255,255,255,0.35);text-align:center;margin-top:10px">Or copy this link: <a href="${inviteLink}" style="color:rgba(255,255,255,0.5);word-break:break-all">${inviteLink}</a></p>
+    </div>
+    <div style="background:#F6F8FB;border-radius:8px;padding:12px 14px;font-size:12px;color:#7A8FA6;line-height:1.7">
+      <strong>Property:</strong> ${p.address}${p.city?', '+p.city:''} ${p.postcode||''}<br>
+      <strong>Sent:</strong> ${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'})} at ${new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}
+    </div>
+    <div style="margin-top:18px;padding-top:12px;border-top:1px solid #eee;font-size:11px;color:#bbb">Sent via RentSafe AI · documents@rentsafeai.co.uk</div>
+  </div>`;
+
+  const emailRes = await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'send_email', to: t.email, subject: `Your tenancy pack — ${p.address}`, html })
+  });
+  const emailData = await emailRes.json();
+  if (emailData.error || !emailRes.ok) {
+    if (btn) { btn.disabled = false; btn.innerHTML = '📦 Send Kit + Portal'; }
+    toast('Email failed — check Resend', true); return;
+  }
+  await logAudit('SEND_ONBOARDING_KIT', 'tenants', t.id, `Onboarding kit sent to ${t.email} — ${certLinks.length} doc(s) + portal invite`);
+  try {
+    await sb.from('email_log').insert({
+      user_id: currentUser.id, prop_id: String(pid), recipient: t.email,
+      subject: `Tenancy pack — ${p.address}`, type: 'Onboarding Kit',
+      sent_at: new Date().toISOString()
+    });
+  } catch(e) {}
+  if (btn) { btn.disabled = false; btn.innerHTML = '✓ Kit sent'; }
+  toast(`✓ Onboarding kit sent to ${t.name} — ${certLinks.length} doc(s) + portal link`);
+}
+
+// ── REVOKE PORTAL ACCESS ──
+async function revokePortalAccess(tenantId) {
+  if (!confirm('This will immediately disable portal access for this tenant. They will no longer be able to log in. Continue?')) return;
+  const btn = document.getElementById('revoke-btn-' + tenantId);
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin-dark"></span> Revoking…'; }
+  const { error } = await sb.from('tenants')
+    .update({ invite_token: null, invite_used: false })
+    .eq('id', tenantId);
+  if (error) {
+    if (btn) { btn.disabled = false; btn.innerHTML = '🔒 Revoke portal access'; }
+    toast('Error: ' + error.message, true); return;
+  }
+  const t = D.tenants.find(x => String(x.id) === String(tenantId));
+  if (t) { t.invite_token = null; t.invite_used = false; }
+  await logAudit('REVOKE_PORTAL_ACCESS', 'tenants', tenantId, 'Portal access revoked — token cleared');
+  if (btn) { btn.disabled = false; btn.innerHTML = '✓ Access revoked'; }
+  toast('✓ Portal access revoked');
 }
 
 // ── SEND PORTAL INVITE ──
