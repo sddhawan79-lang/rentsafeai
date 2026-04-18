@@ -311,6 +311,8 @@ tr:hover td{background:rgba(246,248,251,.8)}
 .btn-inline{background:none;border:none;padding:3px 0;font-family:var(--font);font-size:12px;font-weight:600;color:var(--blue);cursor:pointer;text-decoration:none}
 .btn-inline:hover{color:var(--navy);text-decoration:underline}
 </style>
+<!-- CRISP LIVE CHAT -->
+<script type="text/javascript">window.$crisp=[];window.CRISP_WEBSITE_ID="6a5c5215-3c14-4afa-94a4-f1f8b05e2f62";(function(){d=document;s=d.createElement("script");s.src="https://client.crisp.chat/l.js";s.async=1;d.getElementsByTagName("head")[0].appendChild(s);})();</script>
 </head>
 <body>
 <div class="app">
@@ -749,6 +751,12 @@ async function initApp() {
   const email = currentUser.email || '';
   document.getElementById('sb-username').textContent = email.split('@')[0];
   document.getElementById('th-av').textContent = email.slice(0,2).toUpperCase();
+
+  // Identify user in Crisp so you can see who's chatting
+  if (window.$crisp) {
+    window.$crisp.push(["set", "user:email", [email]]);
+    window.$crisp.push(["set", "user:nickname", [email.split('@')[0]]]);
+  }
 
   await loadData();
   await loadProfile();
