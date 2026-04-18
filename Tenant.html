@@ -2,11 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Rent Safe AI — Tenant Portal</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tenant Portal — RentSafe AI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -20,587 +21,932 @@
   --font:'DM Sans',system-ui,sans-serif;
   --disp:'DM Serif Display',Georgia,serif;
 }
-html,body{font-family:var(--font);color:var(--txt);background:var(--off);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh}
+html,body{min-height:100%;font-family:var(--font);color:var(--txt);background:var(--off);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
 
-/* HEADER */
-.header{background:var(--navy);padding:16px 20px 0;position:sticky;top:0;z-index:50}
-.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-.header-logo{font-family:var(--disp);font-size:17px;color:#fff}
-.header-logo span{color:var(--green)}
-.header-prop{padding-bottom:16px}
-.header-greeting{font-size:12px;color:rgba(255,255,255,0.45);margin-bottom:2px}
-.header-name{font-size:18px;font-weight:600;color:#fff}
-.header-addr{font-size:12px;color:rgba(255,255,255,0.5);margin-top:2px}
-
-/* NAV TABS */
-.nav-tabs{display:flex;background:var(--navy);border-bottom:1px solid rgba(255,255,255,0.1);overflow-x:auto;-webkit-overflow-scrolling:touch}
-.nav-tabs::-webkit-scrollbar{display:none}
-.nav-tab{flex-shrink:0;padding:10px 16px;font-size:13px;font-weight:500;color:rgba(255,255,255,0.5);cursor:pointer;border:none;background:none;font-family:var(--font);border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
-.nav-tab.active{color:var(--green);border-bottom-color:var(--green)}
-
-/* CONTENT */
-.content{padding:20px 16px;max-width:600px;margin:0 auto}
-
-/* CARDS */
-.card{background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px}
-.card-head{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-.card-head h2{font-size:14px;font-weight:600;color:var(--txt)}
-.card-body{padding:16px}
-
-/* BADGES */
-.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:100px;font-size:11px;font-weight:600;white-space:nowrap}
-.b-green{background:var(--green-bg);color:var(--green-dark)}
-.b-red{background:var(--red-bg);color:var(--red)}
-.b-amber{background:var(--amber-bg);color:var(--amber)}
-.b-blue{background:var(--blue-bg);color:var(--blue)}
-.b-gray{background:#EEF2F7;color:#556678}
-
-/* BUTTONS */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border-radius:9px;font-family:var(--font);font-size:14px;font-weight:500;cursor:pointer;transition:all .15s;border:1px solid var(--border);background:var(--white);color:var(--muted);text-decoration:none;width:100%}
-.btn:hover{background:var(--off)}
-.btn-navy{background:var(--navy);color:#fff;border-color:var(--navy)}
-.btn-navy:hover{background:var(--navy-mid);color:#fff}
+/* ── AUTH SCREENS ── */
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(135deg,var(--navy) 0%,#1a3a6b 100%)}
+.auth-card{background:var(--white);border-radius:16px;padding:36px 32px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.2)}
+.auth-logo{font-family:var(--disp);font-size:20px;color:var(--navy);margin-bottom:8px}
+.auth-logo span{color:var(--green)}
+.auth-title{font-size:22px;font-weight:600;color:var(--txt);margin-bottom:6px}
+.auth-sub{font-size:13px;color:var(--muted);margin-bottom:28px;line-height:1.6}
+.auth-badge{display:inline-flex;align-items:center;gap:6px;background:var(--green-bg);color:var(--green-dark);font-size:12px;font-weight:600;padding:5px 10px;border-radius:100px;margin-bottom:20px}
+.fg{margin-bottom:16px}
+.fg label{display:block;font-size:12px;font-weight:600;color:var(--txt);margin-bottom:5px}
+.fg input,.fg select,.fg textarea{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:var(--font);font-size:13px;color:var(--txt);background:var(--white);transition:border-color .15s,box-shadow .15s;outline:none}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(0,200,150,0.12)}
+.fg textarea{resize:vertical;min-height:80px}
+.fg input:disabled{background:var(--off);color:var(--muted)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 18px;border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;border:1px solid var(--border);background:var(--white);color:var(--muted);white-space:nowrap}
+.btn:hover{border-color:#c5d0dd;background:var(--off);color:var(--txt)}
+.btn-primary{background:var(--navy);color:#fff;border-color:var(--navy);width:100%;padding:11px}
+.btn-primary:hover{background:var(--navy-mid);color:#fff;border-color:var(--navy-mid)}
+.btn-primary:disabled{opacity:.6;cursor:not-allowed}
 .btn-green{background:var(--green);color:var(--navy);border-color:var(--green);font-weight:600}
-.btn-green:hover{background:var(--green-dark)}
-.btn-sm{padding:7px 14px;font-size:13px;width:auto}
+.btn-green:hover{background:var(--green-dark);color:#fff;border-color:var(--green-dark)}
+.auth-footer{margin-top:20px;text-align:center;font-size:12px;color:var(--muted)}
+.auth-footer a{color:var(--blue);text-decoration:none}
 
-/* HOME PAGE */
-.welcome-card{background:linear-gradient(135deg,var(--navy) 0%,var(--navy-mid) 100%);border-radius:14px;padding:20px;margin-bottom:16px;position:relative;overflow:hidden}
-.welcome-card::after{content:'';position:absolute;top:-40px;right:-40px;width:140px;height:140px;background:rgba(0,200,150,0.08);border-radius:50%}
-.welcome-title{font-family:var(--disp);font-size:22px;color:#fff;margin-bottom:6px;line-height:1.2}
-.welcome-sub{font-size:13px;color:rgba(255,255,255,0.55);line-height:1.6}
-.quick-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
-.qa-btn{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:16px 14px;cursor:pointer;text-align:left;transition:all .2s;display:flex;flex-direction:column;gap:8px}
-.qa-btn:hover{border-color:var(--navy);box-shadow:0 2px 12px rgba(11,30,61,.08)}
-.qa-icon{font-size:22px}
-.qa-label{font-size:13px;font-weight:600;color:var(--txt)}
-.qa-sub{font-size:11px;color:var(--muted)}
+/* ── LOADING ── */
+.loading-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy)}
+.loading-inner{text-align:center}
+.loading-logo{font-family:var(--disp);font-size:24px;color:#fff;margin-bottom:20px}
+.loading-logo span{color:var(--green)}
+.spin-lg{width:32px;height:32px;border:3px solid rgba(255,255,255,0.15);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+.spin-dark{border-color:rgba(0,0,0,0.12);border-top-color:var(--navy)}
 
-/* ISSUE ROW */
-.issue-row{padding:14px 0;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px}
-.issue-row:last-child{border-bottom:none}
-.issue-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px}
-.issue-dot.red{background:var(--red)}
-.issue-dot.amber{background:var(--amber)}
-.issue-dot.green{background:var(--green)}
-.issue-body{flex:1}
-.issue-title{font-size:14px;font-weight:500;color:var(--txt)}
-.issue-meta{font-size:12px;color:var(--muted);margin-top:2px}
-.issue-timeline{margin-top:10px;padding-left:12px;border-left:2px solid var(--border)}
-.tl-item{padding:6px 0 6px 14px;position:relative;font-size:12px;color:var(--muted)}
-.tl-item::before{content:'';position:absolute;left:-5px;top:10px;width:8px;height:8px;border-radius:50%;background:var(--border)}
-.tl-item.done::before{background:var(--green)}
-.tl-item strong{color:var(--txt);display:block;font-size:13px}
+/* ── PORTAL LAYOUT ── */
+.portal-wrap{min-height:100vh;background:var(--off)}
+.portal-header{background:var(--navy);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.portal-logo{font-family:var(--disp);font-size:16px;color:#fff}
+.portal-logo span{color:var(--green)}
+.portal-user{display:flex;align-items:center;gap:12px}
+.portal-name{font-size:12px;color:rgba(255,255,255,0.6)}
+.btn-logout{font-size:11px;color:rgba(255,255,255,0.4);background:none;border:none;cursor:pointer;font-family:var(--font);padding:4px 8px;border-radius:6px;transition:all .15s}
+.btn-logout:hover{color:#fff;background:rgba(255,255,255,0.1)}
+.portal-body{max-width:700px;margin:0 auto;padding:28px 20px}
 
-/* DOCUMENT ROW */
-.doc-row{padding:13px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
-.doc-row:last-child{border-bottom:none}
-.doc-icon{width:36px;height:36px;border-radius:8px;background:var(--blue-bg);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-.doc-info{flex:1}
-.doc-name{font-size:13.5px;font-weight:500;color:var(--txt)}
-.doc-meta{font-size:11px;color:var(--muted);margin-top:2px}
-.doc-action{flex-shrink:0}
+/* ── PROPERTY BANNER ── */
+.prop-banner{background:linear-gradient(135deg,var(--navy) 0%,#1a3a6b 100%);border-radius:12px;padding:20px 24px;margin-bottom:24px;display:flex;align-items:center;gap:16px}
+.prop-icon{width:42px;height:42px;border-radius:10px;background:rgba(0,200,150,0.15);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.prop-info{flex:1}
+.prop-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:rgba(255,255,255,0.4);margin-bottom:3px}
+.prop-address{font-size:15px;font-weight:600;color:#fff}
+.prop-meta{font-size:12px;color:rgba(255,255,255,0.5);margin-top:2px}
 
-/* RENT ROW */
-.rent-row{padding:13px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-.rent-row:last-child{border-bottom:none}
-.rent-month{font-size:14px;font-weight:500;color:var(--txt)}
-.rent-amount{font-size:14px;font-weight:600;color:var(--txt)}
-.rent-date{font-size:11px;color:var(--muted);margin-top:2px}
+/* ── TABS ── */
+.tabs{display:flex;gap:4px;background:var(--white);border:1px solid var(--border);border-radius:10px;padding:4px;margin-bottom:20px}
+.tab{flex:1;padding:8px;text-align:center;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-radius:7px;transition:all .15s;border:none;background:none;font-family:var(--font)}
+.tab.active{background:var(--navy);color:#fff}
+.tab-content{display:none}
+.tab-content.active{display:block}
 
-/* CONTACT */
-.contact-method{padding:14px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
-.contact-method:last-child{border-bottom:none}
-.contact-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.contact-label{font-size:13.5px;font-weight:500;color:var(--txt)}
-.contact-sub{font-size:12px;color:var(--muted)}
-
-/* FORM */
-.fg{margin-bottom:14px}
-.fg label{font-size:11px;font-weight:600;color:var(--txt);margin-bottom:5px;display:block;letter-spacing:.3px;text-transform:uppercase}
-.fg label .req{color:var(--red);margin-left:2px}
-.fg input,.fg select,.fg textarea{width:100%;padding:10px 13px;border-radius:9px;border:1.5px solid var(--border);font-family:var(--font);font-size:14px;color:var(--txt);outline:none;transition:border .2s;background:var(--white);-webkit-appearance:none}
-.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--navy)}
-.fg textarea{min-height:90px;resize:vertical}
-.fg-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-
-/* PHOTO UPLOAD */
-.photo-upload{border:2px dashed var(--border);border-radius:10px;padding:20px;text-align:center;cursor:pointer;position:relative;transition:all .2s;margin-bottom:14px}
-.photo-upload:hover{border-color:var(--navy);background:var(--off)}
-.photo-upload input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+/* ── REPORT FORM ── */
+.panel{background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px}
+.panel-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.panel-head h2{font-size:15px;font-weight:600;color:var(--txt)}
+.panel-head p{font-size:12px;color:var(--muted);margin-top:2px}
+.panel-body{padding:20px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.photo-upload-box{border:2px dashed var(--border);border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:all .15s;position:relative}
+.photo-upload-box:hover{border-color:var(--green);background:var(--green-bg)}
+.photo-upload-box input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 .photo-upload-icon{font-size:24px;margin-bottom:6px}
 .photo-upload-text{font-size:13px;color:var(--muted)}
+.photo-upload-sub{font-size:11px;color:var(--muted);margin-top:3px}
+.ai-priority-box{border-radius:8px;padding:12px 14px;margin-top:12px;display:none}
+.ai-priority-box.urgent{background:var(--red-bg);border:1px solid rgba(229,62,62,0.2)}
+.ai-priority-box.high{background:var(--amber-bg);border:1px solid rgba(217,119,6,0.2)}
+.ai-priority-box.medium{background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2)}
+.ai-priority-box.low{background:var(--green-bg);border:1px solid rgba(0,200,150,0.2)}
+.ai-priority-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.ai-priority-box.urgent .ai-priority-label{color:var(--red)}
+.ai-priority-box.high .ai-priority-label{color:var(--amber)}
+.ai-priority-box.medium .ai-priority-label{color:var(--blue)}
+.ai-priority-box.low .ai-priority-label{color:var(--green-dark)}
+.ai-priority-text{font-size:12px;color:var(--txt)}
+.lock-notice{background:var(--off);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--muted);margin-top:12px;display:flex;align-items:flex-start;gap:8px}
+.lock-notice strong{color:var(--txt)}
 
-/* PRIORITY SELECT */
-.priority-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
-.prio-opt{padding:10px 8px;border-radius:9px;border:1.5px solid var(--border);text-align:center;cursor:pointer;transition:all .15s}
-.prio-opt.selected-low{border-color:var(--blue);background:var(--blue-bg)}
-.prio-opt.selected-high{border-color:var(--amber);background:var(--amber-bg)}
-.prio-opt.selected-urgent{border-color:var(--red);background:var(--red-bg)}
-.prio-icon{font-size:18px;margin-bottom:4px}
-.prio-label{font-size:12px;font-weight:600;color:var(--txt)}
+/* ── JOB CARDS ── */
+.job-card{background:var(--white);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;transition:box-shadow .15s}
+.job-card:hover{box-shadow:0 2px 12px rgba(0,0,0,0.06)}
+.job-card-head{padding:14px 18px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.job-cat-badge{display:inline-flex;align-items:center;gap:5px;background:var(--off);border:1px solid var(--border);color:var(--muted);font-size:11px;font-weight:600;padding:3px 9px;border-radius:100px}
+.job-status-row{display:flex;align-items:center;gap:6px}
+.status-pill{display:inline-flex;align-items:center;font-size:11px;font-weight:600;padding:3px 9px;border-radius:100px}
+.s-reported{background:var(--off);color:var(--muted);border:1px solid var(--border)}
+.s-assigned{background:var(--blue-bg);color:var(--blue)}
+.s-inprogress{background:var(--amber-bg);color:var(--amber)}
+.s-completed{background:var(--green-bg);color:var(--green-dark)}
+.s-closed{background:#EEF2F7;color:#556678}
+.urgent-flag{background:var(--red-bg);color:var(--red);font-size:10px;font-weight:700;padding:2px 7px;border-radius:100px}
+.job-card-body{padding:0 18px 14px}
+.job-desc{font-size:13px;color:var(--txt);line-height:1.6;margin-bottom:8px}
+.job-meta{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.job-completion{margin:0 18px 14px;background:var(--green-bg);border:1px solid rgba(0,200,150,0.2);border-radius:8px;padding:12px 14px}
+.job-completion-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--green-dark);margin-bottom:8px}
+.job-completion-row{display:flex;gap:8px;margin-bottom:4px;font-size:12px}
+.job-completion-row span:first-child{color:var(--muted);min-width:80px}
+.job-completion-row span:last-child{color:var(--txt);font-weight:500}
 
-/* STATUS TRACKER */
-.tracker{display:flex;flex-direction:column;gap:0;margin:12px 0}
-.tracker-step{display:flex;gap:12px;align-items:flex-start}
-.tracker-left{display:flex;flex-direction:column;align-items:center}
-.tracker-circle{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0}
-.tracker-circle.done{background:var(--green);color:#fff}
-.tracker-circle.active{background:var(--navy);color:#fff}
-.tracker-circle.pending{background:var(--border);color:var(--muted)}
-.tracker-line{width:2px;flex:1;min-height:20px;background:var(--border);margin:2px 0}
-.tracker-line.done{background:var(--green)}
-.tracker-content{padding-bottom:20px;flex:1}
-.tracker-title{font-size:13.5px;font-weight:500;color:var(--txt)}
-.tracker-sub{font-size:12px;color:var(--muted);margin-top:2px}
+/* ── EMPTY STATE ── */
+.empty{text-align:center;padding:48px 20px}
+.empty-icon{font-size:40px;margin-bottom:12px}
+.empty-title{font-size:15px;font-weight:600;color:var(--txt);margin-bottom:6px}
+.empty-sub{font-size:13px;color:var(--muted);line-height:1.6}
 
-/* SUCCESS STATE */
-.success-state{text-align:center;padding:32px 20px}
-.success-icon{font-size:48px;margin-bottom:12px}
-.success-title{font-size:18px;font-weight:600;color:var(--txt);margin-bottom:6px}
-.success-sub{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:20px}
+/* ── PROGRESS TRACKER ── */
+.progress-track{display:flex;align-items:center;gap:0;margin:12px 18px 0;padding-bottom:14px}
+.progress-step{display:flex;align-items:center;flex:1}
+.progress-dot{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);background:var(--white);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--muted);flex-shrink:0;transition:all .2s}
+.progress-dot.done{background:var(--green);border-color:var(--green);color:#fff}
+.progress-dot.active{background:var(--navy);border-color:var(--navy);color:#fff}
+.progress-line{flex:1;height:2px;background:var(--border)}
+.progress-line.done{background:var(--green)}
+.progress-labels{display:flex;margin:4px 18px 14px}
+.progress-label{flex:1;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;color:var(--muted);text-align:center}
+.progress-label:first-child{text-align:left}
+.progress-label:last-child{text-align:right}
+.progress-label.active{color:var(--navy)}
+.progress-label.done{color:var(--green-dark)}
 
-/* RENT DUE BANNER */
-.rent-banner{background:linear-gradient(135deg,#FFF7ED,#FFFBF2);border:1px solid #FDE68A;border-radius:12px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px}
-.rent-banner-icon{font-size:22px;flex-shrink:0}
-.rent-banner-title{font-size:13.5px;font-weight:600;color:#92400E}
-.rent-banner-sub{font-size:12px;color:#B45309}
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;opacity:0;transition:all .3s;z-index:9999;pointer-events:none;white-space:nowrap;max-width:90vw}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.err{background:var(--red)}
 
-/* EMPTY */
-.empty{text-align:center;padding:36px 20px}
-.empty-ic{font-size:32px;margin-bottom:10px;opacity:.4}
-.empty-t{font-size:15px;font-weight:500;color:var(--txt);margin-bottom:4px}
-.empty-s{font-size:13px;color:var(--muted)}
+/* ── ERROR SCREEN ── */
+.error-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy);padding:20px}
+.error-card{background:var(--white);border-radius:16px;padding:36px 32px;max-width:400px;width:100%;text-align:center}
+.error-icon{font-size:40px;margin-bottom:16px}
+.error-title{font-size:18px;font-weight:600;color:var(--txt);margin-bottom:8px}
+.error-msg{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:20px}
 
-/* SCROLLBAR */
-::-webkit-scrollbar{width:4px}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px}
+/* ── SUCCESS SCREEN ── */
+.success-card{text-align:center;padding:32px 20px}
+.success-anim{width:64px;height:64px;background:var(--green-bg);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 16px}
+.success-title{font-size:18px;font-weight:600;color:var(--txt);margin-bottom:8px}
+.success-sub{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:24px}
+
+/* ── RESPONSIVE ── */
+@media(max-width:480px){
+  .auth-card{padding:24px 20px}
+  .portal-body{padding:16px}
+  .form-row{grid-template-columns:1fr}
+  .prop-banner{padding:16px}
+}
 </style>
 </head>
 <body>
 
-<!-- HEADER -->
-<div class="header">
-  <div class="header-top">
-    <div class="header-logo"><span>Rent</span>Safe AI</div>
-    <span class="badge b-green">Active tenancy</span>
-  </div>
-  <div class="header-prop">
-    <div class="header-greeting">Your tenant portal</div>
-    <div class="header-name" id="t-name">James Smith</div>
-    <div class="header-addr" id="t-addr">14 Maple Street, Manchester, M4 1AQ</div>
+<!-- ── TOAST ── -->
+<div id="toast" class="toast"></div>
+
+<!-- ── SCREEN: LOADING ── -->
+<div id="screen-loading">
+  <div class="loading-wrap">
+    <div class="loading-inner">
+      <div class="loading-logo">Rent<span>Safe</span> AI</div>
+      <div class="spin-lg"></div>
+    </div>
   </div>
 </div>
 
-<!-- NAV TABS -->
-<div class="nav-tabs">
-  <button class="nav-tab active" data-tab="home" onclick="switchTab('home',this)">Home</button>
-  <button class="nav-tab" data-tab="report" onclick="switchTab('report',this)">Report issue</button>
-  <button class="nav-tab" data-tab="repairs" onclick="switchTab('repairs',this)">My repairs</button>
-  <button class="nav-tab" data-tab="documents" onclick="switchTab('documents',this)">Documents</button>
-  <button class="nav-tab" data-tab="rent" onclick="switchTab('rent',this)">Rent</button>
-  <button class="nav-tab" data-tab="contact" onclick="switchTab('contact',this)">Contact</button>
+<!-- ── SCREEN: ERROR ── -->
+<div id="screen-error" style="display:none">
+  <div class="error-wrap">
+    <div class="error-card">
+      <div class="error-icon">🔒</div>
+      <div class="error-title" id="error-title">Link not valid</div>
+      <div class="error-msg" id="error-msg">This invite link is invalid or has already been used. Please contact your landlord for a new link.</div>
+      <button class="btn btn-primary" onclick="showScreen('login')">Go to login</button>
+    </div>
+  </div>
 </div>
 
-<!-- PAGES -->
-<div id="tab-home" class="content">
-  <div class="welcome-card">
-    <div class="welcome-title">Hello, James 👋</div>
-    <div class="welcome-sub">Your tenancy is active. Everything you need is below — report issues, view documents, or contact your landlord.</div>
-  </div>
-
-  <!-- Rent due banner (show when rent is due) -->
-  <div class="rent-banner">
-    <div class="rent-banner-icon">💷</div>
-    <div>
-      <div class="rent-banner-title">Rent due 1 May 2026 — £1,200</div>
-      <div class="rent-banner-sub">Your next payment is due in 24 days</div>
-    </div>
-  </div>
-
-  <div class="quick-actions">
-    <div class="qa-btn" onclick="switchTab('report',document.querySelector('[data-tab=report]'))">
-      <div class="qa-icon">🔧</div>
-      <div class="qa-label">Report issue</div>
-      <div class="qa-sub">Log a repair</div>
-    </div>
-    <div class="qa-btn" onclick="switchTab('repairs',document.querySelector('[data-tab=repairs]'))">
-      <div class="qa-icon">📋</div>
-      <div class="qa-label">My repairs</div>
-      <div class="qa-sub">1 in progress</div>
-    </div>
-    <div class="qa-btn" onclick="switchTab('documents',document.querySelector('[data-tab=documents]'))">
-      <div class="qa-icon">📄</div>
-      <div class="qa-label">Documents</div>
-      <div class="qa-sub">4 files</div>
-    </div>
-    <div class="qa-btn" onclick="switchTab('contact',document.querySelector('[data-tab=contact]'))">
-      <div class="qa-icon">✉️</div>
-      <div class="qa-label">Contact</div>
-      <div class="qa-sub">Message landlord</div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-head"><h2>Tenancy summary</h2></div>
-    <div class="card-body">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        ${[['Property','14 Maple Street, Manchester'],['Tenancy start','1 Sep 2024'],['Tenancy end','31 Aug 2025'],['Monthly rent','£1,200'],['Deposit','£1,200 (DPS)'],['Tenancy type','AST']].map(([l,v])=>`
-          <div><div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;color:var(--muted);margin-bottom:3px">${l}</div><div style="font-size:13.5px;font-weight:500;color:var(--txt)">${v}</div></div>
-        `).join('')}
+<!-- ── SCREEN: SET PASSWORD (INVITE) ── -->
+<div id="screen-invite" style="display:none">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-logo">Rent<span>Safe</span> AI</div>
+      <div class="auth-badge">🏠 Tenant Portal</div>
+      <div class="auth-title">Welcome, <span id="invite-name">there</span>!</div>
+      <div class="auth-sub">Your landlord has invited you to the tenant portal. Set a password to access your account — you'll use this to log in going forward.</div>
+      <div class="fg">
+        <label>Your email</label>
+        <input type="email" id="invite-email" disabled placeholder="">
+      </div>
+      <div class="fg">
+        <label>Choose a password</label>
+        <input type="password" id="invite-password" placeholder="At least 8 characters" onkeydown="if(event.key==='Enter')setPassword()">
+      </div>
+      <div class="fg">
+        <label>Confirm password</label>
+        <input type="password" id="invite-confirm" placeholder="Repeat your password" onkeydown="if(event.key==='Enter')setPassword()">
+      </div>
+      <button class="btn btn-primary" id="invite-btn" onclick="setPassword()">Set password &amp; enter portal</button>
+      <div class="auth-footer" style="margin-top:16px">
+        <span style="font-size:11px;color:var(--muted)">🔒 Your data is encrypted and stored securely</span>
       </div>
     </div>
   </div>
 </div>
 
-<div id="tab-report" class="content" style="display:none">
-  <div id="report-form">
-    <div style="margin-bottom:20px">
-      <h1 style="font-size:20px;font-weight:600;color:var(--txt);margin-bottom:4px">Report a maintenance issue</h1>
-      <p style="font-size:13px;color:var(--muted)">Describe the problem — your landlord will be notified instantly.</p>
-    </div>
-
-    <div class="fg">
-      <label>What's the issue? <span class="req">*</span></label>
-      <select id="issue-cat">
-        <option value="">Select category</option>
-        <option>Plumbing — leak, blocked drain, no hot water</option>
-        <option>Heating — boiler, radiators, no heat</option>
-        <option>Electrical — lights, sockets, fuse box</option>
-        <option>Damp & Mould</option>
-        <option>Pest Control</option>
-        <option>Doors & Windows — locks, draught, broken glass</option>
-        <option>Structural — walls, ceiling, floor</option>
-        <option>Appliances — oven, washing machine, fridge</option>
-        <option>Other</option>
-      </select>
-    </div>
-
-    <div class="fg">
-      <label>How urgent is it? <span class="req">*</span></label>
-      <div class="priority-grid">
-        <div class="prio-opt" id="prio-low" onclick="selectPrio('low')">
-          <div class="prio-icon">🟢</div>
-          <div class="prio-label">Low</div>
-          <div style="font-size:10px;color:var(--muted)">Not urgent</div>
-        </div>
-        <div class="prio-opt" id="prio-high" onclick="selectPrio('high')">
-          <div class="prio-icon">🟡</div>
-          <div class="prio-label">High</div>
-          <div style="font-size:10px;color:var(--muted)">Needs attention</div>
-        </div>
-        <div class="prio-opt" id="prio-urgent" onclick="selectPrio('urgent')">
-          <div class="prio-icon">🔴</div>
-          <div class="prio-label">Urgent</div>
-          <div style="font-size:10px;color:var(--muted)">Safety risk</div>
-        </div>
+<!-- ── SCREEN: LOGIN ── -->
+<div id="screen-login" style="display:none">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-logo">Rent<span>Safe</span> AI</div>
+      <div class="auth-badge">🏠 Tenant Portal</div>
+      <div class="auth-title">Log in to your portal</div>
+      <div class="auth-sub">Report maintenance issues, track progress, and stay updated on your home.</div>
+      <div class="fg">
+        <label>Email address</label>
+        <input type="email" id="login-email" placeholder="your@email.com" onkeydown="if(event.key==='Enter')login()">
       </div>
-    </div>
-
-    <div class="fg">
-      <label>Describe the problem <span class="req">*</span></label>
-      <textarea id="issue-desc" placeholder="Please describe the issue in as much detail as possible — when it started, where exactly it is, how bad it is..."></textarea>
-    </div>
-
-    <div class="photo-upload">
-      <input type="file" accept="image/*" multiple>
-      <div class="photo-upload-icon">📷</div>
-      <div class="photo-upload-text">Tap to add photos (optional)</div>
-    </div>
-
-    <div style="background:rgba(11,30,61,0.04);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:18px;font-size:12px;color:var(--muted);line-height:1.6">
-      ⏱ <strong style="color:var(--txt)">Awaab's Law:</strong> Your landlord is legally required to respond to hazards within set timeframes. Logging this creates a timestamped record that protects you.
-    </div>
-
-    <button class="btn btn-green" onclick="submitIssue()">Submit report →</button>
-  </div>
-
-  <div id="report-success" class="success-state" style="display:none">
-    <div class="success-icon">✅</div>
-    <div class="success-title">Issue reported!</div>
-    <div class="success-sub">Your landlord has been notified. You'll see updates on your repairs page. A timestamped record has been created.</div>
-    <button class="btn btn-navy" onclick="switchTab('repairs',document.querySelector('[data-tab=repairs]'))">View my repairs</button>
-    <div style="margin-top:10px"></div>
-    <button class="btn" onclick="resetReport()">Report another issue</button>
-  </div>
-</div>
-
-<div id="tab-repairs" class="content" style="display:none">
-  <div style="margin-bottom:20px">
-    <h1 style="font-size:20px;font-weight:600;color:var(--txt);margin-bottom:4px">My repairs</h1>
-    <p style="font-size:13px;color:var(--muted)">Track the status of your reported issues</p>
-  </div>
-
-  <!-- Active issue -->
-  <div class="card" style="margin-bottom:14px">
-    <div class="card-head">
-      <h2>Damp patch — bedroom wall</h2>
-      <span class="badge b-amber">In progress</span>
-    </div>
-    <div class="card-body">
-      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Reported 28 Mar 2026 · Damp & Mould · High priority</div>
-
-      <div class="tracker">
-        <div class="tracker-step">
-          <div class="tracker-left">
-            <div class="tracker-circle done">✓</div>
-            <div class="tracker-line done"></div>
-          </div>
-          <div class="tracker-content">
-            <div class="tracker-title">Issue reported</div>
-            <div class="tracker-sub">28 Mar 2026 at 14:32</div>
-          </div>
-        </div>
-        <div class="tracker-step">
-          <div class="tracker-left">
-            <div class="tracker-circle done">✓</div>
-            <div class="tracker-line"></div>
-          </div>
-          <div class="tracker-content">
-            <div class="tracker-title">Landlord acknowledged</div>
-            <div class="tracker-sub">28 Mar 2026 at 17:05 — "Thanks, I'll arrange an inspection"</div>
-          </div>
-        </div>
-        <div class="tracker-step">
-          <div class="tracker-left">
-            <div class="tracker-circle active">→</div>
-            <div class="tracker-line"></div>
-          </div>
-          <div class="tracker-content">
-            <div class="tracker-title">In progress</div>
-            <div class="tracker-sub">Contractor visit scheduled for 12 Apr 2026</div>
-          </div>
-        </div>
-        <div class="tracker-step">
-          <div class="tracker-left">
-            <div class="tracker-circle pending">4</div>
-          </div>
-          <div class="tracker-content">
-            <div class="tracker-title">Resolved</div>
-            <div class="tracker-sub">Pending</div>
-          </div>
-        </div>
+      <div class="fg">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="Your password" onkeydown="if(event.key==='Enter')login()">
       </div>
-    </div>
-  </div>
-
-  <!-- Resolved issue -->
-  <div class="card">
-    <div class="card-head">
-      <h2>Leaky kitchen tap</h2>
-      <span class="badge b-green">Resolved</span>
-    </div>
-    <div class="card-body">
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Reported 14 Feb 2026 · Plumbing · Low priority</div>
-      <div style="font-size:13px;color:var(--txt)">Tap replaced on 20 Feb 2026 by City Plumbing Services. Issue fully resolved.</div>
+      <button class="btn btn-primary" id="login-btn" onclick="login()">Log in</button>
+      <div class="auth-footer">
+        Don't have a login? Ask your landlord to send you an invite link.
+      </div>
     </div>
   </div>
 </div>
 
-<div id="tab-documents" class="content" style="display:none">
-  <div style="margin-bottom:20px">
-    <h1 style="font-size:20px;font-weight:600;color:var(--txt);margin-bottom:4px">My documents</h1>
-    <p style="font-size:13px;color:var(--muted)">Documents shared by your landlord</p>
-  </div>
+<!-- ── SCREEN: PORTAL ── -->
+<div id="screen-portal" style="display:none">
+  <div class="portal-wrap">
+    <!-- Header -->
+    <div class="portal-header">
+      <div class="portal-logo">Rent<span>Safe</span> AI</div>
+      <div class="portal-user">
+        <span class="portal-name" id="portal-tenant-name"></span>
+        <button class="btn-logout" onclick="logout()">Log out</button>
+      </div>
+    </div>
 
-  <div class="card">
-    <div class="card-head"><h2>Tenancy documents</h2></div>
-    <div class="card-body">
-      ${[
-        {icon:'📋',name:'Tenancy Agreement',meta:'Signed · AST · Uploaded 1 Sep 2024',badge:'b-green',badgeText:'Signed'},
-        {icon:'📖',name:'How to Rent Guide',meta:'Served 1 Sep 2024 · Latest government version',badge:'b-green',badgeText:'Served'},
-        {icon:'🛡',name:'Deposit Protection Certificate',meta:'DPS · £1,200 · Protected 3 Sep 2024',badge:'b-green',badgeText:'Protected'},
-        {icon:'🔥',name:'Gas Safety Certificate (GSC)',meta:'Valid until 15 Aug 2026 · City Gas Services',badge:'b-green',badgeText:'Valid'},
-        {icon:'⚡',name:'Electrical Safety Report (EICR)',meta:'Valid until 1 Sep 2029 · Bright Spark Electrical',badge:'b-green',badgeText:'Valid'},
-      ].map(d=>`
-        <div class="doc-row">
-          <div class="doc-icon">${d.icon}</div>
-          <div class="doc-info">
-            <div class="doc-name">${d.name}</div>
-            <div class="doc-meta">${d.meta}</div>
+    <!-- Body -->
+    <div class="portal-body">
+
+      <!-- Property banner -->
+      <div class="prop-banner">
+        <div class="prop-icon">🏠</div>
+        <div class="prop-info">
+          <div class="prop-label">Your property</div>
+          <div class="prop-address" id="portal-address">Loading…</div>
+          <div class="prop-meta" id="portal-meta"></div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab active" id="tab-report" onclick="switchTab('report')">Report a problem</button>
+        <button class="tab" id="tab-jobs" onclick="switchTab('jobs')">
+          My jobs <span id="jobs-count-badge" style="display:none;background:var(--navy);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:100px;margin-left:4px"></span>
+        </button>
+      </div>
+
+      <!-- Tab: Report a problem -->
+      <div class="tab-content active" id="content-report">
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Report a maintenance problem</h2>
+              <p>Describe the issue clearly — we'll flag urgent problems automatically</p>
+            </div>
           </div>
-          <div class="doc-action">
-            <span class="badge ${d.badge}">${d.badgeText}</span>
+          <div class="panel-body">
+            <div class="form-row">
+              <div class="fg">
+                <label>Category <span style="color:var(--red)">*</span></label>
+                <select id="job-category" onchange="clearAIPriority()">
+                  <option value="">Select category…</option>
+                  <option value="Damp &amp; Mould">Damp &amp; Mould</option>
+                  <option value="Heating &amp; Hot Water">Heating &amp; Hot Water</option>
+                  <option value="Electrical">Electrical</option>
+                  <option value="Plumbing &amp; Leaks">Plumbing &amp; Leaks</option>
+                  <option value="Gas">Gas</option>
+                  <option value="Structural">Structural</option>
+                  <option value="Pests">Pests</option>
+                  <option value="Security &amp; Locks">Security &amp; Locks</option>
+                  <option value="Windows &amp; Doors">Windows &amp; Doors</option>
+                  <option value="Appliances">Appliances</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div class="fg">
+                <label>Priority (AI will assess)</label>
+                <input type="text" id="job-priority-display" value="Will be assessed automatically" disabled style="background:var(--off);color:var(--muted);font-size:12px">
+              </div>
+            </div>
+
+            <div class="fg">
+              <label>Describe the problem <span style="color:var(--red)">*</span></label>
+              <textarea id="job-description" placeholder="e.g. There is black mould on the bathroom ceiling near the extractor fan. It started about 2 weeks ago and is spreading…" rows="4" oninput="clearAIPriority()"></textarea>
+            </div>
+
+            <div class="fg">
+              <label>Additional details (optional)</label>
+              <textarea id="job-notes" placeholder="e.g. When did it start? Has it happened before? Any safety concern?" rows="2"></textarea>
+            </div>
+
+            <div class="fg">
+              <label>Photos (optional — helps your landlord respond faster)</label>
+              <div class="photo-upload-box" id="photo-box">
+                <input type="file" accept="image/*" multiple id="job-photos" onchange="photosSelected(this)">
+                <div class="photo-upload-icon">📷</div>
+                <div class="photo-upload-text">Tap to upload photos</div>
+                <div class="photo-upload-sub">You can select multiple photos</div>
+              </div>
+            </div>
+
+            <!-- AI Priority result -->
+            <div class="ai-priority-box" id="ai-priority-box">
+              <div class="ai-priority-label" id="ai-priority-label"></div>
+              <div class="ai-priority-text" id="ai-priority-text"></div>
+            </div>
+
+            <!-- Lock notice -->
+            <div class="lock-notice">
+              <span>🔒</span>
+              <div><strong>Immutable record:</strong> Once submitted, your report cannot be edited. This protects both you and your landlord with a court-admissible audit trail.</div>
+            </div>
+
+            <div style="margin-top:20px;display:flex;gap:10px">
+              <button class="btn btn-primary" id="submit-btn" onclick="submitJob()" style="flex:1">Submit report</button>
+            </div>
           </div>
         </div>
-      `).join('')}
-    </div>
-  </div>
-
-  <div style="background:rgba(11,30,61,0.04);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-top:4px;font-size:12px;color:var(--muted);line-height:1.6">
-    💡 <strong style="color:var(--txt)">Your rights:</strong> Your landlord is legally required to provide you with a valid Gas Safety Certificate, EICR, EPC, How to Rent guide, and deposit protection details. If any are missing, you can request them.
-  </div>
-</div>
-
-<div id="tab-rent" class="content" style="display:none">
-  <div style="margin-bottom:20px">
-    <h1 style="font-size:20px;font-weight:600;color:var(--txt);margin-bottom:4px">Rent</h1>
-    <p style="font-size:13px;color:var(--muted)">Payment history and upcoming due dates</p>
-  </div>
-
-  <div class="card" style="margin-bottom:14px">
-    <div class="card-body" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
-      <div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:2px">Monthly rent</div>
-        <div style="font-size:28px;font-weight:600;color:var(--txt)">£1,200</div>
-        <div style="font-size:12px;color:var(--muted)">Due on the 1st of each month</div>
       </div>
-      <div style="text-align:right">
-        <div style="font-size:12px;color:var(--muted);margin-bottom:2px">Next payment</div>
-        <div style="font-size:15px;font-weight:600;color:var(--amber)">1 May 2026</div>
-        <span class="badge b-amber">Due in 24 days</span>
-      </div>
-    </div>
-  </div>
 
-  <div class="card">
-    <div class="card-head"><h2>Payment history</h2></div>
-    <div class="card-body">
-      ${[
-        {month:'April 2026',amount:'£1,200',date:'Paid 2 Apr 2026',status:'Paid',b:'b-green'},
-        {month:'March 2026',amount:'£1,200',date:'Paid 1 Mar 2026',status:'Paid',b:'b-green'},
-        {month:'February 2026',amount:'£1,200',date:'Paid 1 Feb 2026',status:'Paid',b:'b-green'},
-        {month:'January 2026',amount:'£1,200',date:'Paid 3 Jan 2026',status:'Paid',b:'b-green'},
-      ].map(r=>`
-        <div class="rent-row">
-          <div>
-            <div class="rent-month">${r.month}</div>
-            <div class="rent-date">${r.date}</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:10px">
-            <div class="rent-amount">${r.amount}</div>
-            <span class="badge ${r.b}">${r.status}</span>
+      <!-- Tab: My jobs -->
+      <div class="tab-content" id="content-jobs">
+        <div id="jobs-list">
+          <div class="empty">
+            <div class="empty-icon">🔧</div>
+            <div class="empty-title">No jobs yet</div>
+            <div class="empty-sub">Use the "Report a problem" tab to log your first maintenance issue.</div>
           </div>
         </div>
-      `).join('')}
-    </div>
-  </div>
-
-  <div style="background:rgba(11,30,61,0.04);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-top:4px;font-size:12px;color:var(--muted);line-height:1.6">
-    ℹ️ Rent payment records shown here are logged by your landlord. For any payment disputes please contact your landlord directly.
-  </div>
-</div>
-
-<div id="tab-contact" class="content" style="display:none">
-  <div style="margin-bottom:20px">
-    <h1 style="font-size:20px;font-weight:600;color:var(--txt);margin-bottom:4px">Contact landlord</h1>
-    <p style="font-size:13px;color:var(--muted)">Send a message or find contact details</p>
-  </div>
-
-  <div class="card" style="margin-bottom:14px">
-    <div class="card-head"><h2>Send a message</h2></div>
-    <div class="card-body">
-      <div id="contact-form">
-        <div class="fg">
-          <label>Subject</label>
-          <select>
-            <option>General enquiry</option>
-            <option>Maintenance request</option>
-            <option>Rent query</option>
-            <option>End of tenancy</option>
-            <option>Document request</option>
-            <option>Other</option>
-          </select>
-        </div>
-        <div class="fg">
-          <label>Message <span class="req">*</span></label>
-          <textarea placeholder="Write your message here..."></textarea>
-        </div>
-        <button class="btn btn-navy" onclick="sendMessage()">Send message →</button>
       </div>
-      <div id="contact-success" class="success-state" style="display:none;padding:20px 0">
-        <div class="success-icon">✉️</div>
-        <div class="success-title">Message sent</div>
-        <div class="success-sub">Your landlord has been notified and will respond by email.</div>
-        <button class="btn btn-sm" onclick="document.getElementById('contact-success').style.display='none';document.getElementById('contact-form').style.display='block'" style="width:auto;margin:0 auto">Send another</button>
-      </div>
-    </div>
-  </div>
 
-  <div class="card">
-    <div class="card-head"><h2>Contact details</h2></div>
-    <div class="card-body">
-      <div class="contact-method">
-        <div class="contact-icon" style="background:var(--blue-bg)">✉️</div>
-        <div style="flex:1">
-          <div class="contact-label">Email</div>
-          <div class="contact-sub"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="187479767c74776a7c587d75797174367b7775">[email&#160;protected]</a></div>
-        </div>
-        <a href="/cdn-cgi/l/email-protection#264a4748424a49544266434b474f4a0845494b" class="btn btn-sm" style="width:auto;text-decoration:none">Email</a>
-      </div>
-      <div class="contact-method">
-        <div class="contact-icon" style="background:var(--green-bg)">📞</div>
-        <div style="flex:1">
-          <div class="contact-label">Phone</div>
-          <div class="contact-sub">07700 900 200</div>
-        </div>
-        <a href="tel:07700900200" class="btn btn-sm" style="width:auto;text-decoration:none">Call</a>
-      </div>
-      <div class="contact-method">
-        <div class="contact-icon" style="background:var(--amber-bg)">🚨</div>
-        <div style="flex:1">
-          <div class="contact-label">Emergency</div>
-          <div class="contact-sub">Gas leak, flood, no heating in winter</div>
-        </div>
-        <a href="tel:07700900200" class="btn btn-sm" style="width:auto;border-color:var(--red);color:var(--red);text-decoration:none">Call now</a>
-      </div>
-    </div>
-  </div>
+    </div><!-- /portal-body -->
+  </div><!-- /portal-wrap -->
+</div><!-- /screen-portal -->
 
-  <div style="background:rgba(11,30,61,0.04);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-top:4px;font-size:12px;color:var(--muted);line-height:1.6">
-    🛡 <strong style="color:var(--txt)">Know your rights:</strong> If your landlord fails to respond to urgent repairs, you can contact your local council's housing enforcement team. For legal advice contact <strong style="color:var(--blue)">Shelter England</strong> at shelter.org.uk or call 0808 800 4444 (free).
-  </div>
-</div>
+<script>
+const SUPABASE_URL = 'https://mahtcfukgzbonwibtsxz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1haHRjZnVrZ3pib253aWJ0c3h6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2MjQ2MDAsImV4cCI6MjA5MTIwMDYwMH0.-wC55rGp1WFKfjKR3EhuXqAPDiWJ4w_e2LBXjHr_y5Y';
+const EDGE_URL = 'https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-// ── DATA ──
-const T = {
-  name: 'James Smith',
-  address: '14 Maple Street, Manchester, M4 1AQ',
-  landlord_email: 'landlord@email.com',
-  landlord_phone: '07700 900 200'
-};
+let currentTenant = null;
+let tenantJobs = [];
+let _toastTimer;
 
-// ── TAB SWITCHING ──
-function switchTab(id, el) {
-  document.querySelectorAll('[id^="tab-"]').forEach(t => t.style.display = 'none');
-  document.getElementById('tab-' + id).style.display = 'block';
-  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  if(el) el.classList.add('active');
-  window.scrollTo(0, 0);
+// ── TOAST ──
+function toast(msg, err=false){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.className='toast show'+(err?' err':'');
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>el.className='toast',3200);
 }
 
-// ── PRIORITY SELECT ──
-let selectedPrio = null;
-function selectPrio(p) {
-  selectedPrio = p;
-  ['low','high','urgent'].forEach(x => {
-    const el = document.getElementById('prio-' + x);
-    el.className = 'prio-opt';
-    if(x === p) el.classList.add('selected-' + p);
+// ── SCREEN SWITCHER ──
+function showScreen(name){
+  ['loading','error','invite','login','portal'].forEach(s=>{
+    const el=document.getElementById('screen-'+s);
+    if(el) el.style.display = s===name ? 'block' : 'none';
   });
 }
 
-// ── SUBMIT ISSUE ──
-function submitIssue() {
-  const cat = document.getElementById('issue-cat').value;
-  const desc = document.getElementById('issue-desc').value.trim();
-  if(!cat) { alert('Please select a category.'); return; }
-  if(!selectedPrio) { alert('Please select a priority level.'); return; }
-  if(!desc) { alert('Please describe the issue.'); return; }
-  document.getElementById('report-form').style.display = 'none';
-  document.getElementById('report-success').style.display = 'block';
+// ── FORMAT DATE ──
+function FMT(d){
+  if(!d) return '—';
+  return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+function FMTShort(d){
+  if(!d) return '—';
+  return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
 }
 
-function resetReport() {
-  document.getElementById('report-form').style.display = 'block';
-  document.getElementById('report-success').style.display = 'none';
-  document.getElementById('issue-cat').value = '';
-  document.getElementById('issue-desc').value = '';
-  selectedPrio = null;
-  ['low','high','urgent'].forEach(x => document.getElementById('prio-' + x).className = 'prio-opt');
+// ── INIT ──
+async function init(){
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+
+  if(token){
+    await handleInviteToken(token);
+    return;
+  }
+
+  // Check existing session
+  const { data:{ session } } = await sb.auth.getSession();
+  if(session){
+    await loadTenantPortal(session.user);
+  } else {
+    showScreen('login');
+  }
 }
 
-// ── SEND MESSAGE ──
-function sendMessage() {
-  document.getElem
+// ── INVITE FLOW ──
+async function handleInviteToken(token){
+  const { data:tenant, error } = await sb
+    .from('tenants')
+    .select('*')
+    .eq('invite_token', token)
+    .eq('invite_used', false)
+    .maybeSingle();
+
+  if(error || !tenant){
+    document.getElementById('error-title').textContent = 'Invite link not valid';
+    document.getElementById('error-msg').textContent = 'This invite link is invalid or has already been used. Please contact your landlord for a new invite.';
+    showScreen('error');
+    return;
+  }
+
+  // Check status
+  if(tenant.status === 'revoked'){
+    document.getElementById('error-title').textContent = 'Access revoked';
+    document.getElementById('error-msg').textContent = 'Your portal access has been revoked. Please contact your landlord.';
+    showScreen('error');
+    return;
+  }
+
+  // Show set password screen
+  document.getElementById('invite-name').textContent = tenant.name ? tenant.name.split(' ')[0] : 'there';
+  document.getElementById('invite-email').value = tenant.email || '';
+  window._inviteToken = token;
+  window._inviteTenant = tenant;
+  showScreen('invite');
+}
+
+async function setPassword(){
+  const password = document.getElementById('invite-password').value;
+  const confirm = document.getElementById('invite-confirm').value;
+  const btn = document.getElementById('invite-btn');
+
+  if(password.length < 8){
+    toast('Password must be at least 8 characters', true);
+    return;
+  }
+  if(password !== confirm){
+    toast('Passwords do not match', true);
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Setting up your account…';
+
+  const tenant = window._inviteTenant;
+
+  // Try to create Supabase auth account
+  const { data, error } = await sb.auth.signUp({
+    email: tenant.email,
+    password,
+    options: { emailRedirectTo: window.location.origin + '/tenant.html' }
+  });
+
+  if(error){
+    // If already registered, try sign in (tenant was invited before)
+    if(error.message.toLowerCase().includes('already registered') || error.message.toLowerCase().includes('already been registered')){
+      const { data:si, error:sie } = await sb.auth.signInWithPassword({ email:tenant.email, password });
+      if(sie){
+        btn.disabled=false;
+        btn.innerHTML='Set password &amp; enter portal';
+        toast('This email already has an account. Try logging in instead.', true);
+        return;
+      }
+      await markInviteUsed(window._inviteToken, si.user.id);
+      await loadTenantPortal(si.user);
+      return;
+    }
+    btn.disabled=false;
+    btn.innerHTML='Set password &amp; enter portal';
+    toast('Error: '+error.message, true);
+    return;
+  }
+
+  await markInviteUsed(window._inviteToken, data.user.id);
+
+  if(data.session){
+    await loadTenantPortal(data.user);
+  } else {
+    // Email confirmation required (Supabase setting)
+    showScreen('login');
+    toast('Check your email to confirm your account, then log in here.');
+  }
+}
+
+async function markInviteUsed(token, authUserId){
+  await sb.from('tenants')
+    .update({ invite_used: true, tenant_auth_id: authUserId })
+    .eq('invite_token', token);
+}
+
+// ── LOGIN ──
+async function login(){
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const btn = document.getElementById('login-btn');
+
+  if(!email || !password){
+    toast('Please enter your email and password', true);
+    return;
+  }
+
+  btn.disabled=true;
+  btn.innerHTML='<span class="spin"></span> Logging in…';
+
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+
+  if(error){
+    btn.disabled=false;
+    btn.innerHTML='Log in';
+    toast('Incorrect email or password', true);
+    return;
+  }
+
+  await loadTenantPortal(data.user);
+}
+
+// ── LOAD PORTAL ──
+async function loadTenantPortal(user){
+  // Look up tenant record by email
+  const { data:tenant, error } = await sb
+    .from('tenants')
+    .select('*')
+    .eq('email', user.email)
+    .maybeSingle();
+
+  if(error || !tenant){
+    await sb.auth.signOut();
+    showScreen('login');
+    toast('No tenancy found for this account. Contact your landlord.', true);
+    return;
+  }
+
+  if(tenant.status === 'revoked'){
+    await sb.auth.signOut();
+    document.getElementById('error-title').textContent = 'Access revoked';
+    document.getElementById('error-msg').textContent = 'Your portal access has been revoked. Please contact your landlord.';
+    showScreen('error');
+    return;
+  }
+
+  currentTenant = tenant;
+
+  // Load property details
+  let propAddress = 'Your property';
+  let propMeta = '';
+  if(tenant.prop_id){
+    const { data:prop } = await sb
+      .from('properties')
+      .select('address,city,postcode,type,beds')
+      .eq('id', tenant.prop_id)
+      .maybeSingle();
+    if(prop){
+      propAddress = [prop.address, prop.city, prop.postcode].filter(Boolean).join(', ');
+      propMeta = [prop.type, prop.beds ? prop.beds+' bed' : null].filter(Boolean).join(' · ');
+    }
+  }
+
+  // Set portal UI
+  document.getElementById('portal-tenant-name').textContent = tenant.name || user.email;
+  document.getElementById('portal-address').textContent = propAddress;
+  document.getElementById('portal-meta').textContent = propMeta;
+
+  // Load jobs
+  await loadJobs();
+  showScreen('portal');
+}
+
+// ── LOAD JOBS ──
+async function loadJobs(){
+  const { data, error } = await sb
+    .from('tenant_maintenance')
+    .select('*')
+    .eq('tenancy_ref', String(currentTenant.id))
+    .order('submitted_at', { ascending: false });
+
+  tenantJobs = data || [];
+  renderJobs();
+
+  // Update badge
+  const badge = document.getElementById('jobs-count-badge');
+  if(tenantJobs.length > 0){
+    badge.textContent = tenantJobs.length;
+    badge.style.display = 'inline';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// ── RENDER JOBS ──
+function renderJobs(){
+  const container = document.getElementById('jobs-list');
+  if(!tenantJobs.length){
+    container.innerHTML = `<div class="empty">
+      <div class="empty-icon">🔧</div>
+      <div class="empty-title">No jobs yet</div>
+      <div class="empty-sub">Use the "Report a problem" tab to log your first maintenance issue.</div>
+    </div>`;
+    return;
+  }
+
+  container.innerHTML = tenantJobs.map(job => {
+    const statusKey = (job.status||'Reported').replace(/\s/g,'').toLowerCase();
+    const statusClass = {
+      'reported':'s-reported','assigned':'s-assigned',
+      'inprogress':'s-inprogress','completed':'s-completed','closed':'s-closed'
+    }[statusKey] || 's-reported';
+
+    const stageIndex = {'Reported':0,'Assigned':1,'In Progress':2,'Completed':3,'Closed':4};
+    const currentStage = stageIndex[job.status] ?? 0;
+    const stages = ['Reported','In Progress','Completed'];
+    const stageMapped = [0,1,2,2,2]; // map 5 stages to 3 display steps
+
+    const dots = stages.map((s,i) => {
+      const idx = stageMapped[currentStage];
+      let cls = i < idx ? 'done' : i === idx ? 'active' : '';
+      return `<div class="progress-dot ${cls}">${i < idx ? '✓' : i+1}</div>`;
+    });
+    const lines = ['','',''].map((_,i) => {
+      if(i >= stages.length-1) return '';
+      const isDone = stageMapped[currentStage] > i;
+      return `<div class="progress-line ${isDone?'done':''}"></div>`;
+    });
+
+    const progressHtml = `
+      <div class="progress-track">
+        ${stages.map((s,i) => `
+          <div class="progress-step">
+            ${dots[i]}
+            ${i < stages.length-1 ? `<div class="progress-line ${stageMapped[currentStage] > i ? 'done' : ''}"></div>` : ''}
+          </div>`).join('')}
+      </div>
+      <div class="progress-labels">
+        ${stages.map((s,i) => {
+          const idx = stageMapped[currentStage];
+          let cls = i < idx ? 'done' : i === idx ? 'active' : '';
+          return `<div class="progress-label ${cls}">${s}</div>`;
+        }).join('')}
+      </div>`;
+
+    const completionHtml = (job.status === 'Completed' || job.status === 'Closed') && job.completion_notes ? `
+      <div class="job-completion">
+        <div class="job-completion-title">✓ Job completed</div>
+        ${job.completion_contractor ? `<div class="job-completion-row"><span>Contractor</span><span>${job.completion_contractor}</span></div>` : ''}
+        ${job.resolved_at ? `<div class="job-completion-row"><span>Completed</span><span>${FMTShort(job.resolved_at)}</span></div>` : ''}
+        ${job.completion_notes ? `<div class="job-completion-row"><span>Notes</span><span>${job.completion_notes}</span></div>` : ''}
+      </div>` : '';
+
+    const priorityColors = {'URGENT':'var(--red)','HIGH':'var(--amber)','MEDIUM':'var(--blue)','LOW':'var(--green-dark)'};
+    const priorityBg = {'URGENT':'var(--red-bg)','HIGH':'var(--amber-bg)','MEDIUM':'var(--blue-bg)','LOW':'var(--green-bg)'};
+    const pri = job.ai_priority || job.priority || '';
+
+    return `<div class="job-card">
+      <div class="job-card-head">
+        <div>
+          <div class="job-cat-badge">${job.category || 'General'}</div>
+          ${pri ? `<div style="display:inline-flex;align-items:center;font-size:10px;font-weight:700;padding:2px 7px;border-radius:100px;margin-left:5px;background:${priorityBg[pri]||'var(--off)'};color:${priorityColors[pri]||'var(--muted)'}">
+            ${pri === 'URGENT' ? '⚠ ' : ''}${pri}
+          </div>` : ''}
+        </div>
+        <span class="status-pill ${statusClass}">${job.status || 'Reported'}</span>
+      </div>
+      <div class="job-card-body">
+        <div class="job-desc">${job.description || '—'}</div>
+        <div class="job-meta">
+          <span>📅 ${FMT(job.submitted_at)}</span>
+          ${job.category ? `<span>📁 ${job.category}</span>` : ''}
+        </div>
+      </div>
+      ${progressHtml}
+      ${completionHtml}
+    </div>`;
+  }).join('');
+}
+
+// ── SUBMIT JOB ──
+async function submitJob(){
+  const category = document.getElementById('job-category').value;
+  const description = document.getElementById('job-description').value.trim();
+  const notes = document.getElementById('job-notes').value.trim();
+
+  if(!category){
+    toast('Please select a category', true);
+    return;
+  }
+  if(!description || description.length < 10){
+    toast('Please describe the problem in more detail', true);
+    return;
+  }
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Assessing with AI…';
+
+  // 1. Get AI priority
+  const aiPriority = await getAIPriority(category, description);
+
+  // 2. Show priority to user
+  showAIPriority(aiPriority, category);
+
+  btn.innerHTML = '<span class="spin"></span> Submitting…';
+
+  // 3. Get photo filenames (actual upload is post-launch — store names only)
+  const photos = [];
+  const photoInput = document.getElementById('job-photos');
+  if(photoInput.files.length){
+    [...photoInput.files].forEach(f => photos.push(f.name));
+  }
+
+  // 4. Build full description
+  const fullDesc = notes ? description + '\n\nAdditional notes: ' + notes : description;
+
+  // 5. Save to tenant_maintenance
+  const job = {
+    tenancy_ref: String(currentTenant.id),
+    prop_id: currentTenant.prop_id,
+    description: fullDesc,
+    category,
+    priority: aiPriority,
+    ai_priority: aiPriority,
+    status: 'Reported',
+    locked: true,
+    submitted_at: new Date().toISOString(),
+    user_id: (await sb.auth.getUser()).data.user.id,
+    tenant_phone: currentTenant.phone || null,
+    photos: photos.length ? photos : null
+  };
+
+  const { data:saved, error } = await sb
+    .from('tenant_maintenance')
+    .insert(job)
+    .select()
+    .single();
+
+  if(error){
+    btn.disabled=false;
+    btn.innerHTML='Submit report';
+    toast('Error saving job: '+error.message, true);
+    return;
+  }
+
+  // 6. Email landlord
+  await emailLandlord(saved, aiPriority, category, description);
+
+  // 7. Reset form + show success
+  document.getElementById('job-category').value = '';
+  document.getElementById('job-description').value = '';
+  document.getElementById('job-notes').value = '';
+  document.getElementById('job-photos').value = '';
+  document.getElementById('photo-box').innerHTML = `
+    <input type="file" accept="image/*" multiple id="job-photos" onchange="photosSelected(this)">
+    <div class="photo-upload-icon">📷</div>
+    <div class="photo-upload-text">Tap to upload photos</div>
+    <div class="photo-upload-sub">You can select multiple photos</div>`;
+  clearAIPriority();
+
+  btn.disabled=false;
+  btn.innerHTML='Submit report';
+
+  // Show success in jobs tab
+  await loadJobs();
+  switchTab('jobs');
+  toast('✓ Report submitted — your landlord has been notified');
+}
+
+// ── AI PRIORITY ──
+async function getAIPriority(category, description){
+  try{
+    const res = await fetch(EDGE_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-5',
+        max_tokens:50,
+        messages:[{
+          role:'user',
+          content:`You are a UK property maintenance safety assessor. Assess this tenant report and classify priority.
+
+Category: ${category}
+Description: ${description}
+
+Priority levels:
+- URGENT: Immediate safety risk — gas leak, no heating Oct-Apr, flooding, electrical fault, mould/damp (Awaab's Law 14-day requirement), structural danger, pest infestation
+- HIGH: Significant issue needing attention within 7 days — broken boiler in summer, leaking roof, broken lock
+- MEDIUM: Standard maintenance within 28 days — appliance fault, minor leak, cosmetic damage  
+- LOW: Minor issue, no urgency — decoration, squeaky door, minor cosmetic issue
+
+Reply with EXACTLY one word: URGENT, HIGH, MEDIUM, or LOW`
+        }]
+      })
+    });
+    const d = await res.json();
+    const pri = d.content?.[0]?.text?.trim().toUpperCase().replace(/[^A-Z]/g,'');
+    return ['URGENT','HIGH','MEDIUM','LOW'].includes(pri) ? pri : 'MEDIUM';
+  }catch(e){
+    return 'MEDIUM';
+  }
+}
+
+function showAIPriority(priority, category){
+  const box = document.getElementById('ai-priority-box');
+  const label = document.getElementById('ai-priority-label');
+  const text = document.getElementById('ai-priority-text');
+  const display = document.getElementById('job-priority-display');
+
+  const messages = {
+    URGENT: `⚠ URGENT — Your landlord is legally required to act within 14 days under Awaab's Law. They have been notified immediately.`,
+    HIGH: `Your landlord should respond within 7 days. This has been flagged as a high-priority issue.`,
+    MEDIUM: `Standard priority — your landlord will schedule this within 28 days.`,
+    LOW: `Low priority — your landlord will schedule this at the next available opportunity.`
+  };
+
+  box.className = 'ai-priority-box ' + priority.toLowerCase();
+  label.textContent = '✦ AI Assessment: ' + priority;
+  text.textContent = messages[priority] || messages.MEDIUM;
+  box.style.display = 'block';
+  display.value = priority;
+}
+
+function clearAIPriority(){
+  const box = document.getElementById('ai-priority-box');
+  if(box) box.style.display = 'none';
+  const display = document.getElementById('job-priority-display');
+  if(display) display.value = 'Will be assessed automatically';
+}
+
+// ── EMAIL LANDLORD ──
+async function emailLandlord(job, priority, category, description){
+  try{
+    const landlordEmail = currentTenant.landlord_email;
+    if(!landlordEmail) return; // no email stored yet — landlord patches this in sprint
+
+    const priorityColors = {URGENT:'#E53E3E',HIGH:'#D97706',MEDIUM:'#3B6FE8',LOW:'#009970'};
+    const urgentBanner = priority === 'URGENT' ? `
+      <div style="background:#FEF2F2;border:2px solid #E53E3E;border-radius:8px;padding:14px;margin-bottom:20px">
+        <strong style="color:#E53E3E;font-size:14px">⚠ URGENT — Awaab's Law applies</strong>
+        <p style="color:#7F1D1D;font-size:12px;margin-top:4px">You are legally required to investigate and begin remediation within 14 days. This is a Category 1 hazard under the Housing Health and Safety Rating System.</p>
+      </div>` : '';
+
+    const html = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:28px 24px;color:#1A2B45">
+      <div style="border-bottom:2px solid #0B1E3D;padding-bottom:12px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:17px;font-weight:700;color:#0B1E3D">Rent<span style="color:#00C896">Safe AI</span></span>
+        <span style="font-size:11px;color:#7A8FA6">Maintenance Alert</span>
+      </div>
+      ${urgentBanner}
+      <h2 style="font-size:16px;font-weight:600;margin-bottom:4px">New maintenance job reported</h2>
+      <p style="font-size:13px;color:#7A8FA6;margin-bottom:20px">Submitted by ${currentTenant.name} · ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'})}</p>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:20px">
+        <tr style="border-bottom:1px solid #E4EAF1"><td style="padding:10px 0;font-size:12px;color:#7A8FA6;width:120px">Category</td><td style="padding:10px 0;font-size:13px;font-weight:500">${category}</td></tr>
+        <tr style="border-bottom:1px solid #E4EAF1"><td style="padding:10px 0;font-size:12px;color:#7A8FA6">AI Priority</td><td style="padding:10px 0"><span style="font-size:12px;font-weight:700;color:${priorityColors[priority]||'#3B6FE8'};background:rgba(0,0,0,0.04);padding:3px 9px;border-radius:100px">${priority}</span></td></tr>
+        <tr style="border-bottom:1px solid #E4EAF1"><td style="padding:10px 0;font-size:12px;color:#7A8FA6">Tenant</td><td style="padding:10px 0;font-size:13px">${currentTenant.name}</td></tr>
+        <tr><td style="padding:10px 0;font-size:12px;color:#7A8FA6">Description</td><td style="padding:10px 0;font-size:13px;line-height:1.6">${description}</td></tr>
+      </table>
+      <div style="background:#F6F8FB;border-radius:8px;padding:14px;margin-bottom:20px;font-size:12px;color:#7A8FA6">
+        Log in to your RentSafe AI dashboard to assign a contractor, update the job status, and send a completion notification to your tenant.
+      </div>
+      <div style="padding-top:14px;border-top:1px solid #eee;font-size:11px;color:#999">Sent via RentSafe AI · documents@rentsafeai.co.uk</div>
+    </div>`;
+
+    await fetch(EDGE_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        type:'send_email',
+        to: landlordEmail,
+        subject: `${priority === 'URGENT' ? '⚠ URGENT — ' : ''}New maintenance job: ${category} at ${document.getElementById('portal-address').textContent}`,
+        html
+      })
+    });
+  }catch(e){
+    console.warn('Email notification failed:', e);
+    // Non-critical — job is still saved
+  }
+}
+
+// ── PHOTOS ──
+function photosSelected(input){
+  const files = [...input.files];
+  const box = document.getElementById('photo-box');
+  if(box){
+    box.innerHTML = `
+      <input type="file" accept="image/*" multiple id="job-photos" onchange="photosSelected(this)">
+      <div class="photo-upload-icon">✓</div>
+      <div class="photo-upload-text" style="color:var(--green-dark);font-weight:600">${files.length} photo${files.length!==1?'s':''} selected</div>
+      <div class="photo-upload-sub">${files.map(f=>f.name).slice(0,3).join(', ')}${files.length>3?'…':''}</div>`;
+  }
+}
+
+// ── TABS ──
+function switchTab(name){
+  ['report','jobs'].forEach(t=>{
+    document.getElementById('tab-'+t).className = 'tab'+(t===name?' active':'');
+    document.getElementById('content-'+t).className = 'tab-content'+(t===name?' active':'');
+  });
+}
+
+// ── LOGOUT ──
+async function logout(){
+  await sb.auth.signOut();
+  currentTenant = null;
+  tenantJobs = [];
+  showScreen('login');
+}
+
+// ── START ──
+init();
+</script>
+</body>
+</html>
