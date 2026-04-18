@@ -486,7 +486,7 @@ let currentUser = null;
 const D = {
   properties: [], tenants: [], certs: [], maintenance: [], rent: [], insurance: [],
   emailLog: [], customTemplates: [], contractors: [], jobAssignments: [],
-  chat: [{role:'ai', text:'Hello! I\'m your AI compliance assistant. Ask me anything about UK landlord law — Section 8, Renters Rights Act, Awaab\'s Law, deposits, or anything else.'}]
+  chat: [{role:'ai', text:'Hi! I\'m your AI assistant. I have full visibility of your portfolio — properties, certificates, tenants, maintenance jobs and compliance status. Ask me anything about your portfolio, or tap a quick question below.'}]
 };
 
 // ── UI HELPERS ──
@@ -2564,17 +2564,143 @@ function pgInsurance(){
   </div>`;
 }
 
+// ── AI CONTEXT BUILDER ──
+function buildAIContext() {
+  const today = new Date();
+  const todayStr = today.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'});
+  const lines = [`LANDLORD PORTFOLIO — LIVE DATA (${todayStr})`, ''];
+
+  // Properties
+  lines.push(`PROPERTIES (${D.properties.length} total):`);
+  if (!D.properties.length) { lines.push('  No properties logged yet.'); }
+  D.properties.forEach((p, i) => {
+    const tenant = D.tenants.find(t => String(t.prop_id) === String(p.id) && (t.status === 'Active' || !t.status));
+    lines.push(`  ${i+1}. [ID:${p.id}] ${p.address}${p.city ? ', '+p.city : ''} — ${tenant ? `Tenant: ${tenant.name} (rent £${tenant.rent||'?'}/mo, status: ${tenant.status||'Active'})` : 'Vacant'} — EPC: ${p.epc||'not recorded'} — Beds: ${p.beds||'?'}`);
+  });
+  lines.push('');
+
+  // Certificates — per property
+  lines.push('CERTIFICATES:');
+  if (!D.certs.length) { lines.push('  No certificates logged.'); }
+  D.properties.forEach(p => {
+    const certs = D.certs.filter(c => String(c.prop_id) === String(p.id));
+    if (!certs.length) { lines.push(`  ${p.address}: No certificates logged`); return; }
+    certs.forEach(c => {
+      const daysLeft = c.expiry ? Math.round((new Date(c.expiry) - today) / 864e5) : null;
+      const statusStr = !c.expiry ? 'No expiry date'
+        : daysLeft < 0 ? `EXPIRED (${FMT(c.expiry)}, ${Math.abs(daysLeft)}d ago)`
+        : daysLeft <= 14 ? `CRITICAL — expires in ${daysLeft}d (${FMT(c.expiry)})`
+        : daysLeft <= 60 ? `EXPIRING SOON — ${daysLeft}d left (${FMT(c.expiry)})`
+        : `Valid — exp ${FMT(c.expiry)} (${daysLeft}d)`;
+      lines.push(`  ${p.address} | ${c.type}: ${statusStr}${c.served ? ' | Served: Yes' : ''}`);
+    });
+  });
+  lines.push('');
+
+  // Maintenance jobs
+  const openJobs = D.maintenance.filter(m => m.status !== 'Resolved');
+  const resolvedCount = D.maintenance.filter(m => m.status === 'Resolved').length;
+  lines.push(`MAINTENANCE (${openJobs.length} open, ${resolvedCount} resolved):`);
+  if (!openJobs.length) {
+    lines.push('  No open jobs — all clear.');
+  } else {
+    openJobs.forEach(m => {
+      const p = P(m.prop_id) || {address:'Unknown property'};
+      const daysOpen = m.date ? Math.round((today - new Date(m.date)) / 864e5) : '?';
+      const assignedTo = m.assigned_to ? ` | Assigned: ${m.assigned_to}` : '';
+      const cost = m.cost ? ` | Cost: £${m.cost}` : '';
+      lines.push(`  [${m.priority||'Low'}${m.awaab ? ' / AWAAB' : ''}] "${m.title||m.desc||'—'}" at ${p.address} — Stage: ${m.stage||'Reported'} — ${daysOpen}d open${assignedTo}${cost}`);
+    });
+  }
+  lines.push('');
+
+  // Tenants
+  const activeTenants = D.tenants.filter(t => t.status === 'Active' || !t.status);
+  lines.push(`TENANTS (${activeTenants.length} active, ${D.tenants.length} total):`);
+  if (!activeTenants.length) {
+    lines.push('  No active tenants.');
+  } else {
+    activeTenants.forEach(t => {
+      const p = P(t.prop_id) || {address:'?'};
+      lines.push(`  ${t.name} at ${p.address} — Rent: £${t.rent||'?'}/mo — Email: ${t.email||'none'} — Portal: ${t.invite_used ? 'Active' : 'Not set up'}`);
+    });
+  }
+  lines.push('');
+
+  // Finance snapshot
+  const totalMonthlyRent = D.tenants.filter(t => t.status==='Active'||!t.status).reduce((s,t)=>s+(t.rent||0),0);
+  const totalMaintenanceCost = D.maintenance.reduce((s,m)=>s+(m.cost||0),0);
+  const jobAssignmentCosts = (D.jobAssignments||[]).reduce((s,j)=>s+(j.cost||0),0);
+  lines.push('FINANCE SNAPSHOT:');
+  lines.push(`  Monthly rent income: £${totalMonthlyRent.toLocaleString()}/mo (£${(totalMonthlyRent*12).toLocaleString()}/yr)`);
+  lines.push(`  Total maintenance costs logged: £${(totalMaintenanceCost + jobAssignmentCosts).toLocaleString()}`);
+  lines.push('');
+
+  // Compliance alerts summary
+  const expiredCerts = D.certs.filter(c => c.expiry && new Date(c.expiry) < today);
+  const soonCerts = D.certs.filter(c => c.expiry && new Date(c.expiry) >= today && Math.round((new Date(c.expiry)-today)/864e5) <= 30);
+  const awaabJobs = D.maintenance.filter(m => m.awaab && m.status !== 'Resolved');
+  lines.push('COMPLIANCE ALERTS:');
+  if (!expiredCerts.length && !soonCerts.length && !awaabJobs.length) {
+    lines.push('  No active alerts — portfolio looks compliant based on logged data.');
+  } else {
+    expiredCerts.forEach(c => {
+      const p = P(c.prop_id)||{address:'?'};
+      lines.push(`  EXPIRED CERT: ${c.type} at ${p.address} — expired ${FMT(c.expiry)}`);
+    });
+    soonCerts.forEach(c => {
+      const p = P(c.prop_id)||{address:'?'};
+      const d = Math.round((new Date(c.expiry)-today)/864e5);
+      lines.push(`  EXPIRING SOON: ${c.type} at ${p.address} — ${d} days left`);
+    });
+    awaabJobs.forEach(m => {
+      const p = P(m.prop_id)||{address:'?'};
+      lines.push(`  AWAAB JOB: "${m.title||m.desc}" at ${p.address} — stage: ${m.stage||'Reported'}`);
+    });
+  }
+
+  return lines.join('\n');
+}
+
 // ── PAGE: AI ASSISTANT ──
 function pgAssistant(){
-  return`<div class="topbar"><span class="tb-title">AI Compliance Assistant</span></div>
+  const chips = [
+    {icon:'🚨', q:'What needs my urgent attention right now?'},
+    {icon:'📋', q:'Give me a full compliance check across all properties'},
+    {icon:'🔧', q:'Show me all open maintenance jobs'},
+    {icon:'💷', q:'What is my total rent income and costs?'},
+    {icon:'⚖️', q:'Do I need to serve any notices to my tenants?'},
+    {icon:'📅', q:"What certificates or renewals are due in the next 60 days?"},
+    {icon:'🏠', q:'Which of my properties is at highest risk right now?'},
+    {icon:'⚠️', q:'Are there any Awaab\'s Law jobs I need to act on?'}
+  ];
+  const chipsHtml = chips.map(c =>
+    `<button onclick="quickAsk('${c.q.replace(/'/g,"\\'")}')" style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:100px;border:1px solid var(--border);background:var(--white);font-family:var(--font);font-size:12px;color:var(--txt);cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0" onmouseenter="this.style.borderColor='var(--navy)';this.style.color='var(--navy)';this.style.background='var(--off)'" onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--txt)';this.style.background='var(--white)'">${c.icon} ${c.q.length > 38 ? c.q.slice(0,36)+'…' : c.q}</button>`
+  ).join('');
+
+  return`<div class="topbar"><span class="tb-title">AI Assistant</span><div class="tb-right"><span style="font-size:11px;color:var(--muted)">Knows your full portfolio in real time</span></div></div>
   <div class="chat-outer">
-    <div class="chat-msgs" id="cm">${D.chat.map(m=>m.role==='ai'?`<div class="msg ai"><div class="mlbl">Rent Safe AI</div>${m.text}</div>`:`<div class="msg user">${m.text}</div>`).join('')}</div>
+    <div class="chat-msgs" id="cm">
+      ${D.chat.map(m=>m.role==='ai'
+        ?`<div class="msg ai"><div class="mlbl">Rent Safe AI</div>${m.text}</div>`
+        :`<div class="msg user">${m.text}</div>`
+      ).join('')}
+    </div>
+    <div style="padding:10px 24px 8px;background:var(--white);border-top:1px solid var(--border)">
+      <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">Quick questions</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px">${chipsHtml}</div>
+    </div>
     <div class="chat-bar">
-      <input class="chat-in" id="ci2" placeholder="Ask anything — Section 8, Awaab's Law, RRA, deposits..." onkeydown="if(event.key==='Enter')sendChat()">
+      <input class="chat-in" id="ci2" placeholder="Ask about your portfolio, compliance, tenants, finances…" onkeydown="if(event.key==='Enter')sendChat()">
       <button class="btn btn-navy" onclick="sendChat()">Send</button>
     </div>
-    <div class="chat-disc">For guidance only. Verify with a qualified solicitor for legal proceedings.</div>
+    <div class="chat-disc">Answers are based on your logged data. Verify with a qualified solicitor before legal proceedings.</div>
   </div>`;
+}
+
+function quickAsk(question) {
+  const input = document.getElementById('ci2');
+  if (input) { input.value = question; sendChat(); }
 }
 
 async function sendChat(){
@@ -2583,13 +2709,39 @@ async function sendChat(){
   const cm=document.getElementById('cm');
   cm.innerHTML+=`<div class="msg user">${q}</div><div class="msg ai" id="at"><div class="mlbl">Rent Safe AI</div><span style="color:var(--muted)">Thinking…</span></div>`;
   cm.scrollTop=cm.scrollHeight;
+
+  const context = buildAIContext();
+  const systemPrompt = `You are a smart, friendly AI assistant built into RentSafe AI — a UK landlord compliance platform. You have access to this landlord's live portfolio data shown below.
+
+RULES:
+- Answer using the landlord's actual data. Be specific: name properties, tenants, cert dates, job stages.
+- If asked about something not in the data, say so clearly and suggest what to log.
+- Keep answers concise (under 200 words) unless detail is specifically needed.
+- Use plain English. Avoid legal jargon unless the landlord asks for it.
+- When you cite a cert, job or tenant, reference the specific record by property name.
+- You know UK landlord law: RRA 2025, Section 8/21, Awaab's Law, EPC, EICR, gas safety, deposits, MTD.
+- Never invent data. Only use what is in the context below.
+- If a compliance issue is serious (expired cert, Awaab job, overdue notice), flag it clearly.
+
+${context}`;
+
   try{
-    const r=await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:600,system:'UK landlord compliance assistant. Expert in RRA, Section 8/21, Awaab\'s Law, EPC, EICR, gas safety, deposits. Concise, practical, under 200 words.',messages:D.chat.filter(m=>m.role!=='system').map(m=>({role:m.role==='ai'?'assistant':'user',content:m.text}))})});
+    const r=await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-5',
+        max_tokens:800,
+        system:systemPrompt,
+        messages:D.chat.filter(m=>m.role!=='system').map(m=>({role:m.role==='ai'?'assistant':'user',content:m.text}))
+      })
+    });
     const d=await r.json(),reply=d.content?.[0]?.text||'No response.';
     D.chat.push({role:'ai',text:reply});
     document.getElementById('at').innerHTML=`<div class="mlbl">Rent Safe AI</div>${reply}`;
     cm.scrollTop=cm.scrollHeight;
-  }catch(e){document.getElementById('at').innerHTML=`<div class="mlbl">Rent Safe AI</div>Connection error. Please try again.`;}
+  }catch(e){
+    document.getElementById('at').innerHTML=`<div class="mlbl">Rent Safe AI</div>Connection error. Please try again.`;
+  }
 }
 
 // ── PAGE: CALENDAR ──
