@@ -1014,7 +1014,7 @@
       <div class="hero-badge">Renters Rights Act 2025 — live from 1 May</div>
       <h1>Your AI compliance guardian.<br><em>Court-ready records, automatically.</em></h1>
       <p class="hero-sub">AI-powered Section 8 notices, Awaab's Law tracking and an immutable audit trail — so when a tenant disputes anything, you're already protected. Plus <strong style="color:#00C896">MTD tax submissions</strong>, built in.</p>
-      <div class="hero-free-pill">First month free. Then from £9.99/mo. Cancel anytime.</div>
+      <div class="hero-free-pill">First month free. Then from £9.99/mo for up to 3 properties.</div>
       <form class="hero-form" id="hero-form" action="https://formspree.io/f/xdapbzqv" method="POST">
         <input type="email" name="email" placeholder="Your email address" required>
         <button type="submit" class="btn-primary">Get early access</button>
@@ -1303,9 +1303,9 @@
       <div class="pricing-card reveal">
         <div class="price-label">Starter</div>
         <div class="price-amount" id="price-starter">£9.99</div>
-        <div class="price-period" id="period-starter">per month · 1 property</div>
+        <div class="price-period" id="period-starter">per month · up to 3 properties</div>
         <ul class="price-features">
-          <li>1 property</li>
+          <li>Up to 3 properties</li>
           <li>All compliance certificates</li>
           <li>Section 8 notice generator</li>
           <li>Maintenance log + Awaab flag</li>
@@ -1542,8 +1542,8 @@
       ? { starter:'£8.32', landlord:'£16.65', portfolio:'£33.32' }
       : { starter:'£9.99', landlord:'£19.99', portfolio:'£39.99' };
     var periods = isAnnual
-      ? { starter:'per month, billed annually · 1 property', landlord:'per month, billed annually · up to 5', portfolio:'per month, billed annually · unlimited' }
-      : { starter:'per month · 1 property', landlord:'per month · up to 5 properties', portfolio:'per month · unlimited properties' };
+      ? { starter:'per month, billed annually · up to 3 properties', landlord:'per month, billed annually · up to 5', portfolio:'per month, billed annually · unlimited' }
+      : { starter:'per month · up to 3 properties', landlord:'per month · up to 5 properties', portfolio:'per month · unlimited properties' };
     document.getElementById('price-starter').textContent = prices.starter;
     document.getElementById('price-landlord').textContent = prices.landlord;
     document.getElementById('price-portfolio').textContent = prices.portfolio;
