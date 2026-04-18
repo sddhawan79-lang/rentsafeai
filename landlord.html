@@ -108,7 +108,8 @@ html,body{height:100%;font-family:var(--font);color:var(--txt);background:var(--
 .ph p{font-size:13px;color:var(--muted)}
 .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
 .metrics-3{grid-template-columns:repeat(3,1fr)}
-.mc{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:16px 18px}
+.mc{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:16px 18px;cursor:pointer;transition:box-shadow .15s,border-color .15s}
+.mc:hover{box-shadow:0 3px 14px rgba(11,30,61,0.09);border-color:#b0bfcf}
 .mc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
 .mc-label{font-size:12px;color:var(--muted)}
 .mc-icon{width:30px;height:30px;border-radius:7px;background:var(--off);display:flex;align-items:center;justify-content:center;font-size:14px}
@@ -1738,10 +1739,34 @@ function pgDashboard(){
     })()}
 
     <div class="metrics">
-      <div class="mc"><div class="mc-top"><span class="mc-label">Properties</span><div class="mc-icon">🏠</div></div><div class="mc-val">${D.properties.length}</div><div class="mc-sub">Active</div></div>
-      <div class="mc"><div class="mc-top"><span class="mc-label">Active tenants</span><div class="mc-icon">👤</div></div><div class="mc-val">${D.tenants.length}</div><div class="mc-sub">All active</div></div>
-      <div class="mc"><div class="mc-top"><span class="mc-label">Monthly rent</span><div class="mc-icon">💷</div></div><div class="mc-val">£${tot.toLocaleString()}</div><div class="mc-sub">Total portfolio</div></div>
-      <div class="mc"><div class="mc-top"><span class="mc-label">Open issues</span><div class="mc-icon">🔧</div></div><div class="mc-val">${open}</div><div class="mc-sub">${D.maintenance.filter(m=>m.awaab&&m.status!=='Resolved').length} Awaab flagged</div></div>
+      <div class="mc" onclick="nav('properties')" title="View properties">
+        <div class="mc-top"><span class="mc-label">Properties</span><div class="mc-icon">🏠</div></div>
+        <div class="mc-val">${D.properties.length}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px">
+          <div class="mc-sub">Active</div><span style="font-size:11px;color:var(--muted)">View →</span>
+        </div>
+      </div>
+      <div class="mc" onclick="nav('tenants')" title="View tenants">
+        <div class="mc-top"><span class="mc-label">Active tenants</span><div class="mc-icon">👤</div></div>
+        <div class="mc-val">${D.tenants.length}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px">
+          <div class="mc-sub">All active</div><span style="font-size:11px;color:var(--muted)">View →</span>
+        </div>
+      </div>
+      <div class="mc" onclick="nav('financials')" title="View financials">
+        <div class="mc-top"><span class="mc-label">Monthly rent</span><div class="mc-icon">💷</div></div>
+        <div class="mc-val">£${tot.toLocaleString()}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px">
+          <div class="mc-sub">Total portfolio</div><span style="font-size:11px;color:var(--muted)">View →</span>
+        </div>
+      </div>
+      <div class="mc" onclick="nav('maintenance')" title="View maintenance">
+        <div class="mc-top"><span class="mc-label">Open issues</span><div class="mc-icon">🔧</div></div>
+        <div class="mc-val">${open}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px">
+          <div class="mc-sub">${D.maintenance.filter(m=>m.awaab&&m.status!=='Resolved').length} Awaab flagged</div><span style="font-size:11px;color:var(--muted)">View →</span>
+        </div>
+      </div>
     </div>
     <div class="g2">
       <div>
