@@ -1138,24 +1138,22 @@ async function scanDoc(input){
   }catch(e){sb2.innerHTML=`<div style="font-size:13px;color:var(--amber);font-weight:500">Could not scan — please fill in manually</div>`;}
 }
 
-// ── MODAL: ADD PROPERTY (5-step guided flow) ──
+// ── MODAL: ADD PROPERTY (3-step streamlined flow) ──
 function moAddProp(){
   document.getElementById('mo-t').textContent = 'Add property';
-  document.getElementById('mo-s').textContent = 'Step 1 of 5 — address';
+  document.getElementById('mo-s').textContent = 'Step 1 of 3 — address';
   document.querySelector('.mo-box').classList.add('mo-wide');
   document.getElementById('mo-b').innerHTML = `
     <div class="step-bar" style="display:flex;gap:4px;margin-bottom:20px">
       <div class="step-bar-seg done" id="seg1"></div>
       <div class="step-bar-seg" id="seg2"></div>
       <div class="step-bar-seg" id="seg3"></div>
-      <div class="step-bar-seg" id="seg4"></div>
-      <div class="step-bar-seg" id="seg5"></div>
     </div>
 
     <!-- STEP 1: Address -->
     <div class="step-box active" id="step1">
       <div style="font-size:15px;font-weight:600;margin-bottom:2px">Where is the property?</div>
-      <div class="step-title">Full address — this appears on all notices and documents</div>
+      <div class="step-title">Full address — appears on all notices and documents</div>
       <div class="fg"><label>Street address <span class="req">*</span></label><input type="text" id="p-addr" placeholder="e.g. 14 Maple Street"></div>
       <div class="fg-row">
         <div class="fg"><label>City / town <span class="req">*</span></label><input type="text" id="p-city" placeholder="e.g. Manchester"></div>
@@ -1170,14 +1168,14 @@ function moAddProp(){
         </select>
       </div>
       <div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--blue);margin-top:4px">
-        ℹ️ The Renters Rights Act 2025 applies to England only. Wales, Scotland and Northern Ireland have separate legislation.
+        ℹ️ The Renters Rights Act 2025 applies to England only.
       </div>
     </div>
 
-    <!-- STEP 2: Property details -->
+    <!-- STEP 2: Essential details -->
     <div class="step-box" id="step2">
-      <div style="font-size:15px;font-weight:600;margin-bottom:2px">Property details</div>
-      <div class="step-title">Type, size and basic info</div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:2px">Property basics</div>
+      <div class="step-title">Just the essentials — add mortgage, EPC and more from the property page later</div>
       <div class="fg"><label>Property type</label>
         <select id="p-type">
           <option value="Flat">Flat / Apartment</option>
@@ -1186,7 +1184,7 @@ function moAddProp(){
           <option value="Detached">Detached house</option>
           <option value="Bungalow">Bungalow</option>
           <option value="Studio">Studio</option>
-          <option value="HMO">HMO (House of Multiple Occupation)</option>
+          <option value="HMO">HMO</option>
           <option value="Commercial">Commercial</option>
         </select>
       </div>
@@ -1194,81 +1192,34 @@ function moAddProp(){
         <div class="fg"><label>Bedrooms</label><input type="number" id="p-beds" placeholder="e.g. 2" min="0" max="20"></div>
         <div class="fg"><label>Bathrooms</label><input type="number" id="p-bath" placeholder="e.g. 1" min="0" max="10"></div>
       </div>
-      <div class="fg-row">
-        <div class="fg"><label>Year built</label><input type="number" id="p-year" placeholder="e.g. 1985" min="1800" max="2030"></div>
-        <div class="fg"><label>Floor area (sq ft)</label><input type="number" id="p-sqft" placeholder="e.g. 850" min="0"></div>
+      <div class="fg"><label>Monthly rent (£) <span class="req">*</span></label><input type="number" id="p-rent" placeholder="e.g. 1200" min="0"></div>
+      <div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--muted);margin-top:8px">
+        💡 You can add mortgage details, EPC rating, purchase price and more from the property detail page after saving.
       </div>
-      <div class="fg"><label>Description (optional)</label><textarea id="p-desc" placeholder="e.g. Ground floor flat, communal garden, on-street parking…" style="min-height:60px"></textarea></div>
+      <!-- Hidden fields with defaults so save function doesn't break -->
+      <input type="hidden" id="p-year" value="">
+      <input type="hidden" id="p-sqft" value="">
+      <input type="hidden" id="p-desc" value="">
+      <input type="hidden" id="p-ctb" value="">
+      <input type="hidden" id="p-purchase" value="">
+      <input type="hidden" id="p-purchase-date" value="">
+      <input type="hidden" id="p-value" value="">
+      <input type="hidden" id="p-ownership" value="Personal">
+      <input type="hidden" id="p-mortgage" value="">
+      <input type="hidden" id="p-licence" value="None">
+      <input type="hidden" id="p-lic-ref" value="">
+      <input type="hidden" id="p-lic-expiry" value="">
+      <input type="hidden" id="p-epc" value="">
+      <input type="hidden" id="p-epc-expiry" value="">
+      <input type="hidden" id="p-notes" value="">
     </div>
 
-    <!-- STEP 3: Financial details -->
+    <!-- STEP 3: Tenant (optional) -->
     <div class="step-box" id="step3">
-      <div style="font-size:15px;font-weight:600;margin-bottom:2px">Financial details</div>
-      <div class="step-title">Rent, council tax and purchase info</div>
-      <div class="fg-row">
-        <div class="fg"><label>Monthly rent (£) <span class="req">*</span></label><input type="number" id="p-rent" placeholder="e.g. 1200" min="0"></div>
-        <div class="fg"><label>Council tax band</label>
-          <select id="p-ctb">
-            <option value="">Not set</option>
-            <option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option><option>H</option>
-          </select>
-        </div>
-      </div>
-      <div class="fg-row">
-        <div class="fg"><label>Purchase price (£)</label><input type="number" id="p-purchase" placeholder="e.g. 185000" min="0"></div>
-        <div class="fg"><label>Purchase date</label><input type="date" id="p-purchase-date"></div>
-      </div>
-      <div class="fg-row">
-        <div class="fg"><label>Current estimated value (£)</label><input type="number" id="p-value" placeholder="e.g. 220000" min="0"></div>
-        <div class="fg"><label>Ownership type</label>
-          <select id="p-ownership">
-            <option value="Personal">Personal (individual)</option>
-            <option value="Joint">Joint ownership</option>
-            <option value="Limited company">Limited company</option>
-            <option value="Trust">Trust / other</option>
-          </select>
-        </div>
-      </div>
-      <div class="fg"><label>Mortgage outstanding (£)</label><input type="number" id="p-mortgage" placeholder="Leave blank if owned outright" min="0"></div>
-    </div>
-
-    <!-- STEP 4: Compliance & licence -->
-    <div class="step-box" id="step4">
-      <div style="font-size:15px;font-weight:600;margin-bottom:2px">Compliance setup</div>
-      <div class="step-title">Licence type and compliance notes — we'll remind you what to upload next</div>
-      <div class="fg"><label>Licence type</label>
-        <select id="p-licence">
-          <option value="None">None required</option>
-          <option value="Mandatory HMO">Mandatory HMO licence</option>
-          <option value="Additional HMO">Additional HMO licence</option>
-          <option value="Selective Licence">Selective licence</option>
-          <option value="Article 4">Article 4 direction</option>
-          <option value="Short-term Let">Short-term let licence</option>
-        </select>
-      </div>
-      <div class="fg-row">
-        <div class="fg"><label>Licence reference</label><input type="text" id="p-lic-ref" placeholder="e.g. SL-2024-00412"></div>
-        <div class="fg"><label>Licence expiry</label><input type="date" id="p-lic-expiry"></div>
-      </div>
-      <div class="fg-row">
-        <div class="fg"><label>EPC rating</label>
-          <select id="p-epc">
-            <option value="">Unknown</option>
-            <option>A</option><option>B</option><option>C</option><option>D</option>
-            <option>E — minimum legal standard</option><option>F — below standard</option><option>G — below standard</option>
-          </select>
-        </div>
-        <div class="fg"><label>EPC expiry date</label><input type="date" id="p-epc-expiry"></div>
-      </div>
-      <div class="fg"><label>Landlord notes</label><textarea id="p-notes" placeholder="Internal notes — access codes, managing agent, special instructions…" style="min-height:60px"></textarea></div>
-    </div>
-
-    <!-- STEP 5: Tenant -->
-    <div class="step-box" id="step5">
       <div style="font-size:15px;font-weight:600;margin-bottom:2px">Who lives there?</div>
-      <div class="step-title">Step 5 of 5 — skip if vacant, add later</div>
+      <div class="step-title">Step 3 of 3 — skip if vacant, add anytime later</div>
       <div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--muted);margin-bottom:16px">
-        Leave blank if the property is vacant. You can add tenant details any time from the property page.
+        Leave blank if the property is vacant.
       </div>
       <div class="fg-row">
         <div class="fg"><label>Tenant full name</label><input type="text" id="p-tname" placeholder="e.g. John Smith"></div>
@@ -1294,7 +1245,7 @@ function moAddProp(){
   document.getElementById('mo-f').innerHTML = `
     <div class="mo-nav" style="padding:0;border:none;width:100%;justify-content:space-between">
       <button class="btn-back" id="mo-back-btn" onclick="propStepBack()" style="visibility:hidden">← Back</button>
-      <div style="font-size:12px;color:var(--muted)" id="prop-step-label">Step 1 of 5</div>
+      <div style="font-size:12px;color:var(--muted)" id="prop-step-label">Step 1 of 3</div>
       <button class="btn btn-navy" id="mo-next-btn" onclick="propStepNext()">Next →</button>
     </div>`;
   document.getElementById('mo').classList.add('open');
@@ -1310,14 +1261,10 @@ function propStepNext(){
     if(!addr || !city || !post){ toast('Please fill in address, city and postcode.', true); return; }
     goStep(2);
   } else if(s === 2){
-    goStep(3);
-  } else if(s === 3){
     const rent = document.getElementById('p-rent')?.value;
     if(!rent){ toast('Please enter the monthly rent.', true); return; }
-    goStep(4);
-  } else if(s === 4){
-    goStep(5);
-  } else if(s === 5){
+    goStep(3);
+  } else if(s === 3){
     savePropToDB();
   }
 }
@@ -1327,11 +1274,11 @@ function goStep(n){
   document.querySelectorAll('.step-box').forEach((el,i) => el.classList.toggle('active', i+1 === n));
   document.querySelectorAll('.step-bar-seg').forEach((el,i) => el.classList.toggle('done', i < n));
   document.getElementById('mo-back-btn').style.visibility = n === 1 ? 'hidden' : 'visible';
-  document.getElementById('mo-next-btn').textContent = n === 5 ? 'Add property ✓' : 'Next →';
-  const labels = ['1 — address','2 — property details','3 — financials','4 — compliance','5 — tenant'];
+  document.getElementById('mo-next-btn').textContent = n === 3 ? 'Add property ✓' : 'Next →';
+  const labels = ['1 — address','2 — property basics','3 — tenant'];
   document.getElementById('mo-s').textContent = 'Step ' + labels[n-1];
   const lbl = document.getElementById('prop-step-label');
-  if(lbl) lbl.textContent = 'Step ' + n + ' of 5';
+  if(lbl) lbl.textContent = 'Step ' + n + ' of 3';
 }
 
 // ── MODAL: EDIT PROPERTY ──
