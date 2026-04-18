@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RentSafeAI — AI-Powered Compliance Protection for UK Landlords</title>
-<meta name="description" content="AI-powered Section 8 notices, maintenance tracking and compliance alerts — built for the Renters Rights Act 2025. Join free today.">
+<meta name="description" content="Compliance tracking, Section 8 notices, MTD tax quarterly submissions and AI advice — the complete platform for UK landlords. Built for the Renters Rights Act. Join free.">
 <meta name="robots" content="index, follow">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="RentSafeAI">
@@ -933,6 +933,7 @@
     .app-screenshot-section { padding: 60px 20px; }
     .founder-section { padding: 60px 20px; }
   }
+  @keyframes fadeUp {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
   }
@@ -944,6 +945,49 @@
   .hero-sub { animation-delay: 0.3s; }
   .hero-form { animation-delay: 0.4s; }
   .hero-trust { animation-delay: 0.5s; }
+
+  /* ─── MTD URGENCY STRIP ─── */
+  .mtd-strip {
+    background: #0B1E3D;
+    border-bottom: 1px solid rgba(0,200,150,0.2);
+    padding: 14px 40px;
+  }
+  .mtd-strip-inner {
+    max-width: 1100px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+  }
+  .mtd-strip-left { display: flex; align-items: center; gap: 12px; }
+  .mtd-live-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #00C896;
+    box-shadow: 0 0 0 3px rgba(0,200,150,0.25);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 0 3px rgba(0,200,150,0.25); }
+    50% { box-shadow: 0 0 0 6px rgba(0,200,150,0.1); }
+  }
+  .mtd-strip-text { font-size: 13px; color: rgba(255,255,255,0.8); font-weight: 400; }
+  .mtd-strip-text strong { color: #00C896; font-weight: 600; }
+  .mtd-strip-cta {
+    font-size: 12px; font-weight: 600; color: #0B1E3D;
+    background: #00C896; padding: 6px 16px; border-radius: 6px;
+    text-decoration: none; transition: background 0.2s; white-space: nowrap;
+  }
+  .mtd-strip-cta:hover { background: #009970; }
+
+  /* ─── MTD FEATURE CARD HIGHLIGHT ─── */
+  .feat-card.mtd-highlight {
+    border-color: rgba(0,200,150,0.3);
+    background: linear-gradient(135deg, rgba(0,200,150,0.04) 0%, var(--white) 100%);
+  }
+  .feat-card.mtd-highlight .feat-icon { background: rgba(0,200,150,0.12); }
+  .mtd-live-badge {
+    display: inline-block; font-size: 10px; font-weight: 700;
+    padding: 2px 7px; border-radius: 4px; margin-left: 8px;
+    background: rgba(220,38,38,0.12); color: #dc2626;
+    border: 1px solid rgba(220,38,38,0.25); vertical-align: middle;
+  }
 </style>
 </head>
 <body>
@@ -954,6 +998,7 @@
   <ul class="nav-links">
     <li><a href="#why-now">Why now</a></li>
     <li><a href="#features">Features</a></li>
+    <li><a href="#pricing">Pricing</a></li>
     <li><a href="login.html" style="color:rgba(255,255,255,0.7)">Log in</a></li>
     <li><a href="#waitlist" class="nav-cta">Try it for free</a></li>
   </ul>
@@ -968,7 +1013,7 @@
     <div class="hero-content">
       <div class="hero-badge">Renters Rights Act 2025 — live from 1 May</div>
       <h1>Your AI compliance guardian.<br><em>Court-ready records, automatically.</em></h1>
-      <p class="hero-sub">AI-powered Section 8 notices, Awaab's Law tracking and an immutable audit trail — so when a tenant disputes anything, you're already protected.</p>
+      <p class="hero-sub">AI-powered Section 8 notices, Awaab's Law tracking and an immutable audit trail — so when a tenant disputes anything, you're already protected. Plus <strong style="color:#00C896">MTD tax submissions</strong>, built in.</p>
       <div class="hero-free-pill">First month free. Then from £9.99/mo. Cancel anytime.</div>
       <form class="hero-form" id="hero-form" action="https://formspree.io/f/xdapbzqv" method="POST">
         <input type="email" name="email" placeholder="Your email address" required>
@@ -1025,6 +1070,11 @@
         <span class="cert-status status-exp">Action needed</span>
         <span class="cert-date">Awaiting</span>
       </div>
+      <div class="cert-row" style="border-top:1px solid rgba(0,200,150,0.15);margin-top:4px;padding-top:14px">
+        <span class="cert-name" style="color:rgba(255,255,255,0.9);font-weight:500">MTD Q1 Tax</span>
+        <span class="cert-status" style="background:rgba(0,200,150,0.15);color:#00C896">£4,800 income</span>
+        <span class="cert-date" style="color:#00C896">Due 7 Aug</span>
+      </div>
     </div>
   </div>
 </section>
@@ -1037,7 +1087,18 @@
     <div class="trust-item"><div class="trust-icon">✓</div>All 37 Section 8 grounds</div>
     <div class="trust-item"><div class="trust-icon">✓</div>Tenant portal included</div>
     <div class="trust-item"><div class="trust-icon">✓</div>Built by a UK landlord</div>
-    <div class="trust-item"><div class="trust-icon">✓</div>MTD-ready — coming soon</div>
+    <div class="trust-item"><div class="trust-icon">✓</div>MTD Tax — live now</div>
+  </div>
+</div>
+
+<!-- ─── MTD URGENCY STRIP ─── -->
+<div class="mtd-strip">
+  <div class="mtd-strip-inner">
+    <div class="mtd-strip-left">
+      <div class="mtd-live-dot"></div>
+      <p class="mtd-strip-text"><strong>Making Tax Digital is now live.</strong> Landlords with income over £50k must submit quarterly from 6 April 2026. First deadline: <strong>7 August 2026.</strong> RentSafeAI has MTD record-keeping built in — no extra software needed.</p>
+    </div>
+    <a href="login.html" class="mtd-strip-cta">Set up MTD →</a>
   </div>
 </div>
 
@@ -1116,6 +1177,8 @@
       <span class="cert-pill">Awaab's Law log</span>
       <span class="cert-pill">Tenancy agreements</span>
       <span class="cert-pill">Inspection reports</span>
+      <span class="cert-pill" style="background:rgba(0,200,150,0.15);border-color:rgba(0,200,150,0.3);color:#00C896">MTD quarterly reports</span>
+      <span class="cert-pill" style="background:rgba(0,200,150,0.15);border-color:rgba(0,200,150,0.3);color:#00C896">Section 24 calculator</span>
     </div>
   </div>
 </div>
@@ -1187,6 +1250,17 @@
           <span class="feat-tag">Audit trail</span>
         </div>
       </div>
+
+      <div class="feat-card mtd-highlight">
+        <div class="feat-icon">🧾</div>
+        <h3>MTD Tax <span class="mtd-live-badge">LIVE</span></h3>
+        <p>Quarterly income and expense tracking built for HMRC's Making Tax Digital. Section 24 calculator, submission-ready PDF reports, and compliance deadline tracker.</p>
+        <div class="feat-tags">
+          <span class="feat-tag">All HMRC categories</span>
+          <span class="feat-tag">Section 24 calc</span>
+          <span class="feat-tag">Q1–Q4 tracker</span>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -1238,6 +1312,7 @@
           <li>AI compliance advisor</li>
           <li>Document storage</li>
           <li>Court-admissible audit trail</li>
+          <li>MTD tax record-keeping</li>
         </ul>
         <a href="#waitlist" class="btn-secondary">Start free month</a>
       </div>
@@ -1270,7 +1345,7 @@
           <li>Everything in Landlord</li>
           <li>Portfolio-wide compliance view</li>
           <li>Bulk document generation</li>
-          <li>MTD-ready (coming soon)</li>
+          <li>MTD Tax — quarterly submissions</li>
           <li>Dedicated onboarding call</li>
           <li>Direct founder access</li>
         </ul>
@@ -1338,6 +1413,16 @@
 
       <div class="faq-item">
         <button class="faq-question" onclick="toggleFaq(this)">
+          Does RentSafeAI help with Making Tax Digital (MTD)?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer">
+          <p>Yes — MTD Tax is included on all plans at no extra cost. From 6 April 2026, landlords with gross income over £50,000 must submit quarterly digital records to HMRC. RentSafeAI tracks your income (pulled from rent payments) and allowable expenses across all 7 HMRC categories, calculates your Section 24 mortgage interest restriction, and generates a submission-ready quarterly PDF report. You enter the figures into HMRC's portal directly — no bridging software fee needed. The £30,000 threshold follows in April 2027.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">
           Is my data GDPR compliant?
           <span class="faq-icon">+</span>
         </button>
@@ -1372,7 +1457,7 @@
           <span class="faq-icon">+</span>
         </button>
         <div class="faq-answer">
-          <p>Yes. RentSafeAI works for both personal landlords and those operating through a limited company. The compliance obligations under the Renters Rights Act apply the same way regardless of ownership structure. MTD support (coming soon) will include both personal and Ltd company tax profiles, including Section 24 mortgage interest relief calculations relevant to personal landlords.</p>
+          <p>Yes. RentSafeAI works for both personal landlords and those operating through a limited company. The compliance obligations under the Renters Rights Act apply the same way regardless of ownership structure. MTD Tax is included on all plans — quarterly income and expense tracking, Section 24 mortgage interest calculator, and submission-ready PDF reports for both personal and Ltd company landlords.</p>
         </div>
       </div>
 
