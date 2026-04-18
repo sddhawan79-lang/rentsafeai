@@ -388,6 +388,9 @@ tr:hover td{background:rgba(246,248,251,.8)}
     <button onclick="openFeedback()" style="width:100%;display:flex;align-items:center;gap:8px;padding:7px 10px;margin-bottom:10px;border-radius:7px;border:1px solid rgba(0,200,150,0.3);background:rgba(0,200,150,0.07);color:rgba(0,200,150,0.85);font-family:var(--font);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s" onmouseenter="this.style.background='rgba(0,200,150,0.15)';this.style.borderColor='rgba(0,200,150,0.6)'" onmouseleave="this.style.background='rgba(0,200,150,0.07)';this.style.borderColor='rgba(0,200,150,0.3)'">
       <span style="font-size:14px">💬</span> Share feedback
     </button>
+    <button onclick="openLaunchChecklist()" style="width:100%;display:flex;align-items:center;gap:8px;padding:7px 10px;margin-bottom:10px;border-radius:7px;border:1px solid rgba(59,111,232,0.3);background:rgba(59,111,232,0.07);color:rgba(59,111,232,0.9);font-family:var(--font);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s" onmouseenter="this.style.background='rgba(59,111,232,0.15)';this.style.borderColor='rgba(59,111,232,0.6)'" onmouseleave="this.style.background='rgba(59,111,232,0.07)';this.style.borderColor='rgba(59,111,232,0.3)'">
+      <span style="font-size:14px">🚀</span> Launch checklist
+    </button>
     <div class="sb-user">
       <div class="sb-avatar" id="th-av">—</div>
       <span class="sb-username" id="sb-username">Loading…</span>
@@ -1732,6 +1735,32 @@ function pgDashboard(){
         </div>
       </div>
     </div>
+    ${(function(){
+      const now = new Date();
+      const m = now.getMonth(), d = now.getDate();
+      let qNum, qLabel, deadline, daysLeft;
+      if ((m===3&&d>=6)||m===4||m===5||(m===6&&d<1)) { qNum=1;qLabel='Apr – Jun';deadline=new Date(now.getFullYear(),7,5); }
+      else if (m===6||m===7||m===8) { qNum=2;qLabel='Jul – Sep';deadline=new Date(now.getFullYear(),10,5); }
+      else if (m===9||m===10||m===11) { qNum=3;qLabel='Oct – Dec';deadline=new Date(now.getFullYear()+1,1,5); }
+      else { qNum=4;qLabel='Jan – Mar';deadline=new Date(now.getFullYear(),4,5); }
+      daysLeft=Math.round((deadline-now)/864e5);
+      const urgCol=daysLeft<=14?'var(--red)':daysLeft<=45?'var(--amber)':'var(--green-dark)';
+      const urgBg=daysLeft<=14?'var(--red-bg)':daysLeft<=45?'var(--amber-bg)':'var(--green-bg)';
+      return `<div onclick="window.location.href='mtd.html'" style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;transition:all .15s" onmouseover="this.style.borderColor='var(--green)';this.style.boxShadow='0 2px 10px rgba(0,200,150,0.1)'" onmouseout="this.style.borderColor='var(--border)';this.style.boxShadow='none'">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="font-size:22px">📊</div>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--txt)">MTD Tax — Q${qNum} (${qLabel})</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:1px">Quarterly submission deadline: <strong style="color:${urgCol}">${deadline.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</strong></div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+          <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:100px;background:${urgBg};color:${urgCol}">${daysLeft}d left</span>
+          <span style="font-size:11px;font-weight:600;color:var(--green-dark)">Open MTD →</span>
+        </div>
+      </div>`;
+    })()}
+
     <div class="g2">
       <div>
         <div class="panel" style="margin-bottom:16px">
@@ -5214,19 +5243,44 @@ INSTRUCTIONS:
 
     // Show result
     document.getElementById('mo-b').innerHTML = `
-      <div style="font-size:15px;font-weight:600;margin-bottom:4px;color:var(--green-dark)">✓ Draft notice generated!</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Review your draft below. Download as PDF, then transfer to GOV.UK Form 3A before serving.</div>
-      <div style="background:var(--amber-bg);border:1px solid var(--amber);border-radius:8px;padding:9px 13px;font-size:11px;color:var(--txt);margin-bottom:14px">
-        <strong>Next steps:</strong> (1) Download this draft PDF · (2) Complete official GOV.UK <strong>Form 3A</strong> using these particulars · (3) Serve on ALL named tenants · (4) Keep proof of service
+      <div style="font-size:15px;font-weight:600;margin-bottom:4px;color:var(--green-dark)">✓ Draft particulars generated!</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Your AI-drafted particulars statement is ready. Follow the 4 steps below before serving.</div>
+
+      <div style="background:var(--off);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:10px">What to do next</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:flex-start;gap:10px;font-size:12.5px">
+            <div style="width:22px;height:22px;border-radius:50%;background:var(--navy);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">1</div>
+            <div><strong>Download this draft PDF</strong> — your particulars statement with all facts pre-filled</div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px;font-size:12.5px">
+            <div style="width:22px;height:22px;border-radius:50%;background:var(--navy);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">2</div>
+            <div><strong>Download official Form 3A from GOV.UK</strong> — the legally required form (published 1 May 2026)</div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px;font-size:12.5px">
+            <div style="width:22px;height:22px;border-radius:50%;background:var(--navy);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">3</div>
+            <div><strong>Transfer your particulars into Form 3A</strong> — copy the grounds and facts into the official form</div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px;font-size:12.5px">
+            <div style="width:22px;height:22px;border-radius:50%;background:var(--navy);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">4</div>
+            <div><strong>Serve on ALL named tenants</strong> — by first class post and/or hand delivery. Keep signed proof of service.</div>
+          </div>
+        </div>
       </div>
-      <div id="s8-output" style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:16px;font-size:12.5px;line-height:1.8;max-height:320px;overflow-y:auto;white-space:pre-wrap;font-family:Georgia,serif">${text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
+
+      <div style="background:var(--amber-bg);border:1px solid var(--amber);border-radius:8px;padding:9px 13px;font-size:11px;color:var(--txt);margin-bottom:14px">
+        ⚠️ <strong>This is a draft only.</strong> The official GOV.UK Form 3A must be used for legal proceedings. Service by email alone may not be sufficient — also serve by first class post.
+      </div>
+
+      <div id="s8-output" style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:16px;font-size:12.5px;line-height:1.8;max-height:280px;overflow-y:auto;white-space:pre-wrap;font-family:Georgia,serif">${text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
 
     document.getElementById('mo-f').innerHTML = `
       <div style="display:flex;justify-content:space-between;width:100%;gap:8px;flex-wrap:wrap">
         <button class="btn" onclick="closeMo()">Close</button>
-        <div style="display:flex;gap:8px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn" onclick="s8CopyText()">📋 Copy</button>
-          <button class="btn" onclick="s8DownloadPDF()">📄 Download PDF</button>
+          <button class="btn" onclick="s8DownloadPDF()">📄 Download draft PDF</button>
+          <a href="https://www.gov.uk/government/publications/notice-seeking-possession-of-a-property-let-on-an-assured-tenancy-or-an-assured-agricultural-occupancy-form-3" target="_blank" class="btn btn-outline" style="font-size:12px">📋 Get Form 3A from GOV.UK →</a>
           ${t?.email ? `<button class="btn btn-navy" onclick="s8SendToTenant()">✉ Send to ${t.name.split(' ')[0]}</button>` : ''}
         </div>
       </div>`;
@@ -6145,6 +6199,96 @@ function toggleTheme() {
   toast(next === 'dark' ? '🌙 Dark mode on' : '☀️ Light mode on');
 }
 
+// ── LAUNCH CHECKLIST ──
+const LAUNCH_CHECKS = [
+  { group:'🔐 Auth & Access', items:[
+    'Google OAuth working — sign in with Google tested',
+    'Email/password login working',
+    'Logout working correctly',
+    'New user signup creates account and lands on empty dashboard',
+  ]},
+  { group:'🏠 Core Flows', items:[
+    'Add Property (3-step flow) — all fields save correctly',
+    'Add Tenant — links to property, saves rent amount',
+    'Add Certificate — file upload + expiry date saves',
+    'Record Rent Payment — shows in Finance',
+    'Log Maintenance Job — appears in Maintenance page',
+  ]},
+  { group:'📄 Documents & Emails', items:[
+    'Section 8 Notice — generates draft + Form 3A button visible',
+    'RRA Information Sheet — sends to tenant email',
+    'Tenant Portal Invite — email sends, token works',
+    'Onboarding Kit — sends to tenant correctly',
+    'Email lands in inbox (not spam) — Resend DKIM/SPF verified',
+  ]},
+  { group:'🤖 AI Assistant', items:[
+    'AI Assistant loads and responds',
+    'MTD quick chip gives correct quarter deadline',
+    'Section 24 chip explains correctly',
+    'Portfolio data appears in AI context (property name, cert status)',
+  ]},
+  { group:'📊 Finance & MTD', items:[
+    'Finance page loads — bar chart renders',
+    'MTD page loads — mtd.html accessible',
+    'MTD quarterly deadline showing correct date',
+    'Finance PDF export works',
+  ]},
+  { group:'⚙️ Settings & UI', items:[
+    'Dark mode toggle works',
+    'Feedback button submits to Supabase feedback table',
+    'Cookie banner shows on first visit',
+    'Mobile layout — test on phone',
+    'HTTPS padlock showing — no "Not Secure" warning',
+  ]},
+  { group:'🌐 Landing Page', items:[
+    'rentsafeai.co.uk loads with HTTPS',
+    'Pricing page shows correct tiers',
+    'CTA buttons link to login.html',
+    'MTD feature card visible on landing page',
+  ]},
+];
+
+function openLaunchChecklist() {
+  const saved = JSON.parse(localStorage.getItem('rsa_launch_checks') || '{}');
+  let html = '';
+  LAUNCH_CHECKS.forEach((section, si) => {
+    html += `<div style="margin-bottom:18px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px">${section.group}</div>`;
+    section.items.forEach((item, ii) => {
+      const key = `${si}-${ii}`;
+      const checked = saved[key] || false;
+      html += `<label style="display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px;color:${checked?'var(--muted)':'var(--txt)'}${checked?';text-decoration:line-through':''}">
+        <input type="checkbox" data-key="${key}" ${checked?'checked':''} onchange="saveLaunchCheck(this)" style="margin-top:2px;flex-shrink:0;accent-color:var(--green)">
+        ${item}
+      </label>`;
+    });
+    html += '</div>';
+  });
+  const totalItems = LAUNCH_CHECKS.reduce((s,g)=>s+g.items.length,0);
+  const doneItems = Object.values(saved).filter(Boolean).length;
+  const pct = Math.round(doneItems/totalItems*100);
+  html = `<div style="margin-bottom:18px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span style="font-size:12px;font-weight:600;color:var(--txt)">${doneItems}/${totalItems} complete</span>
+      <span style="font-size:12px;font-weight:700;color:${pct===100?'var(--green-dark)':'var(--muted)'}">${pct}%</span>
+    </div>
+    <div style="height:6px;background:var(--border);border-radius:100px;overflow:hidden">
+      <div style="height:100%;background:var(--green);border-radius:100px;width:${pct}%;transition:width .4s"></div>
+    </div>
+  </div>` + html;
+  document.getElementById('lc-body').innerHTML = html;
+  document.getElementById('launch-modal').style.display = 'flex';
+}
+function closeLaunchChecklist() {
+  document.getElementById('launch-modal').style.display = 'none';
+}
+function saveLaunchCheck(el) {
+  const saved = JSON.parse(localStorage.getItem('rsa_launch_checks') || '{}');
+  saved[el.dataset.key] = el.checked;
+  localStorage.setItem('rsa_launch_checks', JSON.stringify(saved));
+  openLaunchChecklist(); // re-render to update progress + strikethrough
+}
+
 // ── FEEDBACK WIDGET ──
 let _fbThumb = null;
 function openFeedback() {
@@ -6191,6 +6335,20 @@ document.querySelectorAll('.sb-item[data-page]').forEach(btn => {
 document.addEventListener('click', () => closePropMenus());
 initApp();
 </script>
+
+<!-- LAUNCH CHECKLIST MODAL -->
+<div id="launch-modal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(11,30,61,0.55);backdrop-filter:blur(3px);align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 16px">
+  <div style="background:var(--white);border:1px solid var(--border);border-radius:14px;width:100%;max-width:560px;margin:0 auto;box-shadow:0 20px 60px rgba(11,30,61,0.2)">
+    <div style="padding:22px 24px 0">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <h3 style="font-size:16px;font-weight:700;color:var(--txt);margin:0">🚀 Pre-Launch Checklist</h3>
+        <button onclick="closeLaunchChecklist()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted)">×</button>
+      </div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:18px">Tick everything before going live on 31 May 2026</p>
+    </div>
+    <div style="padding:0 24px 24px;max-height:70vh;overflow-y:auto" id="lc-body"></div>
+  </div>
+</div>
 
 <!-- FEEDBACK MODAL -->
 <div id="feedback-modal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(11,30,61,0.55);backdrop-filter:blur(3px);align-items:center;justify-content:center">
