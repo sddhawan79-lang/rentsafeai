@@ -15,12 +15,45 @@
   --blue:#3B6FE8;--blue-bg:rgba(59,111,232,0.09);
   --red:#E53E3E;--red-bg:rgba(229,62,62,0.09);
   --amber:#D97706;--amber-bg:rgba(217,119,6,0.09);
-  --white:#fff;--off:#F6F8FB;--border:#E4EAF1;
-  --txt:#1A2B45;--muted:#7A8FA6;
+  --white:#fff;--off:#F6F8FB;--border:#D8E2EE;
+  --txt:#1A2B45;--muted:#5E7A94;
   --font:'DM Sans',system-ui,sans-serif;
   --disp:'DM Serif Display',Georgia,serif;
   --sb:228px;
 }
+/* ── DARK MODE VARIABLES ── */
+[data-theme="dark"]{
+  --white:#1E2A3E;--off:#172032;--border:#2C3A54;
+  --txt:#DDE3EE;--muted:#8A9AB5;
+}
+[data-theme="dark"] body{background:var(--off);color:var(--txt)}
+[data-theme="dark"] .topbar{background:var(--white);border-color:var(--border)}
+[data-theme="dark"] .panel{background:var(--white);border-color:var(--border)}
+[data-theme="dark"] .mc{background:var(--white);border-color:var(--border)}
+[data-theme="dark"] .mo-box{background:var(--white);border-color:var(--border)}
+[data-theme="dark"] .ph2{background:var(--off)}
+[data-theme="dark"] .btn{background:var(--white);color:var(--txt);border-color:var(--border)}
+[data-theme="dark"] .btn:hover{background:var(--off);border-color:#4a5a75;color:var(--txt)}
+[data-theme="dark"] .btn-navy{background:var(--navy);color:#fff;border-color:var(--navy)}
+[data-theme="dark"] .btn-navy:hover{background:var(--navy-mid);color:#fff}
+[data-theme="dark"] .btn-outline{background:transparent;border-color:#8A9AB5;color:var(--txt)}
+[data-theme="dark"] .btn-outline:hover{background:var(--navy);border-color:var(--navy);color:#fff}
+[data-theme="dark"] th{background:var(--off);color:var(--muted);border-color:var(--border)}
+[data-theme="dark"] td{border-color:var(--border);color:var(--txt)}
+[data-theme="dark"] tr:hover td{background:rgba(255,255,255,0.03)}
+[data-theme="dark"] .fg input,[data-theme="dark"] .fg select,[data-theme="dark"] .fg textarea{background:var(--off);border-color:var(--border);color:var(--txt)}
+[data-theme="dark"] .fg input:focus,[data-theme="dark"] .fg select:focus,[data-theme="dark"] .fg textarea:focus{border-color:var(--green)}
+[data-theme="dark"] .chat-bar,[data-theme="dark"] .chat-disc{background:var(--white);border-color:var(--border)}
+[data-theme="dark"] .chat-in{background:var(--off);border-color:var(--border);color:var(--txt)}
+[data-theme="dark"] .msg.ai{background:var(--white);border-color:var(--border);color:var(--txt)}
+[data-theme="dark"] .pc{background:var(--white);border-color:var(--border)}
+[data-theme="dark"] .prop-menu{background:var(--white);border-color:var(--border)}
+[data-theme="dark"] .prop-menu-item{color:var(--txt)}
+[data-theme="dark"] .prop-menu-item:hover{background:var(--off)}
+[data-theme="dark"] select{background:var(--off);border-color:var(--border);color:var(--txt)}
+[data-theme="dark"] .coll{background:var(--white);border-color:var(--border)}
+[data-theme="dark"] .coll-hd:hover{background:var(--off)}
+[data-theme="dark"] .sb-section{color:rgba(255,255,255,0.3)}
 html,body{height:100%;font-family:var(--font);color:var(--txt);background:var(--off);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
 /* ── APP LAYOUT ── */
 .app{display:flex;height:100vh;overflow:hidden}
@@ -59,13 +92,15 @@ html,body{height:100%;font-family:var(--font);color:var(--txt);background:var(--
 .tb-title{font-size:13px;font-weight:600;color:var(--txt)}
 .tb-right{display:flex;align-items:center;gap:8px}
 .content{padding:24px 28px;flex:1}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;font-family:var(--font);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;border:1px solid var(--border);background:var(--white);color:var(--muted);text-decoration:none;white-space:nowrap}
-.btn:hover{border-color:#c5d0dd;background:var(--off);color:var(--txt)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;font-family:var(--font);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;border:1px solid #C0CDD9;background:var(--white);color:#3D5166;text-decoration:none;white-space:nowrap}
+.btn:hover{border-color:#9aafC2;background:var(--off);color:var(--txt)}
 .btn:active{transform:scale(0.95);opacity:.85;transition:transform .08s,opacity .08s}
 .btn-navy:active{transform:scale(0.95)}
 .btn-navy{background:var(--navy);color:#fff;border-color:var(--navy)}
 .btn-navy:hover{background:var(--navy-mid);color:#fff;border-color:var(--navy-mid)}
 .btn-navy:disabled{opacity:.6;cursor:not-allowed}
+.btn-outline{background:transparent;border:1.5px solid var(--navy);color:var(--navy);font-weight:600}
+.btn-outline:hover{background:var(--navy);color:#fff}
 .btn-sm{padding:5px 10px;font-size:12px}
 .btn-icon{width:28px;height:28px;padding:0;justify-content:center;font-size:13px}
 .ph{margin-bottom:22px}
@@ -339,6 +374,7 @@ tr:hover td{background:rgba(246,248,251,.8)}
     <div class="sb-user">
       <div class="sb-avatar" id="th-av">—</div>
       <span class="sb-username" id="sb-username">Loading…</span>
+      <button id="theme-btn" onclick="toggleTheme()" title="Toggle dark mode" style="font-size:15px;background:none;border:none;cursor:pointer;padding:2px 4px;border-radius:5px;transition:background .15s;flex-shrink:0" onmouseenter="this.style.background='rgba(255,255,255,0.1)'" onmouseleave="this.style.background='none'">🌙</button>
       <button class="sb-logout" onclick="logout()">Out</button>
     </div>
   </div>
@@ -1574,13 +1610,95 @@ function getTodayEventsHtml(){
 function pgDashboard(){
   const acts=UA(),tot=D.properties.reduce((s,p)=>s+(p.rent||0),0),open=D.maintenance.filter(m=>m.status!=='Resolved').length;
   const today=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const firstName = (currentUser?.email||'').split('@')[0].split('.')[0];
+  const displayName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+
+  // ── EMPTY STATE: no properties ──
+  if (!D.properties.length) {
+    const hasCerts   = D.certs.length > 0;
+    const hasTenants = D.tenants.length > 0;
+    const step1done  = false; // needs a property first
+    const step2done  = step1done && hasCerts;
+    const step3done  = step2done && hasTenants;
+
+    const stepCard = (num, icon, title, desc, btn, active, done) => `
+      <div style="background:var(--white);border:2px solid ${done?'var(--green)':active?'var(--navy)':'var(--border)'};border-radius:12px;padding:18px 20px;margin-bottom:10px;display:flex;align-items:center;gap:16px;transition:box-shadow .2s${active?';box-shadow:0 4px 18px rgba(11,30,61,0.1)':''}">
+        <div style="width:38px;height:38px;border-radius:50%;background:${done?'var(--green)':active?'var(--navy)':'var(--border)'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:${done?'18':'15'}px;font-weight:700;flex-shrink:0">${done?'✓':num}</div>
+        <div style="flex:1;${active||done?'':'opacity:.45'}">
+          <div style="font-size:14px;font-weight:700;color:var(--txt);margin-bottom:2px">${icon} ${title}</div>
+          <div style="font-size:12px;color:var(--muted)">${desc}</div>
+        </div>
+        ${active ? btn : done ? `<span style="font-size:12px;font-weight:600;color:var(--green-dark);background:var(--green-bg);padding:4px 12px;border-radius:100px">Done ✓</span>` : `<span style="font-size:12px;color:var(--muted)">Locked</span>`}
+      </div>`;
+
+    return `<div class="topbar"><span class="tb-title">Dashboard</span><div class="tb-right">
+      <button class="btn btn-navy" onclick="moAddProp()">+ Add property</button>
+    </div></div>
+    <div class="content">
+      <div style="max-width:580px;margin:0 auto;padding-top:16px">
+
+        <div style="margin-bottom:28px">
+          <h1 style="font-size:22px;font-weight:700;margin-bottom:4px">Welcome${displayName?', '+displayName:''}! 👋</h1>
+          <p style="font-size:13px;color:var(--muted)">Let's get your portfolio set up and protected. Takes under 10 minutes.</p>
+        </div>
+
+        ${stepCard(1,'🏠','Add your first property','Address, rent, type and basic details — 2 minutes',
+          `<button class="btn btn-navy" onclick="moAddProp()">Start →</button>`,true,false)}
+        ${stepCard(2,'📄','Upload your certificates','Gas Safety, EICR, EPC — all in one place with expiry alerts',
+          `<button class="btn btn-navy" onclick="nav('compliance')">Upload →</button>`,false,false)}
+        ${stepCard(3,'👤','Add your first tenant','Link a tenant, set rent, protect the deposit',
+          `<button class="btn btn-navy" onclick="moTenant()">Add tenant →</button>`,false,false)}
+
+        <div style="background:rgba(0,200,150,0.07);border:1px solid rgba(0,200,150,0.2);border-radius:10px;padding:14px 18px;margin-top:8px;display:flex;align-items:center;gap:12px">
+          <span style="font-size:20px">🛡</span>
+          <div style="font-size:12px;color:var(--muted);line-height:1.6"><strong style="color:var(--txt)">Built around the Renters Rights Act 2025.</strong> Every step keeps you legally covered — certificates tracked, notices generated, tenants protected.</div>
+        </div>
+
+        <div style="margin-top:20px;padding:14px 18px;background:var(--white);border:1px solid var(--border);border-radius:10px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:10px">Explore while you set up</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-sm" onclick="nav('assistant')">🤖 Ask AI a question</button>
+            <button class="btn btn-sm" onclick="nav('templates')">📄 View document templates</button>
+            <button class="btn btn-sm" onclick="nav('calendar')">📅 View calendar</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ── PARTIAL SETUP STRIP (has properties, but missing certs or tenants) ──
+  const hasCerts   = D.certs.length > 0;
+  const hasTenants = D.tenants.length > 0;
+  const setupDone  = hasCerts && hasTenants;
+
+  const setupStrip = setupDone ? '' : `
+    <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div style="font-size:12px;font-weight:700;color:var(--txt);white-space:nowrap">⚙️ Complete your setup</div>
+      <div style="display:flex;align-items:center;gap:8px;flex:1;flex-wrap:wrap">
+        <span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--green-dark)">
+          <span style="width:18px;height:18px;border-radius:50%;background:var(--green);color:#fff;font-size:10px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">✓</span>Property added
+        </span>
+        <span style="color:var(--border)">→</span>
+        <span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:${hasCerts?'var(--green-dark)':'var(--navy)'}">
+          <span style="width:18px;height:18px;border-radius:50%;background:${hasCerts?'var(--green)':'var(--navy)'};color:#fff;font-size:10px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">${hasCerts?'✓':'2'}</span>${hasCerts?'Certificates uploaded':'Upload certificates'}
+        </span>
+        <span style="color:var(--border)">→</span>
+        <span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:${hasTenants?'var(--green-dark)':hasCerts?'var(--navy)':'var(--muted)'}">
+          <span style="width:18px;height:18px;border-radius:50%;background:${hasTenants?'var(--green)':hasCerts?'var(--navy)':'var(--border)'};color:#fff;font-size:10px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">${hasTenants?'✓':'3'}</span>${hasTenants?'Tenant added':'Add a tenant'}
+        </span>
+      </div>
+      ${!hasCerts ? `<button class="btn btn-sm btn-navy" onclick="moCert()">+ Upload cert</button>` :
+        !hasTenants ? `<button class="btn btn-sm btn-navy" onclick="moTenant()">+ Add tenant</button>` : ''}
+    </div>`;
+
   return`<div class="topbar"><span class="tb-title">Dashboard</span><div class="tb-right">
     <button class="btn btn-navy" onclick="moAddProp()">+ Add property</button>
     <button class="btn" onclick="moCert()">+ Add certificate</button>
     <button class="btn" onclick="moIssue()">Report issue</button>
   </div></div>
   <div class="content">
-    <div class="ph"><h1>Dashboard</h1><p>${acts.length} urgent, ${acts.filter(a=>a.b==='amber').length} due soon</p></div>
+    <div class="ph"><h1>Dashboard</h1><p>${acts.length} urgent action${acts.length!==1?'s':''}, ${acts.filter(a=>a.b==='amber').length} due soon</p></div>
+    ${setupStrip}
 
     ${(function(){
       const daysLeft = Math.ceil((new Date('2026-05-31') - new Date()) / 864e5);
@@ -1626,16 +1744,146 @@ function pgDashboard(){
       <div class="mc"><div class="mc-top"><span class="mc-label">Open issues</span><div class="mc-icon">🔧</div></div><div class="mc-val">${open}</div><div class="mc-sub">${D.maintenance.filter(m=>m.awaab&&m.status!=='Resolved').length} Awaab flagged</div></div>
     </div>
     <div class="g2">
-      <div class="panel">
-        <div class="ph2"><div><h2>Action items</h2><p>Sorted by urgency</p></div></div>
-        ${acts.length?acts.map(a=>`<div class="ai-row"><span class="badge b-${a.b}">${a.l}</span><div class="ai-body"><div class="ai-title">${a.t}</div><div class="ai-sub">${a.s}</div></div><span style="color:var(--muted)">›</span></div>`).join(''):'<div class="empty"><div class="empty-ic">✓</div><div class="empty-t">All clear</div></div>'}
+      <div>
+        <div class="panel" style="margin-bottom:16px">
+          <div class="ph2"><div><h2>Action items</h2><p>Sorted by urgency</p></div></div>
+          ${acts.length?acts.map(a=>`<div class="ai-row"><span class="badge b-${a.b}">${a.l}</span><div class="ai-body"><div class="ai-title">${a.t}</div><div class="ai-sub">${a.s}</div></div><span style="color:var(--muted)">›</span></div>`).join(''):'<div class="empty"><div class="empty-ic">✓</div><div class="empty-t">All clear</div></div>'}
+        </div>
+        <div class="panel">
+          <div class="ph2">
+            <div><h2>📅 Upcoming tasks</h2><p>Next 30 days · all properties</p></div>
+            <button class="btn btn-sm" style="background:var(--navy);color:#fff;border-color:var(--navy);font-size:11px" onclick="quickAskDash('What do I need to do in the next 30 days? List all upcoming certificates, rent due dates, and anything else I should action.')">🤖 Ask AI</button>
+          </div>
+          ${getUpcomingTasksHtml()}
+          <div style="padding:8px 18px 12px"><button class="btn btn-sm" style="width:100%;justify-content:center" onclick="nav('calendar')">Open full calendar →</button></div>
+        </div>
       </div>
       <div class="panel">
-        <div class="ph2"><div><h2>Today</h2><p>${today}</p></div><button class="btn btn-sm" onclick="nav('calendar')">View calendar</button></div>
-        ${getTodayEventsHtml()}
+        ${getDashCalHtml()}
       </div>
     </div>
   </div>`;
+}
+
+// ── DASHBOARD HELPERS: MINI CALENDAR ──
+function getDashCalHtml() {
+  try {
+    const now = new Date();
+    const yr = now.getFullYear(), mo = now.getMonth();
+    const mn = now.toLocaleString('en-GB',{month:'long',year:'numeric'});
+    const fd = (new Date(yr,mo,1).getDay()+6)%7;
+    const dim = new Date(yr,mo+1,0).getDate();
+    const dn = ['M','T','W','T','F','S','S'];
+    const allEvents = getCalEvents();
+
+    const evMap = {};
+    allEvents.forEach(ev => {
+      const d = new Date(ev.date);
+      if (d.getFullYear()===yr && d.getMonth()===mo) {
+        const k = d.getDate(); if (!evMap[k]) evMap[k]=[];
+        evMap[k].push(ev);
+      }
+    });
+
+    let cells = '';
+    for (let i=0;i<fd;i++) cells+=`<div></div>`;
+    for (let d=1;d<=dim;d++){
+      const isToday = now.getDate()===d;
+      const dayEvs = evMap[d]||[];
+      const hasRed = dayEvs.some(e=>e.urg==='red');
+      const hasAmber = dayEvs.some(e=>e.urg==='amber');
+      const dotCol = hasRed?'#E53E3E':hasAmber?'#D97706':dayEvs.length?'#3B6FE8':'';
+      cells += `<div onclick="${dayEvs.length?`dashCalClick(${d})`:'void(0)'}" style="border-radius:6px;display:flex;flex-direction:column;align-items:center;padding:4px 2px;font-size:11px;cursor:${dayEvs.length?'pointer':'default'};background:${isToday?'var(--navy)':'transparent'};color:${isToday?'#fff':'var(--txt)'};font-weight:${isToday?'700':'400'};transition:background .1s" onmouseenter="if(${dayEvs.length&&!isToday})this.style.background='var(--off)'" onmouseleave="if(${dayEvs.length&&!isToday})this.style.background='transparent'">
+        ${d}
+        <div style="width:4px;height:4px;border-radius:50%;background:${dotCol||'transparent'};margin-top:1px"></div>
+      </div>`;
+    }
+
+    // Today's events list
+    const todayEvs = evMap[now.getDate()]||[];
+    const todayHtml = todayEvs.length
+      ? todayEvs.map(e=>{
+          const col=e.urg==='red'?'var(--red)':e.urg==='amber'?'var(--amber)':'var(--blue)';
+          const bg=e.urg==='red'?'var(--red-bg)':e.urg==='amber'?'var(--amber-bg)':'var(--blue-bg)';
+          return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+            <span style="font-size:14px">${e.icon}</span>
+            <div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:500;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.label}</div><div style="font-size:10px;color:var(--muted)">${e.sub}</div></div>
+            <span style="font-size:10px;font-weight:600;color:${col};background:${bg};padding:1px 6px;border-radius:100px;white-space:nowrap;flex-shrink:0">Today</span>
+          </div>`;
+        }).join('')
+      : `<div style="font-size:12px;color:var(--muted);padding:8px 0">Nothing due today ✓</div>`;
+
+    return `
+      <div style="padding:12px 14px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:13px;font-weight:700;color:var(--txt)">${mn}</div>
+        <button class="btn btn-sm" onclick="nav('calendar')">Full view →</button>
+      </div>
+      <div style="padding:10px 12px 6px">
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:3px">
+          ${dn.map(d=>`<div style="text-align:center;font-size:9px;font-weight:700;text-transform:uppercase;color:var(--muted);padding:2px 0">${d}</div>`).join('')}
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">${cells}</div>
+      </div>
+      <div id="dash-cal-day" style="display:none"></div>
+      <div style="padding:0 14px 10px;border-top:1px solid var(--border);margin-top:8px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);padding:10px 0 6px">Today — ${now.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'short'})}</div>
+        ${todayHtml}
+      </div>`;
+  } catch(e) { return '<div style="padding:18px;font-size:13px;color:var(--muted)">Calendar unavailable</div>'; }
+}
+
+function dashCalClick(day) {
+  const now = new Date();
+  const yr = now.getFullYear(), mo = now.getMonth();
+  const allEvents = getCalEvents();
+  const dayEvs = allEvents.filter(ev=>{const d=new Date(ev.date);return d.getFullYear()===yr&&d.getMonth()===mo&&d.getDate()===day;});
+  const panel = document.getElementById('dash-cal-day');
+  if (!panel) return;
+  if (window._dcd===day && panel.style.display!=='none') { panel.style.display='none'; window._dcd=null; return; }
+  window._dcd = day;
+  const dateStr = new Date(yr,mo,day).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+  panel.innerHTML = `<div style="padding:8px 14px 10px;border-top:1px solid var(--border)">
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:6px">${dateStr}</div>
+    ${dayEvs.map(e=>{
+      const col=e.urg==='red'?'var(--red)':e.urg==='amber'?'var(--amber)':'var(--blue)';
+      const bg=e.urg==='red'?'var(--red-bg)':e.urg==='amber'?'var(--amber-bg)':'var(--blue-bg)';
+      const lbl=e.days<0?Math.abs(e.days)+'d overdue':e.days===0?'Today':e.days+'d';
+      return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0">
+        <span style="font-size:14px">${e.icon}</span>
+        <div style="flex:1"><div style="font-size:11px;font-weight:500;color:var(--txt)">${e.label}</div><div style="font-size:10px;color:var(--muted)">${e.sub}</div></div>
+        <span style="font-size:10px;font-weight:600;color:${col};background:${bg};padding:1px 6px;border-radius:100px;white-space:nowrap">${lbl}</span>
+      </div>`;
+    }).join('')}
+  </div>`;
+  panel.style.display = 'block';
+}
+
+// ── DASHBOARD HELPERS: UPCOMING TASKS ──
+function getUpcomingTasksHtml() {
+  try {
+    const all = getCalEvents().filter(e=>e.days>=-7&&e.days<=30).sort((a,b)=>a.days-b.days);
+    if (!all.length) return `<div class="empty"><div class="empty-ic">✓</div><div class="empty-t">All clear for 30 days</div><div class="empty-s">No certificates, rent or deadlines due</div></div>`;
+    const row = e => {
+      const col=e.urg==='red'?'var(--red)':e.urg==='amber'?'var(--amber)':'var(--blue)';
+      const bg=e.urg==='red'?'var(--red-bg)':e.urg==='amber'?'var(--amber-bg)':'var(--blue-bg)';
+      const lbl=e.days<0?Math.abs(e.days)+'d overdue':e.days===0?'Today':e.days===1?'Tomorrow':e.days+'d';
+      return `<div class="ai-row"><div style="font-size:15px;min-width:26px;text-align:center">${e.icon}</div><div class="ai-body"><div class="ai-title">${e.label}</div><div class="ai-sub">${e.sub}</div></div><span style="font-size:11px;font-weight:600;color:${col};background:${bg};padding:2px 8px;border-radius:100px;white-space:nowrap;flex-shrink:0">${lbl}</span></div>`;
+    };
+    const sec = (title, col, items) => !items.length ? '' :
+      `<div style="padding:7px 18px 3px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:${col}">${title}</div>${items.map(row).join('')}`;
+    return sec('Overdue','var(--red)',all.filter(e=>e.days<0))
+         + sec('Today','var(--red)',all.filter(e=>e.days===0))
+         + sec('This week','var(--amber)',all.filter(e=>e.days>0&&e.days<=7))
+         + sec('Next 30 days','var(--blue)',all.filter(e=>e.days>7));
+  } catch(e) { return '<div style="padding:14px 18px;font-size:12px;color:var(--muted)">Unable to load tasks</div>'; }
+}
+
+function quickAskDash(question) {
+  nav('assistant');
+  setTimeout(() => {
+    const input = document.getElementById('ci2');
+    if (input) { input.value = question; sendChat(); }
+  }, 300);
 }
 
 // ── PAGE: PROPERTIES ──
@@ -1669,7 +1917,7 @@ function pgProperties(){
           <button class="btn btn-sm" onclick="event.stopPropagation();nav('compliance')">Compliance</button>
           <button class="btn btn-sm" onclick="event.stopPropagation();nav('maintenance')">Maintenance</button>
         </div>
-      </div>`}).join('')}</div>`:'<div class="empty"><div class="empty-ic">🏠</div><div class="empty-t">No properties yet</div><div class="empty-s">Click + Add property to get started</div></div>'}
+      </div>`}).join('')}</div>`:'<div style="padding:48px 24px;text-align:center"><div style="font-size:40px;margin-bottom:14px">🏠</div><div style="font-size:16px;font-weight:700;color:var(--txt);margin-bottom:6px">No properties yet</div><div style="font-size:13px;color:var(--muted);margin-bottom:20px;max-width:320px;margin-left:auto;margin-right:auto">Add your first property to start tracking compliance, certificates, maintenance and rent — all in one place.</div><button class="btn btn-navy" onclick="moAddProp()">+ Add your first property</button></div>'}
   </div>`;
 }
 
@@ -2344,7 +2592,7 @@ function pgCompliance(){
   </div></div>
   <div class="content">
 
-    ${!D.properties.length ? `<div class="empty"><div class="empty-ic">🛡</div><div class="empty-t">No properties yet</div><div class="empty-s">Add a property to start tracking compliance</div></div>` : `
+    ${!D.properties.length ? `<div style="padding:52px 24px;text-align:center"><div style="font-size:40px;margin-bottom:14px">🛡</div><div style="font-size:16px;font-weight:700;color:var(--txt);margin-bottom:6px">No properties to check</div><div style="font-size:13px;color:var(--muted);margin-bottom:20px;max-width:340px;margin-left:auto;margin-right:auto">Add a property first — then upload your Gas Safety, EICR and EPC certificates to track compliance across your portfolio.</div><button class="btn btn-navy" onclick="moAddProp()">+ Add your first property</button></div>` : `
 
     <div style="display:grid;grid-template-columns:auto 1fr;gap:18px;margin-bottom:22px;align-items:stretch">
 
@@ -2564,6 +2812,19 @@ function pgMaintenance(){
     <button class="btn btn-navy" onclick="moIssue()">+ Report issue</button>
   </div></div>
   <div class="content">
+    ${!D.maintenance.length && !D.properties.length ? `
+      <div style="padding:52px 24px;text-align:center">
+        <div style="font-size:40px;margin-bottom:14px">🔧</div>
+        <div style="font-size:16px;font-weight:700;color:var(--txt);margin-bottom:6px">No jobs logged yet</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:8px;max-width:360px;margin-left:auto;margin-right:auto">Add a property first, then log any repairs or issues. Every job is timestamped and exportable as a dispute-ready PDF.</div>
+        <button class="btn btn-navy" onclick="moAddProp()">+ Add a property first</button>
+      </div>` : !D.maintenance.length ? `
+      <div style="padding:52px 24px;text-align:center">
+        <div style="font-size:40px;margin-bottom:14px">✅</div>
+        <div style="font-size:16px;font-weight:700;color:var(--txt);margin-bottom:6px">No maintenance jobs yet</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:20px;max-width:380px;margin-left:auto;margin-right:auto">Log repairs and issues here. Every job gets timestamped, staged and flagged for Awaab's Law — all exportable as a dispute-ready PDF or CSV.</div>
+        <button class="btn btn-navy" onclick="moIssue()">+ Log your first job</button>
+      </div>` : `
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px">
       <div class="mc" style="background:${opn.length?'rgba(229,62,62,0.07)':'rgba(0,200,150,0.07)'};border-color:transparent">
         <div class="mc-top"><span class="mc-label">Open jobs</span></div><div class="mc-val" style="color:${opn.length?'var(--red)':'var(--green-dark)'}">${opn.length}</div></div>
@@ -2581,7 +2842,7 @@ function pgMaintenance(){
         <button class="btn btn-sm${_mview==='list'?' btn-navy':''}" onclick="_mview='list';nav('maintenance')">☰ List</button>
       </div>
     </div>
-    ${_mview==='kanban'?kanbanHtml:groupedList}
+    ${_mview==='kanban'?kanbanHtml:groupedList}`}
   </div>`;
 }
 
@@ -5408,6 +5669,26 @@ async function sendPortalInvite(tenantId) {
 }
 
 // ── START ──
+// Apply saved theme before render
+(function(){
+  const t = localStorage.getItem('rsa_theme');
+  if (t === 'dark') {
+    document.documentElement.setAttribute('data-theme','dark');
+    const btn = document.getElementById('theme-btn');
+    if (btn) btn.textContent = '☀️';
+  }
+})();
+
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const next = isDark ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next === 'light' ? '' : 'dark');
+  localStorage.setItem('rsa_theme', next);
+  const btn = document.getElementById('theme-btn');
+  if (btn) btn.textContent = next === 'dark' ? '☀️' : '🌙';
+  toast(next === 'dark' ? '🌙 Dark mode on' : '☀️ Light mode on');
+}
+
 // Wire nav clicks
 document.querySelectorAll('.sb-item[data-page]').forEach(btn => {
   btn.addEventListener('click', () => nav(btn.dataset.page));
