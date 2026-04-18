@@ -1593,12 +1593,19 @@ function pgDashboard(){
   if (!D.properties.length) {
     const hasCerts   = D.certs.length > 0;
     const hasTenants = D.tenants.length > 0;
-    const step1done  = false; // needs a property first
-    const step2done  = step1done && hasCerts;
-    const step3done  = step2done && hasTenants;
+    const portfolioSize = localStorage.getItem('rsa_portfolio_size');
+
+    // Show personalisation question if not answered yet
+    if (!portfolioSize) {
+      setTimeout(() => openPortfolioQuestion(), 400);
+    }
+
+    const persona = portfolioSize === '1' ? 'single property landlord'
+      : portfolioSize === '2-5' ? 'growing landlord'
+      : portfolioSize === '6+' ? 'portfolio landlord' : 'landlord';
 
     const stepCard = (num, icon, title, desc, btn, active, done) => `
-      <div style="background:var(--white);border:2px solid ${done?'var(--green)':active?'var(--navy)':'var(--border)'};border-radius:12px;padding:18px 20px;margin-bottom:10px;display:flex;align-items:center;gap:16px;transition:box-shadow .2s${active?';box-shadow:0 4px 18px rgba(11,30,61,0.1)':''}">
+      <div style="background:var(--white);border:2px solid ${done?'var(--green)':active?'var(--navy)':'var(--border)'};border-radius:12px;padding:18px 20px;margin-bottom:10px;display:flex;align-items:center;gap:16px;transition:all .2s${active?';box-shadow:0 4px 18px rgba(11,30,61,0.1)':''}">
         <div style="width:38px;height:38px;border-radius:50%;background:${done?'var(--green)':active?'var(--navy)':'var(--border)'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:${done?'18':'15'}px;font-weight:700;flex-shrink:0">${done?'✓':num}</div>
         <div style="flex:1;${active||done?'':'opacity:.45'}">
           <div style="font-size:14px;font-weight:700;color:var(--txt);margin-bottom:2px">${icon} ${title}</div>
@@ -1607,15 +1614,29 @@ function pgDashboard(){
         ${active ? btn : done ? `<span style="font-size:12px;font-weight:600;color:var(--green-dark);background:var(--green-bg);padding:4px 12px;border-radius:100px">Done ✓</span>` : `<span style="font-size:12px;color:var(--muted)">Locked</span>`}
       </div>`;
 
+    const totalSteps = 3;
+    const doneSteps = 0; // no property yet
+    const pct = Math.round(doneSteps/totalSteps*100);
+
     return `<div class="topbar"><span class="tb-title">Dashboard</span><div class="tb-right">
       <button class="btn btn-navy" onclick="moAddProp()">+ Add property</button>
     </div></div>
     <div class="content">
       <div style="max-width:580px;margin:0 auto;padding-top:16px">
 
-        <div style="margin-bottom:28px">
+        <div style="margin-bottom:22px">
           <h1 style="font-size:22px;font-weight:700;margin-bottom:4px">Welcome${displayName?', '+displayName:''}! 👋</h1>
-          <p style="font-size:13px;color:var(--muted)">Let's get your portfolio set up and protected. Takes under 10 minutes.</p>
+          <p style="font-size:13px;color:var(--muted)">You're ${portfolioSize ? 'set up as a '+persona+'.' : 'almost set up.'} Complete 3 steps to get fully protected — takes under 10 minutes.</p>
+        </div>
+
+        <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:18px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <span style="font-size:12px;font-weight:600;color:var(--txt)">Setup progress</span>
+            <span style="font-size:12px;font-weight:700;color:var(--muted)">${doneSteps}/${totalSteps} steps</span>
+          </div>
+          <div style="height:6px;background:var(--border);border-radius:100px;overflow:hidden">
+            <div style="height:100%;background:var(--green);border-radius:100px;width:${pct}%;transition:width .4s"></div>
+          </div>
         </div>
 
         ${stepCard(1,'🏠','Add your first property','Address, rent, type and basic details — 2 minutes',
@@ -1630,7 +1651,7 @@ function pgDashboard(){
           <div style="font-size:12px;color:var(--muted);line-height:1.6"><strong style="color:var(--txt)">Built around the Renters Rights Act 2025.</strong> Every step keeps you legally covered — certificates tracked, notices generated, tenants protected.</div>
         </div>
 
-        <div style="margin-top:20px;padding:14px 18px;background:var(--white);border:1px solid var(--border);border-radius:10px">
+        <div style="margin-top:16px;padding:14px 18px;background:var(--white);border:1px solid var(--border);border-radius:10px">
           <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:10px">Explore while you set up</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="btn btn-sm" onclick="nav('assistant')">🤖 Ask AI a question</button>
@@ -1642,10 +1663,21 @@ function pgDashboard(){
     </div>`;
   }
 
-  // ── PARTIAL SETUP STRIP (has properties, but missing certs or tenants) ──
+  // ── PARTIAL SETUP: has properties, check for certs + tenants ──
   const hasCerts   = D.certs.length > 0;
   const hasTenants = D.tenants.length > 0;
   const setupDone  = hasCerts && hasTenants;
+
+  // ── YOU'RE PROTECTED SCREEN — show once when all 3 steps done ──
+  const protectedShown = localStorage.getItem('rsa_protected_shown');
+  if (setupDone && !protectedShown) {
+    localStorage.setItem('rsa_protected_shown', '1');
+    const score = D.properties.length ? Math.min(100, Math.round(
+      (hasCerts ? 40 : 0) + (hasTenants ? 30 : 0) +
+      (D.certs.filter(c => c.expiry && new Date(c.expiry) > new Date()).length > 0 ? 30 : 0)
+    )) : 0;
+    setTimeout(() => openProtectedScreen(score), 300);
+  }
 
   const setupStrip = setupDone ? '' : `
     <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
@@ -6207,6 +6239,43 @@ function toggleTheme() {
   toast(next === 'dark' ? '🌙 Dark mode on' : '☀️ Light mode on');
 }
 
+// ── PORTFOLIO QUESTION ──
+function openPortfolioQuestion() {
+  document.getElementById('portfolio-modal').style.display = 'flex';
+}
+function selectPortfolioSize(size) {
+  localStorage.setItem('rsa_portfolio_size', size);
+  document.getElementById('portfolio-modal').style.display = 'none';
+  toast(`✓ Got it — welcome, ${size === '1' ? 'single property landlord' : size === '2-5' ? 'growing landlord' : 'portfolio landlord'}!`);
+  setTimeout(() => moAddProp(), 500);
+}
+
+// ── YOU'RE PROTECTED SCREEN ──
+function openProtectedScreen(score) {
+  const checks = [
+    { label: 'Property added', done: true },
+    { label: 'Certificates uploaded', done: D.certs.length > 0 },
+    { label: 'Tenant linked', done: D.tenants.length > 0 },
+    { label: 'Compliance tracking active', done: true },
+    { label: 'AI assistant ready', done: true },
+  ];
+  const scoreColour = score >= 80 ? '#00C896' : score >= 50 ? '#D97706' : '#E53E3E';
+  document.getElementById('protected-score-ring').innerHTML = `
+    <div style="display:inline-flex;flex-direction:column;align-items:center;gap:4px">
+      <div style="font-size:42px;font-weight:700;color:${scoreColour}">${score}%</div>
+      <div style="font-size:12px;color:var(--muted)">Compliance score</div>
+    </div>`;
+  document.getElementById('protected-checks').innerHTML = checks.map(c => `
+    <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px">
+      <span style="width:20px;height:20px;border-radius:50%;background:${c.done?'var(--green)':'var(--border)'};color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${c.done?'✓':'–'}</span>
+      <span style="color:${c.done?'var(--txt)':'var(--muted)'}">${c.label}</span>
+    </div>`).join('');
+  document.getElementById('protected-modal').style.display = 'flex';
+}
+function closeProtectedScreen() {
+  document.getElementById('protected-modal').style.display = 'none';
+}
+
 // ── LAUNCH CHECKLIST ──
 const LAUNCH_CHECKS = [
   { group:'🔐 Auth & Access', items:[
@@ -6343,6 +6412,45 @@ document.querySelectorAll('.sb-item[data-page]').forEach(btn => {
 document.addEventListener('click', () => closePropMenus());
 initApp();
 </script>
+
+<!-- PORTFOLIO QUESTION MODAL -->
+<div id="portfolio-modal" style="display:none;position:fixed;inset:0;z-index:9100;background:rgba(11,30,61,0.6);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px">
+  <div style="background:var(--white);border-radius:16px;padding:32px 28px;width:100%;max-width:480px;box-shadow:0 24px 64px rgba(11,30,61,0.25);text-align:center">
+    <div style="font-size:36px;margin-bottom:12px">🏠</div>
+    <h2 style="font-size:20px;font-weight:700;color:var(--txt);margin-bottom:6px">One quick question</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:24px">This helps us personalise your experience and show you what matters most.</p>
+    <p style="font-size:14px;font-weight:600;color:var(--txt);margin-bottom:16px">How many rental properties do you own?</p>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button onclick="selectPortfolioSize('1')" style="padding:14px 20px;border-radius:10px;border:2px solid var(--border);background:var(--off);font-family:var(--font);font-size:14px;font-weight:600;color:var(--txt);cursor:pointer;transition:all .15s;text-align:left;display:flex;align-items:center;gap:12px" onmouseenter="this.style.borderColor='var(--navy)';this.style.background='var(--white)'" onmouseleave="this.style.borderColor='var(--border)';this.style.background='var(--off)'">
+        <span style="font-size:22px">🏡</span>
+        <div><div style="font-weight:700">Just 1 property</div><div style="font-size:12px;color:var(--muted);font-weight:400">Getting started — I want to stay compliant</div></div>
+      </button>
+      <button onclick="selectPortfolioSize('2-5')" style="padding:14px 20px;border-radius:10px;border:2px solid var(--border);background:var(--off);font-family:var(--font);font-size:14px;font-weight:600;color:var(--txt);cursor:pointer;transition:all .15s;text-align:left;display:flex;align-items:center;gap:12px" onmouseenter="this.style.borderColor='var(--navy)';this.style.background='var(--white)'" onmouseleave="this.style.borderColor='var(--border)';this.style.background='var(--off)'">
+        <span style="font-size:22px">🏘</span>
+        <div><div style="font-weight:700">2–5 properties</div><div style="font-size:12px;color:var(--muted);font-weight:400">Growing portfolio — I need to track everything</div></div>
+      </button>
+      <button onclick="selectPortfolioSize('6+')" style="padding:14px 20px;border-radius:10px;border:2px solid var(--border);background:var(--off);font-family:var(--font);font-size:14px;font-weight:600;color:var(--txt);cursor:pointer;transition:all .15s;text-align:left;display:flex;align-items:center;gap:12px" onmouseenter="this.style.borderColor='var(--navy)';this.style.background='var(--white)'" onmouseleave="this.style.borderColor='var(--border)';this.style.background='var(--off)'">
+        <span style="font-size:22px">🏙</span>
+        <div><div style="font-weight:700">6+ properties</div><div style="font-size:12px;color:var(--muted);font-weight:400">Serious portfolio — compliance and tax at scale</div></div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- YOU'RE PROTECTED MODAL -->
+<div id="protected-modal" style="display:none;position:fixed;inset:0;z-index:9100;background:rgba(11,30,61,0.6);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px">
+  <div style="background:var(--white);border-radius:16px;padding:36px 28px;width:100%;max-width:460px;box-shadow:0 24px 64px rgba(11,30,61,0.25);text-align:center">
+    <div style="width:72px;height:72px;border-radius:50%;background:var(--green-bg);border:3px solid var(--green);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:32px">🛡</div>
+    <h2 style="font-size:22px;font-weight:700;color:var(--txt);margin-bottom:6px">You're protected!</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px">Your portfolio is set up and RentSafe AI is now tracking your compliance in real time.</p>
+    <div id="protected-score-ring" style="margin-bottom:20px"></div>
+    <div id="protected-checks" style="text-align:left;margin-bottom:24px"></div>
+    <div style="background:rgba(0,200,150,0.07);border:1px solid rgba(0,200,150,0.2);border-radius:10px;padding:12px 16px;font-size:12px;color:var(--muted);margin-bottom:20px">
+      💡 <strong style="color:var(--txt)">What happens next:</strong> RentSafe AI will alert you before any certificate expires, track your rent, and keep you compliant with the Renters' Rights Act 2025.
+    </div>
+    <button onclick="closeProtectedScreen()" class="btn btn-navy" style="width:100%;padding:13px;font-size:14px;font-weight:600">Go to my dashboard →</button>
+  </div>
+</div>
 
 <!-- LAUNCH CHECKLIST MODAL -->
 <div id="launch-modal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(11,30,61,0.55);backdrop-filter:blur(3px);align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 16px">
