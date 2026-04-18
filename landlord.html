@@ -1693,8 +1693,8 @@ function pgDashboard(){
 
   return`<div class="topbar"><span class="tb-title">Dashboard</span><div class="tb-right">
     <button class="btn btn-navy" onclick="moAddProp()">+ Add property</button>
-    <button class="btn" onclick="moCert()">+ Add certificate</button>
-    <button class="btn" onclick="moIssue()">Report issue</button>
+    <button class="btn btn-outline btn-sm" onclick="moCert()">+ Add certificate</button>
+    <button class="btn btn-outline btn-sm" onclick="moIssue()">Report issue</button>
   </div></div>
   <div class="content">
     <div class="ph"><h1>Dashboard</h1><p>${acts.length} urgent action${acts.length!==1?'s':''}, ${acts.filter(a=>a.b==='amber').length} due soon</p></div>
@@ -2181,7 +2181,7 @@ function pgPropDetail(pid) {
     </button>`).join('')}</div>`;
 
   return `<div class="topbar"><span class="tb-title">Properties</span><div class="tb-right">
-    <button class="btn" onclick="moEditProp('${pid}')">✎ Edit</button>
+    <button class="btn btn-outline btn-sm" onclick="moEditProp('${pid}')">✎ Edit property</button>
   </div></div>
   <div class="content">
     <button class="detail-back" onclick="nav('properties')"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3L5 8l5 5"/></svg> Back to properties</button>
@@ -2807,8 +2807,8 @@ function pgMaintenance(){
   })();
 
   return`<div class="topbar"><span class="tb-title">Maintenance & Log</span><div class="tb-right" style="gap:6px">
-    <button class="btn btn-sm" onclick="exportMaintCSV()" title="Download as spreadsheet">⬇ CSV</button>
-    <button class="btn btn-sm" onclick="exportMaintPDF()" title="Download dispute-ready PDF report">🖨 PDF Report</button>
+    <button class="btn btn-outline btn-sm" onclick="exportMaintCSV()" title="Download as spreadsheet">⬇ CSV</button>
+    <button class="btn btn-outline btn-sm" onclick="exportMaintPDF()" title="Download dispute-ready PDF report">🖨 PDF Report</button>
     <button class="btn btn-navy" onclick="moIssue()">+ Report issue</button>
   </div></div>
   <div class="content">
