@@ -811,11 +811,12 @@ async function loadQuarterData(q) {
   // Income from rent_payments
   let incomeQ = db
     .from('rent_payments')
-    .select('amount, payment_date, properties(property_name, address)')
+    .select('amount, paid_date, due_date, prop_id, status')
     .eq('user_id', currentUser.id)
-    .gte('payment_date', start)
-    .lte('payment_date', end);
-  if (propId !== 'all') incomeQ = incomeQ.eq('property_id', propId);
+    .not('paid_date', 'is', null)
+    .gte('paid_date', start)
+    .lte('paid_date', end);
+  if (propId !== 'all') incomeQ = incomeQ.eq('prop_id', propId);
 
   // Expenses from mtd_expenses
   let expQ = db
@@ -824,7 +825,7 @@ async function loadQuarterData(q) {
     .eq('user_id', currentUser.id)
     .eq('tax_year', currentYear)
     .eq('quarter', q);
-  if (propId !== 'all') expQ = expQ.eq('property_id', propId);
+  if (propId !== 'all') expQ = expQ.eq('property_id', propId); // mtd_expenses uses UUID property_id
 
   // Quarter status
   const statusQ = db
@@ -924,10 +925,10 @@ function renderDetailPanel(q) {
     incList.innerHTML = `<div class="empty-state">No rent payments recorded in this period.<br><small style="font-size:.7rem">Payments are pulled from your Rent Payments records.</small></div>`;
   } else {
     incList.innerHTML = d.income.map(r => {
-      const propName = r.properties?.property_name || r.properties?.address || 'Property';
+      const prop = properties.find(p => p.id == r.prop_id); const propName = prop?.property_name || prop?.address || 'Property';
       return `<div class="income-row">
         <div><div style="font-size:.85rem;font-weight:500;color:#e5e7eb">${propName}</div>
-        <div style="font-size:.72rem;color:#6b7280">${formatDate(r.payment_date)} · Rent received</div></div>
+        <div style="font-size:.72rem;color:#6b7280">${formatDate(r.paid_date || r.due_date)} · Rent received</div></div>
         <div style="font-size:.9rem;font-weight:600;color:#00C896">${fmt(r.amount)}</div>
       </div>`;
     }).join('');
@@ -1008,7 +1009,7 @@ async function saveExpense() {
 
   const { error } = await db.from('mtd_expenses').insert({
     user_id: currentUser.id,
-    property_id: propVal || null,
+    property_id: propVal ? parseInt(propVal) : null,
     amount: amt, category: cat, description: desc,
     expense_date: dt, quarter: selectedQ,
     tax_year: currentYear, is_section24: cat === 'finance'
