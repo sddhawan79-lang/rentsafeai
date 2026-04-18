@@ -253,6 +253,19 @@ tr:hover td{background:rgba(246,248,251,.8)}
 .t-det-row .lbl{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.3px}
 /* Dashboard S8 card */
 .s8-dash-card{background:linear-gradient(135deg,#0B1E3D 0%,#1a3a6b 100%);border-radius:12px;padding:20px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between;gap:16px;border:none}
+/* ── UI HIERARCHY IMPROVEMENTS ── */
+/* Panel headers now have off-white background — visually separates heading from content */
+.ph2{background:var(--off)}
+.ph2 h2{font-weight:700;font-size:13.5px}
+/* Compact action tiles (replaces tall dark gradient cards) */
+.act-tile{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:8px;transition:opacity .15s;cursor:default}
+.act-tile+.act-tile{margin-top:6px}
+/* 3-level button system */
+/* Level 1 = .btn-navy (page primary — already exists) */
+/* Level 2 = .btn (panel secondary — already exists) */
+/* Level 3 = borderless inline action */
+.btn-inline{background:none;border:none;padding:3px 0;font-family:var(--font);font-size:12px;font-weight:600;color:var(--blue);cursor:pointer;text-decoration:none}
+.btn-inline:hover{color:var(--navy);text-decoration:underline}
 </style>
 </head>
 <body>
@@ -297,7 +310,7 @@ tr:hover td{background:rgba(246,248,251,.8)}
 
     <button class="sb-item" data-page="templates">
       <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="1" width="9" height="12" rx="1.5"/><path d="M5 4h5M5 7h5M5 10h3"/><path d="M11 9l3 3-1.5 1.5L9 10.5"/></svg>
-      <span class="sb-label">Tools</span>
+      <span class="sb-label">Documents & Templates</span>
     </button>
 
     <button class="sb-item" data-page="contractors">
@@ -1612,8 +1625,8 @@ function pgProperties(){
           ${t?`<span style="font-size:13px;font-weight:600;color:var(--txt);margin-left:auto">£${(p.rent||0).toLocaleString()}/mo</span>`:''}
         </div>
         <div class="pc-foot">
-          <button class="btn btn-sm" style="flex:1" onclick="event.stopPropagation();nav('compliance')">Compliance</button>
-          <button class="btn btn-sm" style="flex:1" onclick="event.stopPropagation();nav('maintenance')">Maintenance</button>
+          <button class="btn btn-sm" onclick="event.stopPropagation();nav('compliance')">Compliance</button>
+          <button class="btn btn-sm" onclick="event.stopPropagation();nav('maintenance')">Maintenance</button>
         </div>
       </div>`}).join('')}</div>`:'<div class="empty"><div class="empty-ic">🏠</div><div class="empty-t">No properties yet</div><div class="empty-s">Click + Add property to get started</div></div>'}
   </div>`;
@@ -1957,22 +1970,25 @@ function pdTabContent(pid, tab) {
         </div>
       </div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-        <div style="background:linear-gradient(135deg,#0B1E3D,#1a3a6b);border-radius:10px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px">
-          <div>
-            <div style="font-size:10px;font-weight:700;color:var(--green);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px">⚖️ Section 8 — RRA 2025</div>
-            <div style="font-size:13px;font-weight:600;color:#fff">Generate Section 8 draft</div>
-            <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px">All 37 grounds · Auto-filled</div>
+      <div class="panel" style="margin-bottom:16px">
+        <div class="ph2"><div><h2>⚡ Quick actions</h2><p>Legal documents for this tenancy</p></div></div>
+        <div style="padding:10px 14px">
+          <div class="act-tile" style="background:linear-gradient(135deg,#0B1E3D,#152f5e)">
+            <span style="font-size:18px;flex-shrink:0">⚖️</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12.5px;font-weight:600;color:#fff;line-height:1.3">Section 8 Notice</div>
+              <div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:1px">All 37 RRA 2025 grounds · Auto-filled · PDF</div>
+            </div>
+            <button class="btn btn-sm" style="background:var(--green);color:#0B1E3D;border:none;font-weight:700;flex-shrink:0" onclick="moSection8('${pid}')">Generate →</button>
           </div>
-          <button class="btn btn-sm" style="background:var(--green);color:#0B1E3D;border:none;font-weight:700;flex-shrink:0" onclick="moSection8('${pid}')">Generate →</button>
-        </div>
-        <div style="background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:10px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px">
-          <div>
-            <div style="font-size:10px;font-weight:700;color:#3B6FE8;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px">✦ AI Powered</div>
-            <div style="font-size:13px;font-weight:600;color:#fff">Inventory Report</div>
-            <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px">Move-in · Move-out · Saves £150–300</div>
+          <div class="act-tile" style="background:linear-gradient(135deg,#1a1a2e,#162040)">
+            <span style="font-size:18px;flex-shrink:0">🤖</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12.5px;font-weight:600;color:#fff;line-height:1.3">AI Inventory Report</div>
+              <div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:1px">Move-in · Move-out · Saves £150–300</div>
+            </div>
+            <button class="btn btn-sm" style="background:var(--blue);color:#fff;border:none;font-weight:700;flex-shrink:0" onclick="moInventoryReport('${pid}')">Generate →</button>
           </div>
-          <button class="btn btn-sm" style="background:var(--blue);color:#fff;border:none;font-weight:700;flex-shrink:0" onclick="moInventoryReport('${pid}')">Generate →</button>
         </div>
       </div>
 
