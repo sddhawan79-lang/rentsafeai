@@ -3642,7 +3642,9 @@ function pgFinancials(){
     const expenses=D.properties.reduce((s,p)=>{
       const mort=p.mortgage_monthly||0;
       const ins=D.insurance.filter(ii=>String(ii.prop_id)===String(p.id)).reduce((s2,ii)=>s2+(ii.premium||0)/12,0);
-      const maint=[...D.jobAssignments.filter(j=>j.tenant_maintenance&&String(j.tenant_maintenance.prop_id)===String(p.id)&&j.completed_at&&j.completed_at.startsWith(key)).reduce((s2,j)=>s2+(j.cost||0),0),...[D.maintenance.filter(m=>String(m.prop_id)===String(p.id)&&m.cost&&(m.resolved_at||m.actioned_at||'').startsWith(key)).reduce((s2,m)=>s2+(m.cost||0),0)]].reduce((a,b)=>a+b,0);
+      const maintJA=D.jobAssignments.filter(j=>j.tenant_maintenance&&String(j.tenant_maintenance.prop_id)===String(p.id)&&j.completed_at&&j.completed_at.startsWith(key)).reduce((s2,j)=>s2+(j.cost||0),0);
+      const maintM=D.maintenance.filter(m=>String(m.prop_id)===String(p.id)&&m.cost&&(m.resolved_at||m.actioned_at||'').startsWith(key)).reduce((s2,m)=>s2+(m.cost||0),0);
+      const maint=maintJA+maintM;
       return s+mort+ins+maint;
     },0);
     chartMonths.push({label,income,expenses,profit:income?income-expenses:null});
