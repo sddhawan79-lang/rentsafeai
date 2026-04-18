@@ -485,7 +485,7 @@ let currentUser = null;
 // ── DATA STORE ──
 const D = {
   properties: [], tenants: [], certs: [], maintenance: [], rent: [], insurance: [],
-  emailLog: [], customTemplates: [], contractors: [],
+  emailLog: [], customTemplates: [], contractors: [], jobAssignments: [],
   chat: [{role:'ai', text:'Hello! I\'m your AI compliance assistant. Ask me anything about UK landlord law — Section 8, Renters Rights Act, Awaab\'s Law, deposits, or anything else.'}]
 };
 
@@ -606,7 +606,7 @@ async function logout() {
 
 // ── LOAD DATA ──
 async function loadData() {
-  const [p, t, c, m, r, i, el, ct, con] = await Promise.all([
+  const [p, t, c, m, r, i, el, ct, con, ja] = await Promise.all([
     sb.from('properties').select('*').order('created_at', {ascending: false}),
     sb.from('tenants').select('*'),
     sb.from('certificates').select('*'),
@@ -616,6 +616,7 @@ async function loadData() {
     sb.from('email_log').select('*').order('sent_at', {ascending: false}),
     sb.from('custom_templates').select('*').order('created_at', {ascending: false}),
     sb.from('contractors').select('*').order('name', {ascending: true}),
+    sb.from('job_assignments').select('*, tenant_maintenance(prop_id, category, submitted_at)'),
   ]);
 
   if (p.data?.length) {
@@ -655,6 +656,7 @@ async function loadData() {
   if (el.data?.length) D.emailLog = el.data;
   if (ct.data?.length) D.customTemplates = ct.data;
   if (con.data?.length) D.contractors = con.data;
+  if (ja.data?.length) D.jobAssignments = ja.data;
 }
 
 // ── INIT ──
@@ -2802,49 +2804,121 @@ const PAGES={
   contractors:()=>pgContractors(),
 };
 
+// ── FINANCE HELPERS ──
+function getMaintCostTotal(pid){
+  const fromJA = D.jobAssignments
+    .filter(j => j.tenant_maintenance && String(j.tenant_maintenance.prop_id) === String(pid))
+    .reduce((s,j) => s + (j.cost||0), 0);
+  const fromM = D.maintenance
+    .filter(m => String(m.prop_id) === String(pid))
+    .reduce((s,m) => s + (m.cost||0), 0);
+  return fromJA + fromM;
+}
+function getMaintCostMonthly(pid){
+  return getMaintCostTotal(pid) / 12;
+}
+function getMonthlyPL(pid){
+  const out = [];
+  const now = new Date();
+  for(let i=5; i>=0; i--){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    const key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    const label = d.toLocaleDateString('en-GB',{month:'short',year:'2-digit'});
+    const income = D.rent
+      .filter(r => String(r.prop_id)===String(pid) && r.status==='Paid')
+      .filter(r => { const pd = r.paid_date||r.paid; return pd && pd.startsWith(key); })
+      .reduce((s,r) => s+(r.amount||0), 0);
+    const maintJA = D.jobAssignments
+      .filter(j => j.tenant_maintenance && String(j.tenant_maintenance.prop_id)===String(pid))
+      .filter(j => j.completed_at && j.completed_at.startsWith(key))
+      .reduce((s,j) => s+(j.cost||0), 0);
+    const maintM = D.maintenance
+      .filter(m => String(m.prop_id)===String(pid) && m.cost)
+      .filter(m => { const rd = m.resolved_at||m.actioned_at; return rd && rd.startsWith(key); })
+      .reduce((s,m) => s+(m.cost||0), 0);
+    const maint = maintJA + maintM;
+    const prop = D.properties.find(x => String(x.id)===String(pid));
+    const mortgage = prop ? (prop.mortgage_monthly||0) : 0;
+    const ins = D.insurance.filter(ii=>String(ii.prop_id)===String(pid)).reduce((s,ii)=>s+(ii.premium||0)/12,0);
+    const expenses = mortgage + ins + maint;
+    const profit = income ? income - expenses : null;
+    out.push({ key, label, income, mortgage, ins: Math.round(ins), maint: Math.round(maint), expenses: Math.round(expenses), profit });
+  }
+  return out;
+}
+
 // ── PAGE: P&L FINANCIALS ──
 function pgFinancials(){
   const totRent=D.properties.reduce((s,p)=>s+(p.rent||0),0);
   const totMort=D.properties.reduce((s,p)=>s+(p.mortgage_monthly||0),0);
-  const totIns=D.insurance.reduce((s,i)=>s+(i.premium||0)/12,0);
-  const totProfit=totRent-totMort-totIns;
+  const totIns=D.insurance.reduce((s,ii)=>s+(ii.premium||0)/12,0);
+  const totMaint=D.properties.reduce((s,p)=>s+getMaintCostMonthly(p.id),0);
+  const totProfit=totRent-totMort-totIns-totMaint;
   const totYield=D.properties.length?((totRent*12)/(D.properties.reduce((s,p)=>s+(p.mortgage_outstanding||200000),0))*100).toFixed(1):0;
   return`<div class="topbar"><span class="tb-title">P&L Overview</span></div>
   <div class="content">
-    <div class="ph"><h1>P&L Overview</h1><p>Full financial overview across your portfolio</p></div>
+    <div class="ph"><h1>P&L Overview</h1><p>Full financial overview across your portfolio — real data</p></div>
     <div class="metrics">
-      <div class="mc"><div class="mc-top"><span class="mc-label">Monthly income</span><div class="mc-icon">💰</div></div><div class="mc-val" style="color:var(--green-dark)">£${totRent.toLocaleString()}</div><div class="mc-sub">Rent collected</div></div>
-      <div class="mc"><div class="mc-top"><span class="mc-label">Monthly expenses</span><div class="mc-icon">📤</div></div><div class="mc-val" style="color:var(--red)">£${Math.round(totMort+totIns).toLocaleString()}</div><div class="mc-sub">Mortgage + insurance</div></div>
-      <div class="mc"><div class="mc-top"><span class="mc-label">Net profit</span><div class="mc-icon">📈</div></div><div class="mc-val" style="color:${totProfit>=0?'var(--green-dark)':'var(--red)'}">£${Math.round(totProfit).toLocaleString()}</div><div class="mc-sub">Per month</div></div>
-      <div class="mc"><div class="mc-top"><span class="mc-label">Gross yield</span><div class="mc-icon">%</div></div><div class="mc-val">${totYield}%</div><div class="mc-sub">Portfolio average</div></div>
+      <div class="mc"><div class="mc-top"><span class="mc-label">Monthly income</span><div class="mc-icon">💰</div></div><div class="mc-val" style="color:var(--green-dark)">£${totRent.toLocaleString()}</div><div class="mc-sub">Rent (all properties)</div></div>
+      <div class="mc"><div class="mc-top"><span class="mc-label">Mortgage + insurance</span><div class="mc-icon">🏦</div></div><div class="mc-val" style="color:var(--red)">£${Math.round(totMort+totIns).toLocaleString()}</div><div class="mc-sub">Fixed monthly costs</div></div>
+      <div class="mc"><div class="mc-top"><span class="mc-label">Maintenance costs</span><div class="mc-icon">🔧</div></div><div class="mc-val" style="color:var(--amber)">£${Math.round(totMaint).toLocaleString()}</div><div class="mc-sub">Avg monthly (real data)</div></div>
+      <div class="mc"><div class="mc-top"><span class="mc-label">Net profit</span><div class="mc-icon">📈</div></div><div class="mc-val" style="color:${totProfit>=0?'var(--green-dark)':'var(--red)'}">£${Math.round(totProfit).toLocaleString()}</div><div class="mc-sub">Per month after all costs</div></div>
     </div>
     <div class="panel">
-      <div class="ph2"><h2>Property breakdown</h2><p>Per property P&L</p></div>
+      <div class="ph2"><h2>Property breakdown</h2><p>Per property P&L — click Detail for monthly view</p></div>
       <div class="tw"><table>
-        <thead><tr><th>Property</th><th>Monthly rent</th><th>Mortgage</th><th>Insurance</th><th>Net profit</th><th>Yield</th><th>Tax est.</th><th>Actions</th></tr></thead>
-        <tbody>${D.properties.map(p=>{const ins=D.insurance.filter(i=>String(i.prop_id)===String(p.id)).reduce((s,i)=>s+(i.premium||0)/12,0);const mort=p.mortgage_monthly||0;const profit=(p.rent||0)-mort-ins;const yld=p.mortgage_outstanding?((p.rent||0)*12/p.mortgage_outstanding*100).toFixed(1):'—';const tax=profit>0?Math.round(profit*0.2):0;return`<tr><td class="td-bold">${p.address}</td><td style="color:var(--green-dark);font-weight:600">£${(p.rent||0).toLocaleString()}</td><td style="color:var(--red)">£${mort.toLocaleString()}</td><td style="color:var(--amber)">£${Math.round(ins).toLocaleString()}</td><td style="font-weight:600;color:${profit>=0?'var(--green-dark)':'var(--red)'}">£${Math.round(profit).toLocaleString()}</td><td><span class="badge ${parseFloat(yld)>=5?'b-green':parseFloat(yld)>=3?'b-amber':'b-red'}">${yld}%</span></td><td style="color:var(--muted);font-size:12px">~£${tax}/mo</td><td><button class="btn btn-sm" onclick="moFinancials('${p.id}')">📊 Detail</button></td></tr>`;}).join('')}${D.properties.length===0?`<tr><td colspan="8"><div class="empty"><div class="empty-ic">📊</div><div class="empty-t">No properties yet</div></div></td></tr>`:''}</tbody>
+        <thead><tr><th>Property</th><th>Monthly rent</th><th>Mortgage</th><th>Insurance</th><th>Maintenance</th><th>Net profit</th><th>Yield</th><th>Tax est.</th><th></th></tr></thead>
+        <tbody>${D.properties.map(p=>{
+          const ins=D.insurance.filter(ii=>String(ii.prop_id)===String(p.id)).reduce((s,ii)=>s+(ii.premium||0)/12,0);
+          const mort=p.mortgage_monthly||0;
+          const maint=getMaintCostMonthly(p.id);
+          const profit=(p.rent||0)-mort-ins-maint;
+          const yld=p.mortgage_outstanding?((p.rent||0)*12/p.mortgage_outstanding*100).toFixed(1):'—';
+          const tax=profit>0?Math.round(profit*0.2):0;
+          return`<tr>
+            <td class="td-bold">${p.address}</td>
+            <td style="color:var(--green-dark);font-weight:600">£${(p.rent||0).toLocaleString()}</td>
+            <td style="color:var(--red)">£${mort.toLocaleString()}</td>
+            <td style="color:var(--amber)">£${Math.round(ins).toLocaleString()}</td>
+            <td style="color:var(--amber)">£${Math.round(maint).toLocaleString()}</td>
+            <td style="font-weight:600;color:${profit>=0?'var(--green-dark)':'var(--red)'}">£${Math.round(profit).toLocaleString()}</td>
+            <td><span class="badge ${parseFloat(yld)>=5?'b-green':parseFloat(yld)>=3?'b-amber':'b-red'}">${yld}%</span></td>
+            <td style="color:var(--muted);font-size:12px">~£${tax}/mo</td>
+            <td><button class="btn btn-sm" onclick="moFinancials('${p.id}')">📊 Detail</button></td>
+          </tr>`;
+        }).join('')}${D.properties.length===0?`<tr><td colspan="9"><div class="empty"><div class="empty-ic">📊</div><div class="empty-t">No properties yet</div></div></td></tr>`:''}</tbody>
       </table></div>
     </div>
     <div class="panel" style="background:linear-gradient(135deg,#0B1E3D,#132847);color:#fff;border:none">
       <div style="padding:20px">
         <div style="font-size:11px;font-weight:600;color:var(--green);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px">✦ AI Financial Insight</div>
-        <div style="font-size:14px;color:rgba(255,255,255,0.8);line-height:1.7">${D.properties.length?`Your portfolio generates £${totRent.toLocaleString()}/mo income with £${Math.round(totProfit).toLocaleString()}/mo net profit. ${parseFloat(totYield)>=5?'✅ Your yield is strong at '+totYield+'%.':parseFloat(totYield)>=3?'⚠️ Your yield of '+totYield+'% is average.':'🔴 Your yield of '+totYield+'% is below average.'} Tax estimate: ~£${Math.round(Math.max(0,totProfit)*0.2).toLocaleString()}/mo basic rate.`:'Add properties to see AI financial insights.'}</div>
+        <div style="font-size:14px;color:rgba(255,255,255,0.8);line-height:1.7">${D.properties.length?`Your portfolio generates £${totRent.toLocaleString()}/mo income with £${Math.round(totProfit).toLocaleString()}/mo net profit after all costs. ${parseFloat(totYield)>=5?'✅ Strong yield at '+totYield+'%.':parseFloat(totYield)>=3?'⚠️ Yield of '+totYield+'% is average.':'🔴 Yield of '+totYield+'% is below average.'} Tax estimate: ~£${Math.round(Math.max(0,totProfit)*0.2).toLocaleString()}/mo basic rate.`:'Add properties to see AI financial insights.'}</div>
       </div>
     </div>
   </div>`;
 }
 function moFinancials(pid){
   const p=P(pid);
-  const ins=D.insurance.filter(i=>String(i.prop_id)===String(pid)).reduce((s,i)=>s+(i.premium||0)/12,0);
+  const ins=D.insurance.filter(ii=>String(ii.prop_id)===String(pid)).reduce((s,ii)=>s+(ii.premium||0)/12,0);
   const mort=p.mortgage_monthly||0;
-  const maint=D.maintenance.filter(m=>String(m.prop_id)===String(pid)&&m.status==='Resolved').length*150/12;
+  const maintTotal=getMaintCostTotal(pid);
+  const maintMonthly=getMaintCostMonthly(pid);
   const income=p.rent||0;
-  const expenses=mort+ins+maint;
+  const expenses=mort+ins+maintMonthly;
   const profit=income-expenses;
   const yld=p.mortgage_outstanding?((income*12/p.mortgage_outstanding)*100).toFixed(1):'N/A';
   const taxBasic=Math.max(0,profit)*0.2;
   const taxHigher=Math.max(0,profit)*0.4;
-  openMo(`P&L — ${p.address}`,'Monthly financial breakdown',`
+  const months=getMonthlyPL(pid);
+  const monthlyRows=months.map(mo=>`<tr>
+    <td style="font-size:12px;font-weight:500">${mo.label}</td>
+    <td style="color:var(--green-dark);font-weight:600">${mo.income?'£'+mo.income.toLocaleString():'—'}</td>
+    <td style="color:var(--red)">£${mo.mortgage.toLocaleString()}</td>
+    <td>£${mo.ins}</td>
+    <td>£${mo.maint}</td>
+    <td style="font-weight:600;color:${mo.profit===null?'var(--muted)':mo.profit>=0?'var(--green-dark)':'var(--red)'}">${mo.profit===null?'—':'£'+Math.round(mo.profit).toLocaleString()}</td>
+  </tr>`).join('');
+  openMo(`P&L — ${p.address}`,'Real data · Monthly breakdown',`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
       <div style="background:var(--green-bg);border:1px solid rgba(0,200,150,0.2);border-radius:10px;padding:16px;text-align:center">
         <div style="font-size:11px;color:var(--green-dark);font-weight:600;margin-bottom:4px">MONTHLY INCOME</div>
@@ -2855,75 +2929,95 @@ function moFinancials(pid){
         <div style="font-size:28px;font-weight:600;color:var(--red)">£${Math.round(expenses).toLocaleString()}</div>
       </div>
     </div>
-    <div class="fg-sec">Expense breakdown</div>
-    ${[['🏦 Mortgage',mort],['🛡 Insurance (monthly)',Math.round(ins)],['🔧 Maintenance (avg)',Math.round(maint)]].map(([l,v])=>`<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px">${l}</span><span style="font-weight:600;color:var(--red)">£${v.toLocaleString()}/mo</span></div>`).join('')}
+    <div class="fg-sec">Monthly cost breakdown</div>
+    ${[['🏦 Mortgage',mort],['🛡 Insurance (monthly)',Math.round(ins)],['🔧 Maintenance (avg/mo — real)',Math.round(maintMonthly)]].map(([l,v])=>`<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px">${l}</span><span style="font-weight:600;color:var(--red)">£${v.toLocaleString()}/mo</span></div>`).join('')}
+    <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px;color:var(--muted)">Total maintenance (all time)</span><span style="font-weight:500;color:var(--amber)">£${maintTotal.toLocaleString()}</span></div>
     <div style="display:flex;justify-content:space-between;padding:14px 0;border-bottom:2px solid var(--navy)"><span style="font-size:14px;font-weight:600">Net profit</span><span style="font-size:18px;font-weight:600;color:${profit>=0?'var(--green-dark)':'var(--red)'}">£${Math.round(profit).toLocaleString()}/mo</span></div>
     <div class="fg-div"></div>
+    <div class="fg-sec">Last 6 months — P&L</div>
+    <div class="tw" style="margin-bottom:16px"><table>
+      <thead><tr><th>Month</th><th>Rent in</th><th>Mortgage</th><th>Insurance</th><th>Maintenance</th><th>Net P&L</th></tr></thead>
+      <tbody>${monthlyRows}</tbody>
+    </table></div>
     <div class="fg-sec">Tax estimates (UK)</div>
     ${[['Basic rate (20%)',Math.round(taxBasic)],['Higher rate (40%)',Math.round(taxHigher)],['Annual profit',Math.round(profit*12)]].map(([l,v])=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--muted)">${l}</span><span style="font-weight:500">£${v.toLocaleString()}${l.includes('rate')?'/mo':'/yr'}</span></div>`).join('')}
     <div class="fg-div"></div>
-    <div style="background:var(--off);border-radius:8px;padding:14px;font-size:12px;color:var(--muted)"><strong style="color:var(--txt)">Gross yield: ${yld}%</strong> — ${parseFloat(yld)>=5?'✅ Strong yield':'⚠️ Consider reviewing rent levels'}. Tax estimates are indicative only.</div>
+    <div style="background:var(--off);border-radius:8px;padding:14px;font-size:12px;color:var(--muted)"><strong style="color:var(--txt)">Gross yield: ${yld}%</strong> — ${parseFloat(yld)>=5?'✅ Strong yield':'⚠️ Consider reviewing rent levels'}. Maintenance from real job records. Tax estimates are indicative only.</div>
   `,'<button class="btn" onclick="closeMo()">Close</button><button class="btn btn-navy" onclick="exportFinancialsPDF(\''+pid+'\')">📄 Export PDF</button>');
 }
 
 function exportFinancialsPDF(pid){
   const p=P(pid);
-  const ins=D.insurance.filter(i=>String(i.prop_id)===String(pid)).reduce((s,i)=>s+(i.premium||0)/12,0);
+  const ins=D.insurance.filter(ii=>String(ii.prop_id)===String(pid)).reduce((s,ii)=>s+(ii.premium||0)/12,0);
   const mort=p.mortgage_monthly||0;
-  const maint=D.maintenance.filter(m=>String(m.prop_id)===String(pid)&&m.status==='Resolved').length*150/12;
+  const maintTotal=getMaintCostTotal(pid);
+  const maintMonthly=getMaintCostMonthly(pid);
   const income=p.rent||0;
-  const expenses=mort+ins+maint;
+  const expenses=mort+ins+maintMonthly;
   const profit=income-expenses;
   const yld=p.mortgage_outstanding?((income*12/p.mortgage_outstanding)*100).toFixed(1):'N/A';
   const taxBasic=Math.max(0,profit)*0.2;
   const taxHigher=Math.max(0,profit)*0.4;
   const date=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
-
+  const months=getMonthlyPL(pid);
   const win=window.open('','_blank');
   if(!win){toast('Please allow pop-ups to export PDF',true);return;}
-  win.document.write(`<!DOCTYPE html><html><head><title>P&L Report — ${p.address}</title>
-  <style>
-    body{font-family:Georgia,serif;font-size:13px;line-height:1.8;padding:48px;max-width:680px;margin:0 auto;color:#1A2B45}
-    h1{font-size:20px;font-weight:700;color:#0B1E3D;margin-bottom:4px}
-    h2{font-size:14px;font-weight:700;color:#0B1E3D;margin:20px 0 8px}
-    .header{border-bottom:2px solid #0B1E3D;margin-bottom:28px;padding-bottom:14px;display:flex;justify-content:space-between;align-items:flex-end}
-    .logo{font-size:18px;font-weight:700;color:#0B1E3D}
-    .logo span{color:#00C896}
-    .cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
-    .card{border-radius:10px;padding:16px;text-align:center}
-    .card.income{background:#f0fdf9;border:1px solid rgba(0,200,150,0.2)}
-    .card.expense{background:#fff5f5;border:1px solid rgba(229,62,62,0.2)}
-    .card-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
-    .card-val{font-size:28px;font-weight:700}
-    .income .card-label{color:#009970}.income .card-val{color:#009970}
-    .expense .card-label{color:#E53E3E}.expense .card-val{color:#E53E3E}
-    .row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #E4EAF1;font-size:13px}
-    .row.total{border-bottom:2px solid #0B1E3D;font-weight:700;font-size:15px;padding:14px 0}
-    .footer{margin-top:32px;padding-top:12px;border-top:1px solid #eee;font-size:10px;color:#999}
-    @media print{body{padding:24px}}
-  </style></head><body>
-  <div class="header">
-    <div><div class="logo"><span>Rent</span>Safe AI</div><div style="font-size:11px;color:#999;margin-top:2px">Financial Report</div></div>
-    <div style="text-align:right;font-size:12px;color:#666">${p.address}, ${p.city}<br>${date}</div>
-  </div>
-  <h1>${p.address}</h1>
-  <p style="color:#666;font-size:12px;margin-bottom:24px">${p.city}, ${p.postcode} · ${p.type||'Property'} · ${p.beds||'—'} bed</p>
-  <div class="cards">
-    <div class="card income"><div class="card-label">Monthly Income</div><div class="card-val">£${income.toLocaleString()}</div></div>
-    <div class="card expense"><div class="card-label">Monthly Expenses</div><div class="card-val">£${Math.round(expenses).toLocaleString()}</div></div>
-  </div>
-  <h2>Expense Breakdown</h2>
-  ${[['🏦 Mortgage',mort,'#E53E3E'],['🛡 Insurance (monthly)',Math.round(ins),'#E53E3E'],['🔧 Maintenance (avg est.)',Math.round(maint),'#E53E3E']].map(([l,v,c])=>`<div class="row"><span>${l}</span><span style="font-weight:600;color:${c}">£${v.toLocaleString()}/mo</span></div>`).join('')}
-  <div class="row total"><span>Net Profit</span><span style="color:${profit>=0?'#009970':'#E53E3E'}">£${Math.round(profit).toLocaleString()}/mo</span></div>
-  <h2>Tax Estimates (UK)</h2>
-  ${[['Basic rate (20%)',Math.round(taxBasic),'/mo'],['Higher rate (40%)',Math.round(taxHigher),'/mo'],['Annual profit',Math.round(profit*12),'/yr']].map(([l,v,s])=>`<div class="row"><span>${l}</span><span style="font-weight:500">£${v.toLocaleString()}${s}</span></div>`).join('')}
-  <div style="background:#f6f8fb;border-radius:8px;padding:14px;margin-top:20px;font-size:12px">
-    <strong>Gross yield: ${yld}%</strong> — ${parseFloat(yld)>=5?'✅ Strong yield':'⚠️ Consider reviewing rent levels'}.<br>
-    Tax estimates are indicative only. Consult a qualified accountant for tax advice.
-  </div>
-  <div class="footer">Generated by RentSafe AI · ${date} · For reference only — not financial advice</div>
-  <script>window.onload=function(){window.print();}<\/script>
-  </body></html>`);
+  const monthRows=months.map(mo=>`<tr>
+    <td style="font-weight:500">${mo.label}</td>
+    <td style="color:#009970;font-weight:600">${mo.income?'&#163;'+mo.income.toLocaleString():'&mdash;'}</td>
+    <td style="color:#E53E3E">&#163;${mo.mortgage.toLocaleString()}</td>
+    <td>&#163;${mo.ins}</td>
+    <td>&#163;${mo.maint}</td>
+    <td style="font-weight:600;color:${mo.profit===null?'#999':mo.profit>=0?'#009970':'#E53E3E'}">${mo.profit===null?'&mdash;':'&#163;'+Math.round(mo.profit).toLocaleString()}</td>
+  </tr>`).join('');
+  win.document.write('<!DOCTYPE html><html><head><title>P&L Report &mdash; '+p.address+'<\/title>'
+  +'<style>body{font-family:Georgia,serif;font-size:13px;line-height:1.8;padding:48px;max-width:700px;margin:0 auto;color:#1A2B45}'
+  +'h1{font-size:20px;font-weight:700;color:#0B1E3D;margin-bottom:4px}'
+  +'h2{font-size:14px;font-weight:700;color:#0B1E3D;margin:20px 0 8px;border-bottom:1px solid #E4EAF1;padding-bottom:4px}'
+  +'.header{border-bottom:2px solid #0B1E3D;margin-bottom:28px;padding-bottom:14px;display:flex;justify-content:space-between;align-items:flex-end}'
+  +'.logo{font-size:18px;font-weight:700;color:#0B1E3D}.logo span{color:#00C896}'
+  +'.cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:24px}'
+  +'.card{border-radius:8px;padding:14px;text-align:center}'
+  +'.card.income{background:#f0fdf9;border:1px solid rgba(0,200,150,0.2)}'
+  +'.card.expense{background:#fff5f5;border:1px solid rgba(229,62,62,0.2)}'
+  +'.card.net{background:#f0f4ff;border:1px solid rgba(59,111,232,0.2)}'
+  +'.card-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}'
+  +'.card-val{font-size:22px;font-weight:700}'
+  +'.income .card-label{color:#009970}.income .card-val{color:#009970}'
+  +'.expense .card-label{color:#E53E3E}.expense .card-val{color:#E53E3E}'
+  +'.net .card-label{color:#3B6FE8}.net .card-val{color:'+(profit>=0?'#009970':'#E53E3E')+'}'
+  +'table{width:100%;border-collapse:collapse;margin-bottom:16px}'
+  +'th{text-align:left;padding:7px 10px;font-size:10px;font-weight:700;text-transform:uppercase;color:#7A8FA6;border-bottom:1px solid #E4EAF1;background:#F6F8FB}'
+  +'td{padding:9px 10px;font-size:12px;border-bottom:1px solid #F0F4F8}'
+  +'.row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #E4EAF1;font-size:13px}'
+  +'.total{border-bottom:2px solid #0B1E3D;font-weight:700;font-size:15px;padding:14px 0}'
+  +'.footer{margin-top:32px;padding-top:12px;border-top:1px solid #eee;font-size:10px;color:#999;text-align:center}'
+  +'@media print{body{padding:24px}}<\/style><\/head><body>'
+  +'<div class="header"><div><div class="logo">Rent<span>Safe<\/span> AI<\/div><div style="font-size:11px;color:#999;margin-top:2px">Financial Report &mdash; Real Data<\/div><\/div>'
+  +'<div style="text-align:right;font-size:12px;color:#666">'+p.address+', '+(p.city||'')+'<br>'+date+'<\/div><\/div>'
+  +'<h1>'+p.address+'<\/h1>'
+  +'<p style="color:#666;font-size:12px;margin-bottom:20px">'+(p.city||'')+', '+(p.postcode||'')+' &middot; '+(p.type||'Property')+' &middot; '+(p.beds||'&mdash;')+' bed<\/p>'
+  +'<div class="cards">'
+  +'<div class="card income"><div class="card-label">Monthly Income<\/div><div class="card-val">&#163;'+income.toLocaleString()+'<\/div><\/div>'
+  +'<div class="card expense"><div class="card-label">Monthly Expenses<\/div><div class="card-val">&#163;'+Math.round(expenses).toLocaleString()+'<\/div><\/div>'
+  +'<div class="card net"><div class="card-label">Net Profit\/mo<\/div><div class="card-val">&#163;'+Math.round(profit).toLocaleString()+'<\/div><\/div>'
+  +'<\/div>'
+  +'<h2>Monthly Cost Breakdown<\/h2>'
+  +'<div class="row"><span>&#127982; Mortgage<\/span><span style="font-weight:600;color:#E53E3E">&#163;'+mort.toLocaleString()+'\/mo<\/span><\/div>'
+  +'<div class="row"><span>&#128737; Insurance (monthly)<\/span><span style="font-weight:600;color:#D97706">&#163;'+Math.round(ins).toLocaleString()+'\/mo<\/span><\/div>'
+  +'<div class="row"><span>&#128295; Maintenance (avg\/mo)<\/span><span style="font-weight:600;color:#D97706">&#163;'+Math.round(maintMonthly).toLocaleString()+'\/mo<\/span><\/div>'
+  +'<div class="row total"><span>Net Profit<\/span><span style="color:'+(profit>=0?'#009970':'#E53E3E')+'">&#163;'+Math.round(profit).toLocaleString()+'\/mo<\/span><\/div>'
+  +'<p style="font-size:11px;color:#999;margin-top:4px">Total maintenance spend (all time): &#163;'+maintTotal.toLocaleString()+'<\/p>'
+  +'<h2>Last 6 Months &mdash; P&L<\/h2>'
+  +'<table><thead><tr><th>Month<\/th><th>Rent In<\/th><th>Mortgage<\/th><th>Insurance<\/th><th>Maintenance<\/th><th>Net P&L<\/th><\/tr><\/thead><tbody>'+monthRows+'<\/tbody><\/table>'
+  +'<h2>Tax Estimates (UK)<\/h2>'
+  +'<div class="row"><span>Basic rate (20%)<\/span><span>&#163;'+Math.round(taxBasic).toLocaleString()+'\/mo<\/span><\/div>'
+  +'<div class="row"><span>Higher rate (40%)<\/span><span>&#163;'+Math.round(taxHigher).toLocaleString()+'\/mo<\/span><\/div>'
+  +'<div class="row"><span>Annual profit<\/span><span>&#163;'+Math.round(profit*12).toLocaleString()+'\/yr<\/span><\/div>'
+  +'<div class="row"><span>Gross yield<\/span><span>'+yld+'%<\/span><\/div>'
+  +'<div style="background:#f6f8fb;border-radius:8px;padding:14px;margin-top:20px;font-size:12px;color:#555">Maintenance costs from real job records. Tax estimates are indicative only &mdash; consult a qualified accountant.<\/div>'
+  +'<div class="footer">Generated by RentSafe AI &middot; '+date+' &middot; Confidential &mdash; not financial advice<\/div>'
+  +'<script>window.onload=function(){window.print();}<\/scr'+'ipt><\/body><\/html>');
   win.document.close();
 }
 
