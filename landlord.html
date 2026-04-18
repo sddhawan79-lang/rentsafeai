@@ -560,7 +560,7 @@ let currentUser = null;
 const D = {
   properties: [], tenants: [], certs: [], maintenance: [], rent: [], insurance: [],
   emailLog: [], customTemplates: [], contractors: [], jobAssignments: [],
-  chat: [{role:'ai', text:'Hi! I\'m your AI assistant. I have full visibility of your portfolio — properties, certificates, tenants, maintenance jobs and compliance status. Ask me anything about your portfolio, or tap a quick question below.'}]
+  chat: [{role:'ai', text:'Hi! I\'m your AI assistant. I have full visibility of your portfolio — properties, certificates, tenants, maintenance, compliance and finances. I also know UK landlord tax law (MTD, Section 24), the Renters\' Rights Act 2025, and all compliance rules. Ask me anything, or tap a quick question below.'}]
 };
 
 // ── UI HELPERS ──
@@ -3241,13 +3241,35 @@ function buildAIContext() {
   }
   lines.push('');
 
-  // Finance snapshot
+  // Finance snapshot — including rent payments this tax year
   const totalMonthlyRent = D.tenants.filter(t => t.status==='Active'||!t.status).reduce((s,t)=>s+(t.rent||0),0);
   const totalMaintenanceCost = D.maintenance.reduce((s,m)=>s+(m.cost||0),0);
   const jobAssignmentCosts = (D.jobAssignments||[]).reduce((s,j)=>s+(j.cost||0),0);
+  // Tax year: 6 Apr this year (or last year if before 6 Apr)
+  const taxYearStart = today.getMonth() > 3 || (today.getMonth() === 3 && today.getDate() >= 6)
+    ? new Date(today.getFullYear(), 3, 6) : new Date(today.getFullYear()-1, 3, 6);
+  const rentThisYear = (D.rent||[]).filter(r => r.paid && new Date(r.paid) >= taxYearStart);
+  const rentIncomeThisYear = rentThisYear.reduce((s,r) => s+(r.amount||0), 0);
+  const missedPayments = (D.rent||[]).filter(r => !r.paid && r.due && new Date(r.due) < today);
   lines.push('FINANCE SNAPSHOT:');
   lines.push(`  Monthly rent income: £${totalMonthlyRent.toLocaleString()}/mo (£${(totalMonthlyRent*12).toLocaleString()}/yr)`);
+  lines.push(`  Rent received this tax year (from ${taxYearStart.toLocaleDateString('en-GB')}): £${rentIncomeThisYear.toLocaleString()} across ${rentThisYear.length} payment(s)`);
+  lines.push(`  Missed/overdue payments: ${missedPayments.length}`);
   lines.push(`  Total maintenance costs logged: £${(totalMaintenanceCost + jobAssignmentCosts).toLocaleString()}`);
+  lines.push('');
+
+  // Insurance
+  lines.push('INSURANCE:');
+  if (!D.insurance?.length) {
+    lines.push('  No insurance records logged.');
+  } else {
+    D.insurance.forEach(ins => {
+      const p = P(ins.prop_id)||{address:'?'};
+      const exp = ins.expiry ? Math.round((new Date(ins.expiry)-today)/864e5) : null;
+      const expStr = exp === null ? 'No expiry' : exp < 0 ? `EXPIRED ${Math.abs(exp)}d ago` : exp <= 30 ? `Expires in ${exp}d` : `Exp ${FMT(ins.expiry)}`;
+      lines.push(`  ${p.address} | ${ins.type||'Policy'}: ${expStr} | Provider: ${ins.provider||'?'}`);
+    });
+  }
   lines.push('');
 
   // Compliance alerts summary
@@ -3284,9 +3306,13 @@ function pgAssistant(){
     {icon:'🔧', q:'Show me all open maintenance jobs'},
     {icon:'💷', q:'What is my total rent income and costs?'},
     {icon:'⚖️', q:'Do I need to serve any notices to my tenants?'},
-    {icon:'📅', q:"What certificates or renewals are due in the next 60 days?"},
+    {icon:'📅', q:'What certificates or renewals are due in the next 60 days?'},
     {icon:'🏠', q:'Which of my properties is at highest risk right now?'},
-    {icon:'⚠️', q:'Are there any Awaab\'s Law jobs I need to act on?'}
+    {icon:'⚠️', q:"Are there any Awaab's Law jobs I need to act on?"},
+    {icon:'🧾', q:'What is my estimated tax position this tax year?'},
+    {icon:'📊', q:'How does Section 24 affect my tax bill?'},
+    {icon:'📆', q:'When is my next MTD quarterly deadline?'},
+    {icon:'🏛️', q:'What are my rights now Section 21 is abolished?'}
   ];
   const chipsHtml = chips.map(c =>
     `<button onclick="quickAsk('${c.q.replace(/'/g,"\\'")}')" style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:100px;border:1px solid var(--border);background:var(--white);font-family:var(--font);font-size:12px;color:var(--txt);cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0" onmouseenter="this.style.borderColor='var(--navy)';this.style.color='var(--navy)';this.style.background='var(--off)'" onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--txt)';this.style.background='var(--white)'">${c.icon} ${c.q.length > 38 ? c.q.slice(0,36)+'…' : c.q}</button>`
@@ -3325,18 +3351,76 @@ async function sendChat(){
   cm.scrollTop=cm.scrollHeight;
 
   const context = buildAIContext();
-  const systemPrompt = `You are a smart, friendly AI assistant built into RentSafe AI — a UK landlord compliance platform. You have access to this landlord's live portfolio data shown below.
+  const systemPrompt = `You are a smart, friendly AI assistant built into RentSafe AI — a UK landlord compliance and tax platform. You have access to this landlord's live portfolio data shown below. You are an expert in UK landlord law, property taxation, and compliance.
 
 RULES:
 - Answer using the landlord's actual data. Be specific: name properties, tenants, cert dates, job stages.
 - If asked about something not in the data, say so clearly and suggest what to log.
-- Keep answers concise (under 200 words) unless detail is specifically needed.
+- Keep answers concise (under 250 words) unless detail is specifically needed.
 - Use plain English. Avoid legal jargon unless the landlord asks for it.
 - When you cite a cert, job or tenant, reference the specific record by property name.
-- You know UK landlord law: RRA 2025, Section 8/21, Awaab's Law, EPC, EICR, gas safety, deposits, MTD.
 - Never invent data. Only use what is in the context below.
-- If a compliance issue is serious (expired cert, Awaab job, overdue notice), flag it clearly.
+- If a compliance issue is serious (expired cert, Awaab job, overdue rent), flag it clearly.
+- Always add: "Verify with a qualified solicitor or tax adviser before acting on legal or tax matters."
 
+═══════════════════════════════════════
+UK LANDLORD KNOWLEDGE BASE
+═══════════════════════════════════════
+
+MAKING TAX DIGITAL (MTD) FOR LANDLORDS:
+- MTD for Income Tax Self Assessment (ITSA) applies to landlords with gross rental income over £50,000/yr from April 2026, and over £30,000/yr from April 2027.
+- Under MTD, landlords must submit quarterly updates to HMRC using compatible software (not spreadsheets alone).
+- 4 quarters: Q1 = Apr–Jun (deadline 5 Aug), Q2 = Jul–Sep (deadline 5 Nov), Q3 = Oct–Dec (deadline 5 Feb), Q4 = Jan–Mar (deadline 5 May). Final declaration replaces old Self Assessment return.
+- Allowable expenses (HMRC-approved): letting agent fees, repairs & maintenance (not improvements), insurance premiums, mortgage interest (restricted — see Section 24), service charges, ground rent, council tax (if landlord pays), utilities (if landlord pays), accountancy fees, advertising/letting costs, travel directly related to the property.
+- Capital improvements (e.g. extensions, new kitchens replacing adequate ones) are NOT allowable revenue expenses but may qualify for capital gains relief.
+- The 10% Wear & Tear allowance was abolished in 2016 — replaced by actual replacement cost of furnishings.
+- Keep digital records of all income and expenses from 6 April. HMRC requires category-level records.
+
+SECTION 24 — MORTGAGE INTEREST RESTRICTION:
+- Fully phased in since April 2020. Landlords can NO LONGER deduct mortgage interest from rental income to calculate taxable profit.
+- Instead, a 20% basic rate tax credit is applied on finance costs (mortgage interest, arrangement fees, etc.).
+- Impact: Basic rate taxpayers (20%) — broadly neutral. Higher rate taxpayers (40%) — significant extra tax vs pre-2020.
+- Example: £10,000 mortgage interest. Old system: deduct from income, saving £4,000 tax at 40%. New system: 20% credit = £2,000 credit only. Extra tax = £2,000/yr.
+- Section 24 does NOT apply to: limited companies (ltd co landlords can still deduct interest fully), furnished holiday lets (FHLs — but FHL regime abolished April 2025), or commercial property.
+- Planning options: consider incorporation (but seek advice — SDLT and CGT on transfer), overpaying mortgage, or offsetting other expenses.
+
+RENTERS' RIGHTS ACT 2025 (RRA):
+- Received Royal Assent. Implementation date: expected mid-2025 but full rollout phased.
+- Section 21 "no fault" evictions: ABOLISHED. Landlords can no longer serve a Section 21 notice.
+- All tenancies converted to periodic tenancies (monthly rolling) — no more fixed terms after implementation.
+- Section 8 eviction: now the ONLY route. New and strengthened grounds added.
+  - Ground 1A: Landlord wants to sell the property (2 months notice, cannot use within first 12 months of tenancy).
+  - Ground 1: Landlord/family wants to move in (2 months notice, cannot use within first 12 months).
+  - Ground 8: 2+ months rent arrears (mandatory — judge must grant).
+  - Ground 10/11: Persistent late payment or some arrears (discretionary).
+  - Ground 14: Antisocial behaviour (immediate application possible).
+- Notice periods: most Section 8 grounds require 2 or 4 weeks. Grounds 1/1A require 2 months.
+- Pets: landlords cannot unreasonably refuse pets. Tenant can request in writing; landlord must respond within 28 days. Landlords CAN require pet insurance.
+- Awaab's Law: extended to private sector. Landlords must investigate damp/mould within 14 days and begin repairs within a further 7 days if hazard confirmed.
+- Rent increases: landlords can only increase rent once per year, must use prescribed Section 13 notice, and tenants can challenge at First-tier Tribunal.
+- Decent Homes Standard: being extended to private rented sector.
+
+EPC / ENERGY EFFICIENCY:
+- Current minimum: EPC E for new tenancies (since 2018), all tenancies since 2020.
+- Proposed: EPC C minimum by 2028 for new tenancies, 2030 for all — legislation not yet confirmed.
+- Exemptions available for listed buildings, cost cap (£3,500), and some structural reasons.
+
+GAS SAFETY (LANDLORD DUTIES):
+- Annual gas safety check required. Certificate valid 12 months. Must be given to tenants within 28 days or before move-in.
+- Must use Gas Safe registered engineer.
+
+EICR (ELECTRICAL):
+- Required every 5 years (or on change of tenancy). Must be given to tenants within 28 days.
+- Remedial works required if category C1 or C2 defects found.
+
+DEPOSITS:
+- Must be protected in a government-approved scheme (DPS, MyDeposits, TDS) within 30 days.
+- Prescribed Information must be given to tenant within 30 days.
+- Maximum deposit: 5 weeks' rent (for annual rent under £50,000).
+
+═══════════════════════════════════════
+LIVE PORTFOLIO DATA
+═══════════════════════════════════════
 ${context}`;
 
   try{
@@ -3344,7 +3428,7 @@ ${context}`;
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         model:'claude-sonnet-4-5',
-        max_tokens:800,
+        max_tokens:1000,
         system:systemPrompt,
         messages:D.chat.filter(m=>m.role!=='system').map(m=>({role:m.role==='ai'?'assistant':'user',content:m.text}))
       })
