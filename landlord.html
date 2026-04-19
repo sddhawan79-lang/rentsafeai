@@ -2418,8 +2418,8 @@ function pgProperties(){
           ${t?`<span style="font-size:13px;font-weight:600;color:var(--txt);margin-left:auto">£${(p.rent||0).toLocaleString()}/mo</span>`:''}
         </div>
         <div class="pc-foot">
-          <button class="btn btn-sm" onclick="event.stopPropagation();nav('compliance')">Compliance</button>
-          <button class="btn btn-sm" onclick="event.stopPropagation();nav('maintenance')">Maintenance</button>
+          <button class="btn btn-sm" onclick="event.stopPropagation();nav('prop-detail','${p.id}')">Compliance</button>
+          <button class="btn btn-sm" onclick="event.stopPropagation();_mfilterProp='${p.id}';nav('maintenance')">Maintenance</button>
         </div>
       </div>`}).join('')}</div>`:'<div style="padding:48px 24px;text-align:center"><div style="font-size:40px;margin-bottom:14px">🏠</div><div style="font-size:16px;font-weight:700;color:var(--txt);margin-bottom:6px">No properties yet</div><div style="font-size:13px;color:var(--muted);margin-bottom:20px;max-width:320px;margin-left:auto;margin-right:auto">Add your first property to start tracking compliance, certificates, maintenance and rent — all in one place.</div><button class="btn btn-navy" onclick="moAddProp()">+ Add your first property</button></div>'}
   </div>`;
@@ -3830,7 +3830,7 @@ function buildAIContext() {
   lines.push('');
 
   // Finance snapshot
-  const totalMonthlyRent = D.tenants.filter(t => t.status==='Active'||!t.status).reduce((s,t)=>s+(t.rent||0),0);
+  const totalMonthlyRent = D.properties.reduce((s,p)=>s+(p.rent||0),0);
   const totalMaintenanceCost = D.maintenance.reduce((s,m)=>s+(m.cost||0),0);
   const jobAssignmentCosts = (D.jobAssignments||[]).reduce((s,j)=>s+(j.cost||0),0);
   lines.push('FINANCE SNAPSHOT:');
@@ -3961,25 +3961,34 @@ function getCalEvents(){
     events.push({date:c.expiry,type:'cert',label:c.type+' expiry',sub:prop,urg,days,icon:'📄'});
   });
 
-  // Rent due dates (monthly recurring) — consolidated per property, not per tenant
-  const rentByProp = {};
-  D.tenants.filter(t=>t.rent&&t.status==='Active').forEach(t=>{
-    const key = `${t.prop_id}_${t.rent_day||1}`;
-    if (!rentByProp[key]) rentByProp[key] = {prop_id:t.prop_id, day:t.rent_day||1, total:0, count:0};
-    rentByProp[key].total += (t.rent||0);
-    rentByProp[key].count++;
-  });
-  Object.values(rentByProp).forEach(({prop_id, day, total, count})=>{
-    const prop=(P(prop_id)||{address:'—'}).address;
-    const sub = count > 1 ? `${prop} · ${count} tenants` : prop;
+  // Rent due dates (monthly recurring) — property-level using p.rent (single source of truth)
+  D.properties.filter(p=>p.rent>0).forEach(p=>{
+    const activeTenants = D.tenants.filter(t=>String(t.prop_id)===String(p.id)&&t.status==='Active');
+    if(!activeTenants.length) return; // vacant — no rent event
+    const lead = activeTenants.find(t=>t.is_lead) || activeTenants[0];
+    const day = lead?.rent_day || 1;
+    const sub = activeTenants.length > 1 ? `${p.address} · ${activeTenants.length} tenants` : p.address;
     for(let m=0;m<3;m++){
       const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()+m); d.setDate(day);
       const days=Math.round((d-today)/864e5);
       if(days>=-1&&days<=90){
         const dStr=d.toISOString().slice(0,10);
         const urg=days<0?'red':days===0?'red':days<=3?'amber':'blue';
-        events.push({date:dStr,type:'rent',label:`Rent due — £${total.toLocaleString()}`,sub,urg,days,icon:'💷'});
+        events.push({date:dStr,type:'rent',label:`Rent due — £${p.rent.toLocaleString()}`,sub,urg,days,icon:'💷'});
       }
+    }
+  });
+
+  // Deposit protection deadlines (UK law — must protect within 30 days of receipt)
+  D.tenants.filter(t=>t.is_lead && t.deposit>0 && !t.deposit_protected_date && t.start_date).forEach(t=>{
+    const deadline = new Date(t.start_date);
+    deadline.setDate(deadline.getDate()+30);
+    deadline.setHours(0,0,0,0);
+    const days = Math.round((deadline-today)/864e5);
+    if(days>=-30&&days<=35){
+      const prop=(P(t.prop_id)||{address:'—'}).address;
+      const urg=days<0?'red':days<=7?'red':days<=14?'amber':'blue';
+      events.push({date:deadline.toISOString().slice(0,10),type:'deposit',label:'Deposit protection deadline',sub:`${prop} · 30-day rule · £${t.deposit.toLocaleString()}`,urg,days,icon:'🔒'});
     }
   });
 
