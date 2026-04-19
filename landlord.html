@@ -1103,7 +1103,7 @@ function tenantDocsSectionHtml(tenant, pid) {
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-size:14px">📁</span>
         <span style="font-size:13px;font-weight:600;color:var(--txt)">Tenant Documents</span>
-        <span id="td-badge-${tid}" style="font-size:10px;font-weight:600;background:var(--amber-bg);color:var(--amber);padding:2px 8px;border-radius:100px">0/3 required docs</span>
+        <span id="td-badge-${tid}" style="font-size:10px;font-weight:700;background:var(--red-bg);color:var(--red);padding:2px 8px;border-radius:100px">0/3 required docs</span>
       </div>
       <span id="td-arr-${tid}" style="color:var(--muted);font-size:12px">▾</span>
     </div>
@@ -2662,6 +2662,30 @@ function propMaintHtml(pid){
 if (!window._pdTab) window._pdTab = {};
 if (!window._pdOnboardStage) window._pdOnboardStage = {};
 
+function getLastActivity(pid) {
+  const pidStr = String(pid);
+  const times = [];
+  (D.maintenance||[]).filter(m=>String(m.prop_id)===pidStr).forEach(m=>{
+    if(m.created_at) times.push(new Date(m.created_at));
+    if(m.updated_at) times.push(new Date(m.updated_at));
+  });
+  (D.emailLog||[]).filter(e=>String(e.prop_id)===pidStr).forEach(e=>{
+    if(e.sent_at) times.push(new Date(e.sent_at));
+  });
+  (D.compliance||[]).filter(c=>String(c.prop_id)===pidStr).forEach(c=>{
+    if(c.expiry) times.push(new Date(c.expiry));
+    if(c.issue_date) times.push(new Date(c.issue_date));
+  });
+  const valid = times.filter(d=>!isNaN(d));
+  if(!valid.length) return null;
+  const latest = new Date(Math.max(...valid));
+  const diff = Math.floor((Date.now()-latest)/86400000);
+  if(diff<=0) return 'Last activity: today';
+  if(diff===1) return 'Last activity: yesterday';
+  if(diff<7) return `Last activity: ${diff} days ago`;
+  return `Last activity: ${latest.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}`;
+}
+
 function pgPropDetail(pid) {
   const p = P(pid); if (!p) return pgProperties();
   const allTenants = getPropertyTenants(pid);
@@ -2681,17 +2705,19 @@ function pgPropDetail(pid) {
     : `${allTenants.length} tenants`;
 
   // Stat cards
+  const missingDocs = pc.filter(c=>c.status==='Missing').length;
   const stats = [
-    { icon:'💷', bg:'rgba(0,200,150,0.1)', col:'var(--green-dark)', val: p.rent ? `£${p.rent.toLocaleString()}` : 'Vacant', lbl:'Monthly rent' },
-    { icon:'👤', bg:'rgba(59,111,232,0.09)', col:'var(--blue)', val: tenantStatVal, lbl: tenantStatLbl },
-    { icon:'🛡', bg: rag.rag==='red'?'rgba(229,62,62,0.09)':rag.rag==='amber'?'rgba(217,119,6,0.09)':'rgba(0,200,150,0.1)', col:ragCol, val:`${rag.score}/100`, lbl:`Compliance: ${rag.label}` },
-    { icon:'🔧', bg: pm.length ? 'rgba(229,62,62,0.09)' : 'rgba(0,200,150,0.1)', col: pm.length ? 'var(--red)' : 'var(--green-dark)', val: pm.length, lbl: pm.length ? 'Open issue' + (pm.length!==1?'s':'') : 'No open issues' },
+    { icon:'💷', bg:'rgba(0,200,150,0.1)', col:'var(--green-dark)', val: p.rent ? `£${p.rent.toLocaleString()}` : 'Vacant', lbl:'Monthly rent', tab:'financials' },
+    { icon:'👤', bg:'rgba(59,111,232,0.09)', col:'var(--blue)', val: tenantStatVal, lbl: tenantStatLbl, tab:'tenant' },
+    { icon:'🛡', bg: rag.rag==='red'?'rgba(229,62,62,0.09)':rag.rag==='amber'?'rgba(217,119,6,0.09)':'rgba(0,200,150,0.1)', col:ragCol, val:`${rag.score}/100`, lbl: missingDocs>0?`${missingDocs} doc${missingDocs!==1?'s':''} missing`:`Compliance: ${rag.label}`, tab:'compliance', action:`pdSetTab('${pid}','tenant');setTimeout(()=>switchOnboardStage('${pid}',2),60)` },
+    { icon:'🔧', bg: pm.length ? 'rgba(229,62,62,0.09)' : 'rgba(0,200,150,0.1)', col: pm.length ? 'var(--red)' : 'var(--green-dark)', val: pm.length, lbl: pm.length ? 'Open issue' + (pm.length!==1?'s':'') : 'No open issues', tab:'maintenance' },
   ];
 
   const statHtml = `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px">
-    ${stats.map(s=>`<div class="pd-stat" style="background:${s.bg};border-color:transparent">
+    ${stats.map(s=>`<div class="pd-stat" style="background:${s.bg};border-color:transparent;cursor:pointer;transition:box-shadow .15s,transform .12s" onclick="${s.action||`pdSetTab('${pid}','${s.tab}')`}" onmouseover="this.style.boxShadow='0 4px 14px rgba(11,30,61,0.11)';this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='';this.style.transform=''">
       <div class="pd-stat-icon" style="background:rgba(255,255,255,0.5)">${s.icon}</div>
-      <div><div class="pd-stat-val" style="color:${s.col}">${s.val}</div><div class="pd-stat-lbl">${s.lbl}</div></div>
+      <div style="flex:1"><div class="pd-stat-val" style="color:${s.col}">${s.val}</div><div class="pd-stat-lbl">${s.lbl}</div></div>
+      <div style="color:var(--muted);font-size:16px;flex-shrink:0;opacity:0.45">›</div>
     </div>`).join('')}
   </div>`;
 
@@ -2718,7 +2744,7 @@ function pgPropDetail(pid) {
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
       <div>
         <h1 style="font-size:21px;font-weight:700;margin-bottom:3px">${p.address}</h1>
-        <p style="font-size:13px;color:var(--muted)">${p.city}, ${p.postcode}</p>
+        <p style="font-size:13px;color:var(--muted)">${p.city}, ${p.postcode}${(()=>{const la=getLastActivity(pid);return la?` <span style="opacity:0.6">·</span> <span style="font-size:12px">${la}</span>`:''})()}</p>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
         ${B(allTenants.length > 0 ? 'Active' : 'Vacant')}
@@ -2790,12 +2816,12 @@ function pdTabContent(pid, tab) {
     ];
     const wizBar = `<div class="ob-wizard">
       ${stageSteps.map((s,i) => `
-        <div class="ob-step" onclick="switchOnboardStage('${pid}',${s.n})">
-          <div class="ob-num ${s.n===stage?'ob-num-active':s.done?'ob-num-done':'ob-num-pending'}">${s.done&&s.n!==stage?'✓':s.n}</div>
+        <div class="ob-step" onclick="switchOnboardStage('${pid}',${s.n})" title="${s.done?'Complete':'Not started yet'}">
+          <div class="ob-num ${s.n===stage?'ob-num-active':s.done?'ob-num-done':'ob-num-pending'}" style="${!s.done&&s.n!==stage?'font-size:14px':''}">${s.n===stage?s.n:s.done?'✓':'🔒'}</div>
           <div class="ob-label" style="color:${s.n===stage?'var(--navy)':s.done?'var(--green-dark)':'var(--muted)'}">${s.label}</div>
           <div class="ob-sub">${s.sub}</div>
         </div>
-        ${i<2?`<div class="ob-conn" style="background:${s.done?'var(--green)':'var(--border)'}"></div>`:''}`
+        ${i<2?`<div style="flex:0 0 44px;height:4px;margin-top:27px;align-self:flex-start;border-radius:100px;background:var(--border);overflow:hidden"><div style="height:100%;width:${s.done?'100%':'0%'};background:var(--green);border-radius:100px;transition:width .4s ease"></div></div>`:''}`
       ).join('')}
     </div>`;
 
@@ -2826,7 +2852,7 @@ function pdTabContent(pid, tab) {
           </div>
           <div style="padding:14px 18px">
             <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px">
-              ${[['Tenancy start',FMS(tenant.start_date)],['Tenancy end',tenant.end_date?FMS(tenant.end_date):'Periodic (APT)'],['Monthly rent',tenant.rent?`£${tenant.rent.toLocaleString()}`:'—']].map(([l,v])=>`<div class="det-f"><label>${l}</label><span>${v}</span></div>`).join('')}
+              ${[['Tenancy start',tenant.start_date?FMS(tenant.start_date):`<button class="btn-inline" style="font-size:13px" onclick="moTenantDetail('${tenant.id}')">Set date →</button>`],['Tenancy end',tenant.end_date?FMS(tenant.end_date):'Periodic (APT)'],['Monthly rent',tenant.rent?`£${tenant.rent.toLocaleString()}`:'—']].map(([l,v])=>`<div class="det-f"><label>${l}</label><span>${v}</span></div>`).join('')}
             </div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px">
               ${tenant.email?`<a href="mailto:${tenant.email}" class="btn btn-sm">✉ Email</a>`:''}
@@ -2852,7 +2878,7 @@ function pdTabContent(pid, tab) {
               ${[['Amount',`£${deposit.toLocaleString()}`],['Scheme',lead.scheme||'Not set'],['Reference',lead.scheme_ref||'—'],['Protected',lead.deposit_protected_date?FMS(lead.deposit_protected_date):'Not logged'],['30-day rule',lead.deposit_protected_date&&lead.start_date?(()=>{const d=Math.round((new Date(lead.deposit_protected_date)-new Date(lead.start_date))/864e5);return d<=30?`<span style="color:var(--green-dark)">✓ ${d} days</span>`:`<span style="color:var(--red)">⚠ ${d} days (over limit)</span>`;})():'—'],['RRA 2025',fiveWeeks?(compliant?`<span style="color:var(--green-dark)">✓ Compliant</span>`:`<span style="color:var(--red)">⚠ Over limit</span>`):'—']].map(([l,v])=>`<div class="det-f"><label>${l}</label><span>${v}</span></div>`).join('')}
             </div>
             ${overLimit?`<div style="background:rgba(229,62,62,0.08);border:1px solid var(--red);border-radius:8px;padding:9px 13px;font-size:12px;color:var(--red)">⚠️ Deposit exceeds RRA 2025 maximum of £${fiveWeeks.toLocaleString()}. Reduce to comply.</div>`:''}`
-          :`<div style="text-align:center;padding:14px 0"><div style="color:var(--muted);font-size:13px;margin-bottom:10px">No deposit recorded yet</div><button class="btn btn-sm btn-navy" onclick="moEditDeposit('${pid}')">+ Add deposit details</button></div>`}
+          :`<div style="padding:4px 0">${(()=>{if(lead.start_date){const daysIn=Math.floor((Date.now()-new Date(lead.start_date))/86400000);const urgency=daysIn>=30?'var(--red)':'var(--amber)';const urgBg=daysIn>=30?'rgba(229,62,62,0.08)':'rgba(217,119,6,0.08)';const urgBorder=daysIn>=30?'rgba(229,62,62,0.2)':'rgba(217,119,6,0.2)';return`<div style="background:${urgBg};border:1px solid ${urgBorder};border-radius:8px;padding:10px 13px;margin-bottom:12px;font-size:12px"><span style="font-weight:600;color:${urgency}">⚠ Register the deposit</span><span style="color:var(--txt)"> — must be protected in an approved scheme within 30 days of receipt. Tenancy started <strong>${daysIn} day${daysIn!==1?'s':''} ago</strong>${daysIn<30?` · <strong style="color:${urgency}">${30-daysIn} day${30-daysIn!==1?'s':''} remaining</strong>`:' · <strong style="color:var(--red)">overdue</strong>'}.</span></div>`;}return'';})()}<div style="text-align:center;padding:10px 0"><div style="color:var(--muted);font-size:13px;margin-bottom:10px">No deposit recorded yet</div><button class="btn btn-sm btn-navy" onclick="moEditDeposit('${pid}')">+ Add deposit details</button></div></div>`}
           </div>
         </div>`;
       })();
