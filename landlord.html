@@ -2780,6 +2780,7 @@ function pdTabContent(pid, tab) {
             ${tenant.phone?`<a href="tel:${tenant.phone}" class="btn btn-sm">📞 Call</a>`:''}
             <button class="btn btn-sm" style="border-color:var(--amber);color:var(--amber)" onclick="moRRASheet()">📋 RRA Sheet</button>
             ${tenant.email?`<button class="btn btn-sm" style="border-color:var(--green);color:var(--green-dark)" id="invite-btn-${tenant.id}" onclick="sendPortalInvite('${tenant.id}')">🔗 ${tenant.invite_used?'Resend invite':'Send portal invite'}</button>`:''}
+            <button class="btn btn-sm" style="border-color:var(--blue);color:var(--blue)" id="copy-link-btn-${tenant.id}" onclick="copyPortalLink('${tenant.id}')">📋 Copy portal link</button>
           </div>
           ${tenantDocsSectionHtml(tenant, pid)}
         </div>
@@ -6754,6 +6755,40 @@ async function sendPortalInvite(tenantId) {
   await logAudit('SEND_PORTAL_INVITE', 'tenants', tenantId, `Portal invite sent to ${t.email}`);
   if (btn) { btn.disabled = false; btn.innerHTML = '✓ Invite sent'; }
   toast(`✓ Portal invite sent to ${t.name}`);
+}
+
+// ── COPY PORTAL LINK ──
+async function copyPortalLink(tenantId) {
+  const t = D.tenants.find(x => String(x.id) === String(tenantId));
+  if (!t) { toast('Tenant not found', true); return; }
+  const btn = document.getElementById('copy-link-btn-' + tenantId);
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin spin-dark"></span>'; }
+  // Use existing token or generate a new one
+  let token = t.invite_token;
+  if (!token) {
+    token = crypto.randomUUID();
+    const { error } = await sb.from('tenants')
+      .update({ invite_token: token, invite_used: false, landlord_email: currentUser.email })
+      .eq('id', tenantId);
+    if (error) {
+      if (btn) { btn.disabled = false; btn.textContent = '📋 Copy portal link'; }
+      toast('Error saving token: ' + error.message, true); return;
+    }
+    t.invite_token = token;
+    t.invite_used = false;
+  }
+  const portalURL = `${window.location.origin}/tenant.html?token=${token}`;
+  try {
+    await navigator.clipboard.writeText(portalURL);
+    if (btn) { btn.disabled = false; btn.innerHTML = '✓ Link copied!'; btn.style.borderColor='var(--green)'; btn.style.color='var(--green-dark)'; }
+    toast('✓ Portal link copied to clipboard');
+    setTimeout(() => {
+      if (btn) { btn.innerHTML = '📋 Copy portal link'; btn.style.borderColor='var(--blue)'; btn.style.color='var(--blue)'; }
+    }, 2500);
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = '📋 Copy portal link'; }
+    toast('Clipboard error — try again', true);
+  }
 }
 
 // ── START ──

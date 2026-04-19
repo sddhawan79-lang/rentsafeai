@@ -250,6 +250,7 @@ html,body{min-height:100%;font-family:var(--font);color:var(--txt);background:va
         <button class="tab" id="tab-jobs" onclick="switchTab('jobs')">
           My jobs <span id="jobs-count-badge" style="display:none;background:var(--navy);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:100px;margin-left:4px"></span>
         </button>
+        <button class="tab" id="tab-certs" onclick="switchTab('certs')">Certificates</button>
       </div>
 
       <!-- Tab: Report a problem -->
@@ -332,6 +333,16 @@ html,body{min-height:100%;font-family:var(--font);color:var(--txt);background:va
             <div class="empty-icon">🔧</div>
             <div class="empty-title">No jobs yet</div>
             <div class="empty-sub">Use the "Report a problem" tab to log your first maintenance issue.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Certificates -->
+      <div class="tab-content" id="content-certs">
+        <div id="certs-list">
+          <div class="empty">
+            <div class="empty-icon">📄</div>
+            <div class="empty-title">Loading certificates…</div>
           </div>
         </div>
       </div>
@@ -784,10 +795,56 @@ function photosSelected(input){
 
 // ── TABS ──
 function switchTab(name){
-  ['report','jobs'].forEach(t=>{
+  ['report','jobs','certs'].forEach(t=>{
     document.getElementById('tab-'+t).className = 'tab'+(t===name?' active':'');
     document.getElementById('content-'+t).className = 'tab-content'+(t===name?' active':'');
   });
+  if(name==='certs') loadCerts();
+}
+
+// ── CERTIFICATES ──
+async function loadCerts(){
+  const el = document.getElementById('certs-list');
+  if(!currentTenant?.prop_id){ el.innerHTML='<div class="empty"><div class="empty-icon">📄</div><div class="empty-title">No property linked</div><div class="empty-sub">Certificates will appear here once your landlord links you to a property.</div></div>'; return; }
+  el.innerHTML='<div class="empty"><div class="empty-icon">⏳</div><div class="empty-title">Loading certificates…</div></div>';
+  const { data:certs, error } = await sb.from('certificates').select('*').eq('prop_id', currentTenant.prop_id).order('expiry',{ascending:true});
+  if(error){ el.innerHTML='<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">Could not load certificates</div></div>'; return; }
+  if(!certs||!certs.length){ el.innerHTML='<div class="empty"><div class="empty-icon">📄</div><div class="empty-title">No certificates on file</div><div class="empty-sub">Your landlord hasn\'t uploaded any certificates yet.</div></div>'; return; }
+
+  const statusColour = s => s==='Valid'||s==='current' ? 'var(--green-dark)' : s==='Expiring soon' ? 'var(--amber)' : s==='Expired' ? 'var(--red)' : 'var(--muted)';
+  const statusBg    = s => s==='Valid'||s==='current' ? 'rgba(0,200,150,0.1)' : s==='Expiring soon' ? 'rgba(217,119,6,0.1)' : s==='Expired' ? 'rgba(229,62,62,0.1)' : 'var(--off)';
+  const statusLabel = s => { const m={'Valid':'✅ Valid','current':'✅ Valid','Expiring soon':'⚠️ Expiring soon','Expired':'❌ Expired'}; return m[s]||s||'—'; };
+
+  el.innerHTML = `<div class="panel">
+    <div class="panel-head"><div><h2>Property certificates</h2><p>${certs.length} certificate${certs.length!==1?'s':''} on file for your property</p></div></div>
+    <div class="panel-body" style="padding:0">
+      ${certs.map(c=>{
+        const expDate = c.expiry ? new Date(c.expiry).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
+        const expired = c.expiry && new Date(c.expiry) < new Date();
+        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);gap:12px;flex-wrap:wrap">
+          <div style="flex:1;min-width:160px">
+            <div style="font-weight:600;font-size:13px;color:var(--txt);margin-bottom:2px">${c.type||'Certificate'}</div>
+            <div style="font-size:12px;color:var(--muted)">Expires: ${expDate}${expired?' <span style="color:var(--red);font-weight:600">(Expired)</span>':''}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+            <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px;background:${statusBg(c.status)};color:${statusColour(c.status)}">${statusLabel(c.status)}</span>
+            ${c.has_file?`<button class="btn btn-sm" style="border-color:var(--blue);color:var(--blue)" onclick="downloadCert('${c.id}','${(c.type||'Certificate').replace(/'/g,'')}')"  >⬇ Download</button>`:''}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+async function downloadCert(certId, certType){
+  toast('Preparing download…');
+  const { data, error } = await sb.storage.from('certificates').createSignedUrl(`${currentTenant.prop_id}/${certId}`, 60);
+  if(error||!data?.signedUrl){ toast('Could not generate download link — contact your landlord', true); return; }
+  const a = document.createElement('a');
+  a.href = data.signedUrl;
+  a.download = certType + '.pdf';
+  a.target = '_blank';
+  a.click();
 }
 
 // ── LOGOUT ──
