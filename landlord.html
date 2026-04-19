@@ -962,18 +962,25 @@ async function saveTenantToDB() {
     toast('Property and tenant name are required.', true); return;
   }
 
+  // Determine if this should be lead tenant
+  const existingTenants = getPropertyTenants(propId);
+  const isLead = existingTenants.length === 0; // first tenant = lead
+
   const tenant = {
     prop_id: parseInt(propId), name,
     email: document.getElementById('t-email')?.value.trim() || null,
     phone: document.getElementById('t-phone')?.value.trim() || null,
     rent: parseFloat(document.getElementById('t-rent')?.value) || 0,
-    deposit: parseFloat(document.getElementById('t-deposit')?.value) || 0,
     start_date: document.getElementById('t-start')?.value || null,
     end_date: document.getElementById('t-end')?.value || null,
     type: document.getElementById('t-type')?.value || 'APT',
     rent_day: parseInt(document.getElementById('t-day')?.value) || 1,
-    scheme: document.getElementById('t-scheme')?.value || null,
-    scheme_ref: document.getElementById('t-ref')?.value.trim() || null,
+    is_lead: isLead,
+    // Deposit only for lead tenant
+    deposit: isLead ? (parseFloat(document.getElementById('t-deposit')?.value) || 0) : 0,
+    scheme: isLead ? (document.getElementById('t-scheme')?.value || null) : null,
+    scheme_ref: isLead ? (document.getElementById('t-ref')?.value?.trim() || null) : null,
+    deposit_protected_date: isLead ? (document.getElementById('t-protected-date')?.value || null) : null,
     status: 'Active',
     user_id: currentUser.id,
     invite_token: crypto.randomUUID(),
@@ -988,13 +995,118 @@ async function saveTenantToDB() {
   }
 
   D.tenants.push({...data, start: data.start_date, end: data.end_date});
-  await logAudit('ADD_TENANT', 'tenants', data.id, `Added tenant: ${name}`);
+  await logAudit('ADD_TENANT', 'tenants', data.id, `Added tenant: ${name}${isLead ? ' (lead)' : ' (additional)'}`);
   closeMo();
-  toast('✓ Tenant saved!');
+  toast(`✓ ${name} added${isLead ? ' as lead tenant' : ' as additional tenant'}`);
   nav('tenants');
 }
 
-// ── SAVE: MAINTENANCE ISSUE ──
+// ── MODAL: EDIT DEPOSIT (property level — operates on lead tenant) ──
+function moEditDeposit(pid) {
+  const lead = getLeadTenant(pid);
+  const p = P(pid);
+  if (!lead) { toast('Add a tenant first before setting deposit details', true); return; }
+  const rent = lead.rent || p?.rent || 0;
+  const fiveWeeks = rent ? Math.round((rent / 4.33) * 5 * 100) / 100 : 0;
+  openMo('Tenancy deposit', `${p?.address || 'Property'} — held by lead tenant`,`
+    <div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--muted);margin-bottom:16px">
+      Under UK law, the deposit is held in the name of the lead tenant: <strong style="color:var(--txt)">${lead.name}</strong>.
+      ${fiveWeeks ? `Maximum under RRA 2025 (5 weeks): <strong style="color:var(--txt)">£${fiveWeeks.toLocaleString()}</strong>.` : ''}
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Deposit amount (£)</label><input type="number" id="dep-amount" value="${lead.deposit||''}" placeholder="e.g. 1500" oninput="updateDepositRRACheck(${rent})" onchange="updateDepositRRACheck(${rent})"></div>
+      <div class="fg"><label>Scheme</label>
+        <select id="dep-scheme">${['','DPS','MyDeposits','TDS'].map(s=>`<option value="${s}"${(lead.scheme||'')===s?' selected':''}>${s||'Select scheme'}</option>`).join('')}</select>
+      </div>
+    </div>
+    <div id="dep-rra-check" style="margin-bottom:8px"></div>
+    <div class="fg-row">
+      <div class="fg"><label>Scheme reference</label><input type="text" id="dep-ref" value="${lead.scheme_ref||''}" placeholder="Scheme reference number"></div>
+      <div class="fg"><label>Protection date</label><input type="date" id="dep-protected" value="${lead.deposit_protected_date||''}"></div>
+    </div>
+    <div style="background:var(--amber-bg);border:1px solid var(--amber);border-radius:8px;padding:9px 13px;font-size:12px;color:var(--txt);margin-top:4px">
+      ⚠️ <strong>30-day rule:</strong> Deposits must be protected within 30 days of receipt. You can be fined up to 3× the deposit if you miss this deadline.
+    </div>
+  `,`<button class="btn" onclick="closeMo()">Cancel</button><button class="btn btn-navy" onclick="saveDepositToDB('${pid}','${lead.id}')">Save deposit</button>`);
+  // Trigger initial check
+  setTimeout(() => updateDepositRRACheck(rent), 50);
+}
+
+function updateDepositRRACheck(rent) {
+  const deposit = parseFloat(document.getElementById('dep-amount')?.value) || 0;
+  const el = document.getElementById('dep-rra-check');
+  if (!el || !rent || !deposit) { if(el) el.innerHTML=''; return; }
+  const fiveWeeks = Math.round((rent / 4.33) * 5 * 100) / 100;
+  const over = deposit > fiveWeeks;
+  el.innerHTML = over
+    ? `<div style="background:rgba(229,62,62,0.09);border:1px solid var(--red);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--red);margin-bottom:12px">
+        ⚠️ £${deposit.toLocaleString()} exceeds the RRA 2025 maximum of £${fiveWeeks.toLocaleString()} (5 weeks' rent at £${rent}/mo).
+       </div>`
+    : `<div style="background:var(--green-bg);border:1px solid rgba(0,200,150,0.2);border-radius:8px;padding:7px 11px;font-size:12px;color:var(--green-dark);margin-bottom:12px">
+        ✓ Within RRA 2025 limit (max £${fiveWeeks.toLocaleString()})
+       </div>`;
+}
+
+async function saveDepositToDB(pid, leadId) {
+  const amount    = parseFloat(document.getElementById('dep-amount')?.value) || 0;
+  const scheme    = document.getElementById('dep-scheme')?.value || null;
+  const ref       = document.getElementById('dep-ref')?.value.trim() || null;
+  const protected_date = document.getElementById('dep-protected')?.value || null;
+  const { error } = await sb.from('tenants').update({
+    deposit: amount, scheme, scheme_ref: ref,
+    deposit_protected_date: protected_date
+  }).eq('id', leadId);
+  if (error) { toast('Error: ' + error.message, true); return; }
+  const t = D.tenants.find(x => String(x.id) === String(leadId));
+  if (t) Object.assign(t, { deposit: amount, scheme, scheme_ref: ref, deposit_protected_date: protected_date });
+  await logAudit('UPDATE_DEPOSIT', 'tenants', leadId, `Deposit updated: £${amount}`);
+  closeMo(); toast('✓ Deposit saved');
+  nav('prop-detail', pid);
+  setTimeout(() => pdSetTab(pid, 'tenant'), 100);
+}
+
+async function setLeadTenant(tenantId, pid) {
+  // Remove lead from all tenants on this property
+  const tenants = getPropertyTenants(pid);
+  for (const t of tenants) {
+    if (String(t.id) !== String(tenantId)) {
+      await sb.from('tenants').update({ is_lead: false }).eq('id', t.id);
+      t.is_lead = false;
+    }
+  }
+  // Set new lead — also move deposit data from old lead if any
+  const oldLead = tenants.find(t => t.is_lead);
+  const depositData = oldLead ? { deposit: oldLead.deposit, scheme: oldLead.scheme, scheme_ref: oldLead.scheme_ref, deposit_protected_date: oldLead.deposit_protected_date } : {};
+  const { error } = await sb.from('tenants').update({ is_lead: true, ...depositData }).eq('id', tenantId);
+  if (error) { toast('Error: ' + error.message, true); return; }
+  // Clear deposit from old lead
+  if (oldLead && String(oldLead.id) !== String(tenantId)) {
+    await sb.from('tenants').update({ deposit: 0, scheme: null, scheme_ref: null, deposit_protected_date: null }).eq('id', oldLead.id);
+    Object.assign(oldLead, { deposit: 0, scheme: null, scheme_ref: null, is_lead: false });
+  }
+  const newLead = D.tenants.find(t => String(t.id) === String(tenantId));
+  if (newLead) { newLead.is_lead = true; Object.assign(newLead, depositData); }
+  await logAudit('SET_LEAD_TENANT', 'tenants', tenantId, `Lead tenant changed`);
+  toast('✓ Lead tenant updated');
+  nav('prop-detail', pid);
+  setTimeout(() => pdSetTab(pid, 'tenant'), 100);
+}
+
+async function removeTenantFromProperty(tenantId, pid) {
+  const t = D.tenants.find(x => String(x.id) === String(tenantId));
+  if (!t) return;
+  if (t.is_lead && getPropertyTenants(pid).length > 1) {
+    toast('Cannot remove lead tenant — make another tenant the lead first.', true); return;
+  }
+  if (!confirm(`Remove ${t.name} from this property? Their portal access will be revoked.`)) return;
+  const { error } = await sb.from('tenants').update({ status: 'Former', is_lead: false }).eq('id', tenantId);
+  if (error) { toast('Error: ' + error.message, true); return; }
+  t.status = 'Former'; t.is_lead = false;
+  await logAudit('REMOVE_TENANT', 'tenants', tenantId, `${t.name} removed from ${P(pid)?.address}`);
+  toast(`✓ ${t.name} removed`);
+  nav('prop-detail', pid);
+  setTimeout(() => pdSetTab(pid, 'tenant'), 100);
+}
 async function saveIssueToDB() {
   const btn = document.querySelector('#mo-f .btn-navy');
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Saving…'; }
@@ -1229,31 +1341,15 @@ function moAddProp(){
       <input type="hidden" id="p-notes" value="">
     </div>
 
-    <!-- STEP 3: Tenant (optional) -->
+    <!-- STEP 3: Confirm & Save -->
     <div class="step-box" id="step3">
-      <div style="font-size:15px;font-weight:600;margin-bottom:2px">Who lives there?</div>
-      <div class="step-title">Step 3 of 3 — skip if vacant, add anytime later</div>
-      <div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--muted);margin-bottom:16px">
-        Leave blank if the property is vacant.
+      <div style="font-size:15px;font-weight:600;margin-bottom:2px">Ready to save</div>
+      <div class="step-title">Step 3 of 3 — review and add your property</div>
+      <div id="step3-summary" style="background:var(--off);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:16px;font-size:13px;color:var(--txt);line-height:1.8">
+        <!-- Filled dynamically by goStep(3) -->
       </div>
-      <div class="fg-row">
-        <div class="fg"><label>Tenant full name</label><input type="text" id="p-tname" placeholder="e.g. John Smith"></div>
-        <div class="fg"><label>Tenant email</label><input type="email" id="p-temail" placeholder="john@example.com"></div>
-      </div>
-      <div class="fg-row">
-        <div class="fg"><label>Tenancy start date</label><input type="date" id="p-tstart"></div>
-        <div class="fg"><label>Tenancy end date</label><input type="date" id="p-tend"></div>
-      </div>
-      <div class="fg-row">
-        <div class="fg"><label>Deposit amount (£)</label><input type="number" id="p-deposit" placeholder="e.g. 1500" min="0"></div>
-        <div class="fg"><label>Deposit scheme</label>
-          <select id="p-dep-scheme">
-            <option value="">Not set</option>
-            <option>DPS (Deposit Protection Service)</option>
-            <option>MyDeposits</option>
-            <option>TDS (Tenancy Deposit Scheme)</option>
-          </select>
-        </div>
+      <div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--blue)">
+        ✓ After saving, we'll guide you to add your tenant, certificates and mortgage from the property page.
       </div>
     </div>`;
 
@@ -1290,10 +1386,26 @@ function goStep(n){
   document.querySelectorAll('.step-bar-seg').forEach((el,i) => el.classList.toggle('done', i < n));
   document.getElementById('mo-back-btn').style.visibility = n === 1 ? 'hidden' : 'visible';
   document.getElementById('mo-next-btn').textContent = n === 3 ? 'Add property ✓' : 'Next →';
-  const labels = ['1 — address','2 — property basics','3 — tenant'];
+  const labels = ['1 — address','2 — property basics','3 — confirm & save'];
   document.getElementById('mo-s').textContent = 'Step ' + labels[n-1];
   const lbl = document.getElementById('prop-step-label');
   if(lbl) lbl.textContent = 'Step ' + n + ' of 3';
+  // Populate step 3 summary
+  if(n === 3) {
+    const addr = document.getElementById('p-addr')?.value || '';
+    const city = document.getElementById('p-city')?.value || '';
+    const post = document.getElementById('p-post')?.value || '';
+    const type = document.getElementById('p-type')?.value || '';
+    const beds = document.getElementById('p-beds')?.value || '';
+    const rent = document.getElementById('p-rent')?.value || '';
+    const summary = document.getElementById('step3-summary');
+    if(summary) summary.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 16px">
+        <div><span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px">Address</span><br><strong>${addr}, ${city} ${post}</strong></div>
+        <div><span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px">Type</span><br><strong>${type}${beds?' · '+beds+' bed':''}</strong></div>
+        <div><span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px">Monthly rent</span><br><strong>${rent?'£'+parseFloat(rent).toLocaleString():'Not set'}</strong></div>
+      </div>`;
+  }
 }
 
 // ── MODAL: EDIT PROPERTY ──
@@ -1393,21 +1505,44 @@ async function saveInspectionToDB(pid) {
   nav('prop-detail', pid);
 }
 
+// ── MULTI-TENANT HELPERS ──
+function getPropertyTenants(pid) {
+  return D.tenants.filter(x => String(x.prop_id) === String(pid) && x.status !== 'Former');
+}
+function getLeadTenant(pid) {
+  const tenants = getPropertyTenants(pid);
+  return tenants.find(t => t.is_lead) || tenants[0] || null;
+}
+
 // ── MODAL: ADD TENANT ──
 function moTenant(pid){
   const opts=D.properties.map(p=>`<option value="${p.id}"${p.id==pid?' selected':''}>${p.address}, ${p.city}</option>`).join('');
+  const existingTenants = pid ? getPropertyTenants(pid) : [];
+  const leadTenant = pid ? getLeadTenant(pid) : null;
+  const isAdditional = existingTenants.length > 0;
+
+  const additionalNote = isAdditional ? `
+    <div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--blue);margin-bottom:16px">
+      <strong>Adding to existing tenancy</strong> — Lead tenant: ${leadTenant?.name || 'Unknown'}.
+      This person will be added as an additional tenant to the same joint tenancy. Deposit is managed under the lead tenant.
+    </div>` : `
+    <div style="background:var(--green-bg);border:1px solid rgba(0,200,150,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green-dark);margin-bottom:16px">
+      ⭐ <strong>First tenant</strong> — they will be set as the lead tenant and hold the tenancy deposit.
+    </div>`;
+
   openMo('Add tenant','Link a tenant to one of your properties',`
-    <div class="fg"><label>Property <span class="req">*</span></label><select id="t-prop">${opts}</select></div>
-    <div class="fg"><label>Full name <span class="req">*</span></label><input type="text" id="t-name" placeholder="John Smith"></div>
+    <div class="fg"><label>Property <span class="req">*</span></label><select id="t-prop" onchange="moTenantPropChanged(this.value)">${opts}</select></div>
+    <div id="t-tenancy-note">${additionalNote}</div>
+    <div class="fg"><label>Full name <span class="req">*</span></label><input type="text" id="t-name" placeholder="e.g. James Smith"></div>
     <div class="fg-row">
-      <div class="fg"><label>Email</label><input type="email" id="t-email" placeholder="john@example.com"></div>
+      <div class="fg"><label>Email</label><input type="email" id="t-email" placeholder="james@example.com"></div>
       <div class="fg"><label>Phone</label><input type="tel" id="t-phone" placeholder="07…"></div>
     </div>
     <div class="fg-div"></div>
     <div class="fg-sec">Tenancy details</div>
     <div class="fg-row">
       <div class="fg"><label>Monthly rent (£) <span class="req">*</span></label><input type="number" id="t-rent" placeholder="1500"></div>
-      <div class="fg"><label>Deposit (£) <span class="req">*</span></label><input type="number" id="t-deposit" placeholder="1500"></div>
+      <div class="fg"><label>Rent due day</label><input type="number" id="t-day" min="1" max="28" placeholder="1"></div>
     </div>
     <div class="fg-row">
       <div class="fg"><label>Tenancy start <span class="req">*</span></label><input type="date" id="t-start"></div>
@@ -1415,15 +1550,55 @@ function moTenant(pid){
     </div>
     <div class="fg-row">
       <div class="fg"><label>Tenancy type</label><select id="t-type"><option value="APT">APT — Assured Periodic (from 1 May 2026)</option><option value="AST">AST — legacy (pre 1 May 2026)</option><option value="Company let">Company let</option></select></div>
-      <div class="fg"><label>Rent due day</label><input type="number" id="t-day" min="1" max="28" placeholder="1"></div>
     </div>
+
+    ${!isAdditional ? `
     <div class="fg-div"></div>
-    <div class="fg-sec">Deposit protection</div>
+    <div class="fg-sec">Deposit protection <span style="font-size:10px;font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0">(lead tenant holds deposit)</span></div>
     <div class="fg-row">
+      <div class="fg"><label>Deposit amount (£)</label><input type="number" id="t-deposit" placeholder="e.g. 1500" oninput="checkDepositRRA()" onchange="checkDepositRRA()"></div>
       <div class="fg"><label>Scheme</label><select id="t-scheme"><option value="">Select scheme</option><option>DPS</option><option>MyDeposits</option><option>TDS</option></select></div>
-      <div class="fg"><label>Reference</label><input type="text" id="t-ref" placeholder="Scheme reference number"></div>
     </div>
+    <div id="deposit-rra-warning" style="display:none"></div>
+    <div class="fg-row">
+      <div class="fg"><label>Scheme reference</label><input type="text" id="t-ref" placeholder="Scheme reference number"></div>
+      <div class="fg"><label>Protection date</label><input type="date" id="t-protected-date"></div>
+    </div>` : `<input type="hidden" id="t-deposit" value=""><input type="hidden" id="t-scheme" value=""><input type="hidden" id="t-ref" value=""><input type="hidden" id="t-protected-date" value="">`}
   `,`<button class="btn" onclick="closeMo()">Cancel</button><button class="btn btn-navy" onclick="saveTenantToDB()">Add tenant</button>`);
+}
+
+function moTenantPropChanged(pid) {
+  const existing = getPropertyTenants(pid);
+  const lead = getLeadTenant(pid);
+  const isAdditional = existing.length > 0;
+  const note = document.getElementById('t-tenancy-note');
+  if (!note) return;
+  note.innerHTML = isAdditional
+    ? `<div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--blue);margin-bottom:16px">
+        <strong>Adding to existing tenancy</strong> — Lead tenant: ${lead?.name || 'Unknown'}. This person will be an additional tenant. Deposit is managed under the lead tenant.
+       </div>`
+    : `<div style="background:var(--green-bg);border:1px solid rgba(0,200,150,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green-dark);margin-bottom:16px">
+        ⭐ <strong>First tenant</strong> — they will be set as the lead tenant and hold the tenancy deposit.
+       </div>`;
+}
+
+function checkDepositRRA() {
+  const deposit = parseFloat(document.getElementById('t-deposit')?.value) || 0;
+  const rent    = parseFloat(document.getElementById('t-rent')?.value) || 0;
+  const warn = document.getElementById('deposit-rra-warning');
+  if (!warn) return;
+  if (!deposit || !rent) { warn.style.display = 'none'; return; }
+  const fiveWeeks = Math.round((rent / 4.33) * 5 * 100) / 100;
+  const over = deposit > fiveWeeks;
+  warn.style.display = 'block';
+  warn.innerHTML = over
+    ? `<div style="background:rgba(229,62,62,0.09);border:1px solid var(--red);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--red)">
+        <strong>⚠️ RRA 2025 warning:</strong> Your deposit of £${deposit.toLocaleString()} exceeds the maximum allowed 5 weeks' rent (£${fiveWeeks.toLocaleString()} based on £${rent}/mo).
+        You must reduce the deposit or risk non-compliance. Maximum allowed: <strong>£${fiveWeeks.toLocaleString()}</strong>.
+       </div>`
+    : `<div style="background:var(--green-bg);border:1px solid rgba(0,200,150,0.2);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:var(--green-dark)">
+        ✓ Deposit is within RRA 2025 limits (max 5 weeks = £${fiveWeeks.toLocaleString()})
+       </div>`;
 }
 
 // ── MODAL: MAINTENANCE ISSUE ──
@@ -2203,17 +2378,26 @@ if (!window._pdTab) window._pdTab = {};
 
 function pgPropDetail(pid) {
   const p = P(pid); if (!p) return pgProperties();
-  const t = D.tenants.find(x => String(x.prop_id) === String(pid));
+  const allTenants = getPropertyTenants(pid);
+  const lead = getLeadTenant(pid);
+  const t = lead; // backwards compat reference
   const pc = CF(pid);
   const pm = D.maintenance.filter(m => String(m.prop_id) === String(pid) && m.status !== 'Resolved');
   const rag = calcRAG(pid);
   const ragCol = rag.rag === 'red' ? 'var(--red)' : rag.rag === 'amber' ? 'var(--amber)' : 'var(--green)';
   const activeTab = window._pdTab[pid] || 'tenant';
 
+  const tenantStatVal = allTenants.length === 0 ? 'Vacant'
+    : allTenants.length === 1 ? lead.name.split(' ')[0]
+    : `${lead.name.split(' ')[0]} +${allTenants.length - 1}`;
+  const tenantStatLbl = allTenants.length === 0 ? 'No tenant'
+    : allTenants.length === 1 ? (lead.status || 'Active')
+    : `${allTenants.length} tenants`;
+
   // Stat cards
   const stats = [
     { icon:'💷', bg:'rgba(0,200,150,0.1)', col:'var(--green-dark)', val: p.rent ? `£${p.rent.toLocaleString()}` : 'Vacant', lbl:'Monthly rent' },
-    { icon:'👤', bg:'rgba(59,111,232,0.09)', col:'var(--blue)', val: t ? t.name.split(' ')[0] : 'Vacant', lbl: t ? (t.status||'Active') : 'No tenant' },
+    { icon:'👤', bg:'rgba(59,111,232,0.09)', col:'var(--blue)', val: tenantStatVal, lbl: tenantStatLbl },
     { icon:'🛡', bg: rag.rag==='red'?'rgba(229,62,62,0.09)':rag.rag==='amber'?'rgba(217,119,6,0.09)':'rgba(0,200,150,0.1)', col:ragCol, val:`${rag.score}/100`, lbl:`Compliance: ${rag.label}` },
     { icon:'🔧', bg: pm.length ? 'rgba(229,62,62,0.09)' : 'rgba(0,200,150,0.1)', col: pm.length ? 'var(--red)' : 'var(--green-dark)', val: pm.length, lbl: pm.length ? 'Open issue' + (pm.length!==1?'s':'') : 'No open issues' },
   ];
@@ -2225,9 +2409,8 @@ function pgPropDetail(pid) {
     </div>`).join('')}
   </div>`;
 
-  // Tabs
   const tabDefs = [
-    { id:'tenant',      icon:'👤', label:'Tenant',      cnt: t ? 1 : 0 },
+    { id:'tenant',      icon:'👤', label:'Tenants',      cnt: allTenants.length },
     { id:'financials',  icon:'💷', label:'Financials',  cnt: D.rent.filter(r=>String(r.prop_id)===String(pid)).length },
     { id:'compliance',  icon:'🛡', label:'Compliance',  cnt: pc.length },
     { id:'maintenance', icon:'🔧', label:'Maintenance', cnt: D.maintenance.filter(m=>String(m.prop_id)===String(pid)).length },
@@ -2252,7 +2435,7 @@ function pgPropDetail(pid) {
         <p style="font-size:13px;color:var(--muted)">${p.city}, ${p.postcode}</p>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-        ${B(t?'Active':'Vacant')}
+        ${B(allTenants.length > 0 ? 'Active' : 'Vacant')}
         <span class="badge b-gray">${p.type||'—'}</span>
         ${p.beds?`<span class="badge b-gray">${p.beds} bed · ${p.bathrooms||1} bath</span>`:''}
         ${p.licence_type&&p.licence_type!=='None'?`<span class="badge b-amber">${p.licence_type}</span>`:''}
@@ -2278,47 +2461,110 @@ function pdSetTab(pid, tab) {
 
 function pdTabContent(pid, tab) {
   const p = P(pid);
-  const t = D.tenants.find(x => String(x.prop_id) === String(pid));
+  const allTenants = getPropertyTenants(pid);
+  const t = getLeadTenant(pid); // lead tenant used for backwards compat in financials/property tabs
   const pc = CF(pid);
   const pi = D.insurance.filter(i => String(i.prop_id) === String(pid));
 
   // ── TENANT TAB ──
   if (tab === 'tenant') {
-    const tenantCard = t ? `
-      <div class="panel" style="margin-bottom:16px">
-        <div class="ph2">
+    const allTenants = getPropertyTenants(pid);
+    const lead = getLeadTenant(pid);
+    const additionals = allTenants.filter(t => !t.is_lead && String(t.id) !== String(lead?.id));
+
+    const tenantCard = (tenant, isLead) => {
+      const depositDays = tenant.deposit_protected_date
+        ? Math.round((new Date() - new Date(tenant.deposit_protected_date)) / 864e5)
+        : null;
+      return `
+      <div class="panel" style="margin-bottom:12px;border:1px solid ${isLead ? 'rgba(217,168,0,0.3)' : 'var(--border)'}">
+        <div class="ph2" style="${isLead ? 'background:rgba(217,168,0,0.05)' : ''}">
           <div style="display:flex;align-items:center;gap:12px">
-            <div class="t-av" style="width:42px;height:42px;font-size:14px">${INI(t.name)}</div>
+            <div class="t-av" style="width:42px;height:42px;font-size:14px;${isLead ? 'background:rgba(217,168,0,0.15);color:#b8860b;border:2px solid rgba(217,168,0,0.4)' : ''}">${INI(tenant.name)}</div>
             <div>
-              <div style="font-size:15px;font-weight:600">${t.name}</div>
-              <div style="font-size:12px;color:var(--muted);margin-top:1px">${t.email||'No email'} · ${t.phone||'No phone'}</div>
+              <div style="font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px">
+                ${tenant.name}
+                ${isLead
+                  ? `<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;background:rgba(217,168,0,0.15);color:#b8860b;border:1px solid rgba(217,168,0,0.3)">⭐ Lead tenant</span>`
+                  : `<span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:100px;background:var(--off);color:var(--muted);border:1px solid var(--border)">+ Additional</span>`}
+              </div>
+              <div style="font-size:12px;color:var(--muted);margin-top:1px">${tenant.email||'No email'} · ${tenant.phone||'No phone'}</div>
             </div>
           </div>
-          <div style="display:flex;gap:6px">
-            <button class="btn btn-sm" onclick="moTenantDetail('${t.id}')">✎ Edit</button>
-            <button class="btn btn-sm btn-navy" onclick="moSection8('${pid}')">⚖️ Section 8</button>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn btn-sm" onclick="moTenantDetail('${tenant.id}')">✎ Edit</button>
+            ${isLead ? `<button class="btn btn-sm btn-navy" onclick="moSection8('${pid}')">⚖️ Section 8</button>` : ''}
+            ${!isLead ? `<button class="btn btn-sm" style="border-color:var(--blue);color:var(--blue)" onclick="setLeadTenant('${tenant.id}','${pid}')">⭐ Make lead</button>` : ''}
+            ${!isLead ? `<button class="btn btn-sm" style="border-color:var(--red);color:var(--red)" onclick="removeTenantFromProperty('${tenant.id}','${pid}')">✕ Remove</button>` : ''}
           </div>
         </div>
         <div style="padding:14px 18px">
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px">
             ${[
-              ['Tenancy start', FMS(t.start_date)],
-              ['Tenancy end', t.end_date ? FMS(t.end_date) : 'Periodic (APT)'],
-              ['Monthly rent', t.rent ? `£${t.rent.toLocaleString()}` : '—'],
-              ['Deposit', t.deposit ? `£${t.deposit.toLocaleString()}` : 'Not set'],
-              ['Deposit scheme', t.scheme || 'Not set'],
-              ['Scheme ref', t.scheme_ref || '—'],
+              ['Tenancy start', FMS(tenant.start_date)],
+              ['Tenancy end', tenant.end_date ? FMS(tenant.end_date) : 'Periodic (APT)'],
+              ['Monthly rent', tenant.rent ? `£${tenant.rent.toLocaleString()}` : '—'],
             ].map(([l,v])=>`<div class="det-f"><label>${l}</label><span>${v}</span></div>`).join('')}
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
-            ${t.email?`<a href="mailto:${t.email}" class="btn btn-sm">✉ Email</a>`:''}
-            ${t.phone?`<a href="tel:${t.phone}" class="btn btn-sm">📞 Call</a>`:''}
+            ${tenant.email?`<a href="mailto:${tenant.email}" class="btn btn-sm">✉ Email</a>`:''}
+            ${tenant.phone?`<a href="tel:${tenant.phone}" class="btn btn-sm">📞 Call</a>`:''}
             <button class="btn btn-sm" style="border-color:var(--amber);color:var(--amber)" onclick="moRRASheet()">📋 RRA Sheet</button>
-            ${t.email?`<button class="btn btn-sm" style="border-color:var(--green);color:var(--green-dark)" id="invite-btn-${t.id}" onclick="sendPortalInvite('${t.id}')">🔗 ${t.invite_used?'Resend invite':'Send portal invite'}</button>`:''}
+            ${tenant.email?`<button class="btn btn-sm" style="border-color:var(--green);color:var(--green-dark)" id="invite-btn-${tenant.id}" onclick="sendPortalInvite('${tenant.id}')">🔗 ${tenant.invite_used?'Resend invite':'Send portal invite'}</button>`:''}
           </div>
         </div>
-      </div>
+      </div>`;
+    };
 
+    // Deposit section — always shown at property level, uses lead tenant data
+    const depositSection = () => {
+      if (!lead) return '';
+      const rent = lead.rent || p.rent || 0;
+      const fiveWeeks = rent ? Math.round((rent / 4.33) * 5 * 100) / 100 : 0;
+      const deposit = lead.deposit || 0;
+      const overLimit = deposit > 0 && fiveWeeks > 0 && deposit > fiveWeeks;
+      const compliant = deposit > 0 && fiveWeeks > 0 && deposit <= fiveWeeks;
+      return `
+      <div class="panel" style="margin-bottom:16px;border:1px solid ${overLimit ? 'rgba(229,62,62,0.35)' : compliant ? 'rgba(0,200,150,0.25)' : 'var(--border)'}">
+        <div class="ph2">
+          <div><h2>🔒 Tenancy deposit</h2><p>Held in lead tenant's name · ${fiveWeeks ? `RRA 2025 max: £${fiveWeeks.toLocaleString()}` : 'Set rent to see RRA limit'}</p></div>
+          <button class="btn btn-sm" onclick="moEditDeposit('${pid}')">✎ Edit</button>
+        </div>
+        <div style="padding:14px 18px">
+          ${deposit ? `
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px">
+              ${[
+                ['Amount', `£${deposit.toLocaleString()}`],
+                ['Scheme', lead.scheme || 'Not set'],
+                ['Reference', lead.scheme_ref || '—'],
+                ['Protected', lead.deposit_protected_date ? FMS(lead.deposit_protected_date) : 'Not logged'],
+                ['30-day deadline', lead.deposit_protected_date && lead.start_date
+                  ? (() => { const d = Math.round((new Date(lead.deposit_protected_date) - new Date(lead.start_date)) / 864e5); return d <= 30 ? `<span style="color:var(--green-dark)">✓ Protected in ${d} days</span>` : `<span style="color:var(--red)">⚠ ${d} days (over 30-day limit)</span>`; })()
+                  : '—'],
+                ['RRA 2025 limit', fiveWeeks ? (compliant ? `<span style="color:var(--green-dark)">✓ Compliant</span>` : `<span style="color:var(--red)">⚠ Over limit</span>`) : '—'],
+              ].map(([l,v])=>`<div class="det-f"><label>${l}</label><span>${v}</span></div>`).join('')}
+            </div>
+            ${overLimit ? `<div style="background:rgba(229,62,62,0.08);border:1px solid var(--red);border-radius:8px;padding:9px 13px;font-size:12px;color:var(--red)">⚠️ Deposit exceeds RRA 2025 maximum of £${fiveWeeks.toLocaleString()}. Reduce to comply.</div>` : ''}
+          ` : `
+            <div style="text-align:center;padding:16px 0">
+              <div style="color:var(--muted);font-size:13px;margin-bottom:10px">No deposit recorded yet</div>
+              <button class="btn btn-sm btn-navy" onclick="moEditDeposit('${pid}')">+ Add deposit details</button>
+            </div>
+          `}
+        </div>
+      </div>`;
+    };
+
+    const tenantCard2 = allTenants.length > 0 ? `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:600;color:var(--txt)">
+          ${allTenants.length === 1 ? 'Sole tenant' : `Joint tenancy — ${allTenants.length} tenants`}
+        </div>
+        <button class="btn btn-sm btn-navy" onclick="moTenant('${pid}')">+ Add tenant</button>
+      </div>
+      ${lead ? tenantCard(lead, true) : ''}
+      ${additionals.map(t => tenantCard(t, false)).join('')}
+      ${depositSection()}
       <div class="panel" style="margin-bottom:16px">
         <div class="ph2"><div><h2>⚡ Quick actions</h2><p>Legal documents for this tenancy</p></div></div>
         <div style="padding:10px 14px">
@@ -2340,28 +2586,25 @@ function pdTabContent(pid, tab) {
           </div>
         </div>
       </div>
-
       <div class="panel" style="margin-bottom:16px">
-        <div class="ph2"><div><h2>✉ Email log</h2><p>Documents sent to this tenant</p></div><button class="btn btn-sm" onclick="nav('templates')">+ Send document</button></div>
+        <div class="ph2"><div><h2>✉ Email log</h2><p>Documents sent to this tenancy</p></div><button class="btn btn-sm" onclick="nav('templates')">+ Send document</button></div>
         <div style="padding:14px 18px">${propEmailLogHtml(pid)}</div>
       </div>
-
       <div class="panel" style="margin-bottom:16px">
         <div class="ph2"><div><h2>✅ Tenancy start guide</h2><p>Checklist + document kit</p></div><button class="btn btn-sm btn-navy" id="ob-kit-btn-${pid}" onclick="sendOnboardingKit('${pid}')">📦 Send Kit + Portal</button></div>
         <div style="padding:14px 18px"><div id="cb-ob-${pid}"><div style="color:var(--muted);font-size:13px">Loading…</div></div></div>
       </div>
-
       <div class="panel">
-        <div class="ph2"><div><h2>📋 Tenancy end guide</h2><p>Offboarding checklist</p></div>${t && (t.invite_token || t.invite_used) ? `<button class="btn btn-sm" style="border-color:var(--red);color:var(--red)" id="revoke-btn-${t.id}" onclick="revokePortalAccess('${t.id}')">🔒 Revoke portal access</button>` : ''}</div>
+        <div class="ph2"><div><h2>📋 Tenancy end guide</h2><p>Offboarding checklist</p></div>${lead && (lead.invite_token || lead.invite_used) ? `<button class="btn btn-sm" style="border-color:var(--red);color:var(--red)" id="revoke-btn-${lead.id}" onclick="revokePortalAccess('${lead.id}')">🔒 Revoke portal access</button>` : ''}</div>
         <div style="padding:14px 18px"><div id="cb-db-${pid}"><div style="color:var(--muted);font-size:13px">Loading…</div></div></div>
-      </div>` 
+      </div>`
     : `<div class="panel"><div style="padding:40px;text-align:center">
         <div style="font-size:32px;margin-bottom:10px">👤</div>
         <div style="font-size:14px;font-weight:500;margin-bottom:4px">No tenant linked</div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Add a tenant to this property to track rent, generate notices and manage the tenancy.</div>
         <button class="btn btn-navy" onclick="moTenant('${pid}')">+ Add tenant</button>
       </div></div>`;
-    return tenantCard;
+    return tenantCard2;
   }
 
   // ── FINANCIALS TAB ──
@@ -5805,6 +6048,7 @@ async function saveProfile() {
 
   const name     = document.getElementById('pf-name')?.value.trim();
   const phone    = document.getElementById('pf-phone')?.value.trim();
+  const email    = document.getElementById('pf-email')?.value.trim();
   const addr1    = document.getElementById('pf-addr1')?.value.trim();
   const addr2    = document.getElementById('pf-addr2')?.value.trim();
   const city     = document.getElementById('pf-city')?.value.trim();
@@ -5813,7 +6057,8 @@ async function saveProfile() {
   const payload = {
     user_id: currentUser.id,
     display_name: name,
-    phone, address_line1: addr1, address_line2: addr2, city, postcode,
+    phone, contact_email: email || null,
+    address_line1: addr1, address_line2: addr2, city, postcode,
     updated_at: new Date().toISOString()
   };
 
@@ -5824,6 +6069,7 @@ async function saveProfile() {
     return;
   }
   _profileData = { ..._profileData, ...payload };
+  localStorage.setItem('rsa_profile_saved', '1');
   // Update sidebar username
   if (name) document.getElementById('sb-username').textContent = name.split(' ')[0];
   await logAudit('UPDATE_PROFILE', 'profiles', currentUser.id, 'Profile updated');
@@ -5854,8 +6100,13 @@ function pgSettings() {
 
       ${section('👤','Profile','Your details appear on legal documents like Section 8 notices',`
         <div class="fg-row">
-          <div class="fg"><label>Full name</label><input type="text" id="pf-name" value="${pd.display_name||''}" placeholder="e.g. Saurabh Dhawan"></div>
+          <div class="fg"><label>Full name</label><input type="text" id="pf-name" value="${pd.display_name||''}" placeholder="e.g. James Smith"></div>
           <div class="fg"><label>Phone</label><input type="tel" id="pf-phone" value="${pd.phone||''}" placeholder="07…"></div>
+        </div>
+        <div class="fg">
+          <label>Contact email for correspondence</label>
+          <input type="email" id="pf-email" value="${pd.contact_email||email}" placeholder="e.g. james@example.com">
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">Used on documents and tenant emails. Defaults to your login email if not changed.</div>
         </div>
         <div class="fg"><label>Address line 1</label><input type="text" id="pf-addr1" value="${pd.address_line1||''}" placeholder="e.g. 42 Oak Street"></div>
         <div class="fg"><label>Address line 2 (optional)</label><input type="text" id="pf-addr2" value="${pd.address_line2||''}" placeholder="Flat, suite, etc."></div>
@@ -6243,31 +6494,40 @@ function toggleTheme() {
 
 // ── PROFILE SETUP (onboarding step 2) ──
 function openProfileSetup() {
-  // Pre-fill if already have data
+  // Only pre-fill if user has previously explicitly saved their profile
   const pd = _profileData || {};
-  const nameEl = document.getElementById('ps-name');
+  const profileWasSaved = !!localStorage.getItem('rsa_profile_saved');
+  const nameEl  = document.getElementById('ps-name');
   const phoneEl = document.getElementById('ps-phone');
-  if (nameEl && pd.display_name) nameEl.value = pd.display_name;
-  if (phoneEl && pd.phone) phoneEl.value = pd.phone;
+  const emailEl = document.getElementById('ps-email');
+  // Pre-fill only if they've saved before — never auto-fill from OAuth metadata
+  if (profileWasSaved) {
+    if (nameEl  && pd.display_name) nameEl.value  = pd.display_name;
+    if (phoneEl && pd.phone)        phoneEl.value = pd.phone;
+  }
+  // Always default email to login email (editable)
+  if (emailEl) emailEl.value = pd.contact_email || currentUser?.email || '';
   document.getElementById('profile-setup-modal').style.display = 'flex';
 }
 async function saveProfileSetup() {
-  const name = document.getElementById('ps-name')?.value.trim();
+  const name  = document.getElementById('ps-name')?.value.trim();
   const phone = document.getElementById('ps-phone')?.value.trim();
+  const email = document.getElementById('ps-email')?.value.trim();
   if (!name) { toast('Please enter your full name', true); return; }
   const payload = {
     user_id: currentUser.id,
     display_name: name,
     phone: phone || null,
+    contact_email: email || currentUser.email || null,
     updated_at: new Date().toISOString()
   };
   await sb.from('profiles').upsert(payload, { onConflict: 'user_id' });
   _profileData = { ..._profileData, ...payload };
+  localStorage.setItem('rsa_profile_saved', '1');
   // Update sidebar with real name
   document.getElementById('sb-username').textContent = name.split(' ')[0];
   document.getElementById('th-av').textContent = name.slice(0,2).toUpperCase();
   document.getElementById('profile-setup-modal').style.display = 'none';
-  const size = localStorage.getItem('rsa_portfolio_size');
   toast(`✓ Welcome, ${name.split(' ')[0]}! Now let's add your first property.`);
   setTimeout(() => moAddProp(), 600);
 }
@@ -6457,10 +6717,15 @@ initApp();
   <div style="background:var(--white);border-radius:16px;padding:32px 28px;width:100%;max-width:460px;box-shadow:0 24px 64px rgba(11,30,61,0.25)">
     <div style="font-size:32px;text-align:center;margin-bottom:10px">👤</div>
     <h2 style="font-size:18px;font-weight:700;color:var(--txt);margin-bottom:4px;text-align:center">Set up your landlord profile</h2>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:20px;text-align:center">Your name and phone appear on legal documents — takes 30 seconds</p>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:20px;text-align:center">Your details appear on legal documents — Section 8 notices, tenancy agreements and certificates</p>
     <div class="fg" style="margin-bottom:12px">
-      <label style="font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px">Full name *</label>
-      <input type="text" id="ps-name" placeholder="e.g. Saurabh Dhawan" style="width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--off);color:var(--txt);font-family:var(--font);font-size:13px;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--green)'" onblur="this.style.borderColor='var(--border)'">
+      <label style="font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px">Full name <span style="color:var(--red)">*</span></label>
+      <input type="text" id="ps-name" placeholder="e.g. James Smith" style="width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--off);color:var(--txt);font-family:var(--font);font-size:13px;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--green)'" onblur="this.style.borderColor='var(--border)'">
+    </div>
+    <div class="fg" style="margin-bottom:12px">
+      <label style="font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px">Contact email for correspondence</label>
+      <input type="email" id="ps-email" placeholder="e.g. james@example.com" style="width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--off);color:var(--txt);font-family:var(--font);font-size:13px;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--green)'" onblur="this.style.borderColor='var(--border)'">
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Pre-filled from your login — change if you use a different email for tenant correspondence</div>
     </div>
     <div class="fg" style="margin-bottom:20px">
       <label style="font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px">Phone number</label>
