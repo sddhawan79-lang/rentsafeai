@@ -43,9 +43,13 @@
 [data-theme="dark"] tr:hover td{background:rgba(255,255,255,0.03)}
 [data-theme="dark"] .fg input,[data-theme="dark"] .fg select,[data-theme="dark"] .fg textarea{background:var(--off);border-color:var(--border);color:var(--txt)}
 [data-theme="dark"] .fg input:focus,[data-theme="dark"] .fg select:focus,[data-theme="dark"] .fg textarea:focus{border-color:var(--green)}
-[data-theme="dark"] .chat-bar,[data-theme="dark"] .chat-disc{background:var(--white);border-color:var(--border)}
+[data-theme="dark"] .chat-bar,[data-theme="dark"] .chat-disc,[data-theme="dark"] .chat-prompts{background:var(--white);border-color:var(--border)}
 [data-theme="dark"] .chat-in{background:var(--off);border-color:var(--border);color:var(--txt)}
 [data-theme="dark"] .msg.ai{background:var(--white);border-color:var(--border);color:var(--txt)}
+[data-theme="dark"] .typing-dots{background:var(--white);border-color:var(--border)}
+[data-theme="dark"] .msg-act-btn{background:var(--white);border-color:var(--border);color:var(--txt)}
+[data-theme="dark"] .msg-act-btn:hover{background:var(--navy);color:#fff}
+[data-theme="dark"] .chat-chip{background:var(--off);border-color:var(--border);color:var(--txt)}
 [data-theme="dark"] .pc{background:var(--white);border-color:var(--border)}
 [data-theme="dark"] .prop-menu{background:var(--white);border-color:var(--border)}
 [data-theme="dark"] .prop-menu-item{color:var(--txt)}
@@ -161,16 +165,35 @@ tr:hover td{background:rgba(246,248,251,.8)}
 .sf{display:flex;align-items:center;gap:4px;white-space:nowrap}
 .sf-btn{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--white);color:var(--muted);font-family:var(--font)}
 .sf-on{background:var(--navy);color:#fff;border-color:var(--navy)}
-.chat-outer{display:flex;flex-direction:column;height:calc(100vh - 54px)}
-.chat-msgs{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:12px}
-.msg{max-width:70%;padding:10px 14px;border-radius:10px;font-size:13.5px;line-height:1.6}
-.msg.ai{background:var(--white);border:1px solid var(--border);color:#3D5166;align-self:flex-start;border-radius:3px 10px 10px 10px}
-.msg.ai .mlbl{font-size:10px;font-weight:600;color:var(--green-dark);margin-bottom:5px;letter-spacing:.5px;text-transform:uppercase}
-.msg.user{background:var(--navy);color:#fff;align-self:flex-end;border-radius:10px 3px 10px 10px}
-.chat-bar{padding:14px 24px;border-top:1px solid var(--border);background:var(--white);display:flex;gap:10px}
-.chat-in{flex:1;padding:9px 13px;border-radius:8px;border:1px solid var(--border);font-family:var(--font);font-size:13.5px;outline:none;color:var(--txt)}
-.chat-in:focus{border-color:var(--navy)}
-.chat-disc{font-size:10px;color:var(--muted);text-align:center;padding:6px 24px;background:var(--off);border-top:1px solid var(--border)}
+.chat-outer{display:flex;flex-direction:column;height:calc(100vh - 54px);background:var(--off)}
+.chat-msgs{flex:1;overflow-y:auto;padding:20px 24px 12px;display:flex;flex-direction:column;gap:14px}
+.msg-wrap{display:flex;flex-direction:column;max-width:80%}
+.msg-wrap.user{align-self:flex-end;align-items:flex-end}
+.msg-wrap.ai{align-self:flex-start;align-items:flex-start}
+.msg{padding:11px 15px;border-radius:12px;font-size:13.5px;line-height:1.65}
+.msg.ai{background:var(--white);border:1px solid var(--border);color:var(--txt);border-radius:4px 12px 12px 12px;box-shadow:0 1px 5px rgba(11,30,61,0.07)}
+.msg.user{background:var(--navy);color:#fff;border-radius:12px 4px 12px 12px}
+.msg-meta{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+.msg-lbl{font-size:10px;font-weight:700;color:var(--green-dark);letter-spacing:.6px;text-transform:uppercase}
+.msg-time{font-size:10px;color:var(--muted)}
+.msg-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.msg-act-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:7px;border:1px solid var(--border);background:var(--white);font-family:var(--font);font-size:12px;font-weight:500;color:var(--txt);cursor:pointer;transition:all .15s}
+.msg-act-btn:hover{background:var(--navy);color:#fff;border-color:var(--navy)}
+.typing-wrap{align-self:flex-start}
+.typing-dots{background:var(--white);border:1px solid var(--border);border-radius:4px 12px 12px 12px;padding:12px 18px;display:inline-flex;gap:5px;align-items:center;box-shadow:0 1px 5px rgba(11,30,61,0.07)}
+.typing-dots span{width:7px;height:7px;background:var(--muted);border-radius:50%;animation:tdot 1.3s ease-in-out infinite}
+.typing-dots span:nth-child(2){animation-delay:.22s}
+.typing-dots span:nth-child(3){animation-delay:.44s}
+@keyframes tdot{0%,80%,100%{transform:scale(0.65);opacity:.35}40%{transform:scale(1);opacity:1}}
+.chat-prompts{padding:10px 24px 8px;background:var(--white);border-top:1px solid var(--border)}
+.chat-prompts-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:7px}
+.chat-prompts-row{display:flex;flex-wrap:wrap;gap:5px}
+.chat-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:100px;border:1px solid var(--border);background:var(--off);font-family:var(--font);font-size:12px;color:var(--txt);cursor:pointer;transition:all .15s;white-space:nowrap}
+.chat-chip:hover{border-color:var(--navy);color:var(--navy);background:var(--white)}
+.chat-bar{padding:12px 24px;border-top:1px solid var(--border);background:var(--white);display:flex;gap:10px;align-items:flex-end}
+.chat-in{flex:1;padding:9px 13px;border-radius:8px;border:1px solid var(--border);font-family:var(--font);font-size:13.5px;outline:none;color:var(--txt);background:var(--off);resize:none;min-height:40px;max-height:100px;line-height:1.5;overflow-y:auto}
+.chat-in:focus{border-color:var(--navy);background:var(--white)}
+.chat-disc{font-size:10px;color:var(--muted);text-align:center;padding:5px 24px 6px;background:var(--white)}
 .cal-nav{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border)}
 .cal-nav h3{font-size:14px;font-weight:600}
 .cal-wrap{padding:14px 18px}
@@ -2402,7 +2425,7 @@ function quickAskDash(question) {
   nav('assistant');
   setTimeout(() => {
     const input = document.getElementById('ci2');
-    if (input) { input.value = question; sendChat(); }
+    if (input) { input.value = question; autoGrow(input); sendChat(); }
   }, 300);
 }
 
@@ -4110,85 +4133,205 @@ function buildAIContext() {
   return lines.join('\n');
 }
 
+// ── HELPERS: markdown-lite renderer & action buttons ──
+function renderMd(text){
+  return String(text)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g,'<em>$1</em>')
+    .replace(/`([^`]+)`/g,'<code style="background:var(--off);padding:1px 5px;border-radius:4px;font-size:12.5px;font-family:monospace">$1</code>')
+    .replace(/^### (.+)$/gm,'<div style="font-size:13px;font-weight:700;color:var(--txt);margin:9px 0 3px">$1</div>')
+    .replace(/^## (.+)$/gm,'<div style="font-size:14px;font-weight:700;color:var(--txt);margin:10px 0 4px">$1</div>')
+    .replace(/^- (.+)$/gm,'<div style="display:flex;gap:7px;margin:2px 0"><span style="color:var(--green);font-weight:700;flex-shrink:0">•</span><span>$1</span></div>')
+    .replace(/^\d+\. (.+)$/gm,'<div style="display:flex;gap:7px;margin:2px 0"><span style="color:var(--navy);font-weight:600;min-width:14px;flex-shrink:0">·</span><span>$1</span></div>')
+    .replace(/\n\n/g,'<div style="height:7px"></div>')
+    .replace(/\n/g,'<br>');
+}
+
+function getChatActionBtns(text){
+  const t=text.toLowerCase();
+  const btns=[];
+  if(/compli|certif|epc|eicr|gas safe|expir|hmm|s8|section 8/.test(t)) btns.push({l:'📋 View Compliance',f:"nav('compliance')"});
+  if(/mainten|repair|job|awaab|stage/.test(t)) btns.push({l:'🔧 Maintenance',f:"nav('maintenance')"});
+  if(/tenant|arrear|rent due|portal/.test(t)) btns.push({l:'👥 Tenants',f:"nav('properties')"});
+  if(/financ|income|cost|profit|p&l/.test(t)) btns.push({l:'💷 Finance',f:"nav('financials')"});
+  if(/section 21|s21|notice to quit|evict/.test(t)) btns.push({l:'📄 Draft S21',f:"nav('templates')"});
+  return btns.slice(0,3).map(b=>`<button class="msg-act-btn" onclick="${b.f}">${b.l}</button>`).join('');
+}
+
+function fmtChatTime(d){return d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});}
+
+function autoGrow(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,100)+'px';}
+
+function appendChatMsg(role, text){
+  const cm=document.getElementById('cm'); if(!cm) return null;
+  const wrap=document.createElement('div');
+  wrap.className=`msg-wrap ${role}`;
+  if(role==='ai'){
+    const actionBtns=getChatActionBtns(text);
+    wrap.innerHTML=`<div class="msg-meta"><span class="msg-lbl">RentSafe AI</span><span class="msg-time">${fmtChatTime(new Date())}</span></div><div class="msg ai">${renderMd(text)}</div>${actionBtns?`<div class="msg-actions">${actionBtns}</div>`:''}`;
+  } else {
+    wrap.innerHTML=`<div class="msg user">${String(text).replace(/</g,'&lt;')}</div><div style="font-size:10px;color:var(--muted);margin-top:3px;text-align:right">${fmtChatTime(new Date())}</div>`;
+  }
+  cm.appendChild(wrap);
+  cm.scrollTop=cm.scrollHeight;
+  return wrap;
+}
+
+function showTypingDots(){
+  const cm=document.getElementById('cm'); if(!cm) return null;
+  const el=document.createElement('div');
+  el.className='typing-wrap'; el.id='typing-ind';
+  el.innerHTML=`<div class="msg-meta"><span class="msg-lbl">RentSafe AI</span></div><div class="typing-dots"><span></span><span></span><span></span></div>`;
+  cm.appendChild(el);
+  cm.scrollTop=cm.scrollHeight;
+  return el;
+}
+
+function clearChat(){
+  D.chat=[{role:'ai',text:"Hi! I'm your AI assistant. I have full visibility of your portfolio — properties, certificates, tenants, maintenance jobs and compliance status. Ask me anything, or tap a quick question below."}];
+  nav('assistant');
+}
+
 // ── PAGE: AI ASSISTANT ──
 function pgAssistant(){
-  const chips = [
-    {icon:'🚨', q:'What needs my urgent attention right now?'},
-    {icon:'📋', q:'Give me a full compliance check across all properties'},
-    {icon:'🔧', q:'Show me all open maintenance jobs'},
-    {icon:'💷', q:'What is my total rent income and costs?'},
-    {icon:'⚖️', q:'Do I need to serve any notices to my tenants?'},
-    {icon:'📅', q:"What certificates or renewals are due in the next 60 days?"},
-    {icon:'🏠', q:'Which of my properties is at highest risk right now?'},
-    {icon:'⚠️', q:'Are there any Awaab\'s Law jobs I need to act on?'}
+  const chips=[
+    {icon:'🚨',q:'What needs my urgent attention right now?'},
+    {icon:'📋',q:'Give me a full compliance check across all properties'},
+    {icon:'🔧',q:'Show me all open maintenance jobs'},
+    {icon:'💷',q:'What is my total rent income and costs?'},
+    {icon:'⚖️',q:'Do I need to serve any notices to my tenants?'},
+    {icon:'📅',q:'What certificates or renewals are due in the next 60 days?'},
+    {icon:'🏠',q:'Which of my properties is at highest risk right now?'},
+    {icon:'⚠️',q:"Are there any Awaab's Law jobs I need to act on?"},
+    {icon:'📊',q:'Give me a portfolio health summary'},
+    {icon:'🔑',q:'Which tenants have not set up their portal?'},
   ];
-  const chipsHtml = chips.map(c =>
-    `<button onclick="quickAsk('${c.q.replace(/'/g,"\\'")}')" style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:100px;border:1px solid var(--border);background:var(--white);font-family:var(--font);font-size:12px;color:var(--txt);cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0" onmouseenter="this.style.borderColor='var(--navy)';this.style.color='var(--navy)';this.style.background='var(--off)'" onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--txt)';this.style.background='var(--white)'">${c.icon} ${c.q.length > 38 ? c.q.slice(0,36)+'…' : c.q}</button>`
-  ).join('');
+  const chipsHtml=chips.map(c=>`<button class="chat-chip" onclick="quickAsk('${c.q.replace(/'/g,"\\'")}')"> ${c.icon} ${c.q.length>40?c.q.slice(0,38)+'…':c.q}</button>`).join('');
 
-  return`<div class="topbar"><span class="tb-title">AI Assistant</span><div class="tb-right"><span style="font-size:11px;color:var(--muted)">Knows your full portfolio in real time</span></div></div>
-  <div class="chat-outer">
-    <div class="chat-msgs" id="cm">
-      ${D.chat.map(m=>m.role==='ai'
-        ?`<div class="msg ai"><div class="mlbl">Rent Safe AI</div>${m.text}</div>`
-        :`<div class="msg user">${m.text}</div>`
-      ).join('')}
+  const msgsHtml=D.chat.map(m=>{
+    if(m.role==='ai'){
+      const ab=getChatActionBtns(m.text);
+      return `<div class="msg-wrap ai"><div class="msg-meta"><span class="msg-lbl">RentSafe AI</span></div><div class="msg ai">${renderMd(m.text)}</div>${ab?`<div class="msg-actions">${ab}</div>`:''}</div>`;
+    } else {
+      return `<div class="msg-wrap user"><div class="msg user">${String(m.text).replace(/</g,'&lt;')}</div></div>`;
+    }
+  }).join('');
+
+  return`<div class="topbar">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="tb-title">AI Assistant</span>
+      <span style="font-size:10px;font-weight:600;padding:2px 9px;border-radius:100px;background:var(--green-bg);color:var(--green-dark);letter-spacing:.3px">Powered by Claude</span>
     </div>
-    <div style="padding:10px 24px 8px;background:var(--white);border-top:1px solid var(--border)">
-      <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">Quick questions</div>
-      <div style="display:flex;flex-wrap:wrap;gap:5px">${chipsHtml}</div>
+    <div class="tb-right">
+      <span style="font-size:11px;color:var(--muted)">Knows your full portfolio</span>
+      <button class="btn btn-sm" onclick="clearChat()" style="margin-left:6px">🗑 Clear</button>
+    </div>
+  </div>
+  <div class="chat-outer">
+    <div class="chat-msgs" id="cm">${msgsHtml}</div>
+    <div class="chat-prompts">
+      <div class="chat-prompts-lbl">Quick questions</div>
+      <div class="chat-prompts-row">${chipsHtml}</div>
     </div>
     <div class="chat-bar">
-      <input class="chat-in" id="ci2" placeholder="Ask about your portfolio, compliance, tenants, finances…" onkeydown="if(event.key==='Enter')sendChat()">
-      <button class="btn btn-navy" onclick="sendChat()">Send</button>
+      <textarea class="chat-in" id="ci2" rows="1" placeholder="Ask about your portfolio, compliance, tenants, finances… (Enter to send)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}" oninput="autoGrow(this)"></textarea>
+      <button class="btn btn-navy" onclick="sendChat()" style="flex-shrink:0;align-self:flex-end;padding:9px 16px">Send ↵</button>
     </div>
-    <div class="chat-disc">Answers are based on your logged data. Verify with a qualified solicitor before legal proceedings.</div>
+    <div class="chat-disc">Answers are based on your logged data. Always verify with a qualified solicitor before legal proceedings.</div>
   </div>`;
 }
 
-function quickAsk(question) {
-  const input = document.getElementById('ci2');
-  if (input) { input.value = question; sendChat(); }
+function quickAsk(question){
+  const input=document.getElementById('ci2');
+  if(input){input.value=question;autoGrow(input);sendChat();}
 }
 
 async function sendChat(){
-  const i=document.getElementById('ci2'),q=i.value.trim();if(!q)return;i.value='';
-  D.chat.push({role:'user',text:q});
-  const cm=document.getElementById('cm');
-  cm.innerHTML+=`<div class="msg user">${q}</div><div class="msg ai" id="at"><div class="mlbl">Rent Safe AI</div><span style="color:var(--muted)">Thinking…</span></div>`;
-  cm.scrollTop=cm.scrollHeight;
+  const i=document.getElementById('ci2'),q=(i?i.value:'').trim();
+  if(!q)return;
+  if(i){i.value='';i.style.height='auto';}
 
-  const context = buildAIContext();
-  const systemPrompt = `You are a smart, friendly AI assistant built into RentSafe AI — a UK landlord compliance platform. You have access to this landlord's live portfolio data shown below.
+  D.chat.push({role:'user',text:q});
+  appendChatMsg('user',q);
+  const typingEl=showTypingDots();
+  const cm=document.getElementById('cm');
+
+  const context=buildAIContext();
+  const systemPrompt=`You are a smart, friendly AI assistant built into RentSafe AI — a UK landlord compliance platform. You have access to this landlord's live portfolio data shown below.
 
 RULES:
 - Answer using the landlord's actual data. Be specific: name properties, tenants, cert dates, job stages.
 - If asked about something not in the data, say so clearly and suggest what to log.
 - Keep answers concise (under 200 words) unless detail is specifically needed.
-- Use plain English. Avoid legal jargon unless the landlord asks for it.
-- When you cite a cert, job or tenant, reference the specific record by property name.
+- Use **bold** for key figures or alerts. Use bullet points (- ) for lists. Use plain English.
 - You know UK landlord law: RRA 2025, Section 8/21, Awaab's Law, EPC, EICR, gas safety, deposits, MTD.
 - Never invent data. Only use what is in the context below.
-- If a compliance issue is serious (expired cert, Awaab job, overdue notice), flag it clearly.
+- Flag serious issues (expired cert, Awaab job, overdue notice) with ⚠️.
 
 ${context}`;
 
+  const history=D.chat.filter(m=>m.role!=='system').slice(-20).map(m=>({role:m.role==='ai'?'assistant':'user',content:m.text}));
+
   try{
-    const r=await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor',{
+    const res=await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-5',
-        max_tokens:800,
-        system:systemPrompt,
-        messages:D.chat.filter(m=>m.role!=='system').map(m=>({role:m.role==='ai'?'assistant':'user',content:m.text}))
-      })
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:800,stream:true,system:systemPrompt,messages:history})
     });
-    const d=await r.json(),reply=d.content?.[0]?.text||'No response.';
-    D.chat.push({role:'ai',text:reply});
-    document.getElementById('at').innerHTML=`<div class="mlbl">Rent Safe AI</div>${reply}`;
-    cm.scrollTop=cm.scrollHeight;
+
+    const ct=(res.headers.get('content-type')||'').toLowerCase();
+    let reply='';
+
+    if(ct.includes('event-stream')||ct.includes('text/plain')){
+      // Real SSE streaming
+      const reader=res.body.getReader(),dec=new TextDecoder();
+      let msgEl=null,wrapEl=null;
+      while(true){
+        const {done,value}=await reader.read();
+        if(done)break;
+        const lines=dec.decode(value,{stream:true}).split('\n');
+        for(const line of lines){
+          if(!line.startsWith('data:'))continue;
+          const data=line.slice(5).trim();
+          if(data==='[DONE]')break;
+          try{
+            const evt=JSON.parse(data);
+            const delta=(evt.delta?.type==='text_delta'&&evt.delta.text)||(typeof evt.delta?.text==='string'&&evt.delta.text)||'';
+            if(delta){
+              reply+=delta;
+              if(!msgEl){
+                if(typingEl)typingEl.remove();
+                wrapEl=document.createElement('div');
+                wrapEl.className='msg-wrap ai';
+                wrapEl.innerHTML=`<div class="msg-meta"><span class="msg-lbl">RentSafe AI</span><span class="msg-time">${fmtChatTime(new Date())}</span></div><div class="msg ai" id="stream-msg"></div>`;
+                cm.appendChild(wrapEl);
+                msgEl=document.getElementById('stream-msg');
+              }
+              msgEl.innerHTML=renderMd(reply);
+              cm.scrollTop=cm.scrollHeight;
+            }
+          }catch{}
+        }
+      }
+      if(msgEl&&reply){
+        const ab=getChatActionBtns(reply);
+        if(ab){const d=document.createElement('div');d.className='msg-actions';d.innerHTML=ab;wrapEl.appendChild(d);}
+      }
+    } else {
+      // Non-streaming JSON fallback
+      const d=await res.json();
+      reply=d.content?.[0]?.text||'No response.';
+      if(typingEl)typingEl.remove();
+      appendChatMsg('ai',reply);
+    }
+
+    D.chat.push({role:'ai',text:reply||'No response.'});
+    if(!reply){if(typingEl)typingEl.remove();appendChatMsg('ai','No response received. Please try again.');}
+
   }catch(e){
-    document.getElementById('at').innerHTML=`<div class="mlbl">Rent Safe AI</div>Connection error. Please try again.`;
+    if(typingEl)typingEl.remove();
+    appendChatMsg('ai','⚠️ Connection error. Please check your connection and try again.');
+    console.error('Chat error:',e);
   }
 }
 
