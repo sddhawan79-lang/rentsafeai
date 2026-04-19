@@ -203,60 +203,18 @@ html,body{min-height:100%;font-family:var(--font);color:var(--txt);background:va
     <div class="error-card">
       <div class="error-icon">🔒</div>
       <div class="error-title" id="error-title">Link not valid</div>
-      <div class="error-msg" id="error-msg">This invite link is invalid or has already been used. Please contact your landlord for a new link.</div>
-      <button class="btn btn-primary" onclick="showScreen('login')">Go to login</button>
+      <div class="error-msg" id="error-msg">This portal link is invalid or has been revoked. Please contact your landlord for a new link.</div>
     </div>
   </div>
 </div>
 
-<!-- ── SCREEN: SET PASSWORD (INVITE) ── -->
-<div id="screen-invite" style="display:none">
-  <div class="auth-wrap">
-    <div class="auth-card">
-      <div class="auth-logo">Rent<span>Safe</span> AI</div>
-      <div class="auth-badge">🏠 Tenant Portal</div>
-      <div class="auth-title">Welcome, <span id="invite-name">there</span>!</div>
-      <div class="auth-sub">Your landlord has invited you to the tenant portal. Set a password to access your account — you'll use this to log in going forward.</div>
-      <div class="fg">
-        <label>Your email</label>
-        <input type="email" id="invite-email" disabled placeholder="">
-      </div>
-      <div class="fg">
-        <label>Choose a password</label>
-        <input type="password" id="invite-password" placeholder="At least 8 characters" onkeydown="if(event.key==='Enter')setPassword()">
-      </div>
-      <div class="fg">
-        <label>Confirm password</label>
-        <input type="password" id="invite-confirm" placeholder="Repeat your password" onkeydown="if(event.key==='Enter')setPassword()">
-      </div>
-      <button class="btn btn-primary" id="invite-btn" onclick="setPassword()">Set password &amp; enter portal</button>
-      <div class="auth-footer" style="margin-top:16px">
-        <span style="font-size:11px;color:var(--muted)">🔒 Your data is encrypted and stored securely</span>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ── SCREEN: LOGIN ── -->
-<div id="screen-login" style="display:none">
-  <div class="auth-wrap">
-    <div class="auth-card">
-      <div class="auth-logo">Rent<span>Safe</span> AI</div>
-      <div class="auth-badge">🏠 Tenant Portal</div>
-      <div class="auth-title">Log in to your portal</div>
-      <div class="auth-sub">Report maintenance issues, track progress, and stay updated on your home.</div>
-      <div class="fg">
-        <label>Email address</label>
-        <input type="email" id="login-email" placeholder="your@email.com" onkeydown="if(event.key==='Enter')login()">
-      </div>
-      <div class="fg">
-        <label>Password</label>
-        <input type="password" id="login-password" placeholder="Your password" onkeydown="if(event.key==='Enter')login()">
-      </div>
-      <button class="btn btn-primary" id="login-btn" onclick="login()">Log in</button>
-      <div class="auth-footer">
-        Don't have a login? Ask your landlord to send you an invite link.
-      </div>
+<!-- ── SCREEN: LOGGED OUT ── -->
+<div id="screen-loggedout" style="display:none">
+  <div class="error-wrap">
+    <div class="error-card">
+      <div class="error-icon">👋</div>
+      <div class="error-title">You've logged out</div>
+      <div class="error-msg">Use the link your landlord sent you to access your portal again. Links are unique to you and work every time.</div>
     </div>
   </div>
 </div>
@@ -404,7 +362,7 @@ function toast(msg, err=false){
 
 // ── SCREEN SWITCHER ──
 function showScreen(name){
-  ['loading','error','invite','login','portal'].forEach(s=>{
+  ['loading','error','loggedout','portal'].forEach(s=>{
     const el=document.getElementById('screen-'+s);
     if(el) el.style.display = s===name ? 'block' : 'none';
   });
@@ -423,170 +381,60 @@ function FMTShort(d){
 // ── INIT ──
 async function init(){
   const params = new URLSearchParams(window.location.search);
-  const token = params.get('token');
+  const urlToken = params.get('token');
 
-  if(token){
-    await handleInviteToken(token);
+  if(urlToken){
+    // Clean token from URL so it's not visible if they bookmark the page
+    window.history.replaceState({}, '', window.location.pathname);
+    await handleToken(urlToken);
     return;
   }
 
-  // Check existing session
-  const { data:{ session } } = await sb.auth.getSession();
-  if(session){
-    await loadTenantPortal(session.user);
-  } else {
-    showScreen('login');
+  // No URL token — check localStorage for a token saved from a previous visit
+  const savedToken = localStorage.getItem('rsa_tenant_token');
+  if(savedToken){
+    await handleToken(savedToken);
+    return;
   }
+
+  // Nothing — show error
+  showScreen('error');
+  document.getElementById('error-title').textContent = 'No portal access';
+  document.getElementById('error-msg').textContent = 'Please use the link your landlord sent you to access your portal.';
 }
 
-// ── INVITE FLOW ──
-async function handleInviteToken(token){
+// ── TOKEN HANDLER ──
+async function handleToken(token){
   const { data:tenant, error } = await sb
     .from('tenants')
     .select('*')
     .eq('invite_token', token)
-    .eq('invite_used', false)
     .maybeSingle();
 
   if(error || !tenant){
-    document.getElementById('error-title').textContent = 'Invite link not valid';
-    document.getElementById('error-msg').textContent = 'This invite link is invalid or has already been used. Please contact your landlord for a new invite.';
+    localStorage.removeItem('rsa_tenant_token');
     showScreen('error');
+    document.getElementById('error-title').textContent = 'Link not valid';
+    document.getElementById('error-msg').textContent = 'This portal link is invalid or has been revoked. Contact your landlord for a new one.';
     return;
   }
 
-  // Check status
-  if(tenant.status === 'revoked'){
+  if(tenant.status === 'revoked' || tenant.status === 'Former'){
+    localStorage.removeItem('rsa_tenant_token');
+    showScreen('error');
     document.getElementById('error-title').textContent = 'Access revoked';
     document.getElementById('error-msg').textContent = 'Your portal access has been revoked. Please contact your landlord.';
-    showScreen('error');
     return;
   }
 
-  // Show set password screen
-  document.getElementById('invite-name').textContent = tenant.name ? tenant.name.split(' ')[0] : 'there';
-  document.getElementById('invite-email').value = tenant.email || '';
-  window._inviteToken = token;
-  window._inviteTenant = tenant;
-  showScreen('invite');
-}
-
-async function setPassword(){
-  const password = document.getElementById('invite-password').value;
-  const confirm = document.getElementById('invite-confirm').value;
-  const btn = document.getElementById('invite-btn');
-
-  if(password.length < 8){
-    toast('Password must be at least 8 characters', true);
-    return;
-  }
-  if(password !== confirm){
-    toast('Passwords do not match', true);
-    return;
-  }
-
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spin"></span> Setting up your account…';
-
-  const tenant = window._inviteTenant;
-
-  // Try to create Supabase auth account
-  const { data, error } = await sb.auth.signUp({
-    email: tenant.email,
-    password,
-    options: { emailRedirectTo: window.location.origin + '/tenant.html' }
-  });
-
-  if(error){
-    // If already registered, try sign in (tenant was invited before)
-    if(error.message.toLowerCase().includes('already registered') || error.message.toLowerCase().includes('already been registered')){
-      const { data:si, error:sie } = await sb.auth.signInWithPassword({ email:tenant.email, password });
-      if(sie){
-        btn.disabled=false;
-        btn.innerHTML='Set password &amp; enter portal';
-        toast('This email already has an account. Try logging in instead.', true);
-        return;
-      }
-      await markInviteUsed(window._inviteToken, si.user.id);
-      await loadTenantPortal(si.user);
-      return;
-    }
-    btn.disabled=false;
-    btn.innerHTML='Set password &amp; enter portal';
-    toast('Error: '+error.message, true);
-    return;
-  }
-
-  await markInviteUsed(window._inviteToken, data.user.id);
-
-  if(data.session){
-    await loadTenantPortal(data.user);
-  } else {
-    // Email confirmation required (Supabase setting)
-    showScreen('login');
-    toast('Check your email to confirm your account, then log in here.');
-  }
-}
-
-async function markInviteUsed(token, authUserId){
-  await sb.from('tenants')
-    .update({ invite_used: true, tenant_auth_id: authUserId })
-    .eq('invite_token', token);
-}
-
-// ── LOGIN ──
-async function login(){
-  const email = document.getElementById('login-email').value.trim();
-  const password = document.getElementById('login-password').value;
-  const btn = document.getElementById('login-btn');
-
-  if(!email || !password){
-    toast('Please enter your email and password', true);
-    return;
-  }
-
-  btn.disabled=true;
-  btn.innerHTML='<span class="spin"></span> Logging in…';
-
-  const { data, error } = await sb.auth.signInWithPassword({ email, password });
-
-  if(error){
-    btn.disabled=false;
-    btn.innerHTML='Log in';
-    toast('Incorrect email or password', true);
-    return;
-  }
-
-  await loadTenantPortal(data.user);
+  // Valid — persist token for return visits
+  localStorage.setItem('rsa_tenant_token', token);
+  currentTenant = tenant;
+  await loadTenantPortal(tenant);
 }
 
 // ── LOAD PORTAL ──
-async function loadTenantPortal(user){
-  // Look up tenant record by email
-  const { data:tenant, error } = await sb
-    .from('tenants')
-    .select('*')
-    .eq('email', user.email)
-    .maybeSingle();
-
-  if(error || !tenant){
-    await sb.auth.signOut();
-    showScreen('login');
-    toast('No tenancy found for this account. Contact your landlord.', true);
-    return;
-  }
-
-  if(tenant.status === 'revoked'){
-    await sb.auth.signOut();
-    document.getElementById('error-title').textContent = 'Access revoked';
-    document.getElementById('error-msg').textContent = 'Your portal access has been revoked. Please contact your landlord.';
-    showScreen('error');
-    return;
-  }
-
-  currentTenant = tenant;
-
-  // Load property details
+async function loadTenantPortal(tenant){
   let propAddress = 'Your property';
   let propMeta = '';
   if(tenant.prop_id){
@@ -601,12 +449,15 @@ async function loadTenantPortal(user){
     }
   }
 
-  // Set portal UI
-  document.getElementById('portal-tenant-name').textContent = tenant.name || user.email;
+  document.getElementById('portal-tenant-name').textContent = tenant.name || 'Tenant';
   document.getElementById('portal-address').textContent = propAddress;
   document.getElementById('portal-meta').textContent = propMeta;
 
-  // Load jobs
+  if(window.$crisp && tenant.email){
+    window.$crisp.push(['set','user:email',[tenant.email]]);
+    window.$crisp.push(['set','user:nickname',[tenant.name || tenant.email]]);
+  }
+
   await loadJobs();
   showScreen('portal');
 }
@@ -766,7 +617,7 @@ async function submitJob(){
     status: 'Reported',
     locked: true,
     submitted_at: new Date().toISOString(),
-    user_id: (await sb.auth.getUser()).data.user.id,
+    user_id: currentTenant.user_id,  // landlord's user_id — used for RLS & landlord dashboard
     tenant_phone: currentTenant.phone || null,
     photos: photos.length ? photos : null
   };
@@ -941,10 +792,10 @@ function switchTab(name){
 
 // ── LOGOUT ──
 async function logout(){
-  await sb.auth.signOut();
+  localStorage.removeItem('rsa_tenant_token');
   currentTenant = null;
   tenantJobs = [];
-  showScreen('login');
+  showScreen('loggedout');
 }
 
 // ── START ──
