@@ -646,7 +646,21 @@ async function submitJob(){
     return;
   }
 
-  // 6. Email landlord
+  // 6. Mirror to landlord's maintenance table so it appears in Maintenance & Log
+  await sb.from('maintenance').insert({
+    prop_id: currentTenant.prop_id,
+    title: ('🏠 Tenant: ' + description).slice(0, 60),
+    description: fullDesc,
+    cat: category,
+    priority: aiPriority,
+    status: 'Open',
+    stage: 'Reported',
+    issue_date: new Date().toISOString().slice(0, 10),
+    awaab: category === 'Damp & Mould',
+    user_id: currentTenant.user_id,
+  });
+
+  // 7. Email landlord
   await emailLandlord(saved, aiPriority, category, description);
 
   // 7. Reset form + show success
