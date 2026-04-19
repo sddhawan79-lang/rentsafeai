@@ -568,7 +568,7 @@ let currentUser = null;
 let currentPage = 'dashboard';
 const D = {
   properties: [], tenants: [], certs: [], maintenance: [], rent: [], insurance: [],
-  emailLog: [], customTemplates: [], contractors: [], jobAssignments: [],
+  emailLog: [], customTemplates: [], contractors: [], jobAssignments: [], tenantDocs: [],
   chat: [{role:'ai', text:'Hi! I\'m your AI assistant. I have full visibility of your portfolio — properties, certificates, tenants, maintenance jobs and compliance status. Ask me anything about your portfolio, or tap a quick question below.'}]
 };
 
@@ -689,7 +689,7 @@ async function logout() {
 
 // ── LOAD DATA ──
 async function loadData() {
-  const [p, t, c, m, r, i, el, ct, con, ja] = await Promise.all([
+  const [p, t, c, m, r, i, el, ct, con, ja, td] = await Promise.all([
     sb.from('properties').select('*').order('created_at', {ascending: false}),
     sb.from('tenants').select('*'),
     sb.from('certificates').select('*'),
@@ -700,6 +700,7 @@ async function loadData() {
     sb.from('custom_templates').select('*').order('created_at', {ascending: false}),
     sb.from('contractors').select('*').order('name', {ascending: true}),
     sb.from('job_assignments').select('*, tenant_maintenance(prop_id, category, submitted_at)'),
+    sb.from('tenant_documents').select('*').order('uploaded_at', {ascending: true}),
   ]);
 
   if (p.data?.length) {
@@ -740,6 +741,15 @@ async function loadData() {
   if (ct.data?.length) D.customTemplates = ct.data;
   if (con.data?.length) D.contractors = con.data;
   if (ja.data?.length) D.jobAssignments = ja.data;
+  if (td.data?.length) {
+    D.tenantDocs = td.data;
+    // Prime the per-tenant cache so badges load instantly
+    td.data.forEach(doc => {
+      const key = String(doc.tenant_id);
+      if (!_tenantDocsCache[key]) _tenantDocsCache[key] = [];
+      if (!_tenantDocsCache[key].find(d => d.id === doc.id)) _tenantDocsCache[key].push(doc);
+    });
+  }
 }
 
 // ── INIT ──
@@ -885,7 +895,242 @@ async function scanAndFill(file, onResult){
   }
 }
 
-// ── MARK CERT SERVED ──
+// ── REUSABLE: scanAndFillCustom (custom prompt for tenant docs) ──
+async function scanAndFillCustom(file, prompt, onResult) {
+  if(!file) return;
+  const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});
+  const isImg=file.type.startsWith('image/');
+  const msgContent=isImg
+    ?[{type:'image',source:{type:'base64',media_type:file.type,data:b64}},{type:'text',text:prompt}]
+    :[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:prompt}];
+  const res=await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:400,messages:[{role:'user',content:msgContent}]})});
+  const data=await res.json();
+  const txt=data.content?.[0]?.text||'{}';
+  try { onResult(JSON.parse(txt.replace(/```json|```/g,'').trim())); } catch(e) { onResult({}); }
+}
+
+// ── TENANT DOCUMENTS ──
+let _tenantDocsCache = {};
+
+async function loadTenantDocs(tenantId) {
+  if (_tenantDocsCache[String(tenantId)] !== undefined) return _tenantDocsCache[String(tenantId)];
+  try {
+    const { data } = await sb.from('tenant_documents').select('*').eq('tenant_id', tenantId).order('uploaded_at', {ascending:true});
+    _tenantDocsCache[String(tenantId)] = data || [];
+  } catch(e) { _tenantDocsCache[String(tenantId)] = []; }
+  return _tenantDocsCache[String(tenantId)];
+}
+
+async function saveTenantDoc(tenantId, propId, slot, docType, docLabel, extracted, fileName) {
+  const tenant = D.tenants.find(t => String(t.id) === String(tenantId));
+  let nameMismatch = false;
+  if (extracted.name && tenant) {
+    const tParts = tenant.name.toLowerCase().split(' ').filter(p => p.length > 2);
+    const ext = extracted.name.toLowerCase();
+    nameMismatch = !tParts.some(p => ext.includes(p));
+  }
+  const payload = {
+    tenant_id: tenantId, prop_id: propId, user_id: currentUser.id,
+    slot, doc_type: docType, doc_label: docLabel, file_name: fileName,
+    extracted_name: extracted.name || null,
+    extracted_dob: extracted.dob || null,
+    extracted_nationality: extracted.nationality || null,
+    extracted_doc_number: extracted.doc_number || null,
+    extracted_expiry: extracted.expiry || null,
+    extracted_address: extracted.address || extracted.doc_date || null,
+    share_code: extracted.share_code || null,
+    share_code_expiry: extracted.share_code_expiry || null,
+    name_mismatch: nameMismatch
+  };
+  const { data, error } = await sb.from('tenant_documents')
+    .upsert(payload, { onConflict: 'tenant_id,slot' }).select().single();
+  if (error) { toast('Error saving document: ' + error.message, true); return null; }
+  const cache = _tenantDocsCache[String(tenantId)] || [];
+  const idx = cache.findIndex(d => d.slot === slot);
+  if (idx >= 0) cache[idx] = data; else cache.push(data);
+  _tenantDocsCache[String(tenantId)] = cache;
+  return data;
+}
+
+const TD_PROMPTS = {
+  passport: 'UK or foreign passport document. Extract: full name, date of birth (YYYY-MM-DD), nationality, passport number, expiry date (YYYY-MM-DD). Return JSON only, no markdown, keys: name, dob, nationality, doc_number, expiry.',
+  share_code: 'UK Home Office eVisa or UKVI share code document. Extract: full name, nationality, share code (letter-number format e.g. W7X3K2P9R), expiry date (YYYY-MM-DD). Return JSON only, no markdown, keys: name, nationality, share_code, share_code_expiry.',
+  driving_licence: 'UK driving licence. Extract: full name, date of birth (YYYY-MM-DD), address, licence number, expiry date (YYYY-MM-DD). Return JSON only, no markdown, keys: name, dob, address, doc_number, expiry.',
+  utility_bill: 'UK utility bill for address proof. Extract: full name on bill, full address, date on document (YYYY-MM-DD). Return JSON only, no markdown, keys: name, address, doc_date.',
+  bank_statement: 'UK bank statement for address proof. Extract: account holder full name, address, statement date (YYYY-MM-DD). Return JSON only, no markdown, keys: name, address, doc_date.',
+  council_tax: 'UK council tax bill. Extract: resident full name, property address, tax year. Return JSON only, no markdown, keys: name, address, doc_date.',
+  letter: 'UK official letter (government, employer, or council). Extract: recipient full name, address, date (YYYY-MM-DD), issuer name. Return JSON only, no markdown, keys: name, address, doc_date.',
+  payslip: 'UK payslip. Extract: employee full name, employer name, pay date (YYYY-MM-DD), net pay amount. Return JSON only, no markdown, keys: name, address, doc_date.',
+  reference: 'Reference letter. Extract: person being referenced (full name), referee name and organisation, date (YYYY-MM-DD). Return JSON only, no markdown, keys: name, address, doc_date.',
+  default: 'UK identity or address proof document. Extract any available: full name, date of birth (YYYY-MM-DD), nationality, document number, expiry date (YYYY-MM-DD), address, document date (YYYY-MM-DD). Return JSON only, no markdown, keys: name, dob, nationality, doc_number, expiry, address, doc_date.'
+};
+
+async function scanTenantDoc(inputEl, tenantId, propId, slot, docType, docLabel) {
+  if (!inputEl.files[0]) return;
+  const file = inputEl.files[0];
+  const scanBox = document.getElementById(`td-scan-${tenantId}-${slot}`);
+  const resultBox = document.getElementById(`td-result-${tenantId}-${slot}`);
+  if (scanBox) scanBox.innerHTML = `<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--amber)"><span class="spin"></span>AI scanning…</div>`;
+  const prompt = TD_PROMPTS[docType] || TD_PROMPTS.default;
+  try {
+    await scanAndFillCustom(file, prompt, async (parsed) => {
+      const saved = await saveTenantDoc(tenantId, propId, slot, docType, docLabel, parsed, file.name);
+      if (scanBox) scanBox.innerHTML = `<div style="font-size:12px;color:var(--green-dark);font-weight:600">✓ ${file.name}</div>`;
+      if (resultBox && saved) renderTenantDocResult(resultBox, parsed, saved.name_mismatch, tenantId);
+      updateTenantDocBadge(tenantId);
+      toast('✓ Document saved!');
+    });
+  } catch(e) {
+    if (scanBox) scanBox.innerHTML = `<div style="font-size:12px;color:var(--muted)">Scan failed — file recorded. <a href="#" style="color:var(--navy)">Add manually</a></div>`;
+    await saveTenantDoc(tenantId, propId, slot, docType, docLabel, {}, file.name);
+  }
+}
+
+function renderTenantDocResult(resultBox, parsed, nameMismatch, tenantId) {
+  const tenant = D.tenants.find(t => String(t.id) === String(tenantId));
+  let html = `<div style="margin-top:8px;padding:10px 12px;border-radius:8px;background:${nameMismatch?'rgba(229,62,62,0.05)':'rgba(0,200,150,0.05)'};border:1px solid ${nameMismatch?'rgba(229,62,62,0.25)':'rgba(0,200,150,0.2)'}">`;
+  if (nameMismatch) html += `<div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:8px;padding:7px 9px;background:rgba(229,62,62,0.1);border-radius:6px"><span style="font-size:14px;flex-shrink:0">⚠️</span><div style="font-size:11px;font-weight:600;color:var(--red)">Name mismatch — document shows "${parsed.name||'?'}" but tenant is "${tenant?.name||'?'}". Verify this is the correct document.</div></div>`;
+  const fields = [['Name',parsed.name],['Date of birth',parsed.dob],['Nationality',parsed.nationality],['Doc number',parsed.doc_number],['Expiry',parsed.expiry],['Share code',parsed.share_code],['SC expiry',parsed.share_code_expiry],['Address',parsed.address||parsed.doc_date]].filter(([,v])=>v);
+  if (fields.length) {
+    html += `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px">`;
+    fields.forEach(([l,v]) => { html += `<div style="font-size:11px"><div style="color:var(--muted)">${l}</div><div style="font-weight:600;color:var(--txt)">${v}</div></div>`; });
+    html += `</div>`;
+  } else {
+    html += `<div style="font-size:11px;color:var(--muted)">✦ AI extracted — confirm the document is correct</div>`;
+  }
+  html += `</div>`;
+  resultBox.innerHTML = html;
+}
+
+async function updateTenantDocBadge(tenantId) {
+  const badge = document.getElementById('td-badge-' + tenantId);
+  if (!badge) return;
+  const docs = await loadTenantDocs(tenantId);
+  const required = ['identity_1','address_1','address_2'];
+  const done = required.filter(slot => docs.some(d => d.slot === slot));
+  const hasMismatch = docs.some(d => d.name_mismatch);
+  if (hasMismatch) { badge.textContent='⚠ Name mismatch'; badge.style.background='rgba(229,62,62,0.1)'; badge.style.color='var(--red)'; }
+  else if (done.length === required.length) { badge.textContent=`✓ ${done.length}/${required.length} complete`; badge.style.background='var(--green-bg)'; badge.style.color='var(--green-dark)'; }
+  else { badge.textContent=`${done.length}/${required.length} required docs`; badge.style.background='var(--amber-bg)'; badge.style.color='var(--amber)'; }
+}
+
+function docSlotHtml(slot, icon, label, helpText, docType, isRequired, tid, pid) {
+  return `<div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;background:var(--white)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+        <span style="font-size:15px;flex-shrink:0">${icon}</span>
+        <div style="min-width:0">
+          <div style="font-size:12px;font-weight:600;color:var(--txt)">${label} ${isRequired?'<span style="color:var(--red);font-size:10px;font-weight:500">required</span>':''}</div>
+          <div style="font-size:11px;color:var(--muted);white-space:normal">${helpText}</div>
+        </div>
+      </div>
+      <label style="cursor:pointer;flex-shrink:0;margin-left:10px">
+        <input type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="scanTenantDoc(this,'${tid}','${pid}','${slot}','${docType}','${label}')">
+        <span class="btn btn-sm" style="pointer-events:none">📤 Upload</span>
+      </label>
+    </div>
+    <div id="td-scan-${tid}-${slot}" style="font-size:11px;color:var(--muted)">No file uploaded yet</div>
+    <div id="td-result-${tid}-${slot}"></div>
+  </div>`;
+}
+
+function setTenantIdType(tid, pid, type) {
+  ['passport','share','group2'].forEach(t => {
+    const btn = document.getElementById(`td-id-${t}-${tid}`);
+    if (btn) { btn.className = `btn btn-sm${(type==='passport'&&t==='passport')||(type==='share_code'&&t==='share')||(type==='group2'&&t==='group2')?' btn-navy':''}`; }
+  });
+  const content = document.getElementById(`td-id-content-${tid}`);
+  if (!content) return;
+  if (type === 'passport') {
+    content.innerHTML = docSlotHtml('identity_1','🛂','Passport / Identity document','UK passport, Irish passport, biometric card, or national identity card','passport',true,tid,pid);
+  } else if (type === 'share_code') {
+    content.innerHTML = `${docSlotHtml('identity_1','🌍','eVisa / Share code document','Upload UKVI share code document — starts with "R", expires in 90 days','share_code',true,tid,pid)}
+    <div style="background:var(--amber-bg);border:1px solid rgba(217,119,6,0.2);border-radius:7px;padding:8px 12px;font-size:11px;color:var(--amber);margin-bottom:8px">
+      ℹ️ Ask tenant to generate a fresh share code at <a href="https://www.gov.uk/prove-right-to-rent" target="_blank" style="color:var(--amber);font-weight:600">GOV.UK right to rent checker</a>. Codes expire after 90 days.
+    </div>`;
+  } else if (type === 'group2') {
+    content.innerHTML = `<div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:7px;padding:8px 12px;font-size:11px;color:var(--blue);margin-bottom:8px">
+      ℹ️ British/Irish citizen without a passport — 2 Group 2 documents required: driving licence, birth/adoption certificate, employer letter (3 months), or government/council letter.
+    </div>
+    ${docSlotHtml('identity_1','📄','Group 2 — document 1','UK driving licence, full birth/adoption certificate','driving_licence',true,tid,pid)}
+    ${docSlotHtml('identity_2','📄','Group 2 — document 2','UK employer letter (3 months), HMRC letter, council letter','letter',true,tid,pid)}`;
+  }
+}
+
+async function toggleTenantDocs(tid, pid) {
+  const body = document.getElementById('td-body-' + tid);
+  const arr = document.getElementById('td-arr-' + tid);
+  if (!body) return;
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  if (arr) arr.textContent = isOpen ? '▾' : '▴';
+  if (!isOpen && !body.dataset.loaded) {
+    body.dataset.loaded = '1';
+    const docs = await loadTenantDocs(tid);
+    docs.forEach(doc => {
+      const scanBox = document.getElementById(`td-scan-${tid}-${doc.slot}`);
+      const resultBox = document.getElementById(`td-result-${tid}-${doc.slot}`);
+      if (scanBox && doc.file_name) scanBox.innerHTML = `<div style="font-size:12px;color:var(--green-dark);font-weight:600">✓ ${doc.file_name}</div>`;
+      if (resultBox && doc.file_name) {
+        const parsed = {name:doc.extracted_name,dob:doc.extracted_dob,nationality:doc.extracted_nationality,doc_number:doc.extracted_doc_number,expiry:doc.extracted_expiry,address:doc.extracted_address,share_code:doc.share_code,share_code_expiry:doc.share_code_expiry};
+        renderTenantDocResult(resultBox, parsed, doc.name_mismatch, tid);
+      }
+    });
+    updateTenantDocBadge(tid);
+  }
+}
+
+function tenantDocsSectionHtml(tenant, pid) {
+  const tid = tenant.id;
+  return `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;cursor:pointer" onclick="toggleTenantDocs('${tid}','${pid}')">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:14px">📁</span>
+        <span style="font-size:13px;font-weight:600;color:var(--txt)">Tenant Documents</span>
+        <span id="td-badge-${tid}" style="font-size:10px;font-weight:600;background:var(--amber-bg);color:var(--amber);padding:2px 8px;border-radius:100px">0/3 required docs</span>
+      </div>
+      <span id="td-arr-${tid}" style="color:var(--muted);font-size:12px">▾</span>
+    </div>
+    <div id="td-body-${tid}" style="display:none;padding-top:8px">
+
+      <!-- IDENTITY -->
+      <div style="margin-bottom:14px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:8px">
+          🪪 Identity &amp; Right to Rent <span style="color:var(--red);font-size:10px;font-weight:500">required by law</span>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+          <button id="td-id-passport-${tid}" class="btn btn-sm btn-navy" style="font-size:11px" onclick="setTenantIdType('${tid}','${pid}','passport')">🛂 UK/Irish Passport</button>
+          <button id="td-id-share-${tid}" class="btn btn-sm" style="font-size:11px" onclick="setTenantIdType('${tid}','${pid}','share_code')">🌍 Share Code</button>
+          <button id="td-id-group2-${tid}" class="btn btn-sm" style="font-size:11px" onclick="setTenantIdType('${tid}','${pid}','group2')">📋 Group 2 Docs</button>
+        </div>
+        <div id="td-id-content-${tid}">
+          ${docSlotHtml('identity_1','🛂','Passport / Identity document','UK passport, Irish passport, biometric card, or national identity card','passport',true,tid,pid)}
+        </div>
+      </div>
+
+      <!-- ADDRESS PROOF -->
+      <div style="margin-bottom:14px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px">
+          📮 Address Proof — 2 documents required
+        </div>
+        <div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.15);border-radius:7px;padding:8px 12px;font-size:11px;color:var(--blue);margin-bottom:8px">
+          Acceptable: utility bill, bank statement, council tax bill, HMRC/DWP letter, NHS letter, UK driving licence, mortgage statement. Must be dated within 3 months (except council tax/mortgage).
+        </div>
+        ${docSlotHtml('address_1','📄','Address proof 1','e.g. Utility bill, bank statement, driving licence (within 3 months)','utility_bill',true,tid,pid)}
+        ${docSlotHtml('address_2','📄','Address proof 2','e.g. Council tax bill, HMRC letter, NHS letter, mortgage statement','council_tax',true,tid,pid)}
+      </div>
+
+      <!-- SUPPORTING DOCS -->
+      <div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px">
+          📁 Supporting Documents <span style="font-size:10px;font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0">(optional)</span>
+        </div>
+        ${docSlotHtml('income_1','💼','Proof of income','Payslips (last 3 months) or SA302 self-assessment','payslip',false,tid,pid)}
+        ${docSlotHtml('reference_1','✉️','Landlord / employer reference','Reference letter from previous landlord or employer','reference',false,tid,pid)}
+      </div>
+    </div>
+  </div>`;
+}
 async function markServed(certId){
   const c=D.certs.find(x=>x.id===certId);
   if(!c) return;
@@ -1840,40 +2085,64 @@ function pgDashboard(){
     </div>`;
   }
 
-  // ── PARTIAL SETUP: has properties, check for certs + tenants ──
-  const hasCerts   = D.certs.length > 0;
-  const hasTenants = D.tenants.length > 0;
-  const setupDone  = hasCerts && hasTenants;
-
-  // ── YOU'RE PROTECTED SCREEN — show once when all 3 steps done ──
-  const protectedShown = localStorage.getItem('rsa_protected_shown');
-  if (setupDone && !protectedShown) {
-    localStorage.setItem('rsa_protected_shown', '1');
-    const score = D.properties.length ? Math.min(100, Math.round(
-      (hasCerts ? 40 : 0) + (hasTenants ? 30 : 0) +
-      (D.certs.filter(c => c.expiry && new Date(c.expiry) > new Date()).length > 0 ? 30 : 0)
-    )) : 0;
-    setTimeout(() => openProtectedScreen(score), 300);
+  // ── PARTIAL SETUP: per-property 6-step setup tracking ──
+  function getPropSetupStatus(pid) {
+    const p2 = P(pid);
+    const tenants2 = D.tenants.filter(t => String(t.prop_id) === String(pid) && t.status !== 'Removed');
+    const certs2 = CF(pid);
+    const leadT = tenants2.find(t => t.is_lead) || tenants2[0];
+    return {
+      tenants:  { done: tenants2.length > 0,   label: 'Add tenant',            action: `moTenant('${pid}')` },
+      leaseDates:{ done: !!(leadT?.start_date), label: 'Set lease dates',       action: leadT ? `moTenantDetail('${leadT.id}')` : `moTenant('${pid}')` },
+      rent:     { done: !!(p2?.rent > 0),       label: 'Set rent amount',       action: `moEditProp('${pid}')` },
+      gas:      { done: certs2.some(c => c.type?.toLowerCase().includes('gas')), label: 'Upload Gas Safety cert', action: `moCert('${pid}')` },
+      eicr:     { done: certs2.some(c => c.type?.toLowerCase().includes('eicr') || c.type?.toLowerCase().includes('electrical')), label: 'Upload EICR', action: `moCert('${pid}')` },
+      epc:      { done: certs2.some(c => c.type?.toLowerCase().includes('epc') || c.type?.toLowerCase().includes('energy')), label: 'Upload EPC', action: `moCert('${pid}')` },
+    };
   }
 
-  const setupStrip = setupDone ? '' : `
-    <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-      <div style="font-size:12px;font-weight:700;color:var(--txt);white-space:nowrap">⚙️ Complete your setup</div>
-      <div style="display:flex;align-items:center;gap:8px;flex:1;flex-wrap:wrap">
-        <span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--green-dark)">
-          <span style="width:18px;height:18px;border-radius:50%;background:var(--green);color:#fff;font-size:10px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">✓</span>Property added
-        </span>
-        <span style="color:var(--border)">→</span>
-        <span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:${hasCerts?'var(--green-dark)':'var(--navy)'}">
-          <span style="width:18px;height:18px;border-radius:50%;background:${hasCerts?'var(--green)':'var(--navy)'};color:#fff;font-size:10px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">${hasCerts?'✓':'2'}</span>${hasCerts?'Certificates uploaded':'Upload certificates'}
-        </span>
-        <span style="color:var(--border)">→</span>
-        <span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:${hasTenants?'var(--green-dark)':hasCerts?'var(--navy)':'var(--muted)'}">
-          <span style="width:18px;height:18px;border-radius:50%;background:${hasTenants?'var(--green)':hasCerts?'var(--navy)':'var(--border)'};color:#fff;font-size:10px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">${hasTenants?'✓':'3'}</span>${hasTenants?'Tenant added':'Add a tenant'}
-        </span>
+  const incompleteProps = D.properties.filter(p2 => {
+    const s = getPropSetupStatus(p2.id);
+    return !Object.values(s).every(x => x.done);
+  });
+
+  const allSetupDone = incompleteProps.length === 0;
+
+  // You're protected — show once when all properties fully set up
+  const protectedShown = localStorage.getItem('rsa_protected_shown');
+  if (allSetupDone && D.properties.length && !protectedShown) {
+    localStorage.setItem('rsa_protected_shown', '1');
+    setTimeout(() => openProtectedScreen(82), 300);
+  }
+
+  const setupStrip = allSetupDone ? '' : `
+    <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;margin-bottom:18px;overflow:hidden">
+      <div style="padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+        <span style="font-size:14px">⚙️</span>
+        <span style="font-size:13px;font-weight:700;color:var(--txt)">Complete your setup</span>
+        <span style="font-size:11px;font-weight:600;background:var(--amber-bg);color:var(--amber);padding:2px 8px;border-radius:100px">${incompleteProps.length} propert${incompleteProps.length===1?'y':'ies'} incomplete</span>
       </div>
-      ${!hasCerts ? `<button class="btn btn-sm btn-navy" onclick="moCert()">+ Upload cert</button>` :
-        !hasTenants ? `<button class="btn btn-sm btn-navy" onclick="moTenant()">+ Add tenant</button>` : ''}
+      ${incompleteProps.map(p2 => {
+        const s = getPropSetupStatus(p2.id);
+        const steps = Object.values(s);
+        const doneCount = 1 + steps.filter(x => x.done).length; // +1 for property itself
+        const total = 1 + steps.length;
+        const pct = Math.round(doneCount / total * 100);
+        const nextStep = steps.find(x => !x.done);
+        return `<div style="padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+          <div style="flex:1;min-width:180px">
+            <div style="font-size:13px;font-weight:600;color:var(--txt);margin-bottom:5px">${p2.address}</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+              <div style="flex:1;height:5px;background:var(--border);border-radius:100px;overflow:hidden">
+                <div style="height:100%;background:var(--green);width:${pct}%;border-radius:100px;transition:width .3s"></div>
+              </div>
+              <span style="font-size:11px;color:var(--muted);white-space:nowrap">${doneCount}/${total} steps</span>
+            </div>
+            ${nextStep ? `<div style="font-size:11px;color:var(--muted)">Next: <span style="color:var(--navy);font-weight:500">${nextStep.label}</span></div>` : ''}
+          </div>
+          ${nextStep ? `<button class="btn btn-sm btn-navy" onclick="${nextStep.action}">Continue →</button>` : ''}
+        </div>`;
+      }).join('')}
     </div>`;
 
   return`<div class="topbar"><span class="tb-title">Dashboard</span><div class="tb-right">
@@ -2512,6 +2781,7 @@ function pdTabContent(pid, tab) {
             <button class="btn btn-sm" style="border-color:var(--amber);color:var(--amber)" onclick="moRRASheet()">📋 RRA Sheet</button>
             ${tenant.email?`<button class="btn btn-sm" style="border-color:var(--green);color:var(--green-dark)" id="invite-btn-${tenant.id}" onclick="sendPortalInvite('${tenant.id}')">🔗 ${tenant.invite_used?'Resend invite':'Send portal invite'}</button>`:''}
           </div>
+          ${tenantDocsSectionHtml(tenant, pid)}
         </div>
       </div>`;
     };
@@ -3691,18 +3961,24 @@ function getCalEvents(){
     events.push({date:c.expiry,type:'cert',label:c.type+' expiry',sub:prop,urg,days,icon:'📄'});
   });
 
-  // Rent due dates (monthly recurring)
+  // Rent due dates (monthly recurring) — consolidated per property, not per tenant
+  const rentByProp = {};
   D.tenants.filter(t=>t.rent&&t.status==='Active').forEach(t=>{
-    const prop=(P(t.prop_id)||{address:'—'}).address;
-    const day=t.rent_day||1;
-    // Generate next 3 months of rent dates
+    const key = `${t.prop_id}_${t.rent_day||1}`;
+    if (!rentByProp[key]) rentByProp[key] = {prop_id:t.prop_id, day:t.rent_day||1, total:0, count:0};
+    rentByProp[key].total += (t.rent||0);
+    rentByProp[key].count++;
+  });
+  Object.values(rentByProp).forEach(({prop_id, day, total, count})=>{
+    const prop=(P(prop_id)||{address:'—'}).address;
+    const sub = count > 1 ? `${prop} · ${count} tenants` : prop;
     for(let m=0;m<3;m++){
       const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()+m); d.setDate(day);
       const days=Math.round((d-today)/864e5);
       if(days>=-1&&days<=90){
         const dStr=d.toISOString().slice(0,10);
         const urg=days<0?'red':days===0?'red':days<=3?'amber':'blue';
-        events.push({date:dStr,type:'rent',label:'Rent due — '+t.name,sub:prop,urg,days,icon:'💷'});
+        events.push({date:dStr,type:'rent',label:`Rent due — £${total.toLocaleString()}`,sub,urg,days,icon:'💷'});
       }
     }
   });
