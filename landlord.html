@@ -685,7 +685,7 @@ function calcRAG(pid) {
   if (!certs.length) return { rag: 'red', label: 'No documents', score: 0 };
 
   // Critical cert types that must be present and valid
-  const criticalTypes = ['gas', 'eicr', 'electrical', 'epc', 'energy', 'deposit'];
+  const criticalTypes = ['gas', 'eicr', 'electrical', 'epc', 'energy', 'deposit', 'smoke', 'legionella'];
   const hasCritical = type => certs.some(c => c.type && c.type.toLowerCase().includes(type));
   const criticalMissing = criticalTypes.filter(t => !hasCritical(t)).length;
 
@@ -1208,7 +1208,13 @@ async function uploadScanCert(certId, input){
 
 async function saveCertToDB() {
   const propId = document.getElementById('cp')?.value;
-  const certType = document.getElementById('ct')?.value;
+  let certType = document.getElementById('ct')?.value;
+  // Handle "Other Document" free-text label
+  if (certType === 'Other Document') {
+    const otherLabel = document.getElementById('ct-other-label')?.value.trim();
+    if (!otherLabel) { toast('Please describe the document type.', true); return; }
+    certType = otherLabel;
+  }
   const expiry = document.getElementById('ce')?.value || null;
   const engineer = document.getElementById('ceng')?.value.trim() || null;
 
@@ -1229,9 +1235,22 @@ async function saveCertToDB() {
 
   D.certs.push({...data, file: true});
   await logAudit('ADD_CERT', 'certificates', data.id, `Added ${certType}`);
-  closeMo();
+  const savedPropId = parseInt(propId);
+  const savedPropAddr = (P(savedPropId)||{}).address || 'property';
   toast('✓ Certificate saved!');
-  nav('compliance');
+  openMo('✓ Certificate saved!', `${certType} — ${savedPropAddr}`, `
+    <div style="margin-bottom:12px;font-size:13px;color:var(--muted)">What would you like to do next?</div>
+    <div onclick="closeMo();moCert(${savedPropId})" style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:8px;transition:background .15s" onmouseover="this.style.background='var(--off)'" onmouseout="this.style.background=''">
+      <div style="width:36px;height:36px;border-radius:8px;background:var(--blue-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📋</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:600">Add another certificate</div><div style="font-size:12px;color:var(--muted)">Upload another document for this property</div></div>
+      <div style="color:var(--muted)">›</div>
+    </div>
+    <div onclick="closeMo();nav('prop-detail',${savedPropId});setTimeout(()=>switchOnboardStage(${savedPropId},2),150)" style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:8px;transition:background .15s" onmouseover="this.style.background='var(--off)'" onmouseout="this.style.background=''">
+      <div style="width:36px;height:36px;border-radius:8px;background:var(--green-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🏠</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:600">Done — view property docs</div><div style="font-size:12px;color:var(--muted)">Return to property compliance checklist</div></div>
+      <div style="color:var(--muted)">›</div>
+    </div>
+  `, `<button class="btn" onclick="closeMo();nav('compliance')">Go to compliance page</button>`);
 }
 
 // ── SAVE: TENANT ──
@@ -1280,9 +1299,26 @@ async function saveTenantToDB() {
 
   D.tenants.push({...data, start: data.start_date, end: data.end_date});
   await logAudit('ADD_TENANT', 'tenants', data.id, `Added tenant: ${name}${isLead ? ' (lead)' : ' (additional)'}`);
-  closeMo();
-  toast(`✓ ${name} added${isLead ? ' as lead tenant' : ' as additional tenant'}`);
-  nav('tenants');
+  toast(`✓ ${name} added!`);
+  const addedPid = parseInt(propId);
+  openMo('✓ Tenant added!', `${name} linked to ${P(addedPid)?.address||'property'}`, `
+    <div style="margin-bottom:12px;font-size:13px;color:var(--muted)">What would you like to do next?</div>
+    <div onclick="closeMo();moTenant(${addedPid})" style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:8px;transition:background .15s" onmouseover="this.style.background='var(--off)'" onmouseout="this.style.background=''">
+      <div style="width:36px;height:36px;border-radius:8px;background:var(--blue-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">👤</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:600">Add another tenant</div><div style="font-size:12px;color:var(--muted)">Add a joint or additional tenant to this property</div></div>
+      <div style="color:var(--muted)">›</div>
+    </div>
+    <div onclick="closeMo();nav('prop-detail',${addedPid});setTimeout(()=>switchOnboardStage(${addedPid},2),150)" style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:8px;transition:background .15s" onmouseover="this.style.background='var(--off)'" onmouseout="this.style.background=''">
+      <div style="width:36px;height:36px;border-radius:8px;background:var(--green-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📋</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:600">Go to property docs</div><div style="font-size:12px;color:var(--muted)">Upload certificates and compliance documents</div></div>
+      <div style="color:var(--muted)">›</div>
+    </div>
+    <div onclick="closeMo();nav('prop-detail',${addedPid})" style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:8px;transition:background .15s" onmouseover="this.style.background='var(--off)'" onmouseout="this.style.background=''">
+      <div style="width:36px;height:36px;border-radius:8px;background:var(--off);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🏠</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:600">Done — view property</div><div style="font-size:12px;color:var(--muted)">Return to the property page</div></div>
+      <div style="color:var(--muted)">›</div>
+    </div>
+  `, `<button class="btn" onclick="closeMo();nav('tenants')">Go to tenants list</button>`);
 }
 
 // ── MODAL: EDIT DEPOSIT (property level — operates on lead tenant) ──
@@ -1521,7 +1557,30 @@ function moCert(pid){
     <div class="ai-res" id="ar"><div class="ai-res-hd">✦ AI extracted — please confirm below</div><div class="ai-res-g" id="arg"></div></div>
     <div class="fg-div"></div>
     <div class="fg"><label>Property</label><select id="cp">${opts}</select></div>
-    <div class="fg"><label>Certificate type</label><select id="ct"><option>Gas Safety Certificate (GSC)</option><option>Electrical Installation Condition Report (EICR)</option><option>Energy Performance Certificate (EPC)</option><option>How to Rent Guide</option><option>Deposit Certificate</option><option>Tenancy Agreement</option></select></div>
+    <div class="fg"><label>Certificate type</label>
+      <select id="ct" onchange="certTypeChanged(this)">
+        <option value="Gas Safety Certificate (CP12/GSC)">Gas Safety Certificate (CP12/GSC)</option>
+        <option value="Electrical Installation Condition Report (EICR)">Electrical Installation Condition Report (EICR)</option>
+        <option value="Energy Performance Certificate (EPC)">Energy Performance Certificate (EPC)</option>
+        <option value="How to Rent Guide">How to Rent Guide</option>
+        <option value="RRA Information Sheet 2026">RRA Information Sheet 2026</option>
+        <option value="Tenancy Agreement / Written Statement of Terms">Tenancy Agreement / Written Statement of Terms</option>
+        <option value="Deposit Protection Certificate">Deposit Protection Certificate</option>
+        <option value="Deposit Prescribed Information">Deposit Prescribed Information</option>
+        <option value="Legionella Risk Assessment">Legionella Risk Assessment</option>
+        <option value="PAT Test Record">PAT Test Record</option>
+        <option value="Fire Risk Assessment">Fire Risk Assessment</option>
+        <option value="Smoke &amp; CO Alarm Check Record">Smoke &amp; CO Alarm Check Record</option>
+        <option value="Boiler Service Record">Boiler Service Record</option>
+        <option value="Property Licence (HMO / Selective / Additional)">Property Licence (HMO / Selective / Additional)</option>
+        <option value="EWS1 Certificate">EWS1 Certificate</option>
+        <option value="Building Regulations Certificate">Building Regulations Certificate</option>
+        <option value="Other Document">Other Document</option>
+      </select>
+    </div>
+    <div id="ct-other-wrap" style="display:none">
+      <div class="fg"><label>Document description <span class="req">*</span></label><input type="text" id="ct-other-label" placeholder="e.g. Asbestos Survey Report"></div>
+    </div>
     <div class="fg-row">
       <div class="fg"><label>Issue date</label><input type="date" id="ci"></div>
       <div class="fg"><label>Expiry date</label><input type="date" id="ce"></div>
@@ -1549,6 +1608,50 @@ async function scanDoc(input){
   }catch(e){sb2.innerHTML=`<div style="font-size:13px;color:var(--amber);font-weight:500">Could not scan — please fill in manually</div>`;}
 }
 
+function certTypeChanged(sel) {
+  const wrap = document.getElementById('ct-other-wrap');
+  if (wrap) wrap.style.display = sel.value === 'Other Document' ? 'block' : 'none';
+}
+
+// ── CERT DETAIL MODAL ──
+function moCertDetail(certId) {
+  const c = D.certs.find(x => String(x.id) === String(certId));
+  if (!c) { toast('Certificate not found', true); return; }
+  const p = P(c.prop_id) || { address: '—', city: '' };
+  const statusCol = c.status === 'Valid' ? 'var(--green-dark)' : c.status === 'Expired' ? 'var(--red)' : 'var(--amber)';
+  const rows = [
+    ['Type', c.type || '—'],
+    ['Property', `${p.address}, ${p.city}`],
+    ['Issue date', (c.issued || c.issue_date) ? FMT(c.issued || c.issue_date) : '—'],
+    ['Expiry date', c.expiry ? FMT(c.expiry) : 'No expiry'],
+    ['Engineer / Provider', c.engineer || '—'],
+    ['Status', `<span style="color:${statusCol};font-weight:600">${c.status || '—'}</span>`],
+    ['Served to tenant', c.served ? '<span style="color:var(--green-dark);font-weight:600">✓ Yes</span>' : 'Not yet served'],
+    ['File uploaded', (c.has_file || c.file) ? '<span style="color:var(--green-dark)">✓ Yes</span>' : 'No'],
+  ].map(([l,v]) => `<div class="t-det-row"><span class="lbl">${l}</span><span style="font-weight:500;text-align:right">${v}</span></div>`).join('');
+  openMo(c.type || 'Certificate', `${p.address}`,
+    `<div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:4px 14px;margin-bottom:14px">${rows}</div>`,
+    `<button class="btn" onclick="closeMo()">Close</button>
+     ${c.served ? '' : `<button class="btn" onclick="closeMo();markServed(${c.id})">Mark served</button>`}
+     <button class="btn btn-navy" onclick="closeMo();moCert('${c.prop_id}')">+ Add cert</button>`
+  );
+}
+
+// ── MARK CERT AS EXPIRED (manual) ──
+async function markCertExpired(certId) {
+  const c = D.certs.find(x => String(x.id) === String(certId));
+  if (!c) return;
+  if (!confirm(`Mark "${c.type}" as expired?`)) return;
+  const today = new Date().toISOString().split('T')[0];
+  const { error } = await sb.from('certificates').update({ status: 'Expired', expiry: c.expiry || today }).eq('id', certId);
+  if (error) { toast('Error: ' + error.message, true); return; }
+  c.status = 'Expired';
+  if (!c.expiry) c.expiry = today;
+  await logAudit('MARK_EXPIRED', 'certificates', certId, `${c.type} manually marked expired`);
+  toast('✓ Marked as expired — visible in the Expired section on the compliance page');
+  nav('compliance');
+}
+
 // ── MODAL: ADD PROPERTY (3-step streamlined flow) ──
 function moAddProp(){
   document.getElementById('mo-t').textContent = 'Add property';
@@ -1564,11 +1667,19 @@ function moAddProp(){
     <!-- STEP 1: Address -->
     <div class="step-box active" id="step1">
       <div style="font-size:15px;font-weight:600;margin-bottom:2px">Where is the property?</div>
-      <div class="step-title">Full address — appears on all notices and documents</div>
+      <div class="step-title">Enter the postcode to auto-fill address details</div>
+      <div class="fg">
+        <label>Postcode <span class="req">*</span></label>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="p-post" placeholder="e.g. M4 1AQ" style="text-transform:uppercase;flex:1" oninput="this.value=this.value.toUpperCase()">
+          <button type="button" class="btn" id="p-lookup-btn" onclick="lookupPostcode()" style="flex-shrink:0;white-space:nowrap">🔍 Look up</button>
+        </div>
+        <div id="p-lookup-result" style="font-size:11px;color:var(--muted);margin-top:4px;min-height:16px"></div>
+      </div>
       <div class="fg"><label>Street address <span class="req">*</span></label><input type="text" id="p-addr" placeholder="e.g. 14 Maple Street"></div>
       <div class="fg-row">
         <div class="fg"><label>City / town <span class="req">*</span></label><input type="text" id="p-city" placeholder="e.g. Manchester"></div>
-        <div class="fg"><label>Postcode <span class="req">*</span></label><input type="text" id="p-post" placeholder="e.g. M4 1AQ" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
+        <div class="fg"><label>Region / county</label><input type="text" id="p-region" placeholder="e.g. Greater Manchester"></div>
       </div>
       <div class="fg"><label>Country</label>
         <select id="p-country">
@@ -1664,6 +1775,45 @@ function propStepNext(){
   }
 }
 function propStepBack(){ if(window._propStep > 1) goStep(window._propStep - 1); }
+
+// ── POSTCODE LOOKUP (postcodes.io — free, no key needed) ──
+async function lookupPostcode() {
+  const post = document.getElementById('p-post')?.value.trim().replace(/\s+/g,'');
+  const resultEl = document.getElementById('p-lookup-result');
+  const btn = document.getElementById('p-lookup-btn');
+  if (!post) { if(resultEl) resultEl.innerHTML = '<span style="color:var(--red)">Please enter a postcode first.</span>'; return; }
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  if (resultEl) resultEl.innerHTML = '<span style="color:var(--muted)">Looking up…</span>';
+  try {
+    const res = await fetch(`https://api.postcodes.io/postcodes/${encodeURIComponent(post)}`);
+    const data = await res.json();
+    if (data.status === 200 && data.result) {
+      const r = data.result;
+      // Auto-fill fields
+      const cityVal = r.admin_district || r.post_town || r.parish || '';
+      const regionVal = r.region || r.admin_county || '';
+      const countryVal = r.country || 'England';
+      const addrEl = document.getElementById('p-addr');
+      const cityEl = document.getElementById('p-city');
+      const regionEl = document.getElementById('p-region');
+      const countryEl = document.getElementById('p-country');
+      if (cityEl && !cityEl.value) cityEl.value = cityVal;
+      if (regionEl) regionEl.value = regionVal;
+      if (countryEl) {
+        const match = ['England','Wales','Scotland','Northern Ireland'].find(c => countryVal.includes(c));
+        if (match) countryEl.value = match;
+      }
+      if (resultEl) resultEl.innerHTML = `<span style="color:var(--green-dark);font-weight:600">✓ ${r.admin_district||''}${regionVal?', '+regionVal:''} — ${r.country||''}</span>`;
+      if (addrEl && !addrEl.value) addrEl.focus();
+    } else {
+      if (resultEl) resultEl.innerHTML = '<span style="color:var(--red)">Postcode not found — please fill in address manually.</span>';
+    }
+  } catch(e) {
+    if (resultEl) resultEl.innerHTML = '<span style="color:var(--amber)">Lookup unavailable — please fill in address manually.</span>';
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🔍 Look up'; }
+  }
+}
 function goStep(n){
   window._propStep = n;
   document.querySelectorAll('.step-box').forEach((el,i) => el.classList.toggle('active', i+1 === n));
@@ -2936,21 +3086,58 @@ function pdTabContent(pid, tab) {
     // ════════════════════════════════════════
     if (stage === 2) {
       const PROP_DOCS = [
-        { icon:'🔥', type:'Gas Safety Certificate (GSC)', label:'Gas Safety Certificate', required:true, help:'Annual — Gas Safe registered engineer. Legal requirement for all gas properties.' },
-        { icon:'⚡', type:'EICR', label:'Electrical Safety Report (EICR)', required:true, help:'Every 5 years — legally required since 2020 for all private rentals.' },
-        { icon:'🌿', type:'Energy Performance Certificate (EPC)', label:'Energy Performance Certificate (EPC)', required:true, help:'Minimum E rating required to let. Valid 10 years.' },
-        { icon:'📋', type:'How to Rent Guide', label:'How to Rent Guide', required:true, help:'Government checklist — must be served at the start of every tenancy.' },
-        { icon:'📑', type:'Tenant Information Sheet', label:'Tenant Information Sheet 2026', required:true, help:'Renters Rights Act 2025 — legally required from 31 May 2026.' },
-        { icon:'🔒', type:'Deposit Certificate', label:'Deposit Protection Certificate', required:true, help:'Proof of TDP registration — must be served within 30 days of receiving deposit.' },
-        { icon:'📝', type:'Tenancy Agreement', label:'Tenancy Agreement / AST', required:false, help:'Signed copy strongly recommended. Required for Section 8 proceedings.' },
-        { icon:'🏠', type:'Property Licence', label:'Property Licence', required:false, help:'Required in selective/HMO licensing areas. Check with your local council.' },
+        { icon:'🔥', type:'Gas Safety Certificate (CP12/GSC)',                   label:'Gas Safety Certificate (CP12)',      required:true,  help:'Annual — Gas Safe registered engineer required. Legal requirement for all gas properties.' },
+        { icon:'⚡', type:'Electrical Installation Condition Report (EICR)',      label:'Electrical Safety Report (EICR)',    required:true,  help:'Every 5 years — legally required for all private rentals since 2020.' },
+        { icon:'🌿', type:'Energy Performance Certificate (EPC)',                 label:'Energy Performance Certificate',     required:true,  help:'Minimum E rating required to let. Valid 10 years. MEES compliance required.' },
+        { icon:'📋', type:'How to Rent Guide',                                   label:'How to Rent Guide',                  required:true,  help:'Government checklist — must be served at the start of every tenancy.' },
+        { icon:'📑', type:'RRA Information Sheet 2026',                          label:'RRA Information Sheet 2026',         required:true,  help:'Renters Rights Act 2025 — legally required from 31 May 2026. Serve to all tenants.' },
+        { icon:'🔒', type:'Deposit Protection Certificate',                      label:'Deposit Protection Certificate',     required:true,  help:'TDP registration proof — serve within 30 days of receiving deposit.' },
+        { icon:'📄', type:'Deposit Prescribed Information',                      label:'Deposit Prescribed Information',     required:true,  help:'Separate legal document — must accompany the Deposit Protection Certificate.' },
+        { icon:'💨', type:'Smoke & CO Alarm Check Record',                       label:'Smoke & CO Alarm Check',             required:true,  help:'Check and log on day one of every new tenancy. CO alarm required where solid fuel used.' },
+        { icon:'📝', type:'Tenancy Agreement / Written Statement of Terms',      label:'Tenancy Agreement',                  required:false, help:'Signed copy required for Section 8 proceedings. Strongly recommended.' },
+        { icon:'💧', type:'Legionella Risk Assessment',                          label:'Legionella Risk Assessment',         required:false, help:'HSE legal duty for all landlords. Low-risk properties need a documented assessment.' },
+        { icon:'🔌', type:'PAT Test Record',                                     label:'PAT Test Record',                    required:false, help:'Recommended annually for furnished properties. Reduces liability for electrical faults.' },
+        { icon:'🛡', type:'Fire Risk Assessment',                                label:'Fire Risk Assessment',               required:false, help:'Mandatory for HMOs and converted blocks. Strongly recommended for all properties.' },
+        { icon:'🔧', type:'Boiler Service Record',                               label:'Boiler Service Record',              required:false, help:'Annual servicing recommended. Evidence of maintenance reduces liability claims.' },
+        { icon:'🏠', type:'Property Licence (HMO / Selective / Additional)',     label:'Property Licence',                   required:false, help:'Required in selective/HMO licensing areas. Check with your local council.' },
+        { icon:'🏗', type:'EWS1 Certificate',                                    label:'EWS1 Certificate',                   required:false, help:'Required for flats in blocks — needed for mortgage applications post-Grenfell.' },
+        { icon:'📐', type:'Building Regulations Certificate',                    label:'Building Regulations Certificate',   required:false, help:'Required for extensions/conversions. Needed for sale, mortgage and insurance.' },
       ];
 
       const typeMatch = (cert, doc) => {
         const ct = (cert.type||'').toLowerCase();
         const dt = doc.type.toLowerCase();
         const dl = doc.label.toLowerCase();
-        return ct.includes(dt.split('(')[0].trim()) || ct === dt || ct === dl || ct.includes(dl.split('(')[0].trim());
+        // Direct match
+        if (ct === dt || ct === dl) return true;
+        // Contains match (strip bracketed parts)
+        if (ct.includes(dt.split('(')[0].trim()) || ct.includes(dl.split('(')[0].trim())) return true;
+        if (dt.split('(')[0].trim().length > 3 && dt.split('(')[0].trim() !== dt && ct.includes(dt.split('(')[0].trim())) return true;
+        // Alias map for all cert types
+        const aliases = {
+          'gas safety': ['gas safety','gsc','cp12','gas safe'],
+          'eicr': ['eicr','electrical installation','electrical safety','electrical condition'],
+          'epc': ['epc','energy performance'],
+          'how to rent': ['how to rent'],
+          'rra information': ['rra information','rra info sheet','information sheet 2026','tenant information sheet','renters rights act information'],
+          'deposit protection': ['deposit protection','deposit certificate','deposit cert'],
+          'deposit prescribed': ['prescribed information','deposit prescribed'],
+          'smoke': ['smoke','co alarm','smoke alarm','carbon monoxide alarm'],
+          'tenancy agreement': ['tenancy agreement','ast','written statement of terms'],
+          'legionella': ['legionella'],
+          'pat test': ['pat test','pat record','portable appliance'],
+          'fire risk': ['fire risk'],
+          'boiler service': ['boiler service','boiler serv'],
+          'property licence': ['property licence','property license','hmo licence','hmo license','selective licence'],
+          'ews1': ['ews1','external wall'],
+          'building regulations': ['building regulations','building regs'],
+        };
+        for (const [key, terms] of Object.entries(aliases)) {
+          if (dt.includes(key) || dl.includes(key)) {
+            if (terms.some(alias => ct.includes(alias))) return true;
+          }
+        }
+        return false;
       };
 
       const docRows = PROP_DOCS.map(doc => {
@@ -2982,6 +3169,7 @@ function pdTabContent(pid, tab) {
             ${uploaded
               ?`<span style="font-size:11px;font-weight:600;color:var(--green-dark);background:var(--green-bg);padding:3px 9px;border-radius:100px;border:1px solid rgba(0,200,150,0.2);white-space:nowrap">✓ Uploaded</span>`
               :`<span style="font-size:11px;font-weight:600;color:var(--muted);background:var(--off);padding:3px 9px;border-radius:100px;border:1px solid var(--border);white-space:nowrap">Missing</span>`}
+            ${uploaded&&cert?`<button onclick="moCertDetail(${cert.id})" style="font-size:11px;color:var(--blue);padding:3px 9px;border:1px solid rgba(59,111,232,0.3);border-radius:5px;background:var(--blue-bg);cursor:pointer;font-family:var(--font);white-space:nowrap">👁 View</button>`:''}
             ${uploaded&&!served?`<button onclick="markServed(${cert.id})" style="font-size:11px;color:var(--muted);padding:3px 9px;border:1px solid var(--border);border-radius:5px;background:var(--off);cursor:pointer;font-family:var(--font);white-space:nowrap">Mark served</button>`:''}
             ${uploaded&&served?`<span style="font-size:11px;font-weight:600;color:var(--green-dark);background:var(--green-bg);padding:3px 9px;border-radius:5px;border:1px solid rgba(0,200,150,0.2);white-space:nowrap">✓ Served</span>`:''}
             <button class="btn btn-sm" onclick="moCert('${pid}')" style="white-space:nowrap">+ ${uploaded?'Replace':'Upload'}</button>
@@ -3033,13 +3221,16 @@ function pdTabContent(pid, tab) {
         { label:`${allTenants.length} tenant(s) added`, done:allTenants.length>0, action:`moTenant('${pid}')` },
         { label:'Tenant identity documents uploaded', done:tenantDocs.filter(d=>d.slot&&d.slot.startsWith('identity')).length>0, action:`switchOnboardStage('${pid}',1)` },
         { label:'Right to rent check completed', done:tenantDocs.filter(d=>d.slot==='identity_1'&&d.file_name).length>0, action:`switchOnboardStage('${pid}',1)` },
-        { label:'Gas Safety Certificate uploaded', done:pc.some(c=>(c.type||'').toLowerCase().includes('gas safety')), action:`moCert('${pid}')` },
+        { label:'Gas Safety Certificate uploaded', done:pc.some(c=>(c.type||'').toLowerCase().includes('gas safety')||((c.type||'').toLowerCase().includes('cp12'))), action:`moCert('${pid}')` },
         { label:'EPC uploaded (min. E rating)', done:pc.some(c=>(c.type||'').toLowerCase().includes('epc')||(c.type||'').toLowerCase().includes('energy performance')), action:`moCert('${pid}')` },
         { label:'EICR uploaded', done:pc.some(c=>(c.type||'').toLowerCase().includes('eicr')||(c.type||'').toLowerCase().includes('electrical')), action:`moCert('${pid}')` },
         { label:'How to Rent Guide uploaded', done:pc.some(c=>(c.type||'').toLowerCase().includes('how to rent')), action:`moCert('${pid}')` },
-        { label:'Tenant Information Sheet 2026 uploaded', done:pc.some(c=>(c.type||'').toLowerCase().includes('information sheet')||(c.type||'').toLowerCase().includes('rra')), action:`moRRASheet()` },
+        { label:'RRA Information Sheet 2026 served', done:pc.some(c=>(c.type||'').toLowerCase().includes('information sheet')||(c.type||'').toLowerCase().includes('rra')), action:`moRRASheet()` },
+        { label:'Legionella risk assessment documented', done:pc.some(c=>(c.type||'').toLowerCase().includes('legionella')), action:`moCert('${pid}')` },
+        { label:'Smoke & CO alarm check logged (day 1)', done:pc.some(c=>(c.type||'').toLowerCase().includes('smoke')||(c.type||'').toLowerCase().includes('co alarm')), action:`moCert('${pid}')` },
         { label:'Deposit protected & certificate served', done:!!(lead?.deposit&&lead?.scheme&&lead?.deposit_protected_date), action:`moEditDeposit('${pid}')` },
-        { label:'Tenancy agreement uploaded', done:pc.some(c=>(c.type||'').toLowerCase().includes('tenancy agreement')||(c.type||'').toLowerCase().includes('ast')), action:`moCert('${pid}')` },
+        { label:'Deposit Prescribed Information served', done:pc.some(c=>(c.type||'').toLowerCase().includes('prescribed information')), action:`moCert('${pid}')` },
+        { label:'Tenancy agreement uploaded', done:pc.some(c=>(c.type||'').toLowerCase().includes('tenancy agreement')||(c.type||'').toLowerCase().includes('written statement')), action:`moCert('${pid}')` },
         { label:'Portal invite sent to tenant(s)', done:allTenants.some(t=>t.invite_used||t.invite_token), action:lead?`sendPortalInvite('${lead?.id}')`:'' },
       ];
       const doneCount = checkItems.filter(c=>c.done).length;
@@ -3390,11 +3581,12 @@ function pgCompliance(){
         <div style="font-size:13px;font-weight:700;color:${urgCol}">${dayStr}</div>
         <div style="font-size:10px;color:var(--muted);margin-top:1px">${c.expiry ? FMT(c.expiry) : '—'}</div>
       </div>
-      <div style="flex-shrink:0">
+      <div style="display:flex;gap:5px;flex-shrink:0;flex-wrap:wrap">
         ${!(c.file||c.has_file)
           ? `<label style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--blue);padding:5px 10px;border:1px solid var(--blue);border-radius:6px;background:var(--blue-bg)">✦ Upload<input type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="uploadScanCert(${c.id},this)"></label>`
-          : `<button onclick="nav('prop-detail','${c.prop_id}')" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--white);color:var(--muted);cursor:pointer;font-family:var(--font)">View →</button>`
+          : `<button onclick="moCertDetail(${c.id})" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--white);color:var(--muted);cursor:pointer;font-family:var(--font)">👁 View</button>`
         }
+        ${!isExpired ? `<button onclick="markCertExpired(${c.id})" title="Mark as expired" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid rgba(229,62,62,0.3);background:rgba(229,62,62,0.07);color:var(--red);cursor:pointer;font-family:var(--font)">Mark expired</button>` : ''}
       </div>
     </div>`;
   }).join('') : `<div style="padding:28px;text-align:center">
@@ -3425,7 +3617,7 @@ function pgCompliance(){
       </div></td>
       <td>${pc.length} cert${pc.length!==1?'s':''}</td>
       <td>${propExpired ? `<span style="color:var(--red);font-weight:600;font-size:12px">${propExpired} expired</span>` : propCritical ? `<span style="color:var(--amber);font-weight:600;font-size:12px">${propCritical} critical</span>` : '<span style="color:var(--green-dark);font-size:12px">✓ Clear</span>'}</td>
-      <td><button class="btn btn-sm" onclick="event.stopPropagation();moCert('${p.id}')">+ Add</button></td>
+      <td><div style="display:flex;gap:4px"><button class="btn btn-sm" onclick="event.stopPropagation();moCert('${p.id}')">+ Add</button></div></td>
     </tr>`;
   }).join('');
 
@@ -3483,6 +3675,24 @@ function pgCompliance(){
         <thead><tr><th>Property</th><th>Score</th><th>Certificates</th><th>Status</th><th></th></tr></thead>
         <tbody>${propRows}</tbody>
       </table></div>
+    </div>` : ''}
+
+    <!-- Expired / Archived section -->
+    ${allCerts.filter(c=>c.urgency==='expired').length ? `<div class="panel" style="margin-top:18px">
+      <div class="ph2">
+        <div><h2 style="color:var(--red)">📁 Expired certificates</h2><p>Archived — keep these for your records</p></div>
+        <button class="btn btn-sm" onclick="moCert()">+ Add replacement</button>
+      </div>
+      ${allCerts.filter(c=>c.urgency==='expired').map(c=>`
+        <div style="display:flex;align-items:center;gap:14px;padding:11px 18px;border-bottom:1px solid var(--border);opacity:0.8">
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600;color:var(--txt)">${c.type}</div>
+            <div style="font-size:11px;color:var(--muted)">${c.p.address}${c.expiry?` · expired ${FMT(c.expiry)}`:''}</div>
+          </div>
+          <span style="font-size:11px;font-weight:600;color:var(--red);background:rgba(229,62,62,0.08);padding:3px 9px;border-radius:100px;white-space:nowrap">Expired</span>
+          <button onclick="moCertDetail(${c.id})" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--white);color:var(--muted);cursor:pointer;font-family:var(--font)">👁 View</button>
+          <button onclick="moCert('${c.prop_id}')" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--blue);background:var(--blue-bg);color:var(--blue);cursor:pointer;font-family:var(--font)">+ Replace</button>
+        </div>`).join('')}
     </div>` : ''}
 
     `}
@@ -6334,8 +6544,13 @@ async function s8SendToTenant() {
 function moTenantDetail(tid) {
   const t = D.tenants.find(x => String(x.id) === String(tid));
   if (!t) return;
-  const p = P(t.prop_id) || { address: '—', city: '' };
+  _moTenantDetailView(tid);
+}
 
+function _moTenantDetailView(tid) {
+  const t = D.tenants.find(x => String(x.id) === String(tid));
+  if (!t) return;
+  const p = P(t.prop_id) || { address: '—', city: '' };
   const rows = [
     ['Full name', t.name],
     ['Email', t.email || '—'],
@@ -6357,10 +6572,92 @@ function moTenantDetail(tid) {
      <div style="display:flex;gap:8px;flex-wrap:wrap">
        ${t.email ? `<a href="mailto:${t.email}" class="btn btn-sm">✉ Email tenant</a>` : ''}
        ${t.phone ? `<a href="tel:${t.phone}" class="btn btn-sm">📞 Call</a>` : ''}
-       <button class="btn btn-sm" onclick="closeMo();moSection8('${t.prop_id}')">⚖️ Generate Section 8</button>
+       <button class="btn btn-sm" onclick="closeMo();moSection8('${t.prop_id}')">⚖️ Section 8</button>
      </div>`,
-    `<button class="btn" onclick="closeMo()">Close</button><button class="btn btn-navy" onclick="closeMo();moTenant('${t.prop_id}')">✎ Edit tenant</button>`
+    `<button class="btn" onclick="closeMo()">Close</button><button class="btn btn-navy" onclick="_moTenantDetailEdit('${tid}')">✎ Edit</button>`
   );
+}
+
+function _moTenantDetailEdit(tid) {
+  const t = D.tenants.find(x => String(x.id) === String(tid));
+  if (!t) return;
+  const p = P(t.prop_id) || { address: '—', city: '' };
+  document.getElementById('mo-t').textContent = `Edit: ${t.name}`;
+  document.getElementById('mo-s').textContent = `Tenant at ${p.address}`;
+  document.getElementById('mo-b').innerHTML = `
+    <div class="fg"><label>Full name <span class="req">*</span></label><input type="text" id="te-name" value="${(t.name||'').replace(/"/g,'&quot;')}"></div>
+    <div class="fg-row">
+      <div class="fg"><label>Email</label><input type="email" id="te-email" value="${(t.email||'').replace(/"/g,'&quot;')}"></div>
+      <div class="fg"><label>Phone</label><input type="tel" id="te-phone" value="${(t.phone||'').replace(/"/g,'&quot;')}"></div>
+    </div>
+    <div class="fg-div"></div>
+    <div class="fg-sec">Tenancy details</div>
+    <div class="fg-row">
+      <div class="fg"><label>Monthly rent (£)</label><input type="number" id="te-rent" value="${t.rent||''}"></div>
+      <div class="fg"><label>Rent due day</label><input type="number" id="te-day" min="1" max="28" value="${t.rent_day||'1'}"></div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Tenancy start</label><input type="date" id="te-start" value="${t.start_date||''}"></div>
+      <div class="fg"><label>Tenancy end</label><input type="date" id="te-end" value="${t.end_date||''}"></div>
+    </div>
+    <div class="fg"><label>Tenancy type</label>
+      <select id="te-type">
+        <option value="APT"${t.type==='APT'?' selected':''}>APT — Assured Periodic (from 1 May 2026)</option>
+        <option value="AST"${t.type==='AST'?' selected':''}>AST — legacy (pre 1 May 2026)</option>
+        <option value="Company let"${t.type==='Company let'?' selected':''}>Company let</option>
+      </select>
+    </div>
+    <div class="fg"><label>Status</label>
+      <select id="te-status">
+        <option value="Active"${(t.status||'Active')==='Active'?' selected':''}>Active</option>
+        <option value="Former"${t.status==='Former'?' selected':''}>Former</option>
+      </select>
+    </div>
+  `;
+  document.getElementById('mo-f').innerHTML = `
+    <button class="btn" onclick="_moTenantDetailView('${tid}')">← Back</button>
+    <button class="btn btn-navy" onclick="saveTenantEditToDB('${tid}')">Save changes</button>
+  `;
+}
+
+async function saveTenantEditToDB(tid) {
+  const btn = document.querySelector('#mo-f .btn-navy');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Saving…'; }
+
+  const name   = document.getElementById('te-name')?.value.trim();
+  const email  = document.getElementById('te-email')?.value.trim() || null;
+  const phone  = document.getElementById('te-phone')?.value.trim() || null;
+  const rent   = parseFloat(document.getElementById('te-rent')?.value) || 0;
+  const day    = parseInt(document.getElementById('te-day')?.value) || 1;
+  const start  = document.getElementById('te-start')?.value || null;
+  const end    = document.getElementById('te-end')?.value || null;
+  const type   = document.getElementById('te-type')?.value || 'APT';
+  const status = document.getElementById('te-status')?.value || 'Active';
+
+  if (!name) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Save changes'; }
+    toast('Name is required.', true); return;
+  }
+
+  const { error } = await sb.from('tenants').update({
+    name, email, phone, rent, rent_day: day,
+    start_date: start, end_date: end, type, status
+  }).eq('id', tid);
+
+  if (error) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Save changes'; }
+    toast('Error: ' + error.message, true); return;
+  }
+
+  const t = D.tenants.find(x => String(x.id) === String(tid));
+  if (t) Object.assign(t, { name, email, phone, rent, rent_day: day, start_date: start, end_date: end, start, end, type, status });
+  await logAudit('EDIT_TENANT', 'tenants', tid, `Updated: ${name}`);
+  closeMo();
+  toast('✓ Tenant updated!');
+  if (t) {
+    nav('prop-detail', t.prop_id);
+    setTimeout(() => pdSetTab(t.prop_id, 'tenant'), 100);
+  }
 }
 
 // ── RRA 2025 PDF (base64 embedded) ──
