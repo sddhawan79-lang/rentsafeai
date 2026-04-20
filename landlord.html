@@ -58,6 +58,8 @@
 [data-theme="dark"] .coll{background:var(--white);border-color:var(--border)}
 [data-theme="dark"] .coll-hd:hover{background:var(--off)}
 [data-theme="dark"] .sb-section{color:rgba(255,255,255,0.3)}
+[data-theme="dark"] .sec-hd{background:var(--off);border-color:var(--border)}
+[data-theme="dark"] .sec-pill{background:var(--white);border-color:var(--border);color:var(--muted)}
 html,body{height:100%;font-family:var(--font);color:var(--txt);background:var(--off);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
 /* ── APP LAYOUT ── */
 .app{display:flex;height:100vh;overflow:hidden}
@@ -321,9 +323,21 @@ tr:hover td{background:rgba(246,248,251,.8)}
 .prop-menu-item.danger:hover{background:var(--red-bg)}
 .prop-menu-div{height:1px;background:var(--border);margin:4px 0}
 /* ── UI HIERARCHY IMPROVEMENTS ── */
-/* Panel headers now have off-white background — visually separates heading from content */
-.ph2{background:var(--off)}
-.ph2 h2{font-weight:700;font-size:13.5px}
+/* Panel headers — clearly separated from content with stronger styling */
+.ph2{background:var(--off);border-bottom:1px solid var(--border)}
+.ph2 h2{font-weight:700;font-size:13.5px;color:var(--txt)}
+/* Section header pill — used in dashboard action items, calendar, upcoming tasks */
+.sec-hd{display:flex;align-items:center;justify-content:space-between;padding:11px 18px 10px;background:var(--off);border-bottom:1px solid var(--border)}
+.sec-hd-left{display:flex;align-items:center;gap:8px}
+.sec-pill{display:inline-flex;align-items:center;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;padding:3px 9px;border-radius:100px;background:var(--white);border:1px solid var(--border);color:var(--muted)}
+.sec-pill-green{background:rgba(0,200,150,0.1);border-color:rgba(0,200,150,0.25);color:var(--green-dark)}
+.sec-pill-red{background:var(--red-bg);border-color:rgba(229,62,62,0.2);color:var(--red)}
+.sec-pill-amber{background:var(--amber-bg);border-color:rgba(217,119,6,0.2);color:var(--amber)}
+.sec-pill-blue{background:var(--blue-bg);border-color:rgba(59,111,232,0.2);color:var(--blue)}
+.sec-count{font-size:11px;color:var(--muted)}
+/* Metric card accent bar */
+.mc-bar{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px}
+.mc{position:relative;overflow:hidden}
 /* Compact action tiles (replaces tall dark gradient cards) */
 .act-tile{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:8px;transition:opacity .15s;cursor:default}
 .act-tile+.act-tile{margin-top:6px}
@@ -2587,6 +2601,7 @@ function pgDashboard(){
 
     <div class="metrics">
       <div class="mc" onclick="nav('properties')" title="View properties">
+        <div class="mc-bar" style="background:#3B6FE8"></div>
         <div class="mc-top"><span class="mc-label">Properties</span><div class="mc-icon">🏠</div></div>
         <div class="mc-val">${D.properties.length}</div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px">
@@ -2594,6 +2609,7 @@ function pgDashboard(){
         </div>
       </div>
       <div class="mc" onclick="nav('tenants')" title="View tenants">
+        <div class="mc-bar" style="background:#00C896"></div>
         <div class="mc-top"><span class="mc-label">Active tenants</span><div class="mc-icon">👤</div></div>
         <div class="mc-val">${D.tenants.length}</div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px">
@@ -2601,6 +2617,7 @@ function pgDashboard(){
         </div>
       </div>
       <div class="mc" onclick="nav('financials')" title="View financials">
+        <div class="mc-bar" style="background:#00C896"></div>
         <div class="mc-top"><span class="mc-label">Monthly rent</span><div class="mc-icon">💷</div></div>
         <div class="mc-val">£${tot.toLocaleString()}</div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px">
@@ -2608,8 +2625,9 @@ function pgDashboard(){
         </div>
       </div>
       <div class="mc" onclick="nav('maintenance')" title="View maintenance">
+        <div class="mc-bar" style="background:${open>0?'#E53E3E':'#00C896'}"></div>
         <div class="mc-top"><span class="mc-label">Open issues</span><div class="mc-icon">🔧</div></div>
-        <div class="mc-val">${open}</div>
+        <div class="mc-val" style="color:${open>0?'var(--red)':'var(--txt)'}">${open}</div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px">
           <div class="mc-sub">${D.maintenance.filter(m=>m.awaab&&m.status!=='Resolved').length} Awaab flagged</div><span style="font-size:11px;color:var(--muted)">View →</span>
         </div>
@@ -2644,12 +2662,21 @@ function pgDashboard(){
     <div class="g2">
       <div>
         <div class="panel" style="margin-bottom:16px">
-          <div class="ph2"><div><h2>Action items</h2><p>Sorted by urgency</p></div></div>
+          <div class="sec-hd">
+            <div class="sec-hd-left">
+              <span class="sec-pill sec-pill-${acts.filter(a=>a.b==='red').length?'red':acts.filter(a=>a.b==='amber').length?'amber':'green'}">${acts.filter(a=>a.b==='red').length?'⚠ Urgent':'✓ Action items'}</span>
+              <span class="sec-count">${acts.length} item${acts.length!==1?'s':''} · sorted by urgency</span>
+            </div>
+            <button class="btn btn-sm" onclick="nav('compliance')" style="font-size:11px">View all →</button>
+          </div>
           ${acts.length?acts.map(a=>`<div class="ai-row" onclick="nav('${a.nav||'dashboard'}')" style="cursor:pointer"><span class="badge b-${a.b}">${a.l}</span><div class="ai-body"><div class="ai-title">${a.t}</div><div class="ai-sub">${a.s}</div></div><span style="color:var(--muted);font-size:16px">›</span></div>`).join(''):'<div class="empty"><div class="empty-ic">✓</div><div class="empty-t">All clear</div></div>'}
         </div>
         <div class="panel">
-          <div class="ph2">
-            <div><h2>📅 Upcoming tasks</h2><p>Next 30 days · all properties</p></div>
+          <div class="sec-hd">
+            <div class="sec-hd-left">
+              <span class="sec-pill sec-pill-blue">📅 Upcoming tasks</span>
+              <span class="sec-count">Next 30 days · all properties</span>
+            </div>
             <button class="btn btn-sm" style="background:var(--navy);color:#fff;border-color:var(--navy);font-size:11px" onclick="quickAskDash('What do I need to do in the next 30 days? List all upcoming certificates, rent due dates, and anything else I should action.')">🤖 Ask AI</button>
           </div>
           ${getUpcomingTasksHtml()}
@@ -2664,15 +2691,27 @@ function pgDashboard(){
 }
 
 // ── DASHBOARD HELPERS: MINI CALENDAR ──
+// _dashCalOffset: months relative to current (0=now, -1=prev, 1=next)
+if (typeof window._dashCalOffset === 'undefined') window._dashCalOffset = 0;
+function dashCalNav(dir) { window._dashCalOffset = (window._dashCalOffset||0) + dir; nav('dashboard'); }
+
 function getDashCalHtml() {
   try {
-    const now = new Date();
-    const yr = now.getFullYear(), mo = now.getMonth();
-    const mn = now.toLocaleString('en-GB',{month:'long',year:'numeric'});
+    const realNow = new Date();
+    const base = new Date(realNow.getFullYear(), realNow.getMonth() + (window._dashCalOffset||0), 1);
+    const yr = base.getFullYear(), mo = base.getMonth();
+    const isCurrentMonth = (yr === realNow.getFullYear() && mo === realNow.getMonth());
+    const mn = base.toLocaleString('en-GB',{month:'long',year:'numeric'});
     const fd = (new Date(yr,mo,1).getDay()+6)%7;
     const dim = new Date(yr,mo+1,0).getDate();
     const dn = ['M','T','W','T','F','S','S'];
     const allEvents = getCalEvents();
+
+    // Dot colours by event type (not urgency) so each category is always distinct
+    const typeCol = { rent:'#00C896', cert:'#E53E3E', compliance:'#E53E3E', deposit:'#E53E3E',
+                      insurance:'#3B6FE8', mortgage:'#3B6FE8', licence:'#D97706',
+                      maintenance:'#D97706', inspection:'#3B6FE8' };
+    function evDotCol(ev) { return typeCol[ev.type] || (ev.urg==='red'?'#E53E3E':ev.urg==='amber'?'#D97706':'#3B6FE8'); }
 
     const evMap = {};
     allEvents.forEach(ev => {
@@ -2686,70 +2725,86 @@ function getDashCalHtml() {
     let cells = '';
     for (let i=0;i<fd;i++) cells+=`<div></div>`;
     for (let d=1;d<=dim;d++){
-      const isToday = now.getDate()===d;
+      const isToday = isCurrentMonth && realNow.getDate()===d;
       const dayEvs = evMap[d]||[];
-      const hasRed = dayEvs.some(e=>e.urg==='red');
-      const hasAmber = dayEvs.some(e=>e.urg==='amber');
-      const dotCol = hasRed?'#E53E3E':hasAmber?'#D97706':dayEvs.length?'#3B6FE8':'';
-      cells += `<div onclick="${dayEvs.length?`dashCalClick(${d})`:'void(0)'}" style="border-radius:6px;display:flex;flex-direction:column;align-items:center;padding:4px 2px;font-size:11px;cursor:${dayEvs.length?'pointer':'default'};background:${isToday?'var(--navy)':'transparent'};color:${isToday?'#fff':'var(--txt)'};font-weight:${isToday?'700':'400'};transition:background .1s" onmouseenter="if(${dayEvs.length&&!isToday})this.style.background='var(--off)'" onmouseleave="if(${dayEvs.length&&!isToday})this.style.background='transparent'">
+      // Up to 3 distinct-colour dots, one per category present that day
+      const seenCols = [];
+      dayEvs.forEach(e => { const c=evDotCol(e); if(!seenCols.includes(c)&&seenCols.length<3) seenCols.push(c); });
+      const dotsHtml = seenCols.map(c=>`<div style="width:4px;height:4px;border-radius:50%;background:${c};flex-shrink:0"></div>`).join('');
+      cells += `<div onclick="${dayEvs.length?`dashCalClick(${d},${yr},${mo})`:'void(0)'}" style="border-radius:6px;display:flex;flex-direction:column;align-items:center;padding:5px 2px;font-size:11px;cursor:${dayEvs.length?'pointer':'default'};background:${isToday?'var(--navy)':'transparent'};color:${isToday?'#fff':'var(--txt)'};font-weight:${isToday?'700':'400'};transition:background .1s;min-height:30px" onmouseenter="if(${dayEvs.length&&!isToday?1:0})this.style.background='var(--off)'" onmouseleave="if(${dayEvs.length&&!isToday?1:0})this.style.background='transparent'">
         ${d}
-        <div style="width:4px;height:4px;border-radius:50%;background:${dotCol||'transparent'};margin-top:1px"></div>
+        <div style="display:flex;gap:2px;margin-top:2px;min-height:4px">${dotsHtml}</div>
       </div>`;
     }
 
-    // Today's events list
-    const todayEvs = evMap[now.getDate()]||[];
+    // Today's or selected events
+    const todayEvs = isCurrentMonth ? (evMap[realNow.getDate()]||[]) : [];
     const todayHtml = todayEvs.length
       ? todayEvs.map(e=>{
           const col=e.urg==='red'?'var(--red)':e.urg==='amber'?'var(--amber)':'var(--blue)';
           const bg=e.urg==='red'?'var(--red-bg)':e.urg==='amber'?'var(--amber-bg)':'var(--blue-bg)';
           return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
-            <span style="font-size:14px">${e.icon}</span>
-            <div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:500;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.label}</div><div style="font-size:10px;color:var(--muted)">${e.sub}</div></div>
-            <span style="font-size:10px;font-weight:600;color:${col};background:${bg};padding:1px 6px;border-radius:100px;white-space:nowrap;flex-shrink:0">Today</span>
+            <span style="font-size:13px;min-width:18px;text-align:center">${e.icon}</span>
+            <div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:600;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.label}</div><div style="font-size:10px;color:var(--muted)">${e.sub}</div></div>
+            <span style="font-size:10px;font-weight:700;color:${col};background:${bg};padding:2px 7px;border-radius:100px;white-space:nowrap;flex-shrink:0">Today</span>
           </div>`;
         }).join('')
-      : `<div style="font-size:12px;color:var(--muted);padding:8px 0">Nothing due today ✓</div>`;
+      : `<div style="font-size:12px;color:var(--muted);padding:8px 0;display:flex;align-items:center;gap:6px"><span style="color:var(--green-dark);font-size:14px">✓</span> Nothing due today</div>`;
+
+    // Legend
+    const legendHtml = `<div style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 14px 4px;border-top:1px solid var(--border)">
+      ${[['#00C896','Rent'],['#E53E3E','Compliance'],['#D97706','Maintenance'],['#3B6FE8','Finance']].map(([c,l])=>`<div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--muted)"><div style="width:7px;height:7px;border-radius:50%;background:${c};flex-shrink:0"></div>${l}</div>`).join('')}
+    </div>`;
 
     return `
-      <div style="padding:12px 14px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-        <div style="font-size:13px;font-weight:700;color:var(--txt)">${mn}</div>
-        <button class="btn btn-sm" onclick="nav('calendar')">Full view →</button>
+      <div class="sec-hd">
+        <div class="sec-hd-left">
+          <span class="sec-pill sec-pill-blue">📅 Calendar</span>
+          <span class="sec-count">${mn}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px">
+          <button class="btn btn-sm btn-icon" onclick="dashCalNav(-1)" title="Previous month" style="font-size:14px;font-weight:600">‹</button>
+          ${!isCurrentMonth?`<button class="btn btn-sm" onclick="window._dashCalOffset=0;nav('dashboard')" style="font-size:10px;padding:4px 8px">Today</button>`:''}
+          <button class="btn btn-sm btn-icon" onclick="dashCalNav(1)" title="Next month" style="font-size:14px;font-weight:600">›</button>
+          <button class="btn btn-sm" onclick="nav('calendar')" style="font-size:11px;margin-left:2px">Full →</button>
+        </div>
       </div>
-      <div style="padding:10px 12px 6px">
-        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:3px">
+      <div style="padding:8px 12px 4px">
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:2px">
           ${dn.map(d=>`<div style="text-align:center;font-size:9px;font-weight:700;text-transform:uppercase;color:var(--muted);padding:2px 0">${d}</div>`).join('')}
         </div>
         <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">${cells}</div>
       </div>
+      ${legendHtml}
       <div id="dash-cal-day" style="display:none"></div>
-      <div style="padding:0 14px 10px;border-top:1px solid var(--border);margin-top:8px">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);padding:10px 0 6px">Today — ${now.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'short'})}</div>
+      ${isCurrentMonth ? `<div style="padding:0 14px 12px;border-top:1px solid var(--border);margin-top:6px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:10px 0 6px">Today — ${realNow.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'short'})}</div>
         ${todayHtml}
-      </div>`;
+      </div>` : ''}`;
   } catch(e) { return '<div style="padding:18px;font-size:13px;color:var(--muted)">Calendar unavailable</div>'; }
 }
 
-function dashCalClick(day) {
-  const now = new Date();
-  const yr = now.getFullYear(), mo = now.getMonth();
+function dashCalClick(day, yr, mo) {
+  if (yr===undefined||mo===undefined) { const now=new Date(); yr=now.getFullYear(); mo=now.getMonth(); }
   const allEvents = getCalEvents();
   const dayEvs = allEvents.filter(ev=>{const d=new Date(ev.date);return d.getFullYear()===yr&&d.getMonth()===mo&&d.getDate()===day;});
   const panel = document.getElementById('dash-cal-day');
   if (!panel) return;
-  if (window._dcd===day && panel.style.display!=='none') { panel.style.display='none'; window._dcd=null; return; }
-  window._dcd = day;
+  if (window._dcd===`${yr}-${mo}-${day}` && panel.style.display!=='none') { panel.style.display='none'; window._dcd=null; return; }
+  window._dcd = `${yr}-${mo}-${day}`;
   const dateStr = new Date(yr,mo,day).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
-  panel.innerHTML = `<div style="padding:8px 14px 10px;border-top:1px solid var(--border)">
-    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:6px">${dateStr}</div>
+  const typeCol = { rent:'#00C896', cert:'#E53E3E', compliance:'#E53E3E', deposit:'#E53E3E', insurance:'#3B6FE8', mortgage:'#3B6FE8', licence:'#D97706', maintenance:'#D97706' };
+  panel.innerHTML = `<div style="padding:8px 14px 12px;border-top:1px solid var(--border)">
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:8px">${dateStr}</div>
     ${dayEvs.map(e=>{
+      const dot=typeCol[e.type]||(e.urg==='red'?'#E53E3E':e.urg==='amber'?'#D97706':'#3B6FE8');
       const col=e.urg==='red'?'var(--red)':e.urg==='amber'?'var(--amber)':'var(--blue)';
       const bg=e.urg==='red'?'var(--red-bg)':e.urg==='amber'?'var(--amber-bg)':'var(--blue-bg)';
       const lbl=e.days<0?Math.abs(e.days)+'d overdue':e.days===0?'Today':e.days+'d';
-      return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0">
-        <span style="font-size:14px">${e.icon}</span>
-        <div style="flex:1"><div style="font-size:11px;font-weight:500;color:var(--txt)">${e.label}</div><div style="font-size:10px;color:var(--muted)">${e.sub}</div></div>
-        <span style="font-size:10px;font-weight:600;color:${col};background:${bg};padding:1px 6px;border-radius:100px;white-space:nowrap">${lbl}</span>
+      return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+        <div style="width:8px;height:8px;border-radius:50%;background:${dot};flex-shrink:0"></div>
+        <div style="flex:1"><div style="font-size:12px;font-weight:600;color:var(--txt)">${e.label}</div><div style="font-size:10px;color:var(--muted)">${e.sub}</div></div>
+        <span style="font-size:10px;font-weight:700;color:${col};background:${bg};padding:2px 7px;border-radius:100px;white-space:nowrap">${lbl}</span>
       </div>`;
     }).join('')}
   </div>`;
