@@ -948,7 +948,37 @@ async function scanAndFillCustom(file, prompt, onResult) {
   try { onResult(JSON.parse(txt.replace(/```json|```/g,'').trim())); } catch(e) { onResult({}); }
 }
 
-// ── TENANT DOCUMENTS ──
+// ── REUSABLE: scanDepositCert — extracts names + deposit details from deposit protection certificate ──
+async function scanDepositCert(file, onResult) {
+  if (!file) return;
+  const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result.split(',')[1]); r.onerror = rej; r.readAsDataURL(file); });
+  const isImg = file.type.startsWith('image/');
+  const prompt = `This is a UK Tenancy Deposit Protection Certificate or Deposit Prescribed Information document.
+Extract ALL of the following and return JSON only (no markdown):
+- tenant_names: array of all tenant names listed on the document (e.g. ["John Smith", "Jane Smith"])
+- deposit_amount: numeric amount in pounds (number, no currency symbol)
+- scheme: name of the deposit scheme (DPS, MyDeposits, TDS, or exact name found)
+- scheme_ref: reference or certificate number
+- protection_date: date deposit was protected (YYYY-MM-DD)
+- property_address: the property address if shown
+- issued: issue date of the certificate (YYYY-MM-DD)
+- expiry: expiry date if shown (YYYY-MM-DD)
+Keys: tenant_names, deposit_amount, scheme, scheme_ref, protection_date, property_address, issued, expiry.`;
+  const msgContent = isImg
+    ? [{type:'image',source:{type:'base64',media_type:file.type,data:b64}},{type:'text',text:prompt}]
+    : [{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:prompt}];
+  try {
+    const res = await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({model:'claude-sonnet-4-5',max_tokens:500,messages:[{role:'user',content:msgContent}]})
+    });
+    const data = await res.json();
+    const txt = data.content?.[0]?.text || '{}';
+    onResult(JSON.parse(txt.replace(/```json|```/g,'').trim()));
+  } catch(e) { onResult({}); }
+}
+
+
 let _tenantDocsCache = {};
 
 async function loadTenantDocs(tenantId) {
@@ -1048,9 +1078,19 @@ async function updateTenantDocBadge(tenantId) {
   const required = ['identity_1','address_1','address_2'];
   const done = required.filter(slot => docs.some(d => d.slot === slot));
   const hasMismatch = docs.some(d => d.name_mismatch);
-  if (hasMismatch) { badge.textContent='⚠ Name mismatch'; badge.style.background='rgba(229,62,62,0.1)'; badge.style.color='var(--red)'; }
-  else if (done.length === required.length) { badge.textContent=`✓ ${done.length}/${required.length} complete`; badge.style.background='var(--green-bg)'; badge.style.color='var(--green-dark)'; }
-  else { badge.textContent=`${done.length}/${required.length} required docs`; badge.style.background='var(--amber-bg)'; badge.style.color='var(--amber)'; }
+  if (hasMismatch) {
+    badge.textContent = '⚠ Name mismatch';
+    badge.style.background = 'rgba(229,62,62,0.1)'; badge.style.color = 'var(--red)';
+    badge.style.border = '1px solid rgba(229,62,62,0.3)';
+  } else if (done.length === required.length) {
+    badge.textContent = '✓ Complete';
+    badge.style.background = 'var(--green-bg)'; badge.style.color = 'var(--green-dark)';
+    badge.style.border = '1px solid rgba(0,200,150,0.2)';
+  } else {
+    badge.textContent = `${done.length}/${required.length} docs uploaded`;
+    badge.style.background = 'var(--amber-bg)'; badge.style.color = 'var(--amber)';
+    badge.style.border = '1px solid rgba(217,119,6,0.2)';
+  }
 }
 
 function docSlotHtml(slot, icon, label, helpText, docType, isRequired, tid, pid) {
@@ -1121,16 +1161,26 @@ async function toggleTenantDocs(tid, pid) {
 
 function tenantDocsSectionHtml(tenant, pid) {
   const tid = tenant.id;
-  return `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;cursor:pointer" onclick="toggleTenantDocs('${tid}','${pid}')">
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:14px">📁</span>
-        <span style="font-size:13px;font-weight:600;color:var(--txt)">Tenant Documents</span>
-        <span id="td-badge-${tid}" style="font-size:10px;font-weight:700;background:var(--red-bg);color:var(--red);padding:2px 8px;border-radius:100px">0/3 required docs</span>
+  // Check existing docs from cache to decide if we should start open
+  const cachedDocs = _tenantDocsCache[String(tid)] || [];
+  const hasRequired = cachedDocs.filter(d => d.slot && (d.slot.startsWith('identity') || d.slot.startsWith('address'))).length;
+  const startOpen = hasRequired < 3; // Open by default if docs are missing
+  return `<div style="margin-top:14px;border:2px solid ${hasRequired>=3?'rgba(0,200,150,0.25)':'rgba(229,62,62,0.2)'};border-radius:10px;overflow:hidden;background:var(--white)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer;background:${hasRequired>=3?'rgba(0,200,150,0.06)':'rgba(229,62,62,0.05)'}" onclick="toggleTenantDocs('${tid}','${pid}')">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:34px;height:34px;border-radius:8px;background:${hasRequired>=3?'var(--green-bg)':'rgba(229,62,62,0.1)'};display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">${hasRequired>=3?'✅':'📁'}</div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--txt)">Tenant Documents & Right to Rent</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:1px">Identity, address proof &amp; supporting docs</div>
+        </div>
+        <span id="td-badge-${tid}" style="font-size:10px;font-weight:700;background:${hasRequired>=3?'var(--green-bg)':'var(--red-bg)'};color:${hasRequired>=3?'var(--green-dark)':'var(--red)'};padding:2px 8px;border-radius:100px;border:1px solid ${hasRequired>=3?'rgba(0,200,150,0.2)':'rgba(229,62,62,0.2)'}">${hasRequired>=3?'✓ Complete':'Docs required'}</span>
       </div>
-      <span id="td-arr-${tid}" style="color:var(--muted);font-size:12px">▾</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        ${hasRequired < 3 ? `<span style="font-size:10px;font-weight:700;color:var(--red);background:rgba(229,62,62,0.08);padding:2px 8px;border-radius:100px">Required by law</span>` : ''}
+        <span id="td-arr-${tid}" style="color:var(--muted);font-size:14px;font-weight:600">${startOpen ? '▴' : '▾'}</span>
+      </div>
     </div>
-    <div id="td-body-${tid}" style="display:none;padding-top:8px">
+    <div id="td-body-${tid}" style="display:${startOpen ? 'block' : 'none'};padding:14px 16px;border-top:1px solid var(--border)">
 
       <!-- IDENTITY -->
       <div style="margin-bottom:14px">
@@ -1235,8 +1285,36 @@ async function saveCertToDB() {
 
   D.certs.push({...data, file: true});
   await logAudit('ADD_CERT', 'certificates', data.id, `Added ${certType}`);
+
   const savedPropId = parseInt(propId);
   const savedPropAddr = (P(savedPropId)||{}).address || 'property';
+
+  // If this is a deposit cert and we have scan data, auto-update lead tenant deposit metadata
+  const isDepositCert = certType.toLowerCase().includes('deposit') || certType.toLowerCase().includes('prescribed');
+  if (isDepositCert && window._lastDepositScan) {
+    const dep = window._lastDepositScan;
+    const lead = getLeadTenant(savedPropId);
+    if (lead && (dep.deposit_amount || dep.scheme || dep.scheme_ref || dep.protection_date)) {
+      const updates = {};
+      if (dep.deposit_amount) updates.deposit = parseFloat(dep.deposit_amount);
+      if (dep.scheme) {
+        const schemeMap = {'dps':'DPS','mydeposits':'MyDeposits','tds':'TDS'};
+        updates.scheme = schemeMap[dep.scheme.toLowerCase()] || dep.scheme;
+      }
+      if (dep.scheme_ref) updates.scheme_ref = dep.scheme_ref;
+      if (dep.protection_date) updates.deposit_protected_date = dep.protection_date;
+      if (Object.keys(updates).length) {
+        try {
+          await sb.from('tenants').update(updates).eq('id', lead.id);
+          Object.assign(lead, updates);
+          toast('✓ Certificate saved + deposit details auto-updated from scan!');
+        } catch(e) { /* non-critical */ }
+      }
+      window._lastDepositScan = null;
+    }
+  }
+
+  updateNavBadges();
   toast('✓ Certificate saved!');
   openMo('✓ Certificate saved!', `${certType} — ${savedPropAddr}`, `
     <div style="margin-bottom:12px;font-size:13px;color:var(--muted)">What would you like to do next?</div>
@@ -1321,18 +1399,40 @@ async function saveTenantToDB() {
   `, `<button class="btn" onclick="closeMo();nav('tenants')">Go to tenants list</button>`);
 }
 
-// ── MODAL: EDIT DEPOSIT (property level — operates on lead tenant) ──
 function moEditDeposit(pid) {
   const lead = getLeadTenant(pid);
   const p = P(pid);
   if (!lead) { toast('Add a tenant first before setting deposit details', true); return; }
+  const allTenants = getPropertyTenants(pid);
   const rent = lead.rent || p?.rent || 0;
   const fiveWeeks = rent ? Math.round((rent / 4.33) * 5 * 100) / 100 : 0;
-  openMo('Tenancy deposit', `${p?.address || 'Property'} — held by lead tenant`,`
+
+  // Check if a deposit cert already exists for this property
+  const existingDepositCert = D.certs.find(c =>
+    String(c.prop_id) === String(pid) &&
+    ((c.type||'').toLowerCase().includes('deposit') || (c.type||'').toLowerCase().includes('prescribed'))
+  );
+
+  openMo('Tenancy deposit', `${p?.address || 'Property'} — held by lead tenant`, `
     <div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--muted);margin-bottom:16px">
       Under UK law, the deposit is held in the name of the lead tenant: <strong style="color:var(--txt)">${lead.name}</strong>.
-      ${fiveWeeks ? `Maximum under RRA 2025 (5 weeks): <strong style="color:var(--txt)">£${fiveWeeks.toLocaleString()}</strong>.` : ''}
+      ${allTenants.length > 1 ? `<br>Joint tenants on this property: <strong style="color:var(--txt)">${allTenants.map(t=>t.name).join(', ')}</strong>.` : ''}
+      ${fiveWeeks ? `<br>Maximum under RRA 2025 (5 weeks): <strong style="color:var(--txt)">£${fiveWeeks.toLocaleString()}</strong>.` : ''}
     </div>
+
+    <!-- AI SCAN DEPOSIT CERT -->
+    <div style="background:linear-gradient(135deg,rgba(59,111,232,0.07),rgba(0,200,150,0.05));border:1px solid rgba(59,111,232,0.2);border-radius:9px;padding:12px 14px;margin-bottom:16px">
+      <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:8px">✦ Upload & AI-scan deposit certificate</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">AI will read the document and auto-fill the amount, scheme, reference number and tenant names listed on it.</div>
+      <label style="cursor:pointer;display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:7px;border:1.5px solid var(--blue);background:var(--blue-bg);font-family:var(--font);font-size:12px;font-weight:600;color:var(--blue)">
+        <input type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="scanDepositDocAndFill(this,'${pid}','${lead.id}')">
+        📄 Upload deposit certificate
+      </label>
+      <span id="dep-scan-status" style="font-size:11px;color:var(--muted);margin-left:10px">${existingDepositCert ? '✓ Certificate already on file' : 'No file yet'}</span>
+    </div>
+
+    <div id="dep-names-panel" style="display:none;background:var(--green-bg);border:1px solid rgba(0,200,150,0.3);border-radius:8px;padding:10px 14px;font-size:12px;margin-bottom:14px"></div>
+
     <div class="fg-row">
       <div class="fg"><label>Deposit amount (£)</label><input type="number" id="dep-amount" value="${lead.deposit||''}" placeholder="e.g. 1500" oninput="updateDepositRRACheck(${rent})" onchange="updateDepositRRACheck(${rent})"></div>
       <div class="fg"><label>Scheme</label>
@@ -1347,12 +1447,87 @@ function moEditDeposit(pid) {
     <div style="background:var(--amber-bg);border:1px solid var(--amber);border-radius:8px;padding:9px 13px;font-size:12px;color:var(--txt);margin-top:4px">
       ⚠️ <strong>30-day rule:</strong> Deposits must be protected within 30 days of receipt. You can be fined up to 3× the deposit if you miss this deadline.
     </div>
-  `,`<button class="btn" onclick="closeMo()">Cancel</button><button class="btn btn-navy" onclick="saveDepositToDB('${pid}','${lead.id}')">Save deposit</button>`);
-  // Trigger initial check
+  `, `<button class="btn" onclick="closeMo()">Cancel</button><button class="btn btn-navy" onclick="saveDepositToDB('${pid}','${lead.id}')">Save deposit</button>`);
   setTimeout(() => updateDepositRRACheck(rent), 50);
 }
 
-function updateDepositRRACheck(rent) {
+// ── AI scan deposit cert and auto-fill the form ──
+async function scanDepositDocAndFill(inputEl, pid, leadId) {
+  const file = inputEl.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('dep-scan-status');
+  const namesPanel = document.getElementById('dep-names-panel');
+  if (statusEl) { statusEl.textContent = '⏳ Scanning…'; statusEl.style.color = 'var(--muted)'; }
+
+  await scanDepositCert(file, async (parsed) => {
+    // Auto-fill form fields
+    if (parsed.deposit_amount && document.getElementById('dep-amount')) {
+      document.getElementById('dep-amount').value = parsed.deposit_amount;
+      const lead = D.tenants.find(t => String(t.id) === String(leadId));
+      const rent = lead?.rent || P(pid)?.rent || 0;
+      if (rent) updateDepositRRACheck(rent);
+    }
+    if (parsed.scheme) {
+      const sel = document.getElementById('dep-scheme');
+      if (sel) {
+        const schemeMap = {'dps':'DPS','mydeposits':'MyDeposits','tds':'TDS'};
+        const normalized = schemeMap[parsed.scheme.toLowerCase()] || parsed.scheme;
+        for (const opt of sel.options) { if (opt.value === normalized) { sel.value = normalized; break; } }
+      }
+    }
+    if (parsed.scheme_ref && document.getElementById('dep-ref')) document.getElementById('dep-ref').value = parsed.scheme_ref;
+    if (parsed.protection_date && document.getElementById('dep-protected')) document.getElementById('dep-protected').value = parsed.protection_date;
+
+    // Also save cert to D.certs if not already there
+    const certType = 'Deposit Protection Certificate';
+    const status = parsed.expiry ? (new Date(parsed.expiry) < new Date() ? 'Expired' : 'Valid') : 'No expiry';
+    try {
+      const { data: certData } = await sb.from('certificates').insert({
+        prop_id: parseInt(pid), type: certType,
+        expiry: parsed.expiry || null, status, has_file: true, served: false,
+        engineer: parsed.scheme || null, user_id: currentUser.id
+      }).select().single();
+      if (certData) { D.certs.push({...certData, file: true}); updateNavBadges(); }
+    } catch(e) { /* cert may already exist — ok */ }
+
+    // Show tenant names found on the document
+    const names = parsed.tenant_names || [];
+    if (names.length > 0 && namesPanel) {
+      const allTenants = getPropertyTenants(pid);
+      const allTenantNames = allTenants.map(t => t.name.toLowerCase());
+      const newNames = names.filter(n => !allTenantNames.some(tn => tn.includes(n.toLowerCase().split(' ')[0]) || n.toLowerCase().includes(tn.split(' ')[0])));
+      namesPanel.style.display = 'block';
+      namesPanel.innerHTML = `
+        <div style="font-size:12px;font-weight:700;color:var(--green-dark);margin-bottom:8px">✦ AI found these names on the deposit certificate:</div>
+        ${names.map(name => {
+          const matched = allTenants.find(t => t.name.toLowerCase().includes(name.toLowerCase().split(' ')[0]) || name.toLowerCase().includes(t.name.toLowerCase().split(' ')[0]));
+          return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(0,200,150,0.15)">
+            <span style="font-size:13px">👤</span>
+            <span style="font-size:12px;font-weight:500;color:var(--txt)">${name}</span>
+            ${matched
+              ? `<span style="font-size:11px;color:var(--green-dark);background:var(--green-bg);padding:1px 7px;border-radius:100px;margin-left:auto">✓ Matched to ${matched.name}</span>`
+              : `<button class="btn btn-sm" style="font-size:10px;margin-left:auto;padding:3px 9px" onclick="moTenantFromDeposit('${pid}','${name.replace(/'/g,"\\'")}')">+ Add as tenant</button>`}
+          </div>`;
+        }).join('')}
+        ${newNames.length > 0 ? `<div style="font-size:11px;color:var(--muted);margin-top:8px">⚠ ${newNames.length} name(s) not found in your tenant list — click "+ Add as tenant" to add them.</div>` : ''}`;
+    }
+
+    if (statusEl) { statusEl.textContent = '✓ Scanned successfully'; statusEl.style.color = 'var(--green-dark)'; }
+    toast('✓ Deposit cert scanned — fields auto-filled');
+  });
+}
+
+// ── Quick-add tenant from deposit cert scan ──
+function moTenantFromDeposit(pid, prefillName) {
+  closeMo();
+  moTenant(pid);
+  setTimeout(() => {
+    const nameEl = document.getElementById('t-name');
+    if (nameEl && prefillName) { nameEl.value = prefillName; }
+  }, 200);
+}
+
+
   const deposit = parseFloat(document.getElementById('dep-amount')?.value) || 0;
   const el = document.getElementById('dep-rra-check');
   if (!el || !rent || !deposit) { if(el) el.innerHTML=''; return; }
@@ -1596,14 +1771,61 @@ async function scanDoc(input){
   const sb2=document.getElementById('sb-scan');
   sb2.innerHTML=`<div class="scan-ic">⏳</div><div class="scan-t">Scanning document…</div><div class="scan-s">AI is reading your certificate</div>`;
   try{
-    await scanAndFill(file, (parsed)=>{
-      if(parsed.type)document.getElementById('ct').value=parsed.type;
+    // First do standard scan to detect type
+    await scanAndFill(file, async (parsed)=>{
+      const detectedType = (parsed.type||'').toLowerCase();
+      const isDepositDoc = detectedType.includes('deposit') || detectedType.includes('prescribed');
+
+      if(parsed.type){
+        // Try to match to dropdown
+        const sel=document.getElementById('ct');
+        if(sel){
+          const opts=Array.from(sel.options);
+          const match=opts.find(o=>o.value.toLowerCase().includes(detectedType.split(' ')[0])||detectedType.includes(o.value.toLowerCase().split(' ')[0]));
+          if(match) sel.value=match.value;
+        }
+      }
       if(parsed.issued)document.getElementById('ci').value=parsed.issued;
       if(parsed.expiry)document.getElementById('ce').value=parsed.expiry;
       if(parsed.engineer)document.getElementById('ceng').value=parsed.engineer;
-      document.getElementById('arg').innerHTML=[['Type',parsed.type],['Issue date',parsed.issued],['Expiry',parsed.expiry],['Engineer',parsed.engineer],['Address',parsed.address]].map(([l,v])=>`<div class="ai-res-f"><span>${l}</span><strong>${v||'Not detected'}</strong></div>`).join('');
-      document.getElementById('ar').style.display='block';
+
+      const argEl=document.getElementById('arg');
+      const arEl=document.getElementById('ar');
+      argEl.innerHTML=[['Type',parsed.type],['Issue date',parsed.issued],['Expiry',parsed.expiry],['Engineer',parsed.engineer],['Address',parsed.address]].map(([l,v])=>`<div class="ai-res-f"><span>${l}</span><strong>${v||'Not detected'}</strong></div>`).join('');
+      arEl.style.display='block';
       sb2.innerHTML=`<div style="font-size:13px;color:var(--green-dark);font-weight:600">✓ Scanned — fields filled below</div><div style="font-size:12px;color:var(--muted);margin-top:4px">${file.name}</div>`;
+
+      // If deposit cert — run secondary scan to extract tenant names
+      if(isDepositDoc){
+        argEl.innerHTML+=`<div style="margin-top:8px;padding:7px 10px;background:rgba(59,111,232,0.06);border-radius:6px;font-size:11px;color:var(--blue)">⏳ Extracting tenant names from deposit certificate…</div>`;
+        const pid=document.getElementById('cp')?.value;
+        await scanDepositCert(file, (dep)=>{
+          const names=dep.tenant_names||[];
+          if(dep.deposit_amount&&document.getElementById('ct')?.value.includes('Deposit')){
+            // Show deposit details found
+            argEl.innerHTML+=`<div style="margin-top:6px;padding:8px 10px;background:var(--green-bg);border:1px solid rgba(0,200,150,0.2);border-radius:6px;font-size:11px;color:var(--green-dark)">
+              <strong>Deposit details found:</strong><br>
+              ${dep.deposit_amount?`Amount: £${Number(dep.deposit_amount).toLocaleString()} · `:''}${dep.scheme?`Scheme: ${dep.scheme} · `:''}${dep.scheme_ref?`Ref: ${dep.scheme_ref}`:''}
+            </div>`;
+            // Store for auto-save if needed
+            window._lastDepositScan = dep;
+          }
+          if(names.length>0){
+            const propTenants = pid ? D.tenants.filter(t=>String(t.prop_id)===String(pid)&&t.status!=='Former') : [];
+            argEl.innerHTML+=`<div style="margin-top:6px;padding:8px 10px;background:rgba(59,111,232,0.06);border:1px solid rgba(59,111,232,0.2);border-radius:6px;font-size:11px">
+              <strong style="color:var(--navy)">👥 Tenant names on this document (${names.length}):</strong>
+              <div style="margin-top:6px">${names.map(name=>{
+                const matched=propTenants.find(t=>t.name.toLowerCase().includes(name.toLowerCase().split(' ')[0])||name.toLowerCase().includes(t.name.toLowerCase().split(' ')[0]));
+                return `<div style="display:flex;align-items:center;gap:6px;padding:3px 0">
+                  <span>👤 ${name}</span>
+                  ${matched?`<span style="color:var(--green-dark);font-size:10px;margin-left:auto">✓ matches ${matched.name}</span>`
+                  :pid?`<button class="btn btn-sm" style="font-size:10px;padding:2px 8px;margin-left:auto" onclick="moTenantFromDeposit('${pid}','${name.replace(/'/g,"\\'")}')">+ Add tenant</button>`:''}
+                </div>`;
+              }).join('')}</div>
+            </div>`;
+          }
+        });
+      }
     });
   }catch(e){sb2.innerHTML=`<div style="font-size:13px;color:var(--amber);font-weight:500">Could not scan — please fill in manually</div>`;}
 }
@@ -3043,15 +3265,38 @@ function pdTabContent(pid, tab) {
         const fiveWeeks = rent?Math.round((rent/4.33)*5*100)/100:0;
         const deposit = lead.deposit||0;
         const overLimit = deposit>0&&fiveWeeks>0&&deposit>fiveWeeks;
-        const compliant = deposit>0&&fiveWeeks>0&&deposit<=fiveWeeks;
-        return `<div class="panel" style="margin-bottom:16px;border:1px solid ${overLimit?'rgba(229,62,62,0.35)':compliant?'rgba(0,200,150,0.25)':'var(--border)'}">
-          <div class="ph2"><div><h2>🔒 Tenancy deposit</h2><p>Held in lead tenant's name${fiveWeeks?` · RRA 2025 max: £${fiveWeeks.toLocaleString()}`:''}</p></div><button class="btn btn-sm" onclick="moEditDeposit('${pid}')">✎ Edit</button></div>
-          <div style="padding:14px 18px">${deposit?`
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:10px">
-              ${[['Amount',`£${deposit.toLocaleString()}`],['Scheme',lead.scheme||'Not set'],['Reference',lead.scheme_ref||'—'],['Protected',lead.deposit_protected_date?FMS(lead.deposit_protected_date):'Not logged'],['30-day rule',lead.deposit_protected_date&&lead.start_date?(()=>{const d=Math.round((new Date(lead.deposit_protected_date)-new Date(lead.start_date))/864e5);return d<=30?`<span style="color:var(--green-dark)">✓ ${d} days</span>`:`<span style="color:var(--red)">⚠ ${d} days (over limit)</span>`;})():'—'],['RRA 2025',fiveWeeks?(compliant?`<span style="color:var(--green-dark)">✓ Compliant</span>`:`<span style="color:var(--red)">⚠ Over limit</span>`):'—']].map(([l,v])=>`<div class="det-f"><label>${l}</label><span>${v}</span></div>`).join('')}
+        const isProtected = !!(deposit && lead.scheme && lead.deposit_protected_date);
+        const depositCert = pc.find(c=>(c.type||'').toLowerCase().includes('deposit')||(c.type||'').toLowerCase().includes('prescribed'));
+        // Urgency: 30-day deadline
+        let urgencyHtml = '';
+        if (!isProtected && lead.start_date) {
+          const daysIn = Math.floor((Date.now()-new Date(lead.start_date))/86400000);
+          if (daysIn >= 0) {
+            const urgency = daysIn>=30?'var(--red)':'var(--amber)';
+            const urgBg = daysIn>=30?'rgba(229,62,62,0.08)':'rgba(217,119,6,0.08)';
+            const urgBorder = daysIn>=30?'rgba(229,62,62,0.2)':'rgba(217,119,6,0.2)';
+            urgencyHtml = `<div style="background:${urgBg};border:1px solid ${urgBorder};border-radius:7px;padding:8px 12px;font-size:12px;margin-top:10px">
+              <span style="font-weight:600;color:${urgency}">⚠ Register the deposit</span> — must be protected within 30 days of receipt.
+              Tenancy started <strong>${daysIn} day${daysIn!==1?'s':''} ago</strong>${daysIn<30?` · <strong style="color:${urgency}">${30-daysIn} day${30-daysIn!==1?'s':''} left</strong>`:' · <strong style="color:var(--red)">OVERDUE</strong>'}.
+            </div>`;
+          }
+        }
+        return `<div style="border:1px solid ${overLimit?'rgba(229,62,62,0.3)':isProtected?'rgba(0,200,150,0.25)':'var(--border)'};border-radius:10px;padding:12px 16px;margin-bottom:14px;background:var(--white)">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:18px">🔒</span>
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--txt)">Tenancy Deposit</div>
+                <div style="font-size:11px;color:var(--muted)">${isProtected?`£${deposit.toLocaleString()} · ${lead.scheme} · ${depositCert?'✓ Cert uploaded':'No cert yet'}`:'Not set up yet'}</div>
+              </div>
             </div>
-            ${overLimit?`<div style="background:rgba(229,62,62,0.08);border:1px solid var(--red);border-radius:8px;padding:9px 13px;font-size:12px;color:var(--red)">⚠️ Deposit exceeds RRA 2025 maximum of £${fiveWeeks.toLocaleString()}. Reduce to comply.</div>`:''}`
-          :`<div style="padding:4px 0">${(()=>{if(lead.start_date){const daysIn=Math.floor((Date.now()-new Date(lead.start_date))/86400000);const urgency=daysIn>=30?'var(--red)':'var(--amber)';const urgBg=daysIn>=30?'rgba(229,62,62,0.08)':'rgba(217,119,6,0.08)';const urgBorder=daysIn>=30?'rgba(229,62,62,0.2)':'rgba(217,119,6,0.2)';return`<div style="background:${urgBg};border:1px solid ${urgBorder};border-radius:8px;padding:10px 13px;margin-bottom:12px;font-size:12px"><span style="font-weight:600;color:${urgency}">⚠ Register the deposit</span><span style="color:var(--txt)"> — must be protected in an approved scheme within 30 days of receipt. Tenancy started <strong>${daysIn} day${daysIn!==1?'s':''} ago</strong>${daysIn<30?` · <strong style="color:${urgency}">${30-daysIn} day${30-daysIn!==1?'s':''} remaining</strong>`:' · <strong style="color:var(--red)">overdue</strong>'}.</span></div>`;}return'';})()}<div style="text-align:center;padding:10px 0"><div style="color:var(--muted);font-size:13px;margin-bottom:10px">No deposit recorded yet</div><button class="btn btn-sm btn-navy" onclick="moEditDeposit('${pid}')">+ Add deposit details</button></div></div>`}
+            <button class="btn btn-sm${isProtected?'':' btn-navy'}" onclick="switchOnboardStage('${pid}',2);setTimeout(()=>document.querySelector('.dep-stage2-anchor')?.scrollIntoView({behavior:'smooth'}),300)">
+              ${isProtected?'✎ Edit →':'Set up in Property Docs →'}
+            </button>
+          </div>
+          ${urgencyHtml}
+          <div style="font-size:11px;color:var(--muted);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+            💡 Deposit certificate upload & AI name scan is in <strong>Step 2 — Property Docs</strong>
           </div>
         </div>`;
       })();
@@ -3180,6 +3425,58 @@ function pdTabContent(pid, tab) {
       const uploadedCount = PROP_DOCS.filter(doc => pc.some(c => typeMatch(c, doc))).length;
       const servedCount = pc.filter(c => c.served).length;
 
+      // Build deposit status card for Stage 2
+      const depositStatusCard = (() => {
+        const lead = getLeadTenant(pid);
+        const rent = lead?.rent || p?.rent || 0;
+        const fiveWeeks = rent ? Math.round((rent / 4.33) * 5 * 100) / 100 : 0;
+        const hasDepositMeta = !!(lead?.deposit && lead?.scheme && lead?.deposit_protected_date);
+        const depositCert = pc.find(c => (c.type||'').toLowerCase().includes('deposit') || (c.type||'').toLowerCase().includes('prescribed'));
+        const allTenants = getPropertyTenants(pid);
+        const isComplete = hasDepositMeta && !!depositCert;
+        return `<div class="panel" style="margin-bottom:16px;border:2px solid ${isComplete?'rgba(0,200,150,0.25)':'rgba(229,62,62,0.2)'}">
+          <div class="ph2" style="background:${isComplete?'rgba(0,200,150,0.05)':'rgba(229,62,62,0.04)'}">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="font-size:20px">${isComplete?'🔒✅':'🔒'}</div>
+              <div>
+                <h2>Tenancy Deposit</h2>
+                <p>${isComplete ? '✓ Protected & certificate on file' : 'Deposit protection details & certificate — required by law'}</p>
+              </div>
+            </div>
+            <button class="btn btn-sm${isComplete?'':' btn-navy'}" onclick="moEditDeposit('${pid}')">✎ ${isComplete?'Edit':'Add deposit'}</button>
+          </div>
+          <div style="padding:14px 18px">
+            ${lead ? `
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">
+                <div style="background:var(--off);border-radius:8px;padding:10px 12px">
+                  <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Amount</div>
+                  <div style="font-size:16px;font-weight:700;color:var(--txt)">${lead.deposit?'£'+lead.deposit.toLocaleString():'<span style="color:var(--red)">Not set</span>'}</div>
+                  ${fiveWeeks?`<div style="font-size:10px;color:var(--muted);margin-top:2px">Max £${fiveWeeks.toLocaleString()}</div>`:''}
+                </div>
+                <div style="background:var(--off);border-radius:8px;padding:10px 12px">
+                  <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Scheme</div>
+                  <div style="font-size:13px;font-weight:600;color:var(--txt)">${lead.scheme||'<span style="color:var(--red)">Not set</span>'}</div>
+                  ${lead.scheme_ref?`<div style="font-size:10px;color:var(--muted);margin-top:2px">Ref: ${lead.scheme_ref}</div>`:''}
+                </div>
+                <div style="background:var(--off);border-radius:8px;padding:10px 12px">
+                  <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Protected</div>
+                  <div style="font-size:13px;font-weight:600;color:var(--txt)">${lead.deposit_protected_date?FMT(lead.deposit_protected_date):'<span style="color:var(--red)">Not set</span>'}</div>
+                  ${lead.start_date&&!lead.deposit_protected_date?`<div style="font-size:10px;color:var(--amber);margin-top:2px">Due by ${FMT(new Date(new Date(lead.start_date).getTime()+30*864e5).toISOString().slice(0,10))}</div>`:''}
+                </div>
+              </div>
+              ${allTenants.length > 1 ? `<div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.15);border-radius:7px;padding:8px 12px;font-size:11px;color:var(--blue);margin-bottom:10px">👥 Joint tenancy — deposit held in lead tenant <strong>${lead.name}</strong>'s name. All tenants: ${allTenants.map(t=>t.name).join(', ')}.</div>` : ''}
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                <div style="font-size:12px;color:var(--muted)">Certificate on file:</div>
+                ${depositCert
+                  ? `<span style="font-size:11px;font-weight:600;color:var(--green-dark);background:var(--green-bg);padding:3px 9px;border-radius:100px;border:1px solid rgba(0,200,150,0.2)">✓ ${depositCert.type}</span><button onclick="moCertDetail(${depositCert.id})" style="font-size:11px;color:var(--blue);padding:3px 9px;border:1px solid rgba(59,111,232,0.3);border-radius:5px;background:var(--blue-bg);cursor:pointer;font-family:var(--font)">👁 View</button>`
+                  : `<span style="font-size:11px;font-weight:600;color:var(--red);background:var(--red-bg);padding:3px 9px;border-radius:100px;border:1px solid rgba(229,62,62,0.2)">Missing</span>`}
+                <button class="btn btn-sm" onclick="moEditDeposit('${pid}')" style="margin-left:auto">📄 Upload & AI-scan cert</button>
+              </div>
+            ` : `<div style="text-align:center;padding:10px 0"><div style="color:var(--muted);font-size:13px;margin-bottom:8px">No tenant added yet — add a tenant first to set up the deposit.</div><button class="btn btn-sm btn-navy" onclick="switchOnboardStage('${pid}',1)">← Add tenant first</button></div>`}
+          </div>
+        </div>`;
+      })();
+
       return wizBar + `
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
           <div>
@@ -3191,6 +3488,7 @@ function pdTabContent(pid, tab) {
             <button class="btn btn-sm btn-navy" onclick="moCert('${pid}')">+ Upload document</button>
           </div>
         </div>
+        ${depositStatusCard}
         <div class="panel" style="margin-bottom:16px">
           <div class="ph2"><div><h2>📄 Document checklist</h2><p>${uploadedCount}/${PROP_DOCS.length} uploaded · ${pc.filter(c=>c.status==='Valid').length} valid</p></div></div>
           ${docRows}
@@ -3638,27 +3936,31 @@ function pgCompliance(){
 
       <!-- Stats strip -->
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
-        <div style="background:var(--white);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+        <div style="background:var(--white);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:box-shadow .15s" onclick="nav('properties')" title="View all properties" onmouseenter="this.style.boxShadow='0 3px 12px rgba(11,30,61,0.1)'" onmouseleave="this.style.boxShadow='none'">
           <div style="font-size:28px;font-weight:700;color:var(--txt)">${total}</div>
           <div style="font-size:11px;color:var(--muted);margin-top:2px">Total certs</div>
+          <div style="font-size:10px;color:var(--blue);margin-top:3px;font-weight:600">View properties →</div>
         </div>
-        <div style="background:${expired?'rgba(229,62,62,0.07)':'var(--white)'};border:1px solid ${expired?'rgba(229,62,62,0.2)':'var(--border)'};border-radius:12px;padding:16px;text-align:center">
+        <div style="background:${expired?'rgba(229,62,62,0.07)':'var(--white)'};border:1px solid ${expired?'rgba(229,62,62,0.2)':'var(--border)'};border-radius:12px;padding:16px;text-align:center;cursor:${expired?'pointer':'default'};transition:box-shadow .15s" ${expired?`onclick="document.getElementById('comp-action-list').scrollIntoView({behavior:'smooth'})" title="View expired certificates" onmouseenter="this.style.boxShadow='0 3px 12px rgba(229,62,62,0.15)'" onmouseleave="this.style.boxShadow='none'"`:''}>
           <div style="font-size:28px;font-weight:700;color:${expired?'var(--red)':'var(--muted)'}">${expired}</div>
           <div style="font-size:11px;color:var(--muted);margin-top:2px">Expired</div>
+          ${expired?`<div style="font-size:10px;color:var(--red);margin-top:3px;font-weight:600">Action needed ↓</div>`:'<div style="font-size:10px;color:var(--green-dark);margin-top:3px;font-weight:600">✓ None</div>'}
         </div>
-        <div style="background:${critical?'rgba(217,119,6,0.07)':'var(--white)'};border:1px solid ${critical?'rgba(217,119,6,0.2)':'var(--border)'};border-radius:12px;padding:16px;text-align:center">
+        <div style="background:${critical?'rgba(217,119,6,0.07)':'var(--white)'};border:1px solid ${critical?'rgba(217,119,6,0.2)':'var(--border)'};border-radius:12px;padding:16px;text-align:center;cursor:${critical?'pointer':'default'};transition:box-shadow .15s" ${critical?`onclick="document.getElementById('comp-action-list').scrollIntoView({behavior:'smooth'})" title="View critical items" onmouseenter="this.style.boxShadow='0 3px 12px rgba(217,119,6,0.15)'" onmouseleave="this.style.boxShadow='none'"`:''}>
           <div style="font-size:28px;font-weight:700;color:${critical?'var(--amber)':'var(--muted)'}">${critical}</div>
           <div style="font-size:11px;color:var(--muted);margin-top:2px">Critical</div>
+          ${critical?`<div style="font-size:10px;color:var(--amber);margin-top:3px;font-weight:600">Expiring soon ↓</div>`:'<div style="font-size:10px;color:var(--green-dark);margin-top:3px;font-weight:600">✓ None</div>'}
         </div>
-        <div style="background:rgba(0,200,150,0.07);border:1px solid rgba(0,200,150,0.15);border-radius:12px;padding:16px;text-align:center">
+        <div style="background:rgba(0,200,150,0.07);border:1px solid rgba(0,200,150,0.15);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:box-shadow .15s" onclick="nav('properties')" title="All compliant certificates" onmouseenter="this.style.boxShadow='0 3px 12px rgba(0,200,150,0.15)'" onmouseleave="this.style.boxShadow='none'">
           <div style="font-size:28px;font-weight:700;color:var(--green-dark)">${ok + noExpiry}</div>
           <div style="font-size:11px;color:var(--muted);margin-top:2px">Compliant</div>
+          <div style="font-size:10px;color:var(--green-dark);margin-top:3px;font-weight:600">View portfolio →</div>
         </div>
       </div>
     </div>
 
     <!-- Action list -->
-    <div class="panel" style="margin-bottom:18px">
+    <div class="panel" id="comp-action-list" style="margin-bottom:18px">
       <div class="ph2">
         <div>
           <h2>Action required</h2>
@@ -7271,24 +7573,28 @@ async function uploadCertToStorage(certId, inputEl) {
     if (label) { label.style.opacity = '1'; label.style.pointerEvents = 'auto'; }
     return;
   }
-  const { error: dbErr } = await sb.from('certs')
+  const { error: dbErr } = await sb.from('certificates')
     .update({ file: path, has_file: true })
     .eq('id', certId);
   if (dbErr) { toast('Save error: ' + dbErr.message, true); return; }
   const cert = D.certs.find(c => String(c.id) === String(certId));
   if (cert) { cert.file = path; cert.has_file = true; }
-  await logAudit('UPLOAD_CERT_FILE', 'certs', certId, `File uploaded: ${file.name}`);
+  await logAudit('UPLOAD_CERT_FILE', 'certificates', certId, `File uploaded: ${file.name}`);
   toast('✓ Document uploaded');
   const pid = cert?.prop_id;
-  if (pid) { window._pdTab[pid] = 'compliance'; nav('prop-detail', pid); }
+  if (pid) { window._pdTab = window._pdTab || {}; window._pdTab[pid] = 'compliance'; nav('prop-detail', pid); }
 }
 
 async function viewCertFile(certId) {
   const cert = D.certs.find(c => String(c.id) === String(certId));
-  if (!cert?.file) { toast('No file uploaded', true); return; }
-  const { data, error } = await sb.storage.from('property-documents').createSignedUrl(cert.file, 3600);
-  if (error || !data?.signedUrl) { toast('Could not load file', true); return; }
-  window.open(data.signedUrl, '_blank');
+  if (!cert) { toast('Certificate not found', true); return; }
+  // If no storage path but we have metadata, show the detail modal
+  if (!cert.file) { moCertDetail(certId); return; }
+  try {
+    const { data, error } = await sb.storage.from('property-documents').createSignedUrl(cert.file, 3600);
+    if (error || !data?.signedUrl) { moCertDetail(certId); return; }
+    window.open(data.signedUrl, '_blank');
+  } catch(e) { moCertDetail(certId); }
 }
 
 // ── SEND ONBOARDING KIT + PORTAL INVITE (COMBINED) ──
