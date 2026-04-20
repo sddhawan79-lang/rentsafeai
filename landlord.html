@@ -390,27 +390,13 @@ tr:hover td{background:rgba(246,248,251,.8)}
 
     <button class="sb-item" data-page="financials">
       <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12V4l4 3 3-4 3 3 2-2v8H2z"/></svg>
-      <span class="sb-label">Finance</span>
+      <span class="sb-label">Finance <span style="font-size:10px;opacity:0.6;font-weight:400">(+ MTD)</span></span>
     </button>
-
-    <a href="mtd.html" class="sb-item" style="text-decoration:none">
-      <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12v2H2zM2 7h5v6H2zM9 7h5v6H9z"/></svg>
-      <span class="sb-label">MTD Tax</span>
-      <span style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;background:rgba(229,62,62,0.25);color:#f87171;border:1px solid rgba(229,62,62,0.35)">LIVE</span>
-    </a>
 
     <button class="sb-item" data-page="templates">
       <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="1" width="9" height="12" rx="1.5"/><path d="M5 4h5M5 7h5M5 10h3"/><path d="M11 9l3 3-1.5 1.5L9 10.5"/></svg>
       <span class="sb-label">Documents & Templates</span>
     </button>
-
-    <button class="sb-item" data-page="contractors">
-      <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.5 2.5a3 3 0 00-4 4L2 11a1.5 1.5 0 002 2l4.5-4.5a3 3 0 004-4l-2 2-1.5-1.5 2-2z"/></svg>
-      <span class="sb-label">Contractors</span>
-    </button>
-
-    <div class="sb-divider"></div>
-    <div class="sb-section">AI</div>
 
     <button class="sb-item" data-page="assistant">
       <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5c3.5 0 6 2 6 4.5 0 1.5-1 2.8-2.5 3.5L13 12l-3-1.5c-.6.1-1.3.2-2 .2-3.5 0-6-2-6-4.5S4.5 1.5 8 1.5z"/><path d="M5.5 6h5M5.5 8.5h3"/></svg>
@@ -419,10 +405,6 @@ tr:hover td{background:rgba(246,248,251,.8)}
 
     <div class="sb-divider"></div>
 
-    <button class="sb-item" data-page="settings">
-      <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="2.5"/><path d="M2 13c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>
-      <span class="sb-label">Landlord Profile</span>
-    </button>
   </nav>
 
   <div class="sb-footer">
@@ -473,7 +455,7 @@ tr:hover td{background:rgba(246,248,251,.8)}
 <script>
 // ══════════════════════════════════════════════════════════════
 // RENTSAFE AI — CODE MAP (auto-generated, update each session)
-// File: landlord.html · Lines: ~3973
+// File: landlord.html · Lines: ~8150 · Last updated: S13
 // ══════════════════════════════════════════════════════════════
 //
 // ── SETUP & CONFIG ──────────────────────────────────────────
@@ -1528,6 +1510,7 @@ function moTenantFromDeposit(pid, prefillName) {
 }
 
 
+function updateDepositRRACheck(rent) {
   const deposit = parseFloat(document.getElementById('dep-amount')?.value) || 0;
   const el = document.getElementById('dep-rra-check');
   if (!el || !rent || !deposit) { if(el) el.innerHTML=''; return; }
@@ -4161,6 +4144,7 @@ function pgMaintenance(){
   })();
 
   return`<div class="topbar"><span class="tb-title">Maintenance & Log</span><div class="tb-right" style="gap:6px">
+    <button class="btn btn-sm" onclick="nav('contractors')" style="border-color:rgba(59,111,232,0.3);color:var(--blue);background:var(--blue-bg)">👷 Contractors</button>
     <button class="btn btn-outline btn-sm" onclick="exportMaintCSV()" title="Download as spreadsheet">⬇ CSV</button>
     <button class="btn btn-outline btn-sm" onclick="exportMaintPDF()" title="Download dispute-ready PDF report">🖨 PDF Report</button>
     <button class="btn btn-navy" onclick="moIssue()">+ Report issue</button>
@@ -5165,14 +5149,14 @@ function pgFinancials(){
     </div>`).join('');
 
   return`<div class="topbar">
-    <span class="tb-title">Finance & P&L</span>
+    <span class="tb-title">Finance & Tax</span>
     <div class="tb-right">
       <button class="btn btn-navy" onclick="exportPortfolioPDF()" style="font-size:12px">📄 Export Portfolio PDF</button>
-      <a href="mtd.html" class="btn" style="font-size:12px;background:rgba(0,200,150,0.1);border-color:rgba(0,200,150,0.3);color:var(--green-dark)">📊 MTD Tax →</a>
+      <a href="mtd.html" class="btn" style="font-size:12px;background:rgba(0,200,150,0.1);border-color:rgba(0,200,150,0.3);color:var(--green-dark)">📊 MTD Tax <span style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;background:rgba(229,62,62,0.25);color:#f87171;border:1px solid rgba(229,62,62,0.35);margin-left:4px">LIVE</span></a>
     </div>
   </div>
   <div class="content">
-    <div class="ph"><h1>Finance & P&L</h1><p>Full financial overview across your portfolio — real data</p></div>
+    <div class="ph"><h1>Finance & Tax</h1><p>Full financial overview across your portfolio — real data</p></div>
 
     <div class="metrics">
       <div class="mc"><div class="mc-top"><span class="mc-label">Monthly income</span><div class="mc-icon">💰</div></div><div class="mc-val" style="color:var(--green-dark)">£${totRent.toLocaleString()}</div><div class="mc-sub">Rent (all properties)</div></div>
@@ -5487,6 +5471,7 @@ function nav(page, param){
     'rent': 'financials',
     'insurance': 'financials',
     'calendar': 'dashboard',
+    'contractors': 'maintenance',
   };
   const activeTab = pageMap[page] || page;
   document.querySelectorAll('.sb-item[data-page]').forEach(el=>{
@@ -5583,14 +5568,15 @@ function pgTemplates() {
 
   return `
     <div class="topbar">
-      <span class="tb-title">Templates</span>
+      <span class="tb-title">Documents & AI</span>
       <div class="tb-right">
+        <button class="btn btn-sm" onclick="nav('assistant')" style="border-color:rgba(0,200,150,0.3);color:var(--green-dark);background:var(--green-bg)">✦ AI Assistant</button>
         <button class="btn btn-navy" onclick="moUploadTemplate()">↑ Upload template</button>
       </div>
     </div>
     <div class="content">
       <div class="ph">
-        <h1>Template Generator</h1>
+        <h1>Documents & AI</h1>
         <p>AI-powered UK landlord documents — auto-filled with your property and tenant data</p>
       </div>
 
@@ -7481,6 +7467,7 @@ function pgContractors(){
   const trades = ['Plumber','Electrician','Gas Engineer','Builder','Roofer','Carpenter','Painter & Decorator','Pest Control','Locksmith','Cleaner','Landscaper','Other'];
 
   return`<div class="topbar"><span class="tb-title">Contractors</span><div class="tb-right">
+    <button class="btn btn-sm" onclick="nav('maintenance')" style="border-color:var(--border);color:var(--muted)">← Back to Maintenance</button>
     <button class="btn btn-navy" onclick="moAddContractor()">+ Add contractor</button>
   </div></div>
   <div class="content">
@@ -7544,7 +7531,7 @@ async function saveContractor(id){
     toast('✓ Contractor added!');
   }
   closeMo();
-  nav('contractors');
+  nav('maintenance');
 }
 
 async function deleteContractor(id){
@@ -7553,7 +7540,7 @@ async function deleteContractor(id){
   if(error){toast('Error: '+error.message,true);return;}
   D.contractors=(D.contractors||[]).filter(x=>String(x.id)!==String(id));
   toast('Contractor deleted');
-  nav('contractors');
+  nav('maintenance');
 }
 
 // ── UPLOAD CERT FILE TO SUPABASE STORAGE ──
@@ -8123,7 +8110,7 @@ initApp();
 </div>
 
 <!-- COOKIE BANNER -->
-<div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:var(--navy);border-top:1px solid rgba(255,255,255,0.1);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+<div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:var(--navy);border-top:1px solid rgba(255,255,255,0.1);padding:16px 28px;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
   <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:260px">
     <span style="font-size:20px">🍪</span>
     <p style="font-size:13px;color:rgba(255,255,255,0.7);margin:0;line-height:1.5">We use essential cookies to keep you logged in and the platform running. No tracking or advertising cookies. <a href="privacy.html" style="color:var(--green);text-decoration:none">Privacy Policy</a></p>
@@ -8136,7 +8123,11 @@ initApp();
 <script>
 function acceptCookies(){localStorage.setItem('rsa_cookies','accepted');document.getElementById('cookie-banner').style.display='none';}
 function declineCookies(){localStorage.setItem('rsa_cookies','essential');document.getElementById('cookie-banner').style.display='none';}
-(function(){if(!localStorage.getItem('rsa_cookies')){document.getElementById('cookie-banner').style.display='flex';}})();
+(function(){
+  const b=document.getElementById('cookie-banner');
+  if(!localStorage.getItem('rsa_cookies')){b.style.display='flex';}
+  else{b.style.display='none';}
+})();
 </script>
 </body>
 </html>
