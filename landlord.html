@@ -2307,7 +2307,7 @@ function moIssue(pid){
     </div>
     <div id="i-cost-warn" style="display:none;align-items:center;gap:8px;background:rgba(217,119,6,0.1);border:1px solid var(--amber);border-radius:8px;padding:9px 12px;margin-bottom:4px">
       <span style="font-size:16px">⚠️</span>
-      <span style="font-size:12px;color:var(--amber);font-weight:600">Cost over £10,000 — please double-check this figure</span>
+      <span style="font-size:12px;color:var(--amber);font-weight:600">Cost is £10,000 or more — please double-check this figure</span>
     </div>
     <div class="fg-row">
       <div class="fg"><label>Reported by</label><select id="i-src"><option>Landlord</option><option>Tenant</option><option>Inspection</option><option>Contractor</option></select></div>
@@ -4475,7 +4475,7 @@ function moIssueEdit(id) {
   const stages = ['Reported','Assigned','In Progress','Completed','Closed'];
   const pris = ['Low','Medium','High','Urgent'];
   const cats = ['Plumbing','Heating / Boiler','Electrical','Pest Control','Structural','Damp & Mould','Roofing','Windows & Doors','Appliances','Decoration','Garden','Other'];
-  const costOver = (m.cost||0) > 10000;
+  const costOver = (m.cost||0) > 9999;
   openMo('Edit job', p.address, `
     <div class="fg"><label>Title</label><input type="text" id="ei-title" value="${(m.title||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}" placeholder="Brief title"></div>
     <div class="fg-row">
@@ -4493,7 +4493,7 @@ function moIssueEdit(id) {
     </div>
     <div id="ei-cost-warn" style="display:${costOver?'flex':'none'};align-items:center;gap:8px;background:rgba(217,119,6,0.1);border:1px solid var(--amber);border-radius:8px;padding:9px 12px;margin-bottom:4px">
       <span style="font-size:16px">⚠️</span>
-      <span style="font-size:12px;color:var(--amber);font-weight:600">Cost over £10,000 — please double-check this figure</span>
+      <span style="font-size:12px;color:var(--amber);font-weight:600">Cost is £10,000 or more — please double-check this figure</span>
     </div>
     <div class="fg"><label>Stage</label><select id="ei-stage">
       ${stages.map(s=>`<option${s===(m.stage||'Reported')?' selected':''}>${s}</option>`).join('')}
@@ -4509,7 +4509,7 @@ function moIssueEdit(id) {
 
 function checkCostWarn(input, warnId) {
   const warn = document.getElementById(warnId || 'ei-cost-warn');
-  if (warn) warn.style.display = parseFloat(input.value) > 10000 ? 'flex' : 'none';
+  if (warn) warn.style.display = parseFloat(input.value) > 9999 ? 'flex' : 'none';
 }
 
 async function saveIssueEdit(id) {
