@@ -1774,12 +1774,32 @@ async function scanDoc(input){
       const isDepositDoc = detectedType.includes('deposit') || detectedType.includes('prescribed');
 
       if(parsed.type){
-        // Try to match to dropdown
         const sel=document.getElementById('ct');
         if(sel){
-          const opts=Array.from(sel.options);
-          const match=opts.find(o=>o.value.toLowerCase().includes(detectedType.split(' ')[0])||detectedType.includes(o.value.toLowerCase().split(' ')[0]));
-          if(match) sel.value=match.value;
+          const t=detectedType;
+          const certTypeMap=[
+            {keys:['gas safety','cp12','gsc'],val:'Gas Safety Certificate (CP12/GSC)'},
+            {keys:['electrical installation','eicr','condition report'],val:'Electrical Installation Condition Report (EICR)'},
+            {keys:['energy performance','epc'],val:'Energy Performance Certificate (EPC)'},
+            {keys:['how to rent'],val:'How to Rent Guide'},
+            {keys:['rra','renters rights act','renters reform'],val:'RRA Information Sheet 2026'},
+            {keys:['tenancy agreement','written statement of terms'],val:'Tenancy Agreement / Written Statement of Terms'},
+            {keys:['deposit protection certificate'],val:'Deposit Protection Certificate'},
+            {keys:['prescribed information'],val:'Deposit Prescribed Information'},
+            {keys:['legionella'],val:'Legionella Risk Assessment'},
+            {keys:['pat test','portable appliance'],val:'PAT Test Record'},
+            {keys:['fire risk'],val:'Fire Risk Assessment'},
+            {keys:['smoke','co alarm'],val:'Smoke & CO Alarm Check Record'},
+            {keys:['boiler service'],val:'Boiler Service Record'},
+            {keys:['property licence','hmo licence','selective licence','additional licence'],val:'Property Licence (HMO / Selective / Additional)'},
+            {keys:['ews1'],val:'EWS1 Certificate'},
+            {keys:['building regulations'],val:'Building Regulations Certificate'},
+          ];
+          // Also check single-word abbreviations
+          const abbrevMap={gas:'Gas Safety Certificate (CP12/GSC)',eicr:'Electrical Installation Condition Report (EICR)',epc:'Energy Performance Certificate (EPC)',cp12:'Gas Safety Certificate (CP12/GSC)',gsc:'Gas Safety Certificate (CP12/GSC)',ews1:'EWS1 Certificate',pat:'PAT Test Record'};
+          const matched=certTypeMap.find(m=>m.keys.some(k=>t.includes(k)))||
+            (abbrevMap[t.trim()]?{val:abbrevMap[t.trim()]}:null);
+          if(matched){sel.value=matched.val;certTypeChanged(sel);}
         }
       }
       if(parsed.issued)document.getElementById('ci').value=parsed.issued;
@@ -2283,7 +2303,11 @@ function moIssue(pid){
         <input type="text" id="i-contractor" placeholder="e.g. City Gas Services" list="con-list">
         <datalist id="con-list">${(D.contractors||[]).map(c=>`<option value="${c.name}">${c.trade?' — '+c.trade:''}</option>`).join('')}</datalist>
       </div>
-      <div class="fg"><label>Estimated cost (£)</label><input type="number" id="i-cost" placeholder="e.g. 150"></div>
+      <div class="fg"><label>Estimated cost (£)</label><input type="number" id="i-cost" placeholder="e.g. 150" oninput="checkCostWarn(this,'i-cost-warn')"></div>
+    </div>
+    <div id="i-cost-warn" style="display:none;align-items:center;gap:8px;background:rgba(217,119,6,0.1);border:1px solid var(--amber);border-radius:8px;padding:9px 12px;margin-bottom:4px">
+      <span style="font-size:16px">⚠️</span>
+      <span style="font-size:12px;color:var(--amber);font-weight:600">Cost is £10,000 or more — please double-check this figure</span>
     </div>
     <div class="fg-row">
       <div class="fg"><label>Reported by</label><select id="i-src"><option>Landlord</option><option>Tenant</option><option>Inspection</option><option>Contractor</option></select></div>
@@ -4441,7 +4465,108 @@ function moIssueDetail(id){
     <div style="display:flex;gap:6px;flex-wrap:wrap">
       ${stages.map(s=>`<button onclick="moveStage('${m.id}','${s}');closeMo()" style="font-size:12px;padding:6px 12px;border-radius:6px;border:2px solid ${(m.stage||'Reported')===s?stageCol[s]:'var(--border)'};background:${(m.stage||'Reported')===s?stageCol[s]:'var(--white)'};color:${(m.stage||'Reported')===s?'#fff':'var(--muted)'};cursor:pointer;font-family:var(--font);font-weight:${(m.stage||'Reported')===s?'700':'400'}">${s}</button>`).join('')}
     </div>
-  `,`<button class="btn" onclick="closeMo()">Close</button>`);
+  `,`<button class="btn" onclick="closeMo()">Close</button><button class="btn btn-navy" onclick="closeMo();moIssueEdit('${m.id}')">✏ Edit</button>`);
+}
+
+function moIssueEdit(id) {
+  const m = D.maintenance.find(x => String(x.id) === String(id));
+  if (!m) return;
+  const p = P(m.prop_id) || {address: '—'};
+  const stages = ['Reported','Assigned','In Progress','Completed','Closed'];
+  const pris = ['Low','Medium','High','Urgent'];
+  const cats = ['Plumbing','Heating / Boiler','Electrical','Pest Control','Structural','Damp & Mould','Roofing','Windows & Doors','Appliances','Decoration','Garden','Other'];
+  const costOver = (m.cost||0) > 9999;
+  openMo('Edit job', p.address, `
+    <div class="fg"><label>Title</label><input type="text" id="ei-title" value="${(m.title||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}" placeholder="Brief title"></div>
+    <div class="fg-row">
+      <div class="fg"><label>Category</label><select id="ei-cat">
+        ${cats.map(c=>`<option${c===(m.cat||'Other')?' selected':''}>${c}</option>`).join('')}
+      </select></div>
+      <div class="fg"><label>Priority</label><select id="ei-pri">
+        ${pris.map(v=>`<option${v===(m.priority||'Low')?' selected':''}>${v}</option>`).join('')}
+      </select></div>
+    </div>
+    <div class="fg"><label>Description</label><textarea id="ei-desc" style="min-height:70px">${(m.description||m.desc||'').replace(/</g,'&lt;')}</textarea></div>
+    <div class="fg-row">
+      <div class="fg"><label>Assigned to</label><input type="text" id="ei-assigned" value="${(m.assigned_to||'').replace(/"/g,'&quot;')}" placeholder="Contractor name"></div>
+      <div class="fg"><label>Cost (£)</label><input type="number" id="ei-cost" value="${m.cost||''}" placeholder="e.g. 250" min="0" oninput="checkCostWarn(this,'ei-cost-warn')"></div>
+    </div>
+    <div id="ei-cost-warn" style="display:${costOver?'flex':'none'};align-items:center;gap:8px;background:rgba(217,119,6,0.1);border:1px solid var(--amber);border-radius:8px;padding:9px 12px;margin-bottom:4px">
+      <span style="font-size:16px">⚠️</span>
+      <span style="font-size:12px;color:var(--amber);font-weight:600">Cost is £10,000 or more — please double-check this figure</span>
+    </div>
+    <div class="fg"><label>Stage</label><select id="ei-stage">
+      ${stages.map(s=>`<option${s===(m.stage||'Reported')?' selected':''}>${s}</option>`).join('')}
+    </select></div>
+    <div class="fg"><label>Invoice (optional)</label>
+      <div id="ei-invoice-box" style="border:2px dashed var(--border);border-radius:8px;padding:12px;text-align:center;position:relative;overflow:hidden">
+        ${m.invoice_path ? `<div style="font-size:12px;color:var(--green-dark);font-weight:600">✓ Invoice on file</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Upload again to replace</div>` : `<div style="font-size:12px;color:var(--muted)">📎 Upload invoice (PDF, JPG, PNG)</div>`}
+        <input type="file" accept=".pdf,.jpg,.jpeg,.png" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%" onchange="uploadInvoice('${m.id}',this)">
+      </div>
+    </div>
+  `, `<button class="btn" onclick="closeMo()">Cancel</button><button class="btn btn-navy" onclick="saveIssueEdit('${m.id}')">Save changes</button>`);
+}
+
+function checkCostWarn(input, warnId) {
+  const warn = document.getElementById(warnId || 'ei-cost-warn');
+  if (warn) warn.style.display = parseFloat(input.value) > 9999 ? 'flex' : 'none';
+}
+
+async function saveIssueEdit(id) {
+  const btn = document.querySelector('#mo-f .btn-navy');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Saving…'; }
+  const title = document.getElementById('ei-title')?.value.trim();
+  const cat = document.getElementById('ei-cat')?.value;
+  const pri = document.getElementById('ei-pri')?.value;
+  const desc = document.getElementById('ei-desc')?.value.trim();
+  const assigned = document.getElementById('ei-assigned')?.value.trim() || null;
+  const costRaw = parseFloat(document.getElementById('ei-cost')?.value);
+  const costVal = isNaN(costRaw) ? null : costRaw;
+  const stage = document.getElementById('ei-stage')?.value;
+  if (!desc) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Save changes'; }
+    toast('Description is required', true); return;
+  }
+  const statusMap = {'Reported':'Open','Assigned':'Open','In Progress':'Open','Completed':'Resolved','Closed':'Resolved'};
+  const { error } = await sb.from('maintenance').update({
+    title: title || desc.slice(0,60),
+    description: desc, cat, priority: pri,
+    assigned_to: assigned, cost: costVal,
+    stage, status: statusMap[stage] || 'Open',
+    completed_date: (stage==='Completed'||stage==='Closed') ? new Date().toISOString().slice(0,10) : null
+  }).eq('id', id);
+  if (error) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Save changes'; }
+    toast('Error: ' + error.message, true); return;
+  }
+  const m = D.maintenance.find(x => String(x.id) === String(id));
+  if (m) Object.assign(m, { title: title || desc.slice(0,60), description: desc, desc, cat, priority: pri, assigned_to: assigned, cost: costVal, stage, status: statusMap[stage]||'Open' });
+  await logAudit('EDIT_MAINTENANCE', 'maintenance', id, `Updated: ${title||desc.slice(0,40)}`);
+  closeMo();
+  toast('✓ Job updated');
+  nav('maintenance');
+}
+
+async function uploadInvoice(id, inputEl) {
+  const file = inputEl.files[0];
+  if (!file) return;
+  const box = document.getElementById('ei-invoice-box');
+  if (box) box.innerHTML = '<div style="font-size:12px;color:var(--muted)">⏳ Uploading…</div>';
+  const ext = file.name.split('.').pop().toLowerCase();
+  const path = `${currentUser.id}/invoices/${id}.${ext}`;
+  const { error: upErr } = await sb.storage.from('property-documents').upload(path, file, { upsert: true, contentType: file.type });
+  if (upErr) {
+    toast('Upload failed: ' + upErr.message, true);
+    if (box) box.innerHTML = '<div style="font-size:12px;color:var(--red)">Upload failed — try again</div>';
+    return;
+  }
+  const { error: dbErr } = await sb.from('maintenance').update({ invoice_path: path }).eq('id', id);
+  if (dbErr) { toast('Save error: ' + dbErr.message, true); return; }
+  const m = D.maintenance.find(x => String(x.id) === String(id));
+  if (m) m.invoice_path = path;
+  await logAudit('UPLOAD_INVOICE', 'maintenance', id, `Invoice uploaded: ${file.name}`);
+  if (box) box.innerHTML = '<div style="font-size:12px;color:var(--green-dark);font-weight:600">✓ Invoice uploaded</div>';
+  toast('✓ Invoice uploaded');
 }
 
 async function updateIssueStatus(id,status){
@@ -5021,7 +5146,7 @@ function pgCalendar(){
     </div>`;
   }
 
-  return`<div class="topbar"><span class="tb-title">Calendar</span></div>
+  return`<div class="topbar"><span class="tb-title">Calendar</span><div class="tb-right"><button class="btn btn-sm" onclick="nav('dashboard')">← Dashboard</button></div></div>
   <div class="content">
     <div class="ph"><h1>Calendar</h1><p>Smart reminders · rent, certificates, inspections, licences</p></div>
     <div class="g2">
