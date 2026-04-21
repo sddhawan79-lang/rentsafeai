@@ -2459,8 +2459,8 @@ function pgDashboard(){
       : portfolioSize === '6+' ? 'portfolio landlord' : 'landlord';
 
     const stepCard = (num, icon, title, desc, btn, active, done) => `
-      <div style="background:var(--white);border:2px solid ${done?'var(--green)':active?'var(--navy)':'var(--border)'};border-radius:12px;padding:18px 20px;margin-bottom:10px;display:flex;align-items:center;gap:16px;transition:all .2s${active?';box-shadow:0 4px 18px rgba(11,30,61,0.1)':''}">
-        <div style="width:38px;height:38px;border-radius:50%;background:${done?'var(--green)':active?'var(--navy)':'var(--border)'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:${done?'18':'15'}px;font-weight:700;flex-shrink:0">${done?'✓':num}</div>
+      <div id="dash-step-${num}" style="background:var(--white);border:2px solid ${done?'var(--green)':active?'var(--navy)':'var(--border)'};border-radius:12px;padding:18px 20px;margin-bottom:10px;display:flex;align-items:center;gap:16px;transition:all .3s${active?';box-shadow:0 4px 18px rgba(11,30,61,0.1)':''}">
+        <div onclick="highlightDashStep(${num})" style="width:38px;height:38px;border-radius:50%;background:${done?'var(--green)':active?'var(--navy)':'var(--border)'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:${done?'18':'15'}px;font-weight:700;flex-shrink:0;cursor:pointer;transition:transform .15s" onmouseover="this.style.transform='scale(1.12)'" onmouseout="this.style.transform=''">${done?'✓':num}</div>
         <div style="flex:1;${active||done?'':'opacity:.45'}">
           <div style="font-size:14px;font-weight:700;color:var(--txt);margin-bottom:2px">${icon} ${title}</div>
           <div style="font-size:12px;color:var(--muted)">${desc}</div>
@@ -2493,6 +2493,13 @@ function pgDashboard(){
           </div>
         </div>
 
+        <div style="display:flex;align-items:center;justify-content:center;margin-bottom:14px">
+          <span onclick="highlightDashStep(1)" style="width:32px;height:32px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0;transition:transform .15s" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform=''">1</span>
+          <div style="height:2px;width:40px;background:var(--border)"></div>
+          <span onclick="highlightDashStep(2)" style="width:32px;height:32px;border-radius:50%;background:var(--border);color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0;transition:transform .15s" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform=''">2</span>
+          <div style="height:2px;width:40px;background:var(--border)"></div>
+          <span onclick="highlightDashStep(3)" style="width:32px;height:32px;border-radius:50%;background:var(--border);color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0;transition:transform .15s" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform=''">3</span>
+        </div>
         ${stepCard(1,'🏠','Add your first property','Address, rent, type and basic details — 2 minutes',
           `<button class="btn btn-navy" onclick="moAddProp()">Start →</button>`,true,false)}
         ${stepCard(2,'📄','Upload your certificates','Gas Safety, EICR, EPC — all in one place with expiry alerts',
@@ -2717,6 +2724,13 @@ function pgDashboard(){
 // ── DASHBOARD HELPERS: MINI CALENDAR ──
 // _dashCalOffset: months relative to current (0=now, -1=prev, 1=next)
 if (typeof window._dashCalOffset === 'undefined') window._dashCalOffset = 0;
+function highlightDashStep(n) {
+  const el = document.getElementById('dash-step-' + n);
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  el.style.boxShadow = '0 0 0 3px var(--green)';
+  setTimeout(() => { el.style.boxShadow = ''; }, 800);
+}
 function dashCalNav(dir) { window._dashCalOffset = (window._dashCalOffset||0) + dir; nav('dashboard'); }
 
 function getDashCalHtml() {
@@ -7755,13 +7769,24 @@ async function uploadCertToStorage(certId, inputEl) {
 async function viewCertFile(certId) {
   const cert = D.certs.find(c => String(c.id) === String(certId));
   if (!cert) { toast('Certificate not found', true); return; }
-  // If no storage path but we have metadata, show the detail modal
   if (!cert.file) { moCertDetail(certId); return; }
+  const p = P(cert.prop_id) || { address: '—' };
+  openMo(cert.type || 'Document', p.address,
+    '<div style="text-align:center;padding:32px 0"><span class="spin" style="width:20px;height:20px;border-width:2px;display:inline-block"></span></div>',
+    '<button class="btn" onclick="closeMo()">Close</button>');
+  document.querySelector('.mo-box').classList.add('mo-wide');
   try {
     const { data, error } = await sb.storage.from('property-documents').createSignedUrl(cert.file, 3600);
-    if (error || !data?.signedUrl) { moCertDetail(certId); return; }
-    window.open(data.signedUrl, '_blank');
-  } catch(e) { moCertDetail(certId); }
+    if (error || !data?.signedUrl) { closeMo(); moCertDetail(certId); return; }
+    const url = data.signedUrl;
+    const ext = (cert.file.split('.').pop() || '').toLowerCase();
+    const isImg = ['jpg','jpeg','png','gif','webp'].includes(ext);
+    document.getElementById('mo-b').innerHTML = isImg
+      ? `<img src="${url}" style="width:100%;max-height:65vh;object-fit:contain;border-radius:6px" alt="${cert.type || 'Document'}">`
+      : `<iframe src="${url}" style="width:100%;height:65vh;min-height:400px;border:none;border-radius:6px" title="${cert.type || 'Document'}"></iframe>`;
+    document.getElementById('mo-f').innerHTML =
+      `<a href="${url}" target="_blank" rel="noopener" class="btn">↗ Open in new tab</a><button class="btn btn-navy" onclick="closeMo()">Close</button>`;
+  } catch(e) { closeMo(); moCertDetail(certId); }
 }
 
 // ── SEND ONBOARDING KIT + PORTAL INVITE (COMBINED) ──
