@@ -1,0 +1,38 @@
+<!-- ══════════════════════════════════════════════════════════════
+     ADD THIS TO YOUR SIDEBAR NAV IN landlord.html
+     Under your existing Finance / Payments nav section
+══════════════════════════════════════════════════════════════ -->
+
+<!-- If you have a "Finance" section divider, add below it: -->
+<a href="mtd.html" class="nav-item">
+  <!-- Use whatever icon class/style your app uses — SVG version below: -->
+  <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:16px;height:16px">
+    <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+  </svg>
+  MTD Tax
+  <!-- LIVE badge — draws attention in the nav -->
+  <span style="margin-left:auto;font-size:.55rem;font-weight:700;letter-spacing:.06em;
+               padding:2px 6px;border-radius:4px;
+               background:rgba(220,38,38,.2);color:#f87171;
+               border:1px solid rgba(220,38,38,.3)">LIVE</span>
+</a>
+
+<!-- ══════════════════════════════════════════════════════════════
+     ALSO: Add a clickable action card on Dashboard if you have one
+     (e.g. in your "Action Items" or quick-links section)
+══════════════════════════════════════════════════════════════ -->
+<div onclick="window.location.href='mtd.html'" style="cursor:pointer;
+  padding:14px 16px; border-radius:12px;
+  background:rgba(220,38,38,.07); border:1px solid rgba(220,38,38,.2);
+  display:flex; align-items:center; gap:12px; transition:all .15s;"
+  onmouseover="this.style.background='rgba(220,38,38,.12)'"
+  onmouseout="this.style.background='rgba(220,38,38,.07)'">
+  <span style="font-size:1.4rem">📊</span>
+  <div>
+    <div style="font-size:.875rem;font-weight:600;color:#fff">Making Tax Digital is now live</div>
+    <div style="font-size:.75rem;color:#9ca3af;margin-top:2px">Set up your MTD record-keeping · First deadline 7 Aug 2026</div>
+  </div>
+  <span style="margin-left:auto;font-size:.65rem;font-weight:700;
+    padding:3px 8px;border-radius:4px;
+    background:rgba(220,38,38,.2);color:#f87171">ACTION</span>
+</div>
