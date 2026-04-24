@@ -363,6 +363,17 @@ tr:hover td{background:rgba(246,248,251,.8)}
 .td-folder-hd{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;cursor:pointer;background:var(--off);user-select:none}
 .td-folder-hd:hover{background:rgba(59,111,232,0.05)}
 .td-folder-body{padding:14px;border-top:1px solid var(--border)}
+/* ── LEGAL MOVE-IN PACK ── */
+@keyframes pulse-red{0%,100%{opacity:1}50%{opacity:.6}}
+.b-red-pulse{background:var(--red-bg);color:var(--red);animation:pulse-red 1.5s ease-in-out infinite}
+.pack-alert-banner{border-radius:10px;padding:14px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.pack-doc-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.pack-doc-row:last-child{border-bottom:none}
+.pack-gen-step{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);font-size:13px}
+.pack-gen-step:last-child{border-bottom:none}
+.pack-spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(59,111,232,.3);border-top-color:var(--blue);border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0}
+.pack-tick{width:16px;height:16px;border-radius:50%;background:var(--green);display:inline-flex;align-items:center;justify-content:center;font-size:9px;color:#fff;flex-shrink:0}
+.pack-err{width:16px;height:16px;border-radius:50%;background:var(--red);display:inline-flex;align-items:center;justify-content:center;font-size:9px;color:#fff;flex-shrink:0}
 </style>
 <!-- CRISP LIVE CHAT -->
 <script type="text/javascript">window.$crisp=[];window.CRISP_WEBSITE_ID="6a5c5215-3c14-4afa-94a4-f1f8b05e2f62";(function(){d=document;s=d.createElement("script");s.src="https://client.crisp.chat/l.js";s.async=1;d.getElementsByTagName("head")[0].appendChild(s);})();</script>
@@ -604,6 +615,7 @@ let currentPage = 'dashboard';
 const D = {
   properties: [], tenants: [], certs: [], maintenance: [], rent: [], insurance: [],
   emailLog: [], customTemplates: [], contractors: [], jobAssignments: [], tenantDocs: [],
+  moveinPacks: [], packDocuments: [],
   chat: [{role:'ai', text:'Hi! I\'m your AI assistant. I have full visibility of your portfolio — properties, certificates, tenants, maintenance jobs and compliance status. Ask me anything about your portfolio, or tap a quick question below.'}]
 };
 
@@ -724,7 +736,7 @@ async function logout() {
 
 // ── LOAD DATA ──
 async function loadData() {
-  const [p, t, c, m, r, i, el, ct, con, ja, td] = await Promise.all([
+  const [p, t, c, m, r, i, el, ct, con, ja, td, mp, pkd] = await Promise.all([
     sb.from('properties').select('*').order('created_at', {ascending: false}),
     sb.from('tenants').select('*'),
     sb.from('certificates').select('*'),
@@ -736,6 +748,8 @@ async function loadData() {
     sb.from('contractors').select('*').order('name', {ascending: true}),
     sb.from('job_assignments').select('*, tenant_maintenance(prop_id, category, submitted_at)'),
     sb.from('tenant_documents').select('*').order('uploaded_at', {ascending: true}),
+    sb.from('legal_movein_packs').select('*').order('created_at', {ascending: false}),
+    sb.from('pack_documents').select('*'),
   ]);
 
   if (p.data?.length) {
@@ -785,6 +799,8 @@ async function loadData() {
       if (!_tenantDocsCache[key].find(d => d.id === doc.id)) _tenantDocsCache[key].push(doc);
     });
   }
+  if (mp.data?.length) D.moveinPacks = mp.data;
+  if (pkd.data?.length) D.packDocuments = pkd.data;
 }
 
 // ── INIT ──
@@ -806,8 +822,10 @@ async function initApp() {
   await loadData();
   await loadProfile();
   updateNavBadges();
+  checkMoveinConfirmation();
   try {
     nav('dashboard');
+    setTimeout(checkMoveinPackReminders, 600);
   } catch(err) {
     document.getElementById('main').innerHTML = '<div style="padding:32px;font-family:sans-serif"><h2 style="color:#E53E3E">Dashboard Error</h2><pre style="background:#fff5f5;padding:16px;border-radius:8px;font-size:12px;overflow:auto">'+err.stack+'</pre><p style="margin-top:12px;color:#666">Please share this error with the developer.</p></div>';
     console.error('Dashboard error:', err);
@@ -1375,24 +1393,8 @@ async function saveTenantToDB() {
   await logAudit('ADD_TENANT', 'tenants', data.id, `Added tenant: ${name}${isLead ? ' (lead)' : ' (additional)'}`);
   toast(`✓ ${name} added!`);
   const addedPid = parseInt(propId);
-  openMo('✓ Tenant added!', `${name} linked to ${P(addedPid)?.address||'property'}`, `
-    <div style="margin-bottom:12px;font-size:13px;color:var(--muted)">What would you like to do next?</div>
-    <div onclick="closeMo();moTenant(${addedPid})" style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:8px;transition:background .15s" onmouseover="this.style.background='var(--off)'" onmouseout="this.style.background=''">
-      <div style="width:36px;height:36px;border-radius:8px;background:var(--blue-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">👤</div>
-      <div style="flex:1"><div style="font-size:13px;font-weight:600">Add another tenant</div><div style="font-size:12px;color:var(--muted)">Add a joint or additional tenant to this property</div></div>
-      <div style="color:var(--muted)">›</div>
-    </div>
-    <div onclick="closeMo();nav('prop-detail',${addedPid});setTimeout(()=>switchOnboardStage(${addedPid},2),150)" style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:8px;transition:background .15s" onmouseover="this.style.background='var(--off)'" onmouseout="this.style.background=''">
-      <div style="width:36px;height:36px;border-radius:8px;background:var(--green-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📋</div>
-      <div style="flex:1"><div style="font-size:13px;font-weight:600">Go to property docs</div><div style="font-size:12px;color:var(--muted)">Upload certificates and compliance documents</div></div>
-      <div style="color:var(--muted)">›</div>
-    </div>
-    <div onclick="closeMo();nav('prop-detail',${addedPid})" style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:8px;transition:background .15s" onmouseover="this.style.background='var(--off)'" onmouseout="this.style.background=''">
-      <div style="width:36px;height:36px;border-radius:8px;background:var(--off);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🏠</div>
-      <div style="flex:1"><div style="font-size:13px;font-weight:600">Done — view property</div><div style="font-size:12px;color:var(--muted)">Return to the property page</div></div>
-      <div style="color:var(--muted)">›</div>
-    </div>
-  `, `<button class="btn" onclick="closeMo();nav('tenants')">Go to tenants list</button>`);
+  // Automatically create Legal Move-In Pack and open modal
+  await createMoveinPackAndOpen(data, addedPid);
 }
 
 function moEditDeposit(pid) {
@@ -2608,6 +2610,30 @@ function pgDashboard(){
     })()}
 
     ${(function(){
+      const today = new Date();
+      const unsentPacks = D.moveinPacks.filter(p => p.status === 'pending');
+      if (!unsentPacks.length) return '';
+      const overdue = unsentPacks.filter(p => p.move_in_date && new Date(p.move_in_date) < today);
+      const urgent  = unsentPacks.filter(p => p.move_in_date && (() => { const d=Math.ceil((new Date(p.move_in_date)-today)/864e5); return d>=0&&d<=3; })());
+      if (!overdue.length && !urgent.length && unsentPacks.length === 0) return '';
+      const isRed = overdue.length > 0;
+      const col = isRed ? '#E53E3E' : '#D97706';
+      const bg  = isRed ? 'rgba(229,62,62,0.08)' : 'rgba(217,119,6,0.08)';
+      const label = overdue.length ? `${overdue.length} overdue pack${overdue.length!==1?'s':''}` : `${unsentPacks.length} unsent pack${unsentPacks.length!==1?'s':''}`;
+      return `<div style="background:${bg};border:2px solid ${col};border-radius:12px;padding:14px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="font-size:24px">📦</div>
+          <div>
+            <div style="font-size:11px;font-weight:700;color:${col};text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">⚠️ Legal Move-In Pack — ${label}</div>
+            <div style="font-size:13px;font-weight:700;color:var(--txt)">Send Legal Move-In Packs to tenants</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">RRA Info Sheet · Written Statement · How to Rent — all legally required at move-in</div>
+          </div>
+        </div>
+        <button class="btn btn-sm" style="background:${col};color:#fff;border:none;font-weight:600;flex-shrink:0" onclick="nav('templates')">View packs →</button>
+      </div>`;
+    })()}
+
+    ${(function(){
       const props = D.properties;
       if (!props.length) return '';
       const btn = props.length === 1
@@ -3749,6 +3775,26 @@ function pdTabContent(pid, tab) {
           <div style="font-size:11px;color:#7A8FA6;margin-top:5px">${pc.length} certificate${pc.length!==1?'s':''} · ${pc.filter(c=>c.status==='Valid').length} valid · ${pc.filter(c=>c.status==='Missing').length} missing</div>
         </div>
       </div>
+
+      ${(function(){
+        const pack = D.moveinPacks.find(pk => String(pk.property_id) === String(pid));
+        if (!pack) return '';
+        const badge = getPackStatusBadge(pack);
+        const isSent = pack.status === 'sent' || pack.status === 'confirmed';
+        const col = isSent ? '#00C896' : '#D97706';
+        const bg  = isSent ? 'rgba(0,200,150,0.08)' : 'rgba(217,119,6,0.08)';
+        return `<div style="background:${bg};border:1px solid ${col};border-radius:10px;padding:14px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="font-size:22px">📦</div>
+            <div>
+              <div style="font-size:12px;font-weight:700;color:${col};text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px">Legal Move-In Pack</div>
+              <div style="font-size:13px;color:var(--txt)">${pack.tenant_name||'Tenant'} · Move-in ${pack.move_in_date ? FMS(pack.move_in_date) : '—'}</div>
+              <div style="margin-top:4px">${badge}</div>
+            </div>
+          </div>
+          <button class="btn btn-sm ${isSent ? '' : 'btn-navy'}" onclick="moMoveinPack('${pack.id}')">${isSent ? 'View Pack' : 'Open Pack →'}</button>
+        </div>`;
+      })()}
 
       <div class="panel" style="margin-bottom:16px">
         <div class="ph2"><div><h2>📄 Documents & certificates</h2></div><button class="btn btn-sm btn-navy" onclick="moCert('${pid}')">+ Add certificate</button></div>
@@ -5768,6 +5814,55 @@ function pgTemplates() {
         </div>
         <button class="btn btn-sm" style="margin-left:auto;flex-shrink:0;border-color:var(--amber);color:var(--amber)" onclick="moGenerate('rrasheet')">Generate now →</button>
       </div>
+
+      ${(function(){
+        const today = new Date();
+        const packs = D.moveinPacks;
+        if (!packs.length && !D.tenants.length) return '';
+        const sent = packs.filter(p => p.status === 'sent' || p.status === 'confirmed');
+        const pending = packs.filter(p => p.status === 'pending');
+        const overdue = pending.filter(p => p.move_in_date && new Date(p.move_in_date) < today);
+        const statBadge = (n, label, cls) => n > 0 ? `<span class="badge ${cls}" style="font-size:11px">${n} ${label}</span>` : '';
+        const rows = packs.length ? packs.slice(0,10).map(pack => {
+          const prop = P(pack.property_id);
+          const st = getPackStatusBadge(pack);
+          return `<tr>
+            <td style="padding:9px 12px;font-size:13px;color:var(--txt);white-space:nowrap">${prop ? prop.address : '—'}</td>
+            <td style="padding:9px 12px;font-size:13px;color:var(--txt)">${pack.tenant_name||'—'}</td>
+            <td style="padding:9px 12px;font-size:12px;color:var(--muted)">${pack.move_in_date ? FMS(pack.move_in_date) : '—'}</td>
+            <td style="padding:9px 12px">${st}</td>
+            <td style="padding:9px 12px;text-align:right"><button class="btn btn-sm btn-navy" onclick="moMoveinPack('${pack.id}')">Open Pack</button></td>
+          </tr>`;
+        }).join('') : `<tr><td colspan="5" style="padding:20px;text-align:center;color:var(--muted);font-size:13px">No move-in packs yet — they are created automatically when you add a new tenant.</td></tr>`;
+        return `<div class="coll" style="margin-bottom:18px;border:2px solid var(--navy)">
+          <div class="coll-hd" onclick="toggleColl('tmpl-movein-packs')" style="background:rgba(11,30,61,0.04)">
+            <div class="coll-l">
+              <span style="font-size:16px">📦</span>
+              Legal Move-In Packs
+              <span class="coll-cnt">${packs.length}</span>
+              ${statBadge(overdue.length, 'overdue', 'b-red-pulse')}
+              ${statBadge(pending.length - overdue.length, 'pending', 'b-amber')}
+              ${statBadge(sent.length, 'sent', 'b-green')}
+            </div>
+            <div class="coll-r"><span class="coll-arr op" id="ca-tmpl-movein-packs">▼</span></div>
+          </div>
+          <div class="coll-body" id="cb-tmpl-movein-packs">
+            <div style="padding:0 6px 8px">
+              <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Auto-generated at move-in: RRA Information Sheet · How to Rent Guide · Written Statement of Terms · Rent Payment Instructions</p>
+              <table style="width:100%;border-collapse:collapse">
+                <thead><tr style="border-bottom:2px solid var(--border)">
+                  <th style="text-align:left;padding:7px 12px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Property</th>
+                  <th style="text-align:left;padding:7px 12px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Tenant</th>
+                  <th style="text-align:left;padding:7px 12px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Move-in</th>
+                  <th style="text-align:left;padding:7px 12px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Status</th>
+                  <th></th>
+                </tr></thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+          </div>
+        </div>`;
+      })()}
 
       <div style="background:var(--off);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:22px;font-size:12px;color:var(--muted)">
         ⚠️ <strong style="color:var(--txt)">Disclaimer:</strong> Templates are for reference only and do not constitute legal advice. Always seek independent legal advice before serving notices or signing tenancy documents.
@@ -8179,6 +8274,480 @@ async function submitFeedback() {
   if (error) { toast('Could not save feedback — ' + error.message, true); return; }
   closeFeedback();
   toast('✓ Thanks for your feedback!');
+}
+
+// ══════════════════════════════════════════════════════
+// LEGAL MOVE-IN PACK
+// ══════════════════════════════════════════════════════
+
+const LEGAL_PACK_DOCS = [
+  { type: 'rra_info_sheet',       label: 'RRA Information Sheet',      required: true,  desc: 'Mandatory government PDF — Renters Rights Act 2026' },
+  { type: 'how_to_rent',          label: 'How to Rent Guide',          required: true,  desc: 'GOV.UK checklist for tenants (link provided)' },
+  { type: 'written_statement',    label: 'Written Statement of Terms', required: true,  desc: 'Replaces the AST — generated from your tenancy data' },
+  { type: 'rent_payment_instructions', label: 'Rent Payment Instructions', required: false, desc: 'Bank details, due date and late payment policy' },
+];
+
+const RRA_PDF_URL = 'https://assets.publishing.service.gov.uk/media/69bc04b8f7b1c24d8e23ce60/The_Renters__Rights_Act_Information_Sheet_2026.pdf';
+const HOW_TO_RENT_URL = 'https://www.gov.uk/government/publications/how-to-rent';
+
+async function createMoveinPackAndOpen(tenantData, propId) {
+  try {
+    // Create the pack record
+    const { data: pack, error: packErr } = await sb.from('legal_movein_packs').insert({
+      property_id: parseInt(propId),
+      tenant_id:   tenantData.id || null,
+      tenant_name: tenantData.name || '',
+      tenant_email: tenantData.email || '',
+      move_in_date: tenantData.start_date || null,
+      status: 'pending',
+      created_at: new Date().toISOString(),
+    }).select().single();
+    if (packErr) throw packErr;
+
+    // Create pack_documents rows
+    const docRows = LEGAL_PACK_DOCS.map(d => ({
+      pack_id:       pack.id,
+      document_type: d.type,
+      label:         d.label,
+      status:        'pending',
+      created_at:    new Date().toISOString(),
+    }));
+    await sb.from('pack_documents').insert(docRows);
+
+    // Refresh local cache
+    const [mpRes, pkdRes] = await Promise.all([
+      sb.from('legal_movein_packs').select('*').order('created_at', { ascending: false }),
+      sb.from('pack_documents').select('*'),
+    ]);
+    if (mpRes.data) D.moveinPacks = mpRes.data;
+    if (pkdRes.data) D.packDocuments = pkdRes.data;
+
+    await logAudit('create', 'legal_movein_packs', pack.id, { tenant: tenantData.name, prop: propId });
+    moMoveinPack(pack.id);
+  } catch(e) {
+    console.error('createMoveinPackAndOpen', e);
+    toast('Could not create Legal Move-In Pack: ' + e.message, true);
+  }
+}
+
+function getPackDocs(packId) {
+  return D.packDocuments.filter(d => String(d.pack_id) === String(packId));
+}
+
+function getPackDoc(packId, type) {
+  return D.packDocuments.find(d => String(d.pack_id) === String(packId) && d.document_type === type);
+}
+
+function moMoveinPack(packId) {
+  const pack = D.moveinPacks.find(p => String(p.id) === String(packId));
+  if (!pack) { toast('Pack not found', true); return; }
+  const prop = P(pack.property_id);
+  const subtitle = `${prop ? prop.address + ', ' + prop.city : 'Property'} · ${pack.tenant_name}`;
+  openMo('📦 Legal Move-In Pack', subtitle, packStep1Html(pack), packStep1Footer(pack));
+  document.getElementById('mo-wrap')?.classList.add('mo-wide');
+}
+
+function packStep1Html(pack) {
+  const docs = getPackDocs(pack.id);
+  const rows = LEGAL_PACK_DOCS.map(def => {
+    const doc = docs.find(d => d.document_type === def.type);
+    const status = doc?.status || 'pending';
+    const statusBadge = status === 'ready'
+      ? `<span class="badge b-green">✓ Ready</span>`
+      : status === 'error'
+      ? `<span class="badge b-red">Error</span>`
+      : `<span class="badge b-gray">Pending</span>`;
+    return `<div class="pack-doc-row">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600;color:var(--txt)">${def.label}${def.required?'<span style="color:var(--red);margin-left:4px">*</span>':''}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">${def.desc}</div>
+      </div>
+      ${statusBadge}
+    </div>`;
+  }).join('');
+
+  return `<div style="margin-bottom:16px">
+    <div style="background:var(--navy);border-radius:10px;padding:14px 16px;margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Step 1 of 3 — Document Checklist</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.85)">The following documents will be auto-generated and assembled into a legal move-in pack for your tenant.</div>
+    </div>
+    <div style="border:1px solid var(--border);border-radius:10px;padding:4px 14px">
+      ${rows}
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:10px">* Required documents. Click <strong>Next — Generate Documents</strong> to auto-create all items.</div>
+  </div>`;
+}
+
+function packStep1Footer(pack) {
+  return `<button class="btn" onclick="closeMo()">Cancel</button>
+    <button class="btn btn-navy" id="pack-next-btn" onclick="packGoStep2('${pack.id}')">Next — Generate Documents →</button>`;
+}
+
+async function packGoStep2(packId) {
+  const pack = D.moveinPacks.find(p => String(p.id) === String(packId));
+  if (!pack) return;
+  const prop = P(pack.property_id);
+  const subtitle = `${prop ? prop.address + ', ' + prop.city : 'Property'} · ${pack.tenant_name}`;
+  // Update modal body to step 2
+  const bodyEl = document.getElementById('mo-body');
+  const footEl = document.getElementById('mo-footer');
+  if (!bodyEl) return;
+  bodyEl.innerHTML = packStep2Html(pack);
+  if (footEl) footEl.innerHTML = `<button class="btn" onclick="closeMo()">Cancel</button><button class="btn btn-gray" disabled id="pack-send-btn">Generating…</button>`;
+  // Run generation
+  await runPackGeneration(pack);
+}
+
+function packStep2Html(pack) {
+  const rows = LEGAL_PACK_DOCS.map(def => `
+    <div class="pack-gen-step" id="gen-row-${def.type}">
+      <span class="pack-spin" id="gen-ic-${def.type}"></span>
+      <div style="flex:1">
+        <div style="font-weight:600;color:var(--txt)">${def.label}</div>
+        <div id="gen-msg-${def.type}" style="color:var(--muted);font-size:12px;margin-top:2px">Generating…</div>
+      </div>
+    </div>`).join('');
+
+  return `<div>
+    <div style="background:var(--navy);border-radius:10px;padding:14px 16px;margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Step 2 of 3 — Review & Generate</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.85)">Documents are being generated and stored. Please wait…</div>
+    </div>
+    <div style="border:1px solid var(--border);border-radius:10px;padding:4px 14px">
+      ${rows}
+    </div>
+  </div>`;
+}
+
+async function runPackGeneration(pack) {
+  const prop = P(pack.property_id);
+  const landlord = _profileData || {};
+
+  async function setRowStatus(type, ok, msg) {
+    const icEl  = document.getElementById('gen-ic-' + type);
+    const msgEl = document.getElementById('gen-msg-' + type);
+    if (icEl)  icEl.outerHTML = ok
+      ? `<span class="pack-tick" id="gen-ic-${type}">✓</span>`
+      : `<span class="pack-err" id="gen-ic-${type}">✕</span>`;
+    if (msgEl) msgEl.textContent = msg;
+    // Update DB
+    await sb.from('pack_documents').update({ status: ok ? 'ready' : 'error', note: msg }).eq('pack_id', pack.id).eq('document_type', type);
+  }
+
+  // 1. RRA Info Sheet — store URL reference
+  try {
+    await sb.from('pack_documents').update({ status: 'ready', url: RRA_PDF_URL }).eq('pack_id', pack.id).eq('document_type', 'rra_info_sheet');
+    await setRowStatus('rra_info_sheet', true, 'PDF fetched from GOV.UK — will attach to email');
+  } catch(e) {
+    await setRowStatus('rra_info_sheet', false, e.message);
+  }
+
+  // 2. How to Rent — store URL
+  try {
+    await sb.from('pack_documents').update({ status: 'ready', url: HOW_TO_RENT_URL }).eq('pack_id', pack.id).eq('document_type', 'how_to_rent');
+    await setRowStatus('how_to_rent', true, 'GOV.UK link ready — will be included in email');
+  } catch(e) {
+    await setRowStatus('how_to_rent', false, e.message);
+  }
+
+  // 3. Written Statement of Terms — generate PDF via jsPDF
+  try {
+    const pdfUrl = await generateWrittenStatement(pack, prop, landlord);
+    await sb.from('pack_documents').update({ status: 'ready', url: pdfUrl }).eq('pack_id', pack.id).eq('document_type', 'written_statement');
+    await setRowStatus('written_statement', true, 'PDF generated and stored');
+  } catch(e) {
+    await setRowStatus('written_statement', false, 'Generation failed: ' + e.message);
+  }
+
+  // 4. Rent Payment Instructions — generate PDF
+  try {
+    const pdfUrl = await generateRentInstructions(pack, prop, landlord);
+    await sb.from('pack_documents').update({ status: 'ready', url: pdfUrl }).eq('pack_id', pack.id).eq('document_type', 'rent_payment_instructions');
+    await setRowStatus('rent_payment_instructions', true, 'PDF generated and stored');
+  } catch(e) {
+    await setRowStatus('rent_payment_instructions', false, 'Generation failed: ' + e.message);
+  }
+
+  // Refresh local doc cache
+  const { data: pkdData } = await sb.from('pack_documents').select('*');
+  if (pkdData) D.packDocuments = pkdData;
+
+  // Advance to step 3
+  const footEl = document.getElementById('mo-footer');
+  const bodyEl = document.getElementById('mo-body');
+  if (bodyEl) bodyEl.innerHTML = packStep3Html(pack);
+  if (footEl) footEl.innerHTML = `<button class="btn" onclick="closeMo()">Close</button>
+    <button class="btn btn-navy" id="pack-send-btn" onclick="sendMoveinPack('${pack.id}')">📧 Send to Tenant →</button>`;
+}
+
+async function generateWrittenStatement(pack, prop, landlord) {
+  // Lazy-load jsPDF
+  if (!window.jspdf) {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const lm = 20, rm = 190, lh = 7;
+  let y = 20;
+  const line = (txt, sz=11, bold=false, col=[30,30,30]) => {
+    doc.setFontSize(sz); doc.setFont('helvetica', bold?'bold':'normal'); doc.setTextColor(...col);
+    const lines = doc.splitTextToSize(txt, rm - lm);
+    lines.forEach(l => { if(y>275){doc.addPage();y=20;} doc.text(l, lm, y); y+=lh; });
+  };
+  const gap = (n=4) => { y+=n; };
+
+  line('WRITTEN STATEMENT OF TERMS OF TENANCY', 14, true, [11,30,61]);
+  line('(Under Section 52, Renters\' Rights Act 2025)', 10, false, [100,100,100]);
+  gap(4);
+  line('LANDLORD', 11, true); line(landlord.display_name||'[Landlord Name]'); line(landlord.address_line1||''); line(`${landlord.city||''} ${landlord.postcode||''}`.trim()); gap();
+  line('TENANT', 11, true); line(pack.tenant_name||'[Tenant Name]'); line(pack.tenant_email||''); gap();
+  line('PROPERTY', 11, true); line(prop ? prop.address+', '+prop.city+', '+prop.postcode : '[Property Address]'); gap();
+  line('TENANCY DETAILS', 11, true);
+  line(`Move-in date: ${pack.move_in_date ? FMS(pack.move_in_date) : '[Date]'}`);
+  const t = D.tenants.find(x => String(x.id) === String(pack.tenant_id));
+  line(`Monthly rent: £${t?.rent || prop?.rent || '[Amount]'}`);
+  line(`Tenancy type: Assured Periodic Tenancy (Renters\' Rights Act 2025)`);
+  gap();
+  line('KEY OBLIGATIONS', 11, true);
+  line('Landlord obligations:', 10, true);
+  line('• Maintain the property in good repair'); line('• Provide 24-hours written notice before access'); line('• Protect any deposit in a government-approved scheme'); line('• Carry out repairs within a reasonable timeframe');
+  gap(2);
+  line('Tenant obligations:', 10, true);
+  line('• Pay rent on time as agreed'); line('• Keep the property in a clean and tidy condition'); line('• Notify the landlord promptly of any repairs needed'); line('• Not sub-let without written consent');
+  gap();
+  line('This statement is issued under the Renters\' Rights Act 2025 and does not constitute a tenancy agreement. Full terms may be set out in a separate agreement.', 9, false, [100,100,100]);
+
+  const pdfBytes = doc.output('arraybuffer');
+  const fileName = `written_statement_${pack.id}.pdf`;
+  const { data: upData, error: upErr } = await sb.storage.from('legal-packs').upload(
+    `${pack.id}/written_statement/${fileName}`, new Uint8Array(pdfBytes), { contentType: 'application/pdf', upsert: true }
+  );
+  if (upErr) throw upErr;
+  const { data: { publicUrl } } = sb.storage.from('legal-packs').getPublicUrl(`${pack.id}/written_statement/${fileName}`);
+  return publicUrl;
+}
+
+async function generateRentInstructions(pack, prop, landlord) {
+  if (!window.jspdf) {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const lm = 20, rm = 190, lh = 7;
+  let y = 20;
+  const line = (txt, sz=11, bold=false, col=[30,30,30]) => {
+    doc.setFontSize(sz); doc.setFont('helvetica', bold?'bold':'normal'); doc.setTextColor(...col);
+    const lines = doc.splitTextToSize(txt, rm - lm);
+    lines.forEach(l => { if(y>275){doc.addPage();y=20;} doc.text(l, lm, y); y+=lh; });
+  };
+  const gap = (n=4) => { y+=n; };
+  const t = D.tenants.find(x => String(x.id) === String(pack.tenant_id));
+  const rent = t?.rent || prop?.rent || 0;
+
+  line('RENT PAYMENT INSTRUCTIONS', 14, true, [11,30,61]);
+  gap(2);
+  line(`Property: ${prop ? prop.address+', '+prop.city : '[Property]'}`);
+  line(`Tenant: ${pack.tenant_name||'[Tenant]'}`);
+  line(`Monthly rent: £${rent.toLocaleString()}`);
+  line(`Due date: ${pack.move_in_date ? 'The '+new Date(pack.move_in_date).getDate()+'th of each month' : 'As agreed'}`);
+  gap();
+  line('Payment method', 11, true);
+  line('Please pay by bank transfer (BACS) to the following account:');
+  line(`Account name: ${landlord.display_name||'[Landlord Name]'}`);
+  line('Sort code: [XX-XX-XX]'); line('Account number: [XXXXXXXX]');
+  gap();
+  line('Reference', 11, true);
+  line(`Please use reference: RENT-${prop?.postcode?.replace(/\s/g,'')||'REF'}-${pack.tenant_name?.split(' ')[0]?.toUpperCase()||'TEN'}`);
+  gap();
+  line('Late payments', 11, true);
+  line('Rent is due on or before the date shown above. If you are having difficulty paying, please contact your landlord as soon as possible. Late payment may result in the landlord pursuing recovery proceedings.');
+  gap();
+  line(`Issued by: ${landlord.display_name||'Landlord'} on ${new Date().toLocaleDateString('en-GB')}`, 9, false, [100,100,100]);
+
+  const pdfBytes = doc.output('arraybuffer');
+  const fileName = `rent_instructions_${pack.id}.pdf`;
+  const { data: upData, error: upErr } = await sb.storage.from('legal-packs').upload(
+    `${pack.id}/rent_payment_instructions/${fileName}`, new Uint8Array(pdfBytes), { contentType: 'application/pdf', upsert: true }
+  );
+  if (upErr) throw upErr;
+  const { data: { publicUrl } } = sb.storage.from('legal-packs').getPublicUrl(`${pack.id}/rent_payment_instructions/${fileName}`);
+  return publicUrl;
+}
+
+function packStep3Html(pack) {
+  const docs = getPackDocs(pack.id);
+  const rows = docs.map(d => {
+    const ok = d.status === 'ready';
+    return `<div class="pack-doc-row">
+      <span class="${ok ? 'pack-tick' : 'pack-err'}">${ok ? '✓' : '✕'}</span>
+      <div style="flex:1"><div style="font-size:13px;font-weight:600">${d.label}</div>${d.note ? `<div style="font-size:11px;color:var(--muted)">${d.note}</div>` : ''}</div>
+      ${d.url && ok ? `<a href="${d.url}" target="_blank" class="btn btn-sm">View</a>` : ''}
+    </div>`;
+  }).join('');
+
+  return `<div>
+    <div style="background:var(--navy);border-radius:10px;padding:14px 16px;margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Step 3 of 3 — Review & Send</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.85)">Documents are ready. Click <strong>Send to Tenant</strong> to email the complete legal move-in pack.</div>
+    </div>
+    <div style="border:1px solid var(--border);border-radius:10px;padding:4px 14px;margin-bottom:14px">
+      ${rows}
+    </div>
+    <div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--muted)">
+      📧 The email will be sent to <strong style="color:var(--txt)">${pack.tenant_email||'[no email]'}</strong> and will include all ready documents as attachments.
+    </div>
+  </div>`;
+}
+
+async function sendMoveinPack(packId) {
+  const btn = document.getElementById('pack-send-btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Sending…'; }
+  const pack = D.moveinPacks.find(p => String(p.id) === String(packId));
+  if (!pack) { toast('Pack not found', true); return; }
+
+  try {
+    const docs = getPackDocs(packId);
+    const readyDocs = docs.filter(d => d.status === 'ready');
+    const prop = P(pack.property_id);
+
+    const res = await fetch(`${sb.supabaseUrl}/functions/v1/super-processor`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${(await sb.auth.getSession()).data.session?.access_token}` },
+      body: JSON.stringify({
+        action: 'send_legal_movein_pack',
+        pack_id: packId,
+        tenant_name: pack.tenant_name,
+        tenant_email: pack.tenant_email,
+        property_address: prop ? prop.address + ', ' + prop.city : '',
+        move_in_date: pack.move_in_date,
+        documents: readyDocs.map(d => ({ type: d.document_type, label: d.label, url: d.url })),
+        landlord_name: _profileData?.display_name || '',
+        rra_pdf_url: RRA_PDF_URL,
+        how_to_rent_url: HOW_TO_RENT_URL,
+      })
+    });
+
+    // Update pack status in DB
+    const now = new Date().toISOString();
+    await sb.from('legal_movein_packs').update({ status: 'sent', sent_at: now }).eq('id', packId);
+
+    // Create pack_sends row
+    await sb.from('pack_sends').insert({
+      pack_id: packId,
+      sent_at: now,
+      recipient_email: pack.tenant_email,
+      status: 'sent',
+    });
+
+    await logAudit('send', 'legal_movein_packs', packId, { tenant: pack.tenant_name, email: pack.tenant_email });
+
+    // Refresh cache
+    const { data: mpData } = await sb.from('legal_movein_packs').select('*').order('created_at', { ascending: false });
+    if (mpData) D.moveinPacks = mpData;
+
+    // Show success in modal
+    const bodyEl = document.getElementById('mo-body');
+    if (bodyEl) bodyEl.innerHTML = `<div style="text-align:center;padding:32px 16px">
+      <div style="font-size:48px;margin-bottom:12px">📨</div>
+      <div style="font-size:16px;font-weight:700;color:var(--txt);margin-bottom:6px">Legal Move-In Pack Sent!</div>
+      <div style="font-size:13px;color:var(--muted)">Sent to <strong>${pack.tenant_email}</strong></div>
+    </div>`;
+    const footEl = document.getElementById('mo-footer');
+    if (footEl) footEl.innerHTML = `<button class="btn btn-navy" onclick="closeMo()">Done</button>`;
+    setTimeout(() => closeMo(), 2000);
+    toast('✓ Legal Move-In Pack sent to ' + pack.tenant_email);
+  } catch(e) {
+    console.error('sendMoveinPack', e);
+    toast('Send failed: ' + e.message, true);
+    if (btn) { btn.disabled = false; btn.innerHTML = '📧 Send to Tenant →'; }
+  }
+}
+
+function getPackStatusBadge(pack) {
+  if (!pack) return `<span class="badge b-gray">No Pack</span>`;
+  if (pack.status === 'sent' || pack.status === 'confirmed') return `<span class="badge b-green">✓ ${pack.status === 'confirmed' ? 'Confirmed' : 'Sent'}</span>`;
+  const moveIn = pack.move_in_date ? new Date(pack.move_in_date) : null;
+  const today = new Date();
+  if (moveIn) {
+    const diff = Math.ceil((moveIn - today) / 864e5);
+    if (diff <= 0) return `<span class="badge b-red-pulse">Overdue — Send Now</span>`;
+    if (diff <= 1) return `<span class="badge b-red">Due Tomorrow</span>`;
+    if (diff <= 3) return `<span class="badge b-red">Due in ${diff}d</span>`;
+    if (diff <= 7) return `<span class="badge b-amber">Due in ${diff}d</span>`;
+  }
+  return `<span class="badge b-amber">Pending</span>`;
+}
+
+function checkMoveinPackReminders() {
+  const today = new Date();
+  D.moveinPacks.filter(p => p.status === 'pending').forEach(pack => {
+    if (!pack.move_in_date) return;
+    const moveIn = new Date(pack.move_in_date);
+    const diff = Math.ceil((moveIn - today) / 864e5);
+    if (diff > 7) return; // Only show for packs within 7 days
+
+    const prop = P(pack.property_id);
+    const addr = prop ? prop.address : 'Property';
+    const isRed = diff <= 1;
+    const isOverdue = diff < 0;
+    const col = isRed ? '#E53E3E' : '#D97706';
+    const bg  = isRed ? 'rgba(229,62,62,0.08)' : 'rgba(217,119,6,0.08)';
+    const label = isOverdue ? `${Math.abs(diff)}d overdue` : diff === 0 ? 'Today' : `${diff}d left`;
+    const msg = `Legal Move-In Pack not sent — ${addr} · ${pack.tenant_name} · Move-in ${label}`;
+
+    const bannerId = `pack-banner-${pack.id}`;
+    if (document.getElementById(bannerId)) return;
+
+    const banner = document.createElement('div');
+    banner.id = bannerId;
+    banner.className = 'pack-alert-banner';
+    banner.style.cssText = `background:${bg};border:2px solid ${col}`;
+    banner.innerHTML = `<div style="display:flex;align-items:center;gap:10px;flex:1">
+      <span style="font-size:18px">⚠️</span>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:${col};text-transform:uppercase;letter-spacing:.4px;margin-bottom:1px">Legal Move-In Pack ${isOverdue?'OVERDUE':'Required'}</div>
+        <div style="font-size:13px;color:var(--txt)">${msg}</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;flex-shrink:0">
+      <button class="btn btn-sm" style="background:${col};color:#fff;border:none;font-weight:600" onclick="moMoveinPack('${pack.id}')">Open Pack →</button>
+      <button class="btn btn-sm" onclick="this.closest('.pack-alert-banner').remove()" title="Dismiss" style="font-size:14px;padding:4px 8px">✕</button>
+    </div>`;
+
+    const content = document.querySelector('.content');
+    if (content) content.insertBefore(banner, content.firstChild);
+  });
+}
+
+function checkMoveinConfirmation() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('confirm');
+  if (!token) return;
+  showConfirmationPage(token);
+}
+
+async function showConfirmationPage(token) {
+  const { data: pack } = await sb.from('legal_movein_packs').select('*').eq('confirm_token', token).single();
+  if (!pack) { toast('Confirmation link not found or already used', true); return; }
+  await sb.from('legal_movein_packs').update({ status: 'confirmed', confirmed_at: new Date().toISOString() }).eq('id', pack.id);
+  const bodyEl = document.getElementById('main');
+  if (bodyEl) bodyEl.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;min-height:80vh;padding:32px">
+    <div style="text-align:center;max-width:480px">
+      <div style="font-size:56px;margin-bottom:16px">✅</div>
+      <h1 style="font-size:22px;font-weight:700;margin-bottom:8px">Documents Confirmed</h1>
+      <p style="color:var(--muted);font-size:14px">Thank you, ${pack.tenant_name}. You have confirmed receipt of your Legal Move-In Pack.</p>
+    </div>
+  </div>`;
 }
 
 // Wire nav clicks
