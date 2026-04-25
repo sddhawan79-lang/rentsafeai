@@ -1537,7 +1537,7 @@ function pgDashboard(){
 
     ${(function(){
       const daysLeft = Math.ceil((new Date('2026-05-31') - new Date()) / 864e5);
-      if (daysLeft < 0 || !) return '';
+      if (daysLeft < 0 || !D.tenants.length) return '';
       const sentIds = new Set(D.emailLog.filter(e=>e.template_id==='rra_info_sheet'&&e.status==='Sent').map(e=>String(e.tenant_id)));
       const unsent = D.tenants.filter(t => !sentIds.has(String(t.id)));
       if (!unsent.length) return '';
