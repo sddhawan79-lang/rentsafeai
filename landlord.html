@@ -1862,7 +1862,7 @@ function pgPropDetail(pid) {
 
   // Tabs
   const tabDefs = [
-    { id:'tenant',      icon:'👤', label:'Tenant',      cnt: t ? 1 : 0 },
+    { id:'tenant',      icon:'👤', label:'Tenant',      cnt: D.tenants.filter(x=>String(x.prop_id)===String(pid)).length },
     { id:'financials',  icon:'💷', label:'Financials',  cnt: D.rent.filter(r=>String(r.prop_id)===String(pid)).length },
     { id:'compliance',  icon:'🛡', label:'Compliance',  cnt: pc.length },
     { id:'maintenance', icon:'🔧', label:'Maintenance', cnt: D.maintenance.filter(m=>String(m.prop_id)===String(pid)).length },
@@ -1913,14 +1913,15 @@ function pdSetTab(pid, tab) {
 
 function pdTabContent(pid, tab) {
   const p = P(pid);
-  const t = D.tenants.find(x => String(x.prop_id) === String(pid));
+  const ts = D.tenants.filter(x => String(x.prop_id) === String(pid));
+  const t = ts[0];
   const pc = CF(pid);
   const pi = D.insurance.filter(i => String(i.prop_id) === String(pid));
 
   // ── TENANT TAB ──
   if (tab === 'tenant') {
-    const tenantCard = t ? `
-      <div class="panel" style="margin-bottom:16px">
+    const tenantCard = ts.length ? `
+      ${ts.map(t => `<div class="panel" style="margin-bottom:16px">
         <div class="ph2">
           <div style="display:flex;align-items:center;gap:12px">
             <div class="t-av" style="width:42px;height:42px;font-size:14px">${INI(t.name)}</div>
@@ -1952,7 +1953,7 @@ function pdTabContent(pid, tab) {
             ${t.email?`<button class="btn btn-sm" style="border-color:var(--green);color:var(--green-dark)" id="invite-btn-${t.id}" onclick="sendPortalInvite('${t.id}')">🔗 ${t.invite_used?'Resend invite':'Send portal invite'}</button>`:''}
           </div>
         </div>
-      </div>
+      </div>`).join('')}
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
         <div style="background:linear-gradient(135deg,#0B1E3D,#1a3a6b);border-radius:10px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px">
