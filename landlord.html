@@ -657,6 +657,7 @@ async function loadData() {
   if (ct.data?.length) D.customTemplates = ct.data;
   if (con.data?.length) D.contractors = con.data;
   if (ja.data?.length) D.jobAssignments = ja.data;
+  await checkComplianceReminders();
 }
 
 // ── INIT ──
@@ -2066,6 +2067,11 @@ function pdTabContent(pid, tab) {
           : `<div style="padding:14px 18px;font-size:13px;color:var(--muted)">No certificates yet — <a href="#" onclick="moCert('${pid}')" style="color:var(--navy);font-weight:500">add one</a></div>`}
       </div>
 
+      <div class="panel" style="margin-bottom:16px">
+        <div class="ph2"><div><h2>📊 Certificate status</h2><p>All 6 required certificates at a glance</p></div></div>
+        <div style="padding:12px 18px">${buildCertStatusGrid(pid)}</div>
+      </div>
+
       <div class="panel">
         <div class="ph2"><div><h2>🔍 Inspections</h2></div><button class="btn btn-sm" onclick="moInspection('${pid}')">+ Log inspection</button></div>
         <div style="padding:14px 18px">${(p.inspections||[]).length
@@ -2147,6 +2153,62 @@ function pdTabContent(pid, tab) {
 }
 
 // ── PAGE: COMPLIANCE ──
+function buildCertStatusGrid(pid) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const pc = CF(pid);
+  const CERT_TYPES = [
+    'Gas Safety Certificate',
+    'EICR',
+    'EPC',
+    'How to Rent Guide',
+    'Deposit Certificate',
+    'Tenancy Agreement'
+  ];
+
+  function findCert(label) {
+    const lo = label.toLowerCase();
+    return pc.find(c => {
+      const t = (c.type || '').toLowerCase();
+      if (lo === 'gas safety certificate') return t.includes('gas');
+      if (lo === 'eicr') return t.includes('eicr') || t.includes('electrical installation');
+      if (lo === 'epc') return t.includes('epc') || t.includes('energy performance');
+      if (lo === 'how to rent guide') return t.includes('how to rent');
+      if (lo === 'deposit certificate') return t.includes('deposit');
+      if (lo === 'tenancy agreement') return t.includes('tenancy agreement');
+      return false;
+    });
+  }
+
+  function getCertStatus(cert) {
+    if (!cert) return { label: 'MISSING', bg: '#E4EAF1', color: '#7A8FA6', border: 'transparent', days: null };
+    if (cert.expiry) {
+      const days = Math.round((new Date(cert.expiry) - today) / 864e5);
+      if (days < 0)   return { label: 'EXPIRED',       bg: 'rgba(229,62,62,0.1)',   color: '#E53E3E', border: 'rgba(229,62,62,0.25)',   days };
+      if (days <= 14) return { label: 'URGENT',         bg: 'rgba(217,119,6,0.1)',   color: '#D97706', border: 'rgba(217,119,6,0.25)',   days };
+      if (days <= 60) return { label: 'EXPIRING SOON',  bg: 'rgba(59,111,232,0.08)', color: '#3B6FE8', border: 'rgba(59,111,232,0.2)',   days };
+      return                 { label: 'VALID',           bg: 'rgba(0,200,150,0.08)',  color: '#00A87A', border: 'rgba(0,200,150,0.2)',    days };
+    }
+    return { label: 'VALID', bg: 'rgba(0,200,150,0.08)', color: '#00A87A', border: 'rgba(0,200,150,0.2)', days: null };
+  }
+
+  const items = CERT_TYPES.map(label => {
+    const cert = findCert(label);
+    const st = getCertStatus(cert);
+    const dayStr = st.days !== null
+      ? (st.days < 0 ? `${Math.abs(st.days)}d overdue` : `${st.days}d left`)
+      : (cert && !cert.expiry ? 'No expiry' : '');
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 11px;background:${st.bg};border:1px solid ${st.border};border-radius:7px;gap:8px">
+      <span style="font-size:12px;font-weight:500;color:var(--txt);flex:1;min-width:0">${label}</span>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        ${dayStr ? `<span style="font-size:10px;color:${st.color}">${dayStr}</span>` : ''}
+        <span style="font-size:10px;font-weight:700;color:${st.color};letter-spacing:.3px;white-space:nowrap">${st.label}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">${items}</div>`;
+}
+
 function pgCompliance(){
   const today = new Date(); today.setHours(0,0,0,0);
 
@@ -2235,31 +2297,21 @@ function pgCompliance(){
     <div style="font-size:12px;color:var(--muted)">No certificates expiring in the next 60 days</div>
   </div>`;
 
-  // Property breakdown table
-  const propRows = D.properties.map(p => {
-    const pc = CF(p.id);
-    const propExpired = pc.filter(c => {
-      const d = c.expiry ? Math.round((new Date(c.expiry)-today)/864e5) : null;
-      return d !== null && d < 0;
-    }).length;
-    const propCritical = pc.filter(c => {
-      const d = c.expiry ? Math.round((new Date(c.expiry)-today)/864e5) : null;
-      return d !== null && d >= 0 && d <= 14;
-    }).length;
-    const propScore = pc.length ? Math.max(0, 100 - propExpired*20 - propCritical*8) : 0;
-    const pCol = propScore >= 80 ? 'var(--green-dark)' : propScore >= 50 ? 'var(--amber)' : 'var(--red)';
-    const pBg = propScore >= 80 ? 'rgba(0,200,150,0.08)' : propScore >= 50 ? 'rgba(217,119,6,0.08)' : 'rgba(229,62,62,0.08)';
-    return `<tr style="cursor:pointer" onclick="nav('prop-detail','${p.id}');setTimeout(()=>pdSetTab('${p.id}','compliance'),100)">
-      <td class="td-bold">${p.address}, ${p.city}</td>
-      <td><div style="display:flex;align-items:center;gap:8px">
-        <div style="flex:1;height:5px;background:var(--border);border-radius:100px;overflow:hidden;max-width:80px"><div style="height:100%;width:${propScore}%;background:${pCol};border-radius:100px"></div></div>
-        <span style="font-size:12px;font-weight:700;color:${pCol}">${propScore}</span>
-      </div></td>
-      <td>${pc.length} cert${pc.length!==1?'s':''}</td>
-      <td>${propExpired ? `<span style="color:var(--red);font-weight:600;font-size:12px">${propExpired} expired</span>` : propCritical ? `<span style="color:var(--amber);font-weight:600;font-size:12px">${propCritical} critical</span>` : '<span style="color:var(--green-dark);font-size:12px">✓ Clear</span>'}</td>
-      <td><button class="btn btn-sm" onclick="event.stopPropagation();moCert('${p.id}')">+ Add</button></td>
-    </tr>`;
-  }).join('');
+  // Property cert grid cards
+  const propCards = D.properties.map(p => `
+    <div class="panel" style="margin-bottom:12px">
+      <div class="ph2" style="cursor:pointer" onclick="nav('prop-detail','${p.id}');setTimeout(()=>pdSetTab('${p.id}','compliance'),100)">
+        <div>
+          <h2 style="margin:0;font-size:14px">${p.address}, ${p.city}</h2>
+          <p style="margin:2px 0 0;font-size:11px">Click to manage certificates</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="btn btn-sm" onclick="event.stopPropagation();moCert('${p.id}')">+ Add cert</button>
+          <span style="color:var(--muted);font-size:18px;line-height:1">→</span>
+        </div>
+      </div>
+      <div style="padding:12px 18px">${buildCertStatusGrid(p.id)}</div>
+    </div>`).join('');
 
   return `<div class="topbar"><span class="tb-title">Compliance</span><div class="tb-right">
     <button class="btn btn-navy" onclick="moCert()">+ Add certificate</button>
@@ -2308,17 +2360,84 @@ function pgCompliance(){
       ${actionHtml}
     </div>
 
-    <!-- Property breakdown -->
-    ${D.properties.length > 1 ? `<div class="panel">
-      <div class="ph2"><div><h2>Property breakdown</h2><p>Click a property to manage its certificates</p></div></div>
-      <div class="tw"><table>
-        <thead><tr><th>Property</th><th>Score</th><th>Certificates</th><th>Status</th><th></th></tr></thead>
-        <tbody>${propRows}</tbody>
-      </table></div>
+    <!-- Property breakdown cert grid -->
+    ${D.properties.length > 1 ? `<div>
+      <div style="margin-bottom:14px"><h2 style="font-size:15px;font-weight:700;margin:0">Property breakdown</h2><p style="font-size:12px;color:var(--muted);margin:3px 0 0">Certificate status across all properties</p></div>
+      ${propCards}
     </div>` : ''}
 
     `}
   </div>`;
+}
+
+// ── COMPLIANCE REMINDERS ──
+async function checkComplianceReminders() {
+  if (!currentUser) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const landlordEmail = currentUser.email;
+  const MILESTONES = [{ days: 60, key: '60day' }, { days: 30, key: '30day' }, { days: 14, key: '14day' }];
+  const TOLERANCE = 1;
+
+  for (const prop of D.properties) {
+    for (const { days: milestone, key: milestoneKey } of MILESTONES) {
+      const expiring = D.certs.filter(c => {
+        if (String(c.prop_id) !== String(prop.id)) return false;
+        if (!c.expiry) return false;
+        const daysLeft = Math.round((new Date(c.expiry) - today) / 864e5);
+        return daysLeft >= milestone - TOLERANCE && daysLeft <= milestone + TOLERANCE;
+      });
+      if (!expiring.length) continue;
+
+      const twoDaysAgo = new Date(today);
+      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+      try {
+        const { data: existing } = await sb.from('audit_log')
+          .select('id')
+          .eq('action', 'COMPLIANCE_REMINDER_SENT')
+          .eq('table_name', 'certificates')
+          .eq('record_id', String(prop.id))
+          .ilike('details', `%${milestoneKey}%`)
+          .gte('created_at', twoDaysAgo.toISOString())
+          .limit(1);
+        if (existing && existing.length) continue;
+      } catch(e) { continue; }
+
+      const certRows = expiring.map(c => {
+        const daysLeft = Math.round((new Date(c.expiry) - today) / 864e5);
+        return `<tr>
+          <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px">${c.type}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #eee;color:#D97706;font-weight:600;font-size:13px">${daysLeft} day${daysLeft!==1?'s':''} left</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px">${new Date(c.expiry).toLocaleDateString('en-GB')}</td>
+        </tr>`;
+      }).join('');
+
+      const html = `<!DOCTYPE html><html><body style="font-family:DM Sans,Arial,sans-serif;color:#1a2030;max-width:600px;margin:0 auto;padding:24px">
+        <div style="background:#0B1E3D;border-radius:10px;padding:20px 24px;margin-bottom:24px">
+          <h1 style="color:#fff;margin:0;font-size:20px">&#9888;&#65039; Compliance reminder</h1>
+          <p style="color:rgba(255,255,255,0.6);margin:6px 0 0;font-size:13px">${prop.address}${prop.city ? ', ' + prop.city : ''}</p>
+        </div>
+        <p style="font-size:14px;margin-bottom:16px">The following certificate${expiring.length!==1?'s are':' is'} due to expire in approximately <strong>${milestone} days</strong>:</p>
+        <table style="width:100%;border-collapse:collapse;border-radius:8px;overflow:hidden;margin-bottom:20px;border:1px solid #eee">
+          <thead><tr style="background:#0B1E3D">
+            <th style="padding:10px 12px;color:#fff;text-align:left;font-size:12px;font-weight:600">Certificate</th>
+            <th style="padding:10px 12px;color:#fff;text-align:left;font-size:12px;font-weight:600">Days remaining</th>
+            <th style="padding:10px 12px;color:#fff;text-align:left;font-size:12px;font-weight:600">Expiry date</th>
+          </tr></thead>
+          <tbody>${certRows}</tbody>
+        </table>
+        <p style="font-size:13px;color:#7A8FA6;margin-top:16px">Please arrange renewal to maintain compliance. Log in to RentSafe to manage your certificates.</p>
+      </body></html>`;
+
+      try {
+        await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'send_email', to: landlordEmail, subject: `⚠️ Compliance reminder — ${prop.address}`, html })
+        });
+        await logAudit('COMPLIANCE_REMINDER_SENT', 'certificates', prop.id, `${milestoneKey} reminder sent for ${prop.address}`);
+      } catch(e) { /* non-critical */ }
+    }
+  }
 }
 
 // ── PAGE: TENANTS ──
