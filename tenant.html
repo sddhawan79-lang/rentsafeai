@@ -1140,21 +1140,34 @@ async function signDocument() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
 
-    if (req.document_html) {
-      const tmpDiv = document.createElement('div');
-      tmpDiv.style.cssText = 'position:absolute;left:-9999px;top:0;width:750px;font-family:Arial,sans-serif;font-size:11px;line-height:1.5;padding:20px;color:#1A2B45';
-      tmpDiv.innerHTML = req.document_html;
-      document.body.appendChild(tmpDiv);
-      await new Promise(resolve => {
-        doc.html(tmpDiv, { callback: () => { document.body.removeChild(tmpDiv); resolve(); }, x: 10, y: 10, width: 190, windowWidth: 750 });
-      });
-    } else {
-      doc.setFont('helvetica','bold'); doc.setFontSize(14);
-      doc.text('Tenancy Document', 105, 30, { align:'center' });
-      doc.setFont('helvetica','normal'); doc.setFontSize(11);
-      doc.text('Original document uploaded by landlord — see attachment.', 20, 50);
-      doc.text(`Property: ${propAddr}`, 20, 60);
-    }
+    // Cover page — fast text-based (avoids slow html2canvas rendering)
+    doc.setFont('helvetica','bold'); doc.setFontSize(18);
+    doc.setTextColor(11, 30, 61);
+    doc.text('RentSafe AI', 105, 28, { align:'center' });
+    doc.setFont('helvetica','normal'); doc.setFontSize(11);
+    doc.setTextColor(100, 100, 100);
+    doc.text('Electronically Signed Tenancy Document', 105, 38, { align:'center' });
+    doc.setDrawColor(0, 200, 150);
+    doc.setLineWidth(0.8);
+    doc.line(20, 44, 190, 44);
+
+    doc.setTextColor(11, 30, 61);
+    doc.setFont('helvetica','bold'); doc.setFontSize(13);
+    const docLabel = req.document_type === 'written_statement'
+      ? 'Written Statement of Tenancy Terms'
+      : 'Tenancy Document';
+    doc.text(docLabel, 20, 58);
+
+    doc.setFont('helvetica','normal'); doc.setFontSize(11);
+    const coverLines = [
+      `Property: ${propAddr}`,
+      `Tenant: ${tenantName}`,
+      `Document type: ${docLabel}`,
+      ``,
+      `This PDF confirms the electronic signature recorded below.`,
+      `The full document is stored securely by RentSafe AI.`,
+    ];
+    coverLines.forEach((l, i) => doc.text(l, 20, 70 + i * 8));
 
     // Signature page
     doc.addPage();
