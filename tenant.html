@@ -1204,13 +1204,15 @@ async function signDocument() {
     }).eq('id', req.id);
 
     // 6. Audit log (non-critical)
-    await sb.from('audit_log').insert({
-      action: 'document_signed',
-      table_name: 'esign_requests',
-      record_id: String(req.id),
-      details: `Signed via tenant portal. IP: ${ipAddress}`,
-      user_id: null
-    }).catch(() => {});
+    try {
+      await sb.from('audit_log').insert({
+        action: 'document_signed',
+        table_name: 'esign_requests',
+        record_id: String(req.id),
+        details: `Signed via tenant portal. IP: ${ipAddress}`,
+        user_id: null
+      });
+    } catch(e) {}
 
     // 7. Send confirmation emails
     toast('Sending confirmation emails…');
