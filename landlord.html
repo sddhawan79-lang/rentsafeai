@@ -963,49 +963,8 @@ async function saveCertToDB() {
   nav('compliance');
 }
 
-// ── SAVE: TENANT ──
-async function saveTenantToDB() {
-  const btn = document.querySelector('#mo-f .btn-navy');
-  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Saving…'; }
-
-  const propId = document.getElementById('t-prop')?.value;
-  const name = document.getElementById('t-name')?.value.trim();
-  if (!propId || !name) {
-    if (btn) { btn.disabled = false; btn.textContent = 'Add tenant'; }
-    toast('Property and tenant name are required.', true); return;
-  }
-
-  const tenant = {
-    prop_id: parseInt(propId), name,
-    email: document.getElementById('t-email')?.value.trim() || null,
-    phone: document.getElementById('t-phone')?.value.trim() || null,
-    rent: parseFloat(document.getElementById('t-rent')?.value) || 0,
-    deposit: parseFloat(document.getElementById('t-deposit')?.value) || 0,
-    start_date: document.getElementById('t-start')?.value || null,
-    end_date: document.getElementById('t-end')?.value || null,
-    type: document.getElementById('t-type')?.value || 'APT',
-    rent_day: parseInt(document.getElementById('t-day')?.value) || 1,
-    scheme: document.getElementById('t-scheme')?.value || null,
-    scheme_ref: document.getElementById('t-ref')?.value.trim() || null,
-    status: 'Active',
-    user_id: currentUser.id,
-    invite_token: crypto.randomUUID(),
-    invite_used: false,
-    landlord_email: currentUser.email
-  };
-
-  const { data, error } = await sb.from('tenants').insert(tenant).select().single();
-  if (error) {
-    if (btn) { btn.disabled = false; btn.textContent = 'Add tenant'; }
-    toast('Error: ' + error.message, true); return;
-  }
-
-  D.tenants.push({...data, start: data.start_date, end: data.end_date});
-  await logAudit('ADD_TENANT', 'tenants', data.id, `Added tenant: ${name}`);
-  closeMo();
-  toast('✓ Tenant saved!');
-  nav('tenants');
-}
+// ── SAVE: TENANT (legacy stub — use _saveTenantSetupToDB via moTenant wizard) ──
+async function saveTenantToDB() { toast('Please use the guided Add Tenant flow', true); }
 
 // ── SAVE: MAINTENANCE ISSUE ──
 async function saveIssueToDB() {
@@ -1898,37 +1857,442 @@ async function saveInspectionToDB(pid) {
   nav('prop-detail', pid);
 }
 
-// ── MODAL: ADD TENANT ──
-function moTenant(pid){
-  const opts=D.properties.map(p=>`<option value="${p.id}"${p.id==pid?' selected':''}>${p.address}, ${p.city}</option>`).join('');
-  openMo('Add tenant','Link a tenant to one of your properties',`
-    <div class="fg"><label>Property <span class="req">*</span></label><select id="t-prop">${opts}</select></div>
-    <div class="fg"><label>Full name <span class="req">*</span></label><input type="text" id="t-name" placeholder="John Smith"></div>
-    <div class="fg-row">
-      <div class="fg"><label>Email</label><input type="email" id="t-email" placeholder="john@example.com"></div>
-      <div class="fg"><label>Phone</label><input type="tel" id="t-phone" placeholder="07…"></div>
+// ── TENANT SETUP WIZARD (5-step guided flow) ──
+window._tsetup = {};
+
+function moTenant(pid) {
+  const p = pid ? P(pid) : D.properties[0];
+  const opts = D.properties.map(pr => `<option value="${pr.id}"${String(pr.id)===String(pid)?' selected':''}>${pr.address}, ${pr.city}</option>`).join('');
+
+  window._tsetup = {
+    pid: pid ? String(pid) : (D.properties[0]?.id ? String(D.properties[0].id) : ''),
+    opts,
+    step: 1,
+    // Step 1 — basics
+    name:'', email:'', phone:'', tenancyType:'APT', startDate:'', endDate:'',
+    // Step 2 — Right to Rent
+    rtrDocType:'Passport', rtrRef:'', rtrCheckedBy:'', rtrCheckDate:'', rtrExpiry:'', rtrSkipped:false,
+    // Step 3 — Address proof + deposit
+    addr1Type:'', addr1File:null, addr2Type:'', addr2File:null,
+    deposit:'', depositScheme:'', depositRef:'',
+    // Step 4 — Rent
+    rent:'', rentDay:'1', firstPayDate:'', payMethod:'Standing order',
+    // Step 5 — Review
+    sendInvite: true, sendWelcomeKit: false,
+  };
+
+  document.getElementById('mo-t').textContent = 'Add tenant';
+  document.getElementById('mo-s').textContent = 'Step 1 of 5 — tenant details';
+  document.querySelector('.mo-box').classList.add('mo-wide');
+  _renderTenantStep(1);
+  document.getElementById('mo').classList.add('open');
+}
+
+function _renderTenantStep(n) {
+  const s = window._tsetup;
+  const stepLabels = ['','Details','Right to Rent','Deposit','Rent','Review'];
+  const segBar = [1,2,3,4,5].map(i =>
+    `<div style="flex:1;height:3px;border-radius:100px;background:${i<n?'var(--green)':i===n?'var(--blue)':'var(--border)'};transition:background .3s"></div>`
+  ).join('');
+
+  document.getElementById('mo-b').innerHTML = `
+    <div style="display:flex;gap:4px;margin-bottom:6px">${segBar}</div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:20px">
+      ${[1,2,3,4,5].map(i=>`<div style="font-size:9px;font-weight:${i===n?'700':'400'};color:${i<n?'var(--green-dark)':i===n?'var(--blue)':'var(--muted)'};text-align:center;flex:1">${stepLabels[i]}</div>`).join('')}
     </div>
-    <div class="fg-div"></div>
-    <div class="fg-sec">Tenancy details</div>
-    <div class="fg-row">
-      <div class="fg"><label>Monthly rent (£) <span class="req">*</span></label><input type="number" id="t-rent" placeholder="1500"></div>
-      <div class="fg"><label>Deposit (£) <span class="req">*</span></label><input type="number" id="t-deposit" placeholder="1500"></div>
+    ${_tenantStepHtml(n)}`;
+
+  document.getElementById('mo-f').innerHTML = `
+    <button onclick="tenantStepBack()" style="display:inline-flex;align-items:center;gap:6px;background:none;border:none;font-family:var(--font);font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;padding:7px 0;visibility:${n===1?'hidden':'visible'}">← Back</button>
+    <span style="font-size:12px;color:var(--muted)">Step ${n} of 5</span>
+    <button class="btn btn-navy" id="tsetup-next" onclick="tenantStepNext()">${n===5?'Add tenant ✓':'Next →'}</button>`;
+}
+
+function _tenantStepHtml(n) {
+  const s = window._tsetup;
+
+  // ── STEP 1: TENANT DETAILS ──
+  if (n === 1) return `
+    <div style="font-size:15px;font-weight:600;margin-bottom:2px">Tenant details</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Basic information and tenancy dates</div>
+    <div class="fg"><label>Property <span class="req">*</span></label>
+      <select id="ts-prop" onchange="window._tsetup.pid=this.value">${s.opts}</select>
     </div>
     <div class="fg-row">
-      <div class="fg"><label>Tenancy start <span class="req">*</span></label><input type="date" id="t-start"></div>
-      <div class="fg"><label>Tenancy end</label><input type="date" id="t-end"></div>
+      <div class="fg"><label>Full name <span class="req">*</span></label><input type="text" id="ts-name" value="${s.name}" placeholder="e.g. John Smith"></div>
+      <div class="fg"><label>Email</label><input type="email" id="ts-email" value="${s.email}" placeholder="john@example.com"></div>
     </div>
     <div class="fg-row">
-      <div class="fg"><label>Tenancy type</label><select id="t-type"><option value="APT">APT — Assured Periodic (from 1 May 2026)</option><option value="AST">AST — legacy (pre 1 May 2026)</option><option value="Company let">Company let</option></select></div>
-      <div class="fg"><label>Rent due day</label><input type="number" id="t-day" min="1" max="28" placeholder="1"></div>
+      <div class="fg"><label>Phone</label><input type="tel" id="ts-phone" value="${s.phone}" placeholder="07…"></div>
+      <div class="fg"><label>Tenancy type</label>
+        <select id="ts-type">
+          <option value="APT"${s.tenancyType==='APT'?' selected':''}>APT — Assured Periodic (from 1 May 2026)</option>
+          <option value="AST"${s.tenancyType==='AST'?' selected':''}>AST — legacy (pre 1 May 2026)</option>
+          <option value="Company let"${s.tenancyType==='Company let'?' selected':''}>Company let</option>
+        </select>
+      </div>
     </div>
-    <div class="fg-div"></div>
-    <div class="fg-sec">Deposit protection</div>
     <div class="fg-row">
-      <div class="fg"><label>Scheme</label><select id="t-scheme"><option value="">Select scheme</option><option>DPS</option><option>MyDeposits</option><option>TDS</option></select></div>
-      <div class="fg"><label>Reference</label><input type="text" id="t-ref" placeholder="Scheme reference number"></div>
+      <div class="fg"><label>Tenancy start <span class="req">*</span></label><input type="date" id="ts-start" value="${s.startDate}"></div>
+      <div class="fg"><label>Tenancy end <span style="font-weight:400;color:var(--muted)">(leave blank for periodic)</span></label><input type="date" id="ts-end" value="${s.endDate}"></div>
     </div>
-  `,`<button class="btn" onclick="closeMo()">Cancel</button><button class="btn btn-navy" onclick="saveTenantToDB()">Add tenant</button>`);
+    <div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--blue);margin-top:4px">
+      ℹ️ Under the Renters Rights Act 2025, all new tenancies from 1 May 2026 are Assured Periodic Tenancies (APT). Fixed terms are abolished.
+    </div>`;
+
+  // ── STEP 2: RIGHT TO RENT ──
+  if (n === 2) return `
+    <div style="font-size:15px;font-weight:600;margin-bottom:2px">Right to Rent check</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Must be completed <strong>before</strong> the tenancy begins</div>
+    <div style="background:rgba(229,62,62,0.07);border:1px solid rgba(229,62,62,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--red);margin-bottom:16px;display:flex;align-items:flex-start;gap:8px">
+      <span style="font-size:16px;flex-shrink:0">⚠️</span>
+      <div><strong>Criminal offence</strong> to rent to someone without the right to rent in the UK. Landlords face an unlimited fine or up to 5 years imprisonment.</div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Document type <span class="req">*</span></label>
+        <select id="ts-rtr-doctype">
+          ${['Passport (UK/EU)','Biometric Residence Permit','Share Code (eVisa)','UK Birth Certificate + NI','Other'].map(d=>`<option${d===s.rtrDocType?' selected':''}>${d}</option>`).join('')}
+        </select>
+      </div>
+      <div class="fg"><label>Document ref / Share code</label><input type="text" id="ts-rtr-ref" value="${s.rtrRef}" placeholder="e.g. W7X-4F2-9ZA"></div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Check date <span class="req">*</span></label><input type="date" id="ts-rtr-date" value="${s.rtrCheckDate}"></div>
+      <div class="fg"><label>Checked by</label><input type="text" id="ts-rtr-by" value="${s.rtrCheckedBy}" placeholder="e.g. Saurabh Dhawan (landlord)"></div>
+    </div>
+    <div class="fg"><label>Document expiry <span style="font-weight:400;color:var(--muted)">(leave blank if no expiry)</span></label><input type="date" id="ts-rtr-expiry" value="${s.rtrExpiry}"></div>
+    <div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--muted);margin-top:4px;display:flex;gap:8px;align-items:flex-start">
+      <span style="flex-shrink:0">💡</span>
+      <div><strong style="color:var(--txt)">Time-limited right to rent:</strong> If document has an expiry date, RentSafe AI will remind you to re-check before it expires. Keep a copy of the document on file.</div>
+    </div>
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--muted)">
+        <input type="checkbox" id="ts-rtr-skip" ${s.rtrSkipped?'checked':''} onchange="window._tsetup.rtrSkipped=this.checked;document.getElementById('ts-rtr-warn').style.display=this.checked?'flex':'none'">
+        Skip for now (I'll complete this separately) — will flag as missing in compliance
+      </label>
+      <div id="ts-rtr-warn" style="display:${s.rtrSkipped?'flex':'none'};align-items:center;gap:8px;background:var(--amber-bg);border:1px solid rgba(217,119,6,0.2);border-radius:8px;padding:8px 12px;font-size:11px;color:var(--amber);margin-top:8px">
+        ⚠️ Right to Rent check will show as RED in compliance until completed.
+      </div>
+    </div>`;
+
+  // ── STEP 3: ADDRESS PROOF + DEPOSIT ──
+  if (n === 3) return `
+    <div style="font-size:15px;font-weight:600;margin-bottom:2px">Address proof & deposit</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Two address documents required · Deposit entered here flows everywhere in the app</div>
+
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:10px">Address proof — 2 documents required</div>
+
+    <div style="background:var(--off);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px">
+      <div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:10px">Document 1 <span style="color:var(--red)">*</span></div>
+      <div class="fg-row" style="margin-bottom:0">
+        <div class="fg"><label>Document type</label>
+          <select id="ts-addr1-type">
+            <option value="">Select type…</option>
+            ${['Bank statement (last 3 months)','Utility bill (last 3 months)','Council tax bill','HMRC letter','NHS letter','Government letter','Driving licence','Other'].map(d=>`<option${d===s.addr1Type?' selected':''}>${d}</option>`).join('')}
+          </select>
+        </div>
+        <div class="fg"><label>Upload (optional)</label>
+          <div class="scan-box" style="padding:8px;margin-bottom:0" id="ts-addr1-box">
+            <input type="file" accept="image/*,.pdf" onchange="tsAddrFile(1,this)">
+            <div style="font-size:11px;color:var(--muted)">📎 Upload document</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:var(--off);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px">
+      <div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:10px">Document 2 <span style="color:var(--red)">*</span></div>
+      <div class="fg-row" style="margin-bottom:0">
+        <div class="fg"><label>Document type</label>
+          <select id="ts-addr2-type">
+            <option value="">Select type…</option>
+            ${['Bank statement (last 3 months)','Utility bill (last 3 months)','Council tax bill','HMRC letter','NHS letter','Government letter','Driving licence','Other'].map(d=>`<option${d===s.addr2Type?' selected':''}>${d}</option>`).join('')}
+          </select>
+        </div>
+        <div class="fg"><label>Upload (optional)</label>
+          <div class="scan-box" style="padding:8px;margin-bottom:0" id="ts-addr2-box">
+            <input type="file" accept="image/*,.pdf" onchange="tsAddrFile(2,this)">
+            <div style="font-size:11px;color:var(--muted)">📎 Upload document</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:10px">Deposit</div>
+    <div style="background:var(--off);border:1px solid var(--border);border-radius:10px;padding:14px">
+      <div class="fg-row">
+        <div class="fg"><label>Deposit amount (£) <span class="req">*</span></label><input type="number" id="ts-deposit" value="${s.deposit}" placeholder="e.g. 1500"></div>
+        <div class="fg"><label>Protection scheme</label>
+          <select id="ts-dep-scheme">
+            <option value="">Not yet protected</option>
+            <option${s.depositScheme==='DPS'?' selected':''}>DPS (Deposit Protection Service)</option>
+            <option${s.depositScheme==='MyDeposits'?' selected':''}>MyDeposits</option>
+            <option${s.depositScheme==='TDS'?' selected':''}>TDS (Tenancy Deposit Scheme)</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg" style="margin-bottom:0"><label>Scheme reference</label><input type="text" id="ts-dep-ref" value="${s.depositRef}" placeholder="Scheme reference number"></div>
+    </div>
+    <div style="background:rgba(229,62,62,0.07);border:1px solid rgba(229,62,62,0.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--red);margin-top:10px;display:flex;gap:8px;align-items:flex-start">
+      <span style="flex-shrink:0">⚠️</span>
+      <div>Deposit must be protected in an approved scheme within <strong>30 days</strong> of receipt. Failure = 1–3× deposit penalty.</div>
+    </div>`;
+
+  // ── STEP 4: RENT ──
+  if (n === 4) return `
+    <div style="font-size:15px;font-weight:600;margin-bottom:2px">Rent details</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Sets up automatic rent tracking and payment reminders</div>
+    <div class="fg-row">
+      <div class="fg"><label>Monthly rent (£) <span class="req">*</span></label><input type="number" id="ts-rent" value="${s.rent}" placeholder="e.g. 1200"></div>
+      <div class="fg"><label>Rent due day <span class="req">*</span></label><input type="number" id="ts-rentday" value="${s.rentDay}" min="1" max="28" placeholder="1"></div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>First payment date</label><input type="date" id="ts-firstpay" value="${s.firstPayDate}"></div>
+      <div class="fg"><label>Payment method</label>
+        <select id="ts-paymethod">
+          ${['Standing order','BACS transfer','Direct debit','Cash','Other'].map(m=>`<option${m===s.payMethod?' selected':''}>${m}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div style="background:var(--green-bg);border:1px solid rgba(0,200,150,0.2);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--green-dark);margin-top:4px">
+      ✓ Rent tracking will start automatically from the first payment date. You'll be notified if a payment is late.
+    </div>
+    <div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--blue);margin-top:8px">
+      ℹ️ Under RRA 2025, rent can only be increased once per year using a Section 13 notice. RentSafe AI will generate this for you when the time comes.
+    </div>`;
+
+  // ── STEP 5: REVIEW ──
+  if (n === 5) {
+    const p = P(s.pid);
+    const rtrStatus = s.rtrSkipped ? { col:'var(--amber)', label:'⚠ Skipped — flags in compliance' } : (s.rtrCheckDate ? { col:'var(--green-dark)', label:'✓ Completed' } : { col:'var(--red)', label:'✗ Not entered' });
+    const depStatus = s.deposit ? { col:'var(--green-dark)', label:`✓ £${parseFloat(s.deposit).toLocaleString()} · ${s.depositScheme||'Scheme TBC'}` } : { col:'var(--red)', label:'✗ Not entered' };
+    const addr1OK = !!s.addr1Type; const addr2OK = !!s.addr2Type;
+    const addrStatus = addr1OK && addr2OK ? { col:'var(--green-dark)', label:'✓ 2 documents entered' } : addr1OK ? { col:'var(--amber)', label:'⚠ Only 1 document — 2 required' } : { col:'var(--red)', label:'✗ Not entered' };
+    const rentStatus = s.rent ? { col:'var(--green-dark)', label:`✓ £${parseFloat(s.rent).toLocaleString()}/mo · Due day ${s.rentDay}` } : { col:'var(--red)', label:'✗ Not entered' };
+    const rows = [
+      { icon:'👤', label:'Tenant name',   val: s.name || '—',   col: s.name?'var(--txt)':'var(--red)' },
+      { icon:'✉️', label:'Email',          val: s.email || 'Not set', col:'var(--txt)' },
+      { icon:'🏠', label:'Property',       val: p?.address || '—',    col:'var(--txt)' },
+      { icon:'📅', label:'Tenancy start',  val: s.startDate ? new Date(s.startDate).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—', col: s.startDate?'var(--txt)':'var(--red)' },
+      { icon:'🔍', label:'Right to Rent',  val: rtrStatus.label, col: rtrStatus.col },
+      { icon:'📄', label:'Address proof',  val: addrStatus.label, col: addrStatus.col },
+      { icon:'🔒', label:'Deposit',         val: depStatus.label,  col: depStatus.col },
+      { icon:'💷', label:'Monthly rent',   val: rentStatus.label, col: rentStatus.col },
+    ];
+    const allGood = s.name && s.startDate && s.rent && s.deposit;
+    return `
+    <div style="font-size:15px;font-weight:600;margin-bottom:2px">Review & add tenant</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Check everything below before saving</div>
+
+    <div class="panel" style="margin-bottom:14px">
+      <div style="padding:0">
+        ${rows.map((r,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;${i<rows.length-1?'border-bottom:1px solid var(--border)':''}">
+          <span style="font-size:15px;width:22px;text-align:center;flex-shrink:0">${r.icon}</span>
+          <span style="font-size:12px;color:var(--muted);min-width:110px;flex-shrink:0">${r.label}</span>
+          <span style="font-size:13px;font-weight:500;color:${r.col};flex:1">${r.val}</span>
+        </div>`).join('')}
+      </div>
+    </div>
+
+    <div style="background:var(--off);border:1px solid var(--border);border-radius:10px;padding:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:10px">After saving</div>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:10px">
+        <input type="checkbox" id="ts-send-invite" ${s.sendInvite?'checked':''} onchange="window._tsetup.sendInvite=this.checked" style="width:15px;height:15px;cursor:pointer">
+        <div>
+          <div style="font-size:13px;font-weight:500;color:var(--txt)">Send portal invite to tenant</div>
+          <div style="font-size:11px;color:var(--muted)">Emails a unique link to ${s.email||'tenant'} for the tenant portal</div>
+        </div>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+        <input type="checkbox" id="ts-send-kit" ${s.sendWelcomeKit?'checked':''} onchange="window._tsetup.sendWelcomeKit=this.checked" style="width:15px;height:15px;cursor:pointer">
+        <div>
+          <div style="font-size:13px;font-weight:500;color:var(--txt)">Send welcome kit</div>
+          <div style="font-size:11px;color:var(--muted)">Compiles and emails How to Rent, GSC, EICR, EPC, RRA info sheet</div>
+        </div>
+      </label>
+    </div>
+
+    ${!allGood ? `<div style="background:var(--amber-bg);border:1px solid rgba(217,119,6,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--amber);margin-top:10px">
+      ⚠️ Some required fields are missing — you can still save and complete them later from the tenant page.
+    </div>` : `<div style="background:var(--green-bg);border:1px solid rgba(0,200,150,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green-dark);margin-top:10px">
+      ✓ All required information entered — ready to save.
+    </div>`}`;
+  }
+  return '';
+}
+
+function tsAddrFile(num, input) {
+  if (!input.files[0]) return;
+  const f = input.files[0];
+  const box = document.getElementById(`ts-addr${num}-box`);
+  if (box) box.innerHTML = `<div style="font-size:11px;color:var(--green-dark);font-weight:600">✓ ${f.name}</div>`;
+  if (num === 1) window._tsetup.addr1File = f;
+  else window._tsetup.addr2File = f;
+}
+
+function tenantStepNext() {
+  const n = window._tsetup.step;
+  const s = window._tsetup;
+
+  // Validate + save current step
+  if (n === 1) {
+    s.pid        = document.getElementById('ts-prop')?.value || s.pid;
+    s.name       = document.getElementById('ts-name')?.value.trim() || '';
+    s.email      = document.getElementById('ts-email')?.value.trim() || '';
+    s.phone      = document.getElementById('ts-phone')?.value.trim() || '';
+    s.tenancyType= document.getElementById('ts-type')?.value || 'APT';
+    s.startDate  = document.getElementById('ts-start')?.value || '';
+    s.endDate    = document.getElementById('ts-end')?.value || '';
+    if (!s.name)      { toast('Tenant name is required', true); return; }
+    if (!s.startDate) { toast('Tenancy start date is required', true); return; }
+    if (!s.pid)       { toast('Please select a property', true); return; }
+
+  } else if (n === 2) {
+    s.rtrDocType   = document.getElementById('ts-rtr-doctype')?.value || '';
+    s.rtrRef       = document.getElementById('ts-rtr-ref')?.value.trim() || '';
+    s.rtrCheckDate = document.getElementById('ts-rtr-date')?.value || '';
+    s.rtrCheckedBy = document.getElementById('ts-rtr-by')?.value.trim() || '';
+    s.rtrExpiry    = document.getElementById('ts-rtr-expiry')?.value || '';
+    s.rtrSkipped   = document.getElementById('ts-rtr-skip')?.checked || false;
+    if (!s.rtrSkipped && !s.rtrCheckDate) {
+      toast('Please enter the check date, or tick "Skip for now"', true); return;
+    }
+
+  } else if (n === 3) {
+    s.addr1Type   = document.getElementById('ts-addr1-type')?.value || '';
+    s.addr2Type   = document.getElementById('ts-addr2-type')?.value || '';
+    s.deposit     = document.getElementById('ts-deposit')?.value || '';
+    s.depositScheme = document.getElementById('ts-dep-scheme')?.value || '';
+    s.depositRef  = document.getElementById('ts-dep-ref')?.value.trim() || '';
+    if (!s.addr1Type) { toast('Please select document type for Address proof 1', true); return; }
+    if (!s.addr2Type) { toast('Please select document type for Address proof 2 — 2 documents are required', true); return; }
+    if (!s.deposit)   { toast('Deposit amount is required', true); return; }
+
+  } else if (n === 4) {
+    s.rent        = document.getElementById('ts-rent')?.value || '';
+    s.rentDay     = document.getElementById('ts-rentday')?.value || '1';
+    s.firstPayDate= document.getElementById('ts-firstpay')?.value || '';
+    s.payMethod   = document.getElementById('ts-paymethod')?.value || 'Standing order';
+    if (!s.rent) { toast('Monthly rent is required', true); return; }
+
+  } else if (n === 5) {
+    s.sendInvite     = document.getElementById('ts-send-invite')?.checked ?? true;
+    s.sendWelcomeKit = document.getElementById('ts-send-kit')?.checked ?? false;
+    _saveTenantSetupToDB();
+    return;
+  }
+
+  window._tsetup.step = n + 1;
+  document.getElementById('mo-s').textContent = `Step ${n+1} of 5`;
+  _renderTenantStep(n + 1);
+  document.querySelector('.mo-box')?.scrollTo?.(0, 0);
+}
+
+function tenantStepBack() {
+  const n = window._tsetup.step;
+  if (n <= 1) return;
+  window._tsetup.step = n - 1;
+  document.getElementById('mo-s').textContent = `Step ${n-1} of 5`;
+  _renderTenantStep(n - 1);
+  document.querySelector('.mo-box')?.scrollTo?.(0, 0);
+}
+
+async function _saveTenantSetupToDB() {
+  const btn = document.getElementById('tsetup-next');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Saving…'; }
+  const s = window._tsetup;
+
+  try {
+    // Clean deposit scheme value (strip long form)
+    const schemeClean = s.depositScheme.replace(' (Deposit Protection Service)','').replace(' (Tenancy Deposit Scheme)','');
+
+    const tenant = {
+      prop_id:      parseInt(s.pid),
+      name:         s.name,
+      email:        s.email || null,
+      phone:        s.phone || null,
+      type:         s.tenancyType,
+      start_date:   s.startDate || null,
+      end_date:     s.endDate || null,
+      rent:         parseFloat(s.rent) || 0,
+      rent_day:     parseInt(s.rentDay) || 1,
+      deposit:      parseFloat(s.deposit) || 0,
+      scheme:       schemeClean || null,
+      scheme_ref:   s.depositRef || null,
+      // Right to Rent
+      rtr_doc_type:   s.rtrSkipped ? null : (s.rtrDocType || null),
+      rtr_ref:        s.rtrSkipped ? null : (s.rtrRef || null),
+      rtr_check_date: s.rtrSkipped ? null : (s.rtrCheckDate || null),
+      rtr_checked_by: s.rtrSkipped ? null : (s.rtrCheckedBy || null),
+      rtr_expiry:     s.rtrSkipped ? null : (s.rtrExpiry || null),
+      rtr_skipped:    s.rtrSkipped || false,
+      // Address proof
+      addr_proof_1:   s.addr1Type || null,
+      addr_proof_2:   s.addr2Type || null,
+      // Payment
+      first_pay_date: s.firstPayDate || null,
+      pay_method:     s.payMethod || null,
+      status:         'Active',
+      user_id:        currentUser.id,
+      invite_token:   crypto.randomUUID(),
+      invite_used:    false,
+      landlord_email: currentUser.email,
+    };
+
+    const { data: td, error: te } = await sb.from('tenants').insert(tenant).select().single();
+    if (te) throw new Error(te.message);
+
+    D.tenants.push({ ...td, start: td.start_date, end: td.end_date });
+    await logAudit('ADD_TENANT', 'tenants', td.id, `Added tenant: ${s.name} · Property: ${s.pid} · Deposit: £${s.deposit} · RTR: ${s.rtrSkipped?'skipped':'completed'}`);
+
+    // Send portal invite if toggled
+    if (s.sendInvite && s.email) {
+      const propAddr = P(s.pid)?.address || 'your property';
+      const inviteUrl = `https://rentsafeai.co.uk/tenant.html?token=${td.invite_token}`;
+      const inviteHtml = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:28px 24px;color:#1A2B45">
+        <div style="border-bottom:2px solid #0B1E3D;padding-bottom:12px;margin-bottom:20px"><span style="font-size:17px;font-weight:700;color:#0B1E3D">Rent<span style="color:#00C896">Safe AI</span></span></div>
+        <h2 style="font-size:16px;font-weight:600;margin-bottom:8px">Your tenant portal is ready — ${propAddr}</h2>
+        <p style="font-size:13px;color:#7A8FA6;margin-bottom:20px">Hi ${s.name}, your landlord has set up your tenant portal. Use the link below to report maintenance issues, view your certificates and sign documents.</p>
+        <div style="text-align:center;margin:24px 0"><a href="${inviteUrl}" style="background:#0B1E3D;color:#fff;padding:13px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;display:inline-block">Access your portal →</a></div>
+        <p style="font-size:11px;color:#999;text-align:center;margin-top:16px">This link is unique to you and works every time. Save it or bookmark it.</p>
+        <div style="margin-top:20px;padding-top:14px;border-top:1px solid #eee;font-size:11px;color:#999">Sent via RentSafe AI · rentsafeai.co.uk</div>
+      </div>`;
+      await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ type:'send_email', to: s.email, subject:`Your tenant portal — ${propAddr}`, html: inviteHtml })
+      }).catch(()=>{});
+      toast('✓ Portal invite sent to ' + s.email);
+    }
+
+    closeMo();
+    toast('✓ Tenant added!');
+
+    // Show what's next prompt
+    const propAddr = P(s.pid)?.address || 'property';
+    const hasCerts = CF(s.pid).length > 0;
+    openMo('🎉 Tenant added!', `${s.name} · ${propAddr}`, `
+      <div style="margin-bottom:16px;font-size:13px;color:var(--muted)">Here's what to do next for this tenancy:</div>
+      ${s.sendWelcomeKit ? `<div style="background:var(--green-bg);border:1px solid rgba(0,200,150,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green-dark);margin-bottom:12px">✓ Welcome kit queued — coming soon in the next build.</div>` : ''}
+      ${s.rtrSkipped ? `<div onclick="closeMo()" style="display:flex;align-items:center;gap:12px;padding:12px;border:2px solid var(--red);border-radius:8px;cursor:pointer;margin-bottom:8px;background:var(--red-bg)">
+        <div style="width:36px;height:36px;border-radius:8px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🔍</div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--red)">Complete Right to Rent check</div><div style="font-size:12px;color:var(--muted)">Currently flagged RED in compliance — required before tenancy begins</div></div>
+      </div>` : ''}
+      ${!hasCerts ? `<div onclick="closeMo();moCert(${s.pid})" style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:8px;transition:background .15s" onmouseover="this.style.background='var(--off)'" onmouseout="this.style.background=''">
+        <div style="width:36px;height:36px;border-radius:8px;background:var(--amber-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📋</div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:600">Upload compliance certificates</div><div style="font-size:12px;color:var(--muted)">Gas Safety, EICR, EPC — must be served before tenancy starts</div></div>
+        <div style="color:var(--muted)">›</div>
+      </div>` : ''}
+      <div onclick="closeMo();nav('prop-detail','${s.pid}')" style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:8px;transition:background .15s" onmouseover="this.style.background='var(--off)'" onmouseout="this.style.background=''">
+        <div style="width:36px;height:36px;border-radius:8px;background:var(--off);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🏠</div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:600">View property page</div><div style="font-size:12px;color:var(--muted)">See full details, compliance score and tenancy documents</div></div>
+        <div style="color:var(--muted)">›</div>
+      </div>
+    `, `<button class="btn" onclick="closeMo();nav('tenants')">View all tenants</button>`);
+
+  } catch(err) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Add tenant ✓'; }
+    toast('Error saving tenant: ' + err.message, true);
+  }
 }
 
 // ── MODAL: MAINTENANCE ISSUE ──
