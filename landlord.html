@@ -2272,7 +2272,11 @@ async function _saveTenantSetupToDB() {
     const hasCerts = CF(s.pid).length > 0;
     openMo('🎉 Tenant added!', `${s.name} · ${propAddr}`, `
       <div style="margin-bottom:16px;font-size:13px;color:var(--muted)">Here's what to do next for this tenancy:</div>
-      ${s.sendWelcomeKit ? `<div style="background:var(--green-bg);border:1px solid rgba(0,200,150,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green-dark);margin-bottom:12px">✓ Welcome kit queued — coming soon in the next build.</div>` : ''}
+      ${s.sendWelcomeKit ? `<div onclick="closeMo();moWelcomeKit('${s.pid}')" style="display:flex;align-items:center;gap:12px;padding:12px;border:2px solid var(--green);border-radius:8px;cursor:pointer;margin-bottom:8px;background:var(--green-bg)" onmouseover="this.style.background='rgba(0,200,150,0.15)'" onmouseout="this.style.background='var(--green-bg)'">
+        <div style="width:36px;height:36px;border-radius:8px;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📦</div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--navy)">Send welcome kit now →</div><div style="font-size:12px;color:var(--green-dark)">How to Rent · GSC · EICR · EPC · RRA sheet · all in one email</div></div>
+        <div style="color:var(--green-dark);font-weight:700">›</div>
+      </div>` : ''}
       ${s.rtrSkipped ? `<div onclick="closeMo()" style="display:flex;align-items:center;gap:12px;padding:12px;border:2px solid var(--red);border-radius:8px;cursor:pointer;margin-bottom:8px;background:var(--red-bg)">
         <div style="width:36px;height:36px;border-radius:8px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🔍</div>
         <div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--red)">Complete Right to Rent check</div><div style="font-size:12px;color:var(--muted)">Currently flagged RED in compliance — required before tenancy begins</div></div>
@@ -2292,6 +2296,348 @@ async function _saveTenantSetupToDB() {
   } catch(err) {
     if (btn) { btn.disabled = false; btn.textContent = 'Add tenant ✓'; }
     toast('Error saving tenant: ' + err.message, true);
+  }
+}
+
+// ── MODAL: WELCOME KIT ──
+// Auto-compiled document pack sent to tenant at tenancy start.
+// Mandatory items cannot be silently removed — they show a warning if missing.
+function moWelcomeKit(pid) {
+  const p = P(pid);
+  if (!p) { toast('Property not found', true); return; }
+  const tenant = D.tenants.find(t => String(t.prop_id) === String(pid) && t.status === 'Active');
+  const pCerts = CF(pid);
+
+  const findCert = type => pCerts.find(c => c.type && c.type.toLowerCase().includes(type.toLowerCase()));
+  const gasCert  = findCert('gas');
+  const eicrCert = findCert('eicr') || findCert('electrical');
+  const epcCert  = findCert('epc')  || findCert('energy');
+
+  // Check if RRA sheet already sent
+  const rraSent = D.emailLog.some(e => String(e.prop_id) === String(pid) && (e.template_id === 'rra_info_sheet' || (e.subject||'').toLowerCase().includes('renters rights')));
+
+  // Build document list — mandatory items marked, optional can be toggled
+  // Each item: { id, icon, label, desc, mandatory, available, warning, link, certId }
+  const docs = [
+    {
+      id: 'rra',
+      icon: '📋',
+      label: 'RRA 2025 Information Sheet',
+      desc: 'Mandatory from 1 May 2026 · Fine up to £7,000 if not served',
+      mandatory: true,
+      available: true, // always — we include the GOV.UK link
+      alreadySent: rraSent,
+      warning: rraSent ? null : 'Not yet sent to this tenant — this is MANDATORY',
+      link: 'https://www.gov.uk/government/publications/how-to-rent',
+      certId: null,
+    },
+    {
+      id: 'h2r',
+      icon: '📖',
+      label: 'How to Rent Guide',
+      desc: 'Government guide — must be current edition · Keep proof of service',
+      mandatory: true,
+      available: true,
+      link: 'https://www.gov.uk/government/publications/how-to-rent',
+      certId: null,
+    },
+    {
+      id: 'gsc',
+      icon: '🔥',
+      label: 'Gas Safety Certificate (GSC)',
+      desc: gasCert ? `Expires: ${gasCert.expiry ? new Date(gasCert.expiry).toLocaleDateString('en-GB') : 'No expiry'} · Engineer: ${gasCert.engineer||'—'}` : 'No certificate on file',
+      mandatory: true,
+      available: !!gasCert,
+      warning: !gasCert ? 'Missing — upload a GSC before sending' : (gasCert.status === 'Expired' ? 'Certificate EXPIRED — renew before serving' : null),
+      certId: gasCert?.id || null,
+    },
+    {
+      id: 'eicr',
+      icon: '⚡',
+      label: 'Electrical Installation Report (EICR)',
+      desc: eicrCert ? `Expires: ${eicrCert.expiry ? new Date(eicrCert.expiry).toLocaleDateString('en-GB') : 'No expiry'} · Engineer: ${eicrCert.engineer||'—'}` : 'No certificate on file',
+      mandatory: true,
+      available: !!eicrCert,
+      warning: !eicrCert ? 'Missing — upload an EICR before sending' : (eicrCert.status === 'Expired' ? 'Certificate EXPIRED — renew before serving' : null),
+      certId: eicrCert?.id || null,
+    },
+    {
+      id: 'epc',
+      icon: '🏷',
+      label: 'Energy Performance Certificate (EPC)',
+      desc: epcCert ? `Rating: ${p.epc_rating||'—'} · Expires: ${epcCert.expiry ? new Date(epcCert.expiry).toLocaleDateString('en-GB') : 'No expiry'}` : 'No certificate on file',
+      mandatory: true,
+      available: !!epcCert,
+      warning: !epcCert ? 'Missing — upload an EPC before sending' : (epcCert.status === 'Expired' ? 'Certificate EXPIRED — renew before serving' : null),
+      certId: epcCert?.id || null,
+    },
+    {
+      id: 'deposit',
+      icon: '🔒',
+      label: 'Deposit protection details',
+      desc: tenant?.scheme ? `Scheme: ${tenant.scheme} · Ref: ${tenant.scheme_ref||'—'} · Amount: £${(tenant.deposit||0).toLocaleString()}` : 'No deposit scheme on record',
+      mandatory: true,
+      available: !!(tenant?.scheme),
+      warning: !tenant?.scheme ? 'Deposit scheme not set — add via tenant details' : null,
+      certId: null,
+    },
+    {
+      id: 'tenancy',
+      icon: '✍️',
+      label: 'Written Statement / Tenancy Agreement',
+      desc: 'Send via e-sign if not yet provided — required under RRA 2025',
+      mandatory: true,
+      available: false,
+      warning: 'Use the e-sign tool to send and get a signed copy',
+      certId: null,
+    },
+    {
+      id: 'prescribed',
+      icon: '🏦',
+      label: 'Prescribed Information (deposit scheme)',
+      desc: tenant?.scheme ? `Scheme: ${tenant.scheme} · Must be served within 30 days of receiving deposit` : 'No deposit scheme on record — set up deposit protection first',
+      mandatory: true,
+      available: !!(tenant?.scheme),
+      warning: !tenant?.scheme ? 'Deposit scheme not set — add via tenant details before serving' : null,
+      certId: null,
+    },
+    {
+      id: 'alarms',
+      icon: '🔔',
+      label: 'Smoke & CO alarm test confirmation',
+      desc: 'Landlord must test all alarms on day 1 of tenancy and keep a signed record — fine up to £5,000 if not done',
+      mandatory: true,
+      available: false,
+      warning: 'Log the alarm test in the property inspection record and get tenant signature',
+      certId: null,
+    },
+  ];
+
+  const missingMandatory = docs.filter(d => d.mandatory && (!d.available || d.warning));
+  const propAddr = [p.address, p.city].filter(Boolean).join(', ');
+  const tenantName = tenant?.name || 'Tenant';
+  const tenantEmail = tenant?.email || '';
+
+  openMo('📦 Welcome kit', `${propAddr} · ${tenantName}`, `
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Auto-compiled from your property records. Review before sending — mandatory items are locked.</div>
+
+    ${missingMandatory.length ? `<div style="background:rgba(229,62,62,0.07);border:1px solid rgba(229,62,62,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--red);margin-bottom:14px;display:flex;gap:8px">
+      <span style="flex-shrink:0;font-size:16px">⚠️</span>
+      <div><strong>${missingMandatory.length} mandatory item${missingMandatory.length!==1?'s':''} need attention</strong> — you can still send but these will be flagged. Fix them first for full compliance.</div>
+    </div>` : `<div style="background:var(--green-bg);border:1px solid rgba(0,200,150,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green-dark);margin-bottom:14px">
+      ✅ All mandatory documents are ready — good to send.
+    </div>`}
+
+    <div style="margin-bottom:16px">
+      ${docs.map(doc => `
+        <div style="display:flex;align-items:flex-start;gap:12px;padding:11px 14px;border:1px solid ${doc.warning?'rgba(217,119,6,0.25)':'var(--border)'};border-radius:8px;margin-bottom:6px;background:${doc.warning?(doc.mandatory&&!doc.available?'rgba(229,62,62,0.04)':'rgba(217,119,6,0.04)'):'var(--white)'}">
+          <span style="font-size:18px;flex-shrink:0;margin-top:1px">${doc.icon}</span>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px">
+              <span style="font-size:13px;font-weight:600;color:var(--txt)">${doc.label}</span>
+              ${doc.mandatory ? `<span style="font-size:10px;font-weight:700;color:var(--red);background:var(--red-bg);padding:1px 7px;border-radius:100px">Mandatory</span>` : `<span style="font-size:10px;font-weight:600;color:var(--muted);background:var(--off);padding:1px 7px;border-radius:100px">Optional</span>`}
+              ${doc.alreadySent ? `<span style="font-size:10px;font-weight:700;color:var(--green-dark);background:var(--green-bg);padding:1px 7px;border-radius:100px">✓ Already sent</span>` : ''}
+            </div>
+            <div style="font-size:11px;color:var(--muted)">${doc.desc}</div>
+            ${doc.warning ? `<div style="font-size:11px;color:${doc.mandatory&&!doc.available?'var(--red)':'var(--amber)'};font-weight:600;margin-top:3px">⚠ ${doc.warning}</div>` : ''}
+          </div>
+          <div style="flex-shrink:0;display:flex;align-items:center;gap:8px">
+            ${!doc.mandatory ? `<label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;color:var(--muted)">
+              <input type="checkbox" id="wk-${doc.id}" checked style="width:14px;height:14px;cursor:pointer">
+              Include
+            </label>` : `<span style="font-size:18px">${doc.available&&!doc.warning?'✅':'⚠️'}</span>`}
+          </div>
+        </div>`).join('')}
+    </div>
+
+    <div style="background:var(--off);border:1px solid var(--border);border-radius:10px;padding:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:10px">Send to</div>
+      <div class="fg-row" style="margin-bottom:0">
+        <div class="fg"><label>Tenant name</label><input type="text" id="wk-tenant-name" value="${tenantName}" placeholder="Tenant name"></div>
+        <div class="fg"><label>Tenant email <span class="req">*</span></label><input type="email" id="wk-tenant-email" value="${tenantEmail}" placeholder="tenant@example.com"></div>
+      </div>
+    </div>
+  `,
+  `<button class="btn" onclick="closeMo()">Cancel</button>
+   <button class="btn btn-navy" id="wk-send-btn" onclick="sendWelcomeKit('${pid}')">📦 Send welcome kit</button>`);
+}
+
+async function sendWelcomeKit(pid) {
+  const btn = document.getElementById('wk-send-btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Sending…'; }
+
+  const tenantEmail = document.getElementById('wk-tenant-email')?.value.trim();
+  const tenantName  = document.getElementById('wk-tenant-name')?.value.trim();
+  if (!tenantEmail) {
+    if (btn) { btn.disabled = false; btn.textContent = '📦 Send welcome kit'; }
+    toast('Tenant email is required to send', true); return;
+  }
+
+  const p = P(pid);
+  const propAddr = [p?.address, p?.city].filter(Boolean).join(', ');
+  const pCerts = CF(pid);
+  const findCert = type => pCerts.find(c => c.type && c.type.toLowerCase().includes(type));
+  const gasCert  = findCert('gas');
+  const eicrCert = findCert('eicr') || findCert('electrical');
+  const epcCert  = findCert('epc')  || findCert('energy');
+  const tenant   = D.tenants.find(t => String(t.prop_id) === String(pid) && t.status === 'Active');
+
+  // Determine which optional items to include
+  const includeDeposit  = document.getElementById('wk-deposit')?.checked ?? true;
+  const includeTenancy  = document.getElementById('wk-tenancy')?.checked ?? false;
+
+  // Build cert rows for email
+  const certRow = (icon, label, cert) => cert ? `
+    <tr>
+      <td style="padding:10px 14px;border-bottom:1px solid #eee;font-size:13px">${icon} ${label}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eee;font-size:13px;color:#00A87A;font-weight:600">✓ Provided</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eee;font-size:12px;color:#7A8FA6">${cert.expiry ? 'Expires ' + new Date(cert.expiry).toLocaleDateString('en-GB') : 'No expiry date'}</td>
+    </tr>` : `
+    <tr>
+      <td style="padding:10px 14px;border-bottom:1px solid #eee;font-size:13px">${icon} ${label}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eee;font-size:13px;color:#D97706;font-weight:600">⚠ Pending</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eee;font-size:12px;color:#7A8FA6">Will be provided separately</td>
+    </tr>`;
+
+  const depositRow = (includeDeposit && tenant?.scheme) ? `
+    <tr>
+      <td style="padding:10px 14px;border-bottom:1px solid #eee;font-size:13px">🔒 Deposit protection</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eee;font-size:13px;color:#00A87A;font-weight:600">✓ Protected</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eee;font-size:12px;color:#7A8FA6">${tenant.scheme} · Ref: ${tenant.scheme_ref||'—'} · £${(tenant.deposit||0).toLocaleString()}</td>
+    </tr>` : '';
+
+  const today = new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
+
+  const html = `<!DOCTYPE html><html><body style="font-family:DM Sans,Arial,sans-serif;color:#1A2B45;max-width:620px;margin:0 auto;padding:0">
+    <div style="background:#0B1E3D;padding:24px 28px;border-radius:12px 12px 0 0">
+      <div style="font-size:20px;font-weight:700;color:#fff">Rent<span style="color:#00C896">Safe AI</span></div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-top:4px">Tenancy Welcome Pack</div>
+    </div>
+    <div style="background:#fff;border:1px solid #E4EAF1;border-top:none;border-radius:0 0 12px 12px;padding:28px">
+      <h2 style="font-size:18px;font-weight:700;margin:0 0 6px">Welcome, ${tenantName}!</h2>
+      <p style="font-size:13px;color:#7A8FA6;margin:0 0 20px">Your tenancy at <strong style="color:#1A2B45">${propAddr}</strong> starts on <strong style="color:#1A2B45">${p?.start_date ? new Date(p.start_date).toLocaleDateString('en-GB') : 'your agreed start date'}</strong>.</p>
+      <p style="font-size:13px;color:#1A2B45;margin:0 0 20px">This email confirms the documents that have been provided to you as part of your tenancy. Please keep a copy for your records.</p>
+
+      <h3 style="font-size:14px;font-weight:700;margin:0 0 10px;color:#1A2B45">Compliance documents</h3>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:20px;border:1px solid #E4EAF1;border-radius:8px;overflow:hidden">
+        <thead><tr style="background:#F6F8FB">
+          <th style="padding:9px 14px;text-align:left;font-size:11px;font-weight:700;color:#7A8FA6;letter-spacing:.4px;text-transform:uppercase">Document</th>
+          <th style="padding:9px 14px;text-align:left;font-size:11px;font-weight:700;color:#7A8FA6;letter-spacing:.4px;text-transform:uppercase">Status</th>
+          <th style="padding:9px 14px;text-align:left;font-size:11px;font-weight:700;color:#7A8FA6;letter-spacing:.4px;text-transform:uppercase">Details</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td style="padding:10px 14px;border-bottom:1px solid #eee;font-size:13px">📋 RRA 2025 Information Sheet</td>
+            <td style="padding:10px 14px;border-bottom:1px solid #eee;font-size:13px;color:#00A87A;font-weight:600">✓ Served</td>
+            <td style="padding:10px 14px;border-bottom:1px solid #eee;font-size:12px"><a href="https://www.gov.uk/government/publications/how-to-rent" style="color:#3B6FE8">GOV.UK PDF</a></td>
+          </tr>
+          <tr>
+            <td style="padding:10px 14px;border-bottom:1px solid #eee;font-size:13px">📖 How to Rent Guide</td>
+            <td style="padding:10px 14px;border-bottom:1px solid #eee;font-size:13px;color:#00A87A;font-weight:600">✓ Served</td>
+            <td style="padding:10px 14px;border-bottom:1px solid #eee;font-size:12px"><a href="https://www.gov.uk/government/publications/how-to-rent" style="color:#3B6FE8">GOV.UK PDF</a></td>
+          </tr>
+          ${certRow('🔥','Gas Safety Certificate (GSC)', gasCert)}
+          ${certRow('⚡','Electrical Installation Report (EICR)', eicrCert)}
+          ${certRow('🏷','Energy Performance Certificate (EPC)', epcCert)}
+          ${depositRow}
+          <tr>
+            <td style="padding:10px 14px;border-bottom:1px solid #eee;font-size:13px">🏦 Prescribed Information (deposit)</td>
+            <td style="padding:10px 14px;border-bottom:1px solid #eee;font-size:13px;color:${tenant?.scheme?'#00A87A':'#D97706'};font-weight:600">${tenant?.scheme?'✓ Served':'⚠ Pending'}</td>
+            <td style="padding:10px 14px;border-bottom:1px solid #eee;font-size:12px;color:#7A8FA6">${tenant?.scheme?`${tenant.scheme} · Ref: ${tenant.scheme_ref||'—'}`:'Deposit scheme not yet set'}</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 14px;border-bottom:1px solid #eee;font-size:13px">🔔 Smoke & CO alarm test</td>
+            <td style="padding:10px 14px;border-bottom:1px solid #eee;font-size:13px;color:#D97706;font-weight:600">⚠ To confirm</td>
+            <td style="padding:10px 14px;border-bottom:1px solid #eee;font-size:12px;color:#7A8FA6">Landlord must test on day 1 · Sign inventory to confirm</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="background:#F6F8FB;border-radius:8px;padding:16px;margin-bottom:20px">
+        <div style="font-size:12px;font-weight:700;color:#7A8FA6;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Your tenancy details</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          ${[
+            ['Property', propAddr],
+            ['Monthly rent', tenant?.rent ? `£${tenant.rent.toLocaleString()}` : '—'],
+            ['Deposit', tenant?.deposit ? `£${tenant.deposit.toLocaleString()}` : '—'],
+            ['Deposit scheme', tenant?.scheme || 'To be confirmed'],
+          ].map(([l,v])=>`<div><div style="font-size:11px;color:#7A8FA6;margin-bottom:2px">${l}</div><div style="font-size:13px;font-weight:600;color:#1A2B45">${v}</div></div>`).join('')}
+        </div>
+      </div>
+
+      <div style="background:#F0FBF7;border:1px solid rgba(0,200,150,0.2);border-radius:8px;padding:14px;margin-bottom:20px">
+        <div style="font-size:13px;font-weight:600;color:#009970;margin-bottom:4px">🔗 Your tenant portal</div>
+        <div style="font-size:12px;color:#1A2B45;margin-bottom:10px">Report maintenance issues, view your certificates and sign documents — all in one place.</div>
+        ${tenant?.invite_token ? `<a href="https://rentsafeai.co.uk/tenant.html?token=${tenant.invite_token}" style="background:#0B1E3D;color:#fff;padding:10px 20px;border-radius:7px;text-decoration:none;font-weight:600;font-size:13px;display:inline-block">Access your portal →</a>` : ''}
+      </div>
+
+      <p style="font-size:12px;color:#7A8FA6;line-height:1.6;margin:0">This document was served on <strong>${today}</strong> as required under the Renters Rights Act 2025. A timestamped record has been created for landlord compliance purposes.</p>
+    </div>
+    <div style="padding:16px;text-align:center;font-size:11px;color:#999">Sent via RentSafe AI · rentsafeai.co.uk · documents@rentsafeai.co.uk</div>
+  </body></html>`;
+
+  try {
+    // Send the email
+    const res = await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ type:'send_email', to: tenantEmail, subject: `Your tenancy welcome pack — ${propAddr}`, html })
+    });
+
+    // Log to email_log
+    const tenant2 = D.tenants.find(t => String(t.prop_id) === String(pid) && t.status === 'Active');
+    if (tenant2) {
+      const logEntry = {
+        prop_id: parseInt(pid),
+        tenant_id: tenant2.id,
+        tenant_name: tenantName,
+        template_id: 'welcome_kit',
+        subject: `Tenancy welcome pack — ${propAddr}`,
+        status: 'Sent',
+        user_id: currentUser.id,
+      };
+      const { data: logData } = await sb.from('email_log').insert(logEntry).select().single();
+      if (logData) D.emailLog.unshift(logData);
+    }
+
+    // Mark certs as served
+    const certIdsToServe = [gasCert?.id, eicrCert?.id, epcCert?.id].filter(Boolean);
+    for (const cid of certIdsToServe) {
+      await sb.from('certificates').update({ served: true }).eq('id', cid);
+      const c = D.certs.find(x => x.id === cid);
+      if (c) c.served = true;
+    }
+
+    // Audit log — full timestamped record
+    await logAudit('WELCOME_KIT_SENT', 'tenants', tenant2?.id || pid,
+      `Welcome kit sent to ${tenantEmail} for ${propAddr}. Docs: RRA sheet, How to Rent, Written Statement, GSC(${gasCert?'✓':'missing'}), EICR(${eicrCert?'✓':'missing'}), EPC(${epcCert?'✓':'missing'}), Deposit+PI(${tenant2?.scheme||'not set'}), Smoke/CO alarm test(pending move-in day)`
+    );
+
+    closeMo();
+    toast('✓ Welcome kit sent to ' + tenantEmail);
+
+    // Show confirmation
+    openMo('✅ Welcome kit sent!', `${tenantName} · ${propAddr}`, `
+      <div style="text-align:center;padding:16px 0">
+        <div style="font-size:48px;margin-bottom:12px">📦</div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:6px">Welcome pack delivered</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:20px">Sent to <strong>${tenantEmail}</strong> · All certs marked as served · Audit log updated</div>
+        <div style="background:var(--off);border-radius:8px;padding:14px;text-align:left;font-size:12px;color:var(--muted)">
+          <div style="font-weight:600;color:var(--txt);margin-bottom:8px">What was sent</div>
+          <div style="margin-bottom:4px">✓ RRA 2025 Information Sheet (GOV.UK link)</div>
+          <div style="margin-bottom:4px">✓ How to Rent Guide (GOV.UK link)</div>
+          <div style="margin-bottom:4px">${gasCert?'✓':'⚠'} Gas Safety Certificate</div>
+          <div style="margin-bottom:4px">${eicrCert?'✓':'⚠'} EICR</div>
+          <div style="margin-bottom:4px">${epcCert?'✓':'⚠'} EPC</div>
+          <div style="margin-bottom:4px">${tenant2?.scheme?'✓':'⚠'} Deposit protection + Prescribed Information</div>
+          <div style="margin-bottom:4px">⚠ Smoke & CO alarm test — confirm on move-in day</div>
+          <div>✓ Tenant portal link included</div>
+        </div>
+      </div>
+    `, `<button class="btn btn-navy" onclick="closeMo()">Done</button>`);
+
+  } catch(err) {
+    if (btn) { btn.disabled = false; btn.textContent = '📦 Send welcome kit'; }
+    toast('Error sending welcome kit: ' + err.message, true);
   }
 }
 
@@ -2857,6 +3203,7 @@ function pdTabContent(pid, tab) {
             ${t.email?`<a href="mailto:${t.email}" class="btn btn-sm">✉ Email</a>`:''}
             ${t.phone?`<a href="tel:${t.phone}" class="btn btn-sm">📞 Call</a>`:''}
             <button class="btn btn-sm" style="border-color:var(--amber);color:var(--amber)" onclick="moRRASheet()">📋 RRA Sheet</button>
+            <button class="btn btn-sm" style="border-color:var(--green-dark);color:var(--green-dark)" onclick="moWelcomeKit('${pid}')">📦 Welcome kit</button>
             ${t.email?`<button class="btn btn-sm" style="border-color:var(--green);color:var(--green-dark)" id="invite-btn-${t.id}" onclick="sendPortalInvite('${t.id}')">🔗 ${t.invite_used?'Resend invite':'Send portal invite'}</button>`:''}
             <button class="btn btn-sm" style="border-color:var(--blue);color:var(--blue)" onclick="moEsign('${pid}','${t.id}')">✍️ Send for Signing</button>
           </div>
