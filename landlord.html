@@ -118,7 +118,7 @@ tr:hover td{background:rgba(246,248,251,.8)}
 .pc-city{font-size:12px;color:var(--muted)}
 .pc-info{padding:0 16px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .pc-tag{background:var(--off);color:var(--muted);border:1px solid var(--border);font-size:11px;font-weight:500;padding:3px 10px;border-radius:100px}
-.pc-foot{padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:8px}
+.pc-foot{padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap}
 .t-av{width:34px;height:34px;border-radius:50%;background:var(--blue-bg);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--blue);flex-shrink:0}
 .sf{display:flex;align-items:center;gap:4px;white-space:nowrap}
 .sf-btn{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--white);color:var(--muted);font-family:var(--font)}
@@ -850,6 +850,11 @@ async function savePropToDB() {
   const hasTenant = !!tname;
   openMo('🎉 Property added!', `${prop.address}, ${prop.city}`,`
     <div style="margin-bottom:16px;font-size:13px;color:var(--muted)">Here's what to set up next to be fully compliant:</div>
+    <div onclick="closeMo();moPropertySetup(${pid})" style="display:flex;align-items:center;gap:12px;padding:12px;border:2px solid var(--green);border-radius:8px;cursor:pointer;margin-bottom:8px;transition:background .15s;background:var(--green-bg)" onmouseover="this.style.background='rgba(0,200,150,0.15)'" onmouseout="this.style.background='var(--green-bg)'">
+      <div style="width:36px;height:36px;border-radius:8px;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🚀</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--navy)">Complete compliance setup</div><div style="font-size:12px;color:var(--green-dark)">Licence · Safety certs · Insurance · Boiler — guided 5 steps</div></div>
+      <div style="color:var(--green-dark);font-weight:700">›</div>
+    </div>
     <div class="ap-next-item" onclick="closeMo();moCert(${pid})" style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:8px;transition:background .15s" onmouseover="this.style.background='var(--off)'" onmouseout="this.style.background=''">
       <div style="width:36px;height:36px;border-radius:8px;background:var(--green-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📋</div>
       <div style="flex:1"><div style="font-size:13px;font-weight:600">Add compliance certificates</div><div style="font-size:12px;color:var(--muted)">Gas Safety, EICR, EPC — AI will scan and fill details</div></div>
@@ -1419,6 +1424,445 @@ function moMortgage(pid){
   `,`<button class="btn" onclick="closeMo()">Cancel</button><button class="btn btn-navy" onclick="saveMortgageToDB(${pid})">Save mortgage</button>`);
 }
 
+// ── MODAL: PROPERTY SETUP WIZARD (5-step compliance setup) ──
+window._psetup = {};
+
+function moPropertySetup(pid) {
+  const p = P(pid);
+  if (!p) { toast('Property not found', true); return; }
+
+  window._psetup = {
+    pid: String(pid), step: 1,
+    // Step 1: Licence
+    licType: p.licence_type || 'None required',
+    licRef: p.licence_ref || '',
+    licExpiry: p.licence_expiry || '',
+    // Step 2: Safety certs
+    gasExpiry: '', gasEngineer: '',
+    eicrExpiry: '', eicrEngineer: '',
+    epcRating: p.epc_rating ? p.epc_rating.replace(' — minimum legal standard','').replace(' — below standard','') : '',
+    epcExpiry: p.epc_expiry || '',
+    // Step 3: Insurance
+    bldProvider: '', bldPolicyRef: '', bldExpiry: '',
+    llProvider: '', llPolicyRef: '', llExpiry: '',
+    rgProvider: '', rgExpiry: '',
+    // Step 4: Boiler
+    boilerLast: p.boiler_last_service || '',
+    boilerNext: p.boiler_next_service || '',
+    boilerEng: p.boiler_engineer || '',
+  };
+
+  // Pre-fill from existing certs if present
+  const pCerts = CF(pid);
+  const gasCert = pCerts.find(c => c.type && c.type.toLowerCase().includes('gas'));
+  const eicrCert = pCerts.find(c => c.type && c.type.toLowerCase().includes('eicr') || (c.type||'').toLowerCase().includes('electrical'));
+  const epcCert = pCerts.find(c => c.type && c.type.toLowerCase().includes('epc') || (c.type||'').toLowerCase().includes('energy'));
+  if (gasCert) { window._psetup.gasExpiry = gasCert.expiry || ''; window._psetup.gasEngineer = gasCert.engineer || ''; }
+  if (eicrCert) { window._psetup.eicrExpiry = eicrCert.expiry || ''; window._psetup.eicrEngineer = eicrCert.engineer || ''; }
+  if (epcCert) { window._psetup.epcExpiry = epcCert.expiry || ''; }
+
+  // Pre-fill from existing insurance if present
+  const pIns = D.insurance.filter(i => String(i.prop_id) === String(pid));
+  const bldIns = pIns.find(i => i.type && i.type.toLowerCase().includes('buildings'));
+  const llIns = pIns.find(i => i.type && i.type.toLowerCase().includes('contents') || (i.type||'').toLowerCase().includes('landlord'));
+  const rgIns = pIns.find(i => i.type && i.type.toLowerCase().includes('guarantee') || (i.type||'').toLowerCase().includes('rent'));
+  if (bldIns) { window._psetup.bldProvider = bldIns.provider || ''; window._psetup.bldPolicyRef = bldIns.policy || ''; window._psetup.bldExpiry = bldIns.expiry || ''; }
+  if (llIns) { window._psetup.llProvider = llIns.provider || ''; window._psetup.llPolicyRef = llIns.policy || ''; window._psetup.llExpiry = llIns.expiry || ''; }
+  if (rgIns) { window._psetup.rgProvider = rgIns.provider || ''; window._psetup.rgExpiry = rgIns.expiry || ''; }
+
+  document.getElementById('mo-t').textContent = 'Property setup';
+  document.getElementById('mo-s').textContent = `${p.address} · Step 1 of 5`;
+  document.querySelector('.mo-box').classList.add('mo-wide');
+  _renderSetupStep(1);
+  document.getElementById('mo').classList.add('open');
+}
+
+function _renderSetupStep(n) {
+  const s = window._psetup;
+  const segBar = [1,2,3,4,5].map(i=>`<div style="flex:1;height:3px;border-radius:100px;background:${i<n?'var(--green)':i===n?'var(--blue)':'var(--border)'};transition:background .3s"></div>`).join('');
+  const stepLabels = ['','Licence','Safety certs','Insurance','Boiler','Review'];
+
+  document.getElementById('mo-b').innerHTML = `
+    <div style="display:flex;gap:4px;margin-bottom:6px">${segBar}</div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:20px">
+      ${[1,2,3,4,5].map(i=>`<div style="font-size:9px;font-weight:${i===n?'700':'400'};color:${i<n?'var(--green-dark)':i===n?'var(--blue)':'var(--muted)'};text-align:center;flex:1">${stepLabels[i]}</div>`).join('')}
+    </div>
+    ${_setupStepHtml(n)}`;
+
+  document.getElementById('mo-f').innerHTML = `
+    <button class="btn-back" id="psetup-back" onclick="setupStepBack()" style="display:inline-flex;align-items:center;gap:6px;background:none;border:none;font-family:var(--font);font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;padding:7px 0;visibility:${n===1?'hidden':'visible'}">← Back</button>
+    <span style="font-size:12px;color:var(--muted)">Step ${n} of 5</span>
+    <button class="btn btn-navy" id="psetup-next" onclick="setupStepNext()">${n===5?'Save setup ✓':'Next →'}</button>`;
+}
+
+function _setupStepHtml(n) {
+  const s = window._psetup;
+
+  // ── STEP 1: LICENCE ──
+  if (n === 1) return `
+    <div style="font-size:15px;font-weight:600;margin-bottom:2px">Property licence</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Upload your licence document — AI will scan and fill the details</div>
+    <div class="scan-box" id="lic-scan-box" style="margin-bottom:14px">
+      <input type="file" accept=".pdf,.jpg,.jpeg,.png" onchange="scanSetupLicence(this)">
+      <div class="scan-ic">📄</div>
+      <div class="scan-t">Upload licence document (optional)</div>
+      <div class="scan-s">PDF or image — AI will extract details</div>
+      <div class="scan-badge">✦ AI auto-extraction</div>
+    </div>
+    <div id="lic-ai-result" style="display:none;background:var(--off);border:1px solid rgba(0,200,150,0.25);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green-dark);font-weight:600;margin-bottom:14px">✦ AI extracted — confirm the fields below</div>
+    <div class="fg"><label>Licence type</label>
+      <select id="s-lic-type">
+        ${['None required','Mandatory HMO','Additional HMO','Selective Licence','Article 4','Short-term Let'].map(l=>`<option${l===s.licType?' selected':''}>${l}</option>`).join('')}
+      </select>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Licence reference</label><input type="text" id="s-lic-ref" value="${s.licRef}" placeholder="e.g. SL-2024-00412"></div>
+      <div class="fg"><label>Expiry date</label><input type="date" id="s-lic-expiry" value="${s.licExpiry}"></div>
+    </div>
+    <div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--blue);margin-top:4px">
+      ℹ️ Selective and HMO licences must be renewed every 5 years. Non-compliance carries fines up to £30,000.
+    </div>`;
+
+  // ── STEP 2: SAFETY CERTS ──
+  if (n === 2) return `
+    <div style="font-size:15px;font-weight:600;margin-bottom:2px">Safety certificates</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Upload documents or enter expiry dates — AI will scan and auto-fill</div>
+
+    <div style="background:var(--off);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <div style="width:28px;height:28px;border-radius:7px;background:rgba(217,119,6,0.12);display:flex;align-items:center;justify-content:center;font-size:14px">🔥</div>
+        <div style="flex:1;font-size:13px;font-weight:600">Gas Safety Certificate (GSC)</div>
+        <span style="font-size:10px;font-weight:700;color:var(--red);background:var(--red-bg);padding:2px 8px;border-radius:100px">Required annually</span>
+      </div>
+      <div class="scan-box" id="gas-scan-box" style="padding:10px;margin-bottom:10px">
+        <input type="file" accept=".pdf,.jpg,.jpeg,.png" onchange="scanSetupCert('gas',this)">
+        <div style="font-size:12px;font-weight:600;color:var(--muted)">📄 Upload GSC — AI will fill expiry</div>
+        <div class="scan-badge" style="margin-top:4px">✦ AI scan</div>
+      </div>
+      <div class="fg-row" style="margin-bottom:0">
+        <div class="fg"><label>Expiry date</label><input type="date" id="s-gas-expiry" value="${s.gasExpiry}"></div>
+        <div class="fg"><label>Engineer / company</label><input type="text" id="s-gas-eng" value="${s.gasEngineer}" placeholder="e.g. City Gas Services"></div>
+      </div>
+    </div>
+
+    <div style="background:var(--off);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <div style="width:28px;height:28px;border-radius:7px;background:rgba(59,111,232,0.12);display:flex;align-items:center;justify-content:center;font-size:14px">⚡</div>
+        <div style="flex:1;font-size:13px;font-weight:600">Electrical Installation Condition Report (EICR)</div>
+        <span style="font-size:10px;font-weight:700;color:var(--amber);background:var(--amber-bg);padding:2px 8px;border-radius:100px">Every 5 years</span>
+      </div>
+      <div class="scan-box" id="eicr-scan-box" style="padding:10px;margin-bottom:10px">
+        <input type="file" accept=".pdf,.jpg,.jpeg,.png" onchange="scanSetupCert('eicr',this)">
+        <div style="font-size:12px;font-weight:600;color:var(--muted)">📄 Upload EICR — AI will fill expiry</div>
+        <div class="scan-badge" style="margin-top:4px">✦ AI scan</div>
+      </div>
+      <div class="fg-row" style="margin-bottom:0">
+        <div class="fg"><label>Expiry date</label><input type="date" id="s-eicr-expiry" value="${s.eicrExpiry}"></div>
+        <div class="fg"><label>Engineer / company</label><input type="text" id="s-eicr-eng" value="${s.eicrEngineer}" placeholder="e.g. Sparks Electrical"></div>
+      </div>
+    </div>
+
+    <div style="background:var(--off);border:1px solid var(--border);border-radius:10px;padding:14px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <div style="width:28px;height:28px;border-radius:7px;background:rgba(0,200,150,0.12);display:flex;align-items:center;justify-content:center;font-size:14px">🏷</div>
+        <div style="flex:1;font-size:13px;font-weight:600">Energy Performance Certificate (EPC)</div>
+        <span style="font-size:10px;font-weight:700;color:var(--blue);background:var(--blue-bg);padding:2px 8px;border-radius:100px">10 year validity</span>
+      </div>
+      <div class="scan-box" id="epc-scan-box" style="padding:10px;margin-bottom:10px">
+        <input type="file" accept=".pdf,.jpg,.jpeg,.png" onchange="scanSetupCert('epc',this)">
+        <div style="font-size:12px;font-weight:600;color:var(--muted)">📄 Upload EPC — AI will fill rating & expiry</div>
+        <div class="scan-badge" style="margin-top:4px">✦ AI scan</div>
+      </div>
+      <div class="fg-row" style="margin-bottom:0">
+        <div class="fg"><label>EPC rating</label>
+          <select id="s-epc-rating">
+            ${['','A','B','C','D','E','F','G'].map(r=>`<option value="${r}"${r===s.epcRating?' selected':''}>${r||'Not set'}</option>`).join('')}
+          </select>
+        </div>
+        <div class="fg"><label>Expiry date</label><input type="date" id="s-epc-expiry" value="${s.epcExpiry}"></div>
+      </div>
+    </div>`;
+
+  // ── STEP 3: INSURANCE ──
+  if (n === 3) return `
+    <div style="font-size:15px;font-weight:600;margin-bottom:2px">Insurance</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Track your 3 policy types — keeps cover visible in one place and triggers renewal reminders</div>
+
+    <div style="background:var(--off);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <div style="width:28px;height:28px;border-radius:7px;background:rgba(59,111,232,0.12);display:flex;align-items:center;justify-content:center;font-size:14px">🏠</div>
+        <div><div style="font-size:13px;font-weight:600">Buildings insurance</div><div style="font-size:11px;color:var(--muted)">Structure, fixtures and fittings</div></div>
+      </div>
+      <div class="fg-row">
+        <div class="fg"><label>Provider</label><input type="text" id="s-bld-prov" value="${s.bldProvider}" placeholder="e.g. Aviva"></div>
+        <div class="fg"><label>Policy reference</label><input type="text" id="s-bld-ref" value="${s.bldPolicyRef}" placeholder="Policy number"></div>
+      </div>
+      <div class="fg" style="margin-bottom:0"><label>Renewal date</label><input type="date" id="s-bld-expiry" value="${s.bldExpiry}"></div>
+    </div>
+
+    <div style="background:var(--off);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <div style="width:28px;height:28px;border-radius:7px;background:rgba(0,200,150,0.12);display:flex;align-items:center;justify-content:center;font-size:14px">🛡</div>
+        <div><div style="font-size:13px;font-weight:600">Landlord contents insurance</div><div style="font-size:11px;color:var(--muted)">Furnishings and fixtures you own</div></div>
+      </div>
+      <div class="fg-row">
+        <div class="fg"><label>Provider</label><input type="text" id="s-ll-prov" value="${s.llProvider}" placeholder="e.g. Direct Line"></div>
+        <div class="fg"><label>Policy reference</label><input type="text" id="s-ll-ref" value="${s.llPolicyRef}" placeholder="Policy number"></div>
+      </div>
+      <div class="fg" style="margin-bottom:0"><label>Renewal date</label><input type="date" id="s-ll-expiry" value="${s.llExpiry}"></div>
+    </div>
+
+    <div style="background:var(--off);border:1px solid var(--border);border-radius:10px;padding:14px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <div style="width:28px;height:28px;border-radius:7px;background:rgba(217,119,6,0.12);display:flex;align-items:center;justify-content:center;font-size:14px">💷</div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:600">Rent guarantee insurance</div><div style="font-size:11px;color:var(--muted)">Covers rent if tenant stops paying</div></div>
+        <span style="font-size:10px;font-weight:700;color:var(--muted);background:#EEF2F7;padding:2px 8px;border-radius:100px;white-space:nowrap">Internal only</span>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:12px;padding-left:36px">Not shared with tenant · For your records only</div>
+      <div class="fg-row" style="margin-bottom:0">
+        <div class="fg"><label>Provider</label><input type="text" id="s-rg-prov" value="${s.rgProvider}" placeholder="e.g. HomeLet"></div>
+        <div class="fg"><label>Renewal date</label><input type="date" id="s-rg-expiry" value="${s.rgExpiry}"></div>
+      </div>
+    </div>`;
+
+  // ── STEP 4: BOILER ──
+  if (n === 4) return `
+    <div style="font-size:15px;font-weight:600;margin-bottom:2px">Boiler service</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Track annual service dates — we'll remind you when it's due</div>
+    <div style="background:rgba(217,119,6,0.07);border:1px solid rgba(217,119,6,0.2);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--amber);margin-bottom:20px">
+      ⚠️ Annual boiler servicing is a legal requirement for landlords. Under the Renters Rights Act 2025, failure to maintain gas appliances is a criminal offence.
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Last service date</label><input type="date" id="s-boiler-last" value="${s.boilerLast}"></div>
+      <div class="fg"><label>Next service due</label><input type="date" id="s-boiler-next" value="${s.boilerNext}"></div>
+    </div>
+    <div class="fg"><label>Engineer / company</label><input type="text" id="s-boiler-eng" value="${s.boilerEng}" placeholder="e.g. British Gas Home Care"></div>
+    <div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--muted)">
+      💡 <strong style="color:var(--txt)">Tip:</strong> Set next service 11 months after the last so you get a 30-day reminder before it's due.
+    </div>`;
+
+  // ── STEP 5: REVIEW ──
+  if (n === 5) {
+    const items = [
+      { label: 'Property licence',    val: s.licType && s.licType !== 'None required' ? s.licType : (s.licRef||null), icon:'📋' },
+      { label: 'Gas Safety Cert',     val: s.gasExpiry || s.gasEngineer,               icon:'🔥' },
+      { label: 'EICR',               val: s.eicrExpiry || s.eicrEngineer,              icon:'⚡' },
+      { label: 'EPC',                val: s.epcRating || s.epcExpiry,                  icon:'🏷' },
+      { label: 'Buildings insurance', val: s.bldProvider || s.bldExpiry,               icon:'🏠' },
+      { label: 'Landlord insurance',  val: s.llProvider || s.llExpiry,                 icon:'🛡' },
+      { label: 'Rent guarantee',      val: s.rgProvider || s.rgExpiry,                 icon:'💷' },
+      { label: 'Boiler service',      val: s.boilerLast || s.boilerNext,               icon:'🔧' },
+    ];
+    const filled = items.filter(i => i.val).length;
+    const score = Math.round((filled / items.length) * 100);
+    const scoreCol = score >= 75 ? '#00C896' : score >= 40 ? '#D97706' : '#E53E3E';
+    const scoreLabel = score >= 75 ? 'Great start!' : score >= 40 ? 'Nearly there' : 'More to add later';
+    const p = P(s.pid);
+    return `
+    <div style="font-size:15px;font-weight:600;margin-bottom:2px">Review & save</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:20px">Everything below will be saved to <strong>${p?.address || 'your property'}</strong></div>
+
+    <div style="background:linear-gradient(135deg,var(--navy),#1a3a6b);border-radius:12px;padding:20px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:20px">
+        <div style="text-align:center;flex-shrink:0;min-width:70px">
+          <div style="font-size:40px;font-weight:700;color:#fff;line-height:1">${score}</div>
+          <div style="font-size:11px;color:${scoreCol};font-weight:700;margin-top:4px">${scoreLabel}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:2px">setup score</div>
+        </div>
+        <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          ${items.map(i=>`<div style="display:flex;align-items:center;gap:7px">
+            <span style="font-size:14px">${i.icon}</span>
+            <span style="flex:1;font-size:11px;color:rgba(255,255,255,0.65)">${i.label}</span>
+            <span style="font-size:12px;font-weight:700;color:${i.val?scoreCol:'rgba(255,255,255,0.25)'}">${i.val?'✓':'—'}</span>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    ${filled > 0 ? `<div style="background:var(--green-bg);border:1px solid rgba(0,200,150,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green-dark);margin-bottom:8px">
+      ✓ ${filled} item${filled!==1?'s':''} will be saved. Updates are merged with any existing records.
+    </div>` : ''}
+    ${filled < items.length ? `<div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--blue)">
+      ℹ️ ${items.length - filled} blank item${items.length-filled!==1?'s':''} — come back and fill these in from the property page anytime.
+    </div>` : ''}`;
+  }
+  return '';
+}
+
+function setupStepNext() {
+  const n = window._psetup.step;
+  const s = window._psetup;
+
+  // Persist current step inputs to state
+  if (n === 1) {
+    s.licType   = document.getElementById('s-lic-type')?.value || 'None required';
+    s.licRef    = document.getElementById('s-lic-ref')?.value.trim() || '';
+    s.licExpiry = document.getElementById('s-lic-expiry')?.value || '';
+  } else if (n === 2) {
+    s.gasExpiry   = document.getElementById('s-gas-expiry')?.value || '';
+    s.gasEngineer = document.getElementById('s-gas-eng')?.value.trim() || '';
+    s.eicrExpiry  = document.getElementById('s-eicr-expiry')?.value || '';
+    s.eicrEngineer= document.getElementById('s-eicr-eng')?.value.trim() || '';
+    s.epcRating   = document.getElementById('s-epc-rating')?.value || '';
+    s.epcExpiry   = document.getElementById('s-epc-expiry')?.value || '';
+  } else if (n === 3) {
+    s.bldProvider  = document.getElementById('s-bld-prov')?.value.trim() || '';
+    s.bldPolicyRef = document.getElementById('s-bld-ref')?.value.trim() || '';
+    s.bldExpiry    = document.getElementById('s-bld-expiry')?.value || '';
+    s.llProvider   = document.getElementById('s-ll-prov')?.value.trim() || '';
+    s.llPolicyRef  = document.getElementById('s-ll-ref')?.value.trim() || '';
+    s.llExpiry     = document.getElementById('s-ll-expiry')?.value || '';
+    s.rgProvider   = document.getElementById('s-rg-prov')?.value.trim() || '';
+    s.rgExpiry     = document.getElementById('s-rg-expiry')?.value || '';
+  } else if (n === 4) {
+    s.boilerLast = document.getElementById('s-boiler-last')?.value || '';
+    s.boilerNext = document.getElementById('s-boiler-next')?.value || '';
+    s.boilerEng  = document.getElementById('s-boiler-eng')?.value.trim() || '';
+  } else if (n === 5) {
+    _savePropertySetupToDB();
+    return;
+  }
+
+  window._psetup.step = n + 1;
+  const p = P(window._psetup.pid);
+  document.getElementById('mo-s').textContent = `${p?.address || ''} · Step ${n+1} of 5`;
+  _renderSetupStep(n + 1);
+  document.querySelector('.mo-box')?.scrollTo?.(0, 0);
+}
+
+function setupStepBack() {
+  const n = window._psetup.step;
+  if (n <= 1) return;
+  window._psetup.step = n - 1;
+  const p = P(window._psetup.pid);
+  document.getElementById('mo-s').textContent = `${p?.address || ''} · Step ${n-1} of 5`;
+  _renderSetupStep(n - 1);
+  document.querySelector('.mo-box')?.scrollTo?.(0, 0);
+}
+
+function scanSetupLicence(input) {
+  if (!input.files[0]) return;
+  const file = input.files[0];
+  const box = document.getElementById('lic-scan-box');
+  if (box) box.innerHTML = `<div style="font-size:13px;color:var(--muted)">⏳ Scanning licence document…</div><div class="scan-badge" style="margin-top:8px">✦ AI reading</div>`;
+
+  scanAndFill(file, (parsed) => {
+    if (parsed.expiry) {
+      const el = document.getElementById('s-lic-expiry');
+      if (el) { el.value = parsed.expiry; window._psetup.licExpiry = parsed.expiry; }
+    }
+    if (parsed.type) {
+      const lt = parsed.type.toLowerCase();
+      const sel = document.getElementById('s-lic-type');
+      const matchMap = { hmo:'Mandatory HMO', additional:'Additional HMO', selective:'Selective Licence', 'article 4':'Article 4', 'short-term':'Short-term Let', 'short term':'Short-term Let' };
+      for (const [key, val] of Object.entries(matchMap)) {
+        if (lt.includes(key) && sel) { sel.value = val; window._psetup.licType = val; break; }
+      }
+    }
+    const result = document.getElementById('lic-ai-result');
+    if (result) result.style.display = 'block';
+    if (box) box.innerHTML = `<div style="font-size:13px;color:var(--green-dark);font-weight:600">✓ Licence scanned — fields filled below</div><div style="font-size:11px;color:var(--muted);margin-top:3px">${file.name}</div>`;
+    toast('✓ Licence scanned — check the fields below');
+  });
+}
+
+function scanSetupCert(certType, input) {
+  if (!input.files[0]) return;
+  const file = input.files[0];
+  const box = document.getElementById(`${certType}-scan-box`);
+  if (box) box.innerHTML = `<div style="font-size:12px;font-weight:600;color:var(--muted)">⏳ Scanning…</div>`;
+
+  scanAndFill(file, (parsed) => {
+    if (certType === 'gas') {
+      if (parsed.expiry) { const e = document.getElementById('s-gas-expiry'); if(e) e.value = parsed.expiry; window._psetup.gasExpiry = parsed.expiry; }
+      if (parsed.engineer) { const e = document.getElementById('s-gas-eng'); if(e) e.value = parsed.engineer; window._psetup.gasEngineer = parsed.engineer; }
+    } else if (certType === 'eicr') {
+      if (parsed.expiry) { const e = document.getElementById('s-eicr-expiry'); if(e) e.value = parsed.expiry; window._psetup.eicrExpiry = parsed.expiry; }
+      if (parsed.engineer) { const e = document.getElementById('s-eicr-eng'); if(e) e.value = parsed.engineer; window._psetup.eicrEngineer = parsed.engineer; }
+    } else if (certType === 'epc') {
+      if (parsed.expiry) { const e = document.getElementById('s-epc-expiry'); if(e) e.value = parsed.expiry; window._psetup.epcExpiry = parsed.expiry; }
+      if (parsed.type) {
+        const rating = parsed.type.match(/\b[A-G]\b/)?.[0];
+        if (rating) { const sel = document.getElementById('s-epc-rating'); if(sel) sel.value = rating; window._psetup.epcRating = rating; }
+      }
+    }
+    if (box) box.innerHTML = `<div style="font-size:12px;font-weight:600;color:var(--green-dark)">✓ Scanned — fields filled below</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${file.name}</div>`;
+    toast('✓ Certificate scanned — check fields below');
+  });
+}
+
+async function _savePropertySetupToDB() {
+  const btn = document.getElementById('psetup-next');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Saving…'; }
+  const s = window._psetup;
+  const pid = s.pid;
+  let hasErrors = false;
+
+  try {
+    // ① Update properties table (licence + boiler + epc rating)
+    const propUpdates = {};
+    if (s.licType)   propUpdates.licence_type   = s.licType;
+    if (s.licRef)    propUpdates.licence_ref     = s.licRef;
+    if (s.licExpiry) propUpdates.licence_expiry  = s.licExpiry;
+    if (s.epcRating) propUpdates.epc_rating      = s.epcRating;
+    if (s.epcExpiry) propUpdates.epc_expiry      = s.epcExpiry;
+    if (s.boilerLast) propUpdates.boiler_last_service = s.boilerLast;
+    if (s.boilerNext) propUpdates.boiler_next_service = s.boilerNext;
+    if (s.boilerEng)  propUpdates.boiler_engineer     = s.boilerEng;
+
+    if (Object.keys(propUpdates).length) {
+      const { error: pe } = await sb.from('properties').update(propUpdates).eq('id', pid);
+      if (pe) { toast('Error saving property: ' + pe.message, true); hasErrors = true; }
+      else {
+        const p = P(pid);
+        if (p) Object.assign(p, propUpdates);
+      }
+    }
+
+    // ② Certificates — insert any that have data
+    const certsToInsert = [];
+    const mkCertStatus = exp => exp ? (new Date(exp) < new Date() ? 'Expired' : 'Valid') : 'Valid';
+    if (s.gasExpiry || s.gasEngineer)   certsToInsert.push({ prop_id: parseInt(pid), type: 'Gas Safety Certificate (GSC)',                      expiry: s.gasExpiry||null,  engineer: s.gasEngineer||null,  status: mkCertStatus(s.gasExpiry),  has_file: false, served: false, user_id: currentUser.id });
+    if (s.eicrExpiry || s.eicrEngineer) certsToInsert.push({ prop_id: parseInt(pid), type: 'Electrical Installation Condition Report (EICR)',   expiry: s.eicrExpiry||null, engineer: s.eicrEngineer||null, status: mkCertStatus(s.eicrExpiry), has_file: false, served: false, user_id: currentUser.id });
+    if (s.epcRating || s.epcExpiry)     certsToInsert.push({ prop_id: parseInt(pid), type: 'Energy Performance Certificate (EPC)',               expiry: s.epcExpiry||null,  engineer: null,                 status: mkCertStatus(s.epcExpiry),  has_file: false, served: false, user_id: currentUser.id });
+
+    if (certsToInsert.length) {
+      const { data: cd, error: ce } = await sb.from('certificates').insert(certsToInsert).select();
+      if (ce) { toast('Warning — cert save error: ' + ce.message, true); hasErrors = true; }
+      else if (cd) D.certs.push(...cd.map(c => ({...c, file: false})));
+    }
+
+    // ③ Insurance — insert any that have data (skip if already exists for this property + type)
+    const existingIns = D.insurance.filter(i => String(i.prop_id) === String(pid));
+    const insToInsert = [];
+    const mkInsStatus = exp => exp ? (new Date(exp) < new Date() ? 'Expired' : 'Active') : 'Active';
+
+    if ((s.bldProvider || s.bldExpiry) && !existingIns.find(i => (i.type||'').toLowerCase().includes('buildings')))
+      insToInsert.push({ prop_id: parseInt(pid), type: 'Buildings Insurance',       provider: s.bldProvider||'Not set', policy: s.bldPolicyRef||null, expiry: s.bldExpiry||null, premium: null, status: mkInsStatus(s.bldExpiry), user_id: currentUser.id });
+    if ((s.llProvider || s.llExpiry) && !existingIns.find(i => (i.type||'').toLowerCase().includes('contents') || (i.type||'').toLowerCase().includes('landlord')))
+      insToInsert.push({ prop_id: parseInt(pid), type: 'Landlord Contents Insurance', provider: s.llProvider||'Not set', policy: s.llPolicyRef||null, expiry: s.llExpiry||null, premium: null, status: mkInsStatus(s.llExpiry),  user_id: currentUser.id });
+    if ((s.rgProvider || s.rgExpiry) && !existingIns.find(i => (i.type||'').toLowerCase().includes('guarantee') || (i.type||'').toLowerCase().includes('rent guarantee')))
+      insToInsert.push({ prop_id: parseInt(pid), type: 'Rent Guarantee Insurance',  provider: s.rgProvider||'Not set', policy: null,                 expiry: s.rgExpiry||null,  premium: null, status: mkInsStatus(s.rgExpiry),  user_id: currentUser.id });
+
+    if (insToInsert.length) {
+      const { data: id2, error: ie } = await sb.from('insurance').insert(insToInsert).select();
+      if (ie) { toast('Warning — insurance save error: ' + ie.message, true); hasErrors = true; }
+      else if (id2) D.insurance.push(...id2);
+    }
+
+    await logAudit('PROPERTY_SETUP', 'properties', pid, `Compliance setup wizard completed. Score: filled items saved.`);
+
+  } catch(err) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Save setup ✓'; }
+    toast('Error: ' + err.message, true);
+    return;
+  }
+
+  closeMo();
+  if (!hasErrors) toast('✓ Property setup saved!');
+  nav('prop-detail', pid);
+}
+
 // ── MODAL: INSPECTION ──
 function moInspection(pid){
   openMo('Log inspection','Record a property inspection',`
@@ -1707,6 +2151,7 @@ function pgProperties(){
           ${t?`<span style="font-size:13px;font-weight:600;color:var(--txt);margin-left:auto">£${(p.rent||0).toLocaleString()}/mo</span>`:''}
         </div>
         <div class="pc-foot">
+          <button class="btn btn-sm" style="flex:1;background:var(--green);color:var(--navy);border-color:var(--green);font-weight:600" onclick="event.stopPropagation();moPropertySetup('${p.id}')">🚀 Setup</button>
           <button class="btn btn-sm" style="flex:1" onclick="event.stopPropagation();nav('compliance')">Compliance</button>
           <button class="btn btn-sm" style="flex:1" onclick="event.stopPropagation();nav('maintenance')">Maintenance</button>
         </div>
