@@ -250,13 +250,100 @@ tr:hover td{background:rgba(246,248,251,.8)}
 .t-det-row .lbl{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.3px}
 /* Dashboard S8 card */
 .s8-dash-card{background:linear-gradient(135deg,#0B1E3D 0%,#1a3a6b 100%);border-radius:12px;padding:20px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between;gap:16px;border:none}
+/* ── MOBILE HEADER ── */
+.mob-header{display:none;align-items:center;justify-content:space-between;padding:0 16px;height:52px;background:#0B1E3D;flex-shrink:0;position:sticky;top:0;z-index:150}
+.mob-logo{font-family:var(--disp);font-size:16px;color:#fff;text-decoration:none}
+.mob-logo span{color:var(--green)}
+.mob-ham{background:none;border:none;cursor:pointer;padding:6px;color:rgba(255,255,255,0.7);display:flex;flex-direction:column;gap:4px}
+.mob-ham span{display:block;width:20px;height:2px;background:currentColor;border-radius:2px;transition:all .2s}
+.mob-ham.open span:nth-child(1){transform:translateY(6px) rotate(45deg)}
+.mob-ham.open span:nth-child(2){opacity:0}
+.mob-ham.open span:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
+.sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:149}
+.sb-overlay.show{display:block}
+/* ── RESPONSIVE BREAKPOINTS ── */
+@media(max-width:900px){
+  .metrics{grid-template-columns:repeat(2,1fr)}
+  .g2{grid-template-columns:1fr}
+  .prop-grid{grid-template-columns:1fr}
+}
+@media(max-width:768px){
+  /* Sidebar slides in/out */
+  .sidebar{position:fixed;left:-224px;top:0;height:100vh;z-index:200;transition:left .25s cubic-bezier(.4,0,.2,1);box-shadow:none}
+  .sidebar.mob-open{left:0;box-shadow:4px 0 24px rgba(0,0,0,0.25)}
+  .main-wrap{flex:1;display:flex;flex-direction:column;min-width:0}
+  /* Show mobile header */
+  .mob-header{display:flex}
+  /* Content sizing */
+  .content{padding:16px 14px}
+  .topbar{padding:0 14px;height:46px;display:none}
+  /* Stat cards */
+  .pd-stat{min-width:calc(50% - 6px);flex:unset}
+  /* Metrics grid */
+  .metrics{grid-template-columns:repeat(2,1fr);gap:10px}
+  /* Property detail tabs — scroll horizontally */
+  .pd-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+  .pd-tabs::-webkit-scrollbar{display:none}
+  .pd-tab{padding:9px 12px;font-size:12px;white-space:nowrap}
+  /* Modal full screen on mobile */
+  .mo{padding:0;align-items:flex-end}
+  .mo-box{width:100%!important;max-width:100%!important;border-radius:16px 16px 0 0;max-height:92vh}
+  .mo-wide{width:100%!important;max-width:100%!important}
+  /* Grids to single column */
+  .g2{grid-template-columns:1fr}
+  .prop-grid{grid-template-columns:1fr}
+  .det-grid{grid-template-columns:repeat(2,1fr)}
+  .ai-res-g{grid-template-columns:1fr}
+  /* Form grids stack */
+  .fg-row{grid-template-columns:1fr}
+  /* Metric cards 2-col */
+  .metrics{grid-template-columns:repeat(2,1fr)}
+  .metrics-3{grid-template-columns:repeat(2,1fr)}
+  /* Table scroll */
+  .tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  /* Chat layout */
+  .chat-outer{height:calc(100dvh - 52px)}
+  /* Section 8 card stack */
+  .s8-dash-card{flex-direction:column;align-items:flex-start;gap:10px}
+  /* Property card footer */
+  .pc-foot{gap:6px}
+  /* Hide page header ph on mobile since mob-header shows */
+  .ph h1{font-size:18px}
+  /* Topbar actions on mobile */
+  .tb-right .btn:not(.btn-navy){display:none}
+}
+@media(max-width:480px){
+  .content{padding:12px 10px}
+  .metrics{grid-template-columns:1fr 1fr;gap:8px}
+  .mc-val{font-size:22px}
+  .det-grid{grid-template-columns:1fr 1fr}
+  .pd-stat-val{font-size:18px}
+  /* Stat pills full row on very small screens */
+  .pd-stat{min-width:calc(50% - 6px)}
+  /* Stack action buttons */
+  .mo-ft{flex-wrap:wrap;gap:8px}
+  .mo-ft .btn{flex:1;justify-content:center;min-width:100px}
+}
 </style>
 </head>
 <body>
-<div class="app">
+<div class="app" style="flex-direction:column">
+
+<!-- MOBILE HEADER -->
+<header class="mob-header" id="mob-header">
+  <a href="index.html" class="mob-logo"><span>Rent</span>Safe AI</a>
+  <button class="mob-ham" id="mob-ham" onclick="toggleMobSidebar()" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+</header>
+
+<!-- SIDEBAR OVERLAY -->
+<div class="sb-overlay" id="sb-overlay" onclick="closeMobSidebar()"></div>
+
+<div style="display:flex;flex:1;overflow:hidden;min-height:0">
 
 <!-- SIDEBAR -->
-<aside class="sidebar">
+<aside class="sidebar" id="sidebar">
   <div class="sb-logo">
     <a href="index.html"><span>Rent</span>Safe AI</a>
   </div>
@@ -335,7 +422,8 @@ tr:hover td{background:rgba(246,248,251,.8)}
 </main>
 </div>
 
-</div>
+</div><!-- end inner flex -->
+</div><!-- end app -->
 
 <!-- MODAL -->
 <div class="mo" id="mo">
@@ -5584,10 +5672,28 @@ async function _sendEsignRequest(pid, tid, mode) {
   toast(`✓ Signing request sent to ${t.email}`);
 }
 
+// ── MOBILE SIDEBAR ──
+function toggleMobSidebar(){
+  const sb=document.getElementById('sidebar');
+  const ov=document.getElementById('sb-overlay');
+  const hm=document.getElementById('mob-ham');
+  const open=sb.classList.toggle('mob-open');
+  ov.classList.toggle('show',open);
+  hm.classList.toggle('open',open);
+  document.body.style.overflow=open?'hidden':'';
+}
+function closeMobSidebar(){
+  document.getElementById('sidebar').classList.remove('mob-open');
+  document.getElementById('sb-overlay').classList.remove('show');
+  const hm=document.getElementById('mob-ham');
+  if(hm) hm.classList.remove('open');
+  document.body.style.overflow='';
+}
+
 // ── START ──
 // Wire nav clicks
 document.querySelectorAll('.sb-item[data-page]').forEach(btn => {
-  btn.addEventListener('click', () => nav(btn.dataset.page));
+  btn.addEventListener('click', () => { closeMobSidebar(); nav(btn.dataset.page); });
 });
 initApp();
 </script>
