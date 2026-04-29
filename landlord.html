@@ -3634,74 +3634,432 @@ function pgCompliance(){
   </div>`;
 }
 
-// ── COMPLIANCE REMINDERS ──
-async function checkComplianceReminders() {
+// ── REMINDERS SYSTEM ──
+// Preferences stored in localStorage. checkAllReminders() runs on login.
+
+const REMINDER_TYPES = [
+  { id:'cert',      icon:'📄', label:'Certificate expiry',       desc:'Gas Safety, EICR, EPC — before expiry',         milestones:[60,30,14], unit:'days', action:'nav(\'compliance\')', mandatory:true  },
+  { id:'licence',   icon:'📋', label:'Property licence expiry',  desc:'Selective / HMO licences — before renewal',       milestones:[60,30,14], unit:'days', action:'nav(\'compliance\')', mandatory:false },
+  { id:'insurance', icon:'🛡', label:'Insurance renewal',         desc:'Buildings, contents, rent guarantee',             milestones:[60,30],    unit:'days', action:'nav(\'insurance\')',  mandatory:false },
+  { id:'mortgage',  icon:'🏦', label:'Mortgage end date',         desc:'Mortgage term ending — arrange remortgage',       milestones:[90,30],    unit:'days', action:'nav(\'financials\')', mandatory:false },
+  { id:'tenancy',   icon:'🔑', label:'Tenancy end date',          desc:'Fixed-term tenancy approaching end',              milestones:[90,60,30], unit:'days', action:'nav(\'tenants\')',    mandatory:false },
+  { id:'boiler',    icon:'🔧', label:'Boiler service due',         desc:'Annual gas boiler service reminder',              milestones:[30,14],    unit:'days', action:'nav(\'properties\')',  mandatory:false },
+  { id:'rtr',       icon:'🔍', label:'Right to Rent re-check',    desc:'Time-limited RTR document expiring',              milestones:[60,30],    unit:'days', action:'nav(\'tenants\')',    mandatory:true  },
+  { id:'rent',      icon:'💷', label:'Rent overdue',              desc:'Payment not received after due date',             milestones:[1,3,7],    unit:'days late', action:'nav(\'rent\')',   mandatory:false },
+  { id:'s13',       icon:'📈', label:'S.13 eligibility',          desc:'12-month anniversary — rent increase now possible', milestones:[0],      unit:'unlocked', action:'nav(\'tenants\')', mandatory:false },
+  { id:'rra',       icon:'⚠️', label:'RRA sheet deadline',        desc:'31 May 2026 — send to all existing tenants',     milestones:[30,14,7],  unit:'days',    action:'moRRASheet()',      mandatory:true  },
+  { id:'compliance_digest', icon:'📊', label:'Compliance score digest', desc:'Weekly email with your portfolio health score and action items', milestones:[7], unit:'days', action:'nav(\'compliance\')', mandatory:false },
+];
+
+function getReminderPrefs() {
+  try { return JSON.parse(localStorage.getItem('rsa_reminders_v1') || '{}'); } catch(e) { return {}; }
+}
+function saveReminderPrefs(prefs) {
+  localStorage.setItem('rsa_reminders_v1', JSON.stringify(prefs));
+}
+function isReminderEnabled(id) {
+  const prefs = getReminderPrefs();
+  // mandatory types always on; others default on
+  return prefs[id] !== false;
+}
+
+async function checkAllReminders() {
   if (!currentUser) return;
   const today = new Date(); today.setHours(0,0,0,0);
-  const landlordEmail = currentUser.email;
-  const MILESTONES = [{ days: 60, key: '60day' }, { days: 30, key: '30day' }, { days: 14, key: '14day' }];
-  const TOLERANCE = 1;
+  const email = currentUser.email;
+  const EDGE = 'https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor';
+  const TOL = 1; // day tolerance window
 
-  for (const prop of D.properties) {
-    for (const { days: milestone, key: milestoneKey } of MILESTONES) {
-      const expiring = D.certs.filter(c => {
-        if (String(c.prop_id) !== String(prop.id)) return false;
-        if (!c.expiry) return false;
-        const daysLeft = Math.round((new Date(c.expiry) - today) / 864e5);
-        return daysLeft >= milestone - TOLERANCE && daysLeft <= milestone + TOLERANCE;
-      });
-      if (!expiring.length) continue;
+  async function alreadySent(action, recordId, key) {
+    const twoDaysAgo = new Date(today); twoDaysAgo.setDate(twoDaysAgo.getDate()-2);
+    try {
+      const { data } = await sb.from('audit_log').select('id')
+        .eq('action', action).eq('record_id', String(recordId))
+        .ilike('details', `%${key}%`).gte('created_at', twoDaysAgo.toISOString()).limit(1);
+      return !!(data && data.length);
+    } catch(e) { return false; }
+  }
 
-      const twoDaysAgo = new Date(today);
-      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-      try {
-        const { data: existing } = await sb.from('audit_log')
-          .select('id')
-          .eq('action', 'COMPLIANCE_REMINDER_SENT')
-          .eq('table_name', 'certificates')
-          .eq('record_id', String(prop.id))
-          .ilike('details', `%${milestoneKey}%`)
-          .gte('created_at', twoDaysAgo.toISOString())
-          .limit(1);
-        if (existing && existing.length) continue;
-      } catch(e) { continue; }
+  async function sendReminder(subject, html, action, recordId, key) {
+    try {
+      await fetch(EDGE, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ type:'send_email', to: email, subject, html }) });
+      await logAudit(action, 'reminders', recordId, key);
+    } catch(e) { /* non-critical */ }
+  }
 
-      const certRows = expiring.map(c => {
-        const daysLeft = Math.round((new Date(c.expiry) - today) / 864e5);
-        return `<tr>
-          <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px">${c.type}</td>
-          <td style="padding:8px 12px;border-bottom:1px solid #eee;color:#D97706;font-weight:600;font-size:13px">${daysLeft} day${daysLeft!==1?'s':''} left</td>
-          <td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px">${new Date(c.expiry).toLocaleDateString('en-GB')}</td>
-        </tr>`;
-      }).join('');
+  function emailWrap(title, subtitle, bodyHtml) {
+    return `<div style="font-family:DM Sans,Arial,sans-serif;color:#1A2B45;max-width:600px;margin:0 auto;padding:0">
+      <div style="background:#0B1E3D;padding:20px 24px;border-radius:10px 10px 0 0">
+        <div style="font-size:17px;font-weight:700;color:#fff">Rent<span style="color:#00C896">Safe AI</span></div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:3px">${subtitle}</div>
+      </div>
+      <div style="background:#fff;border:1px solid #E4EAF1;border-top:none;border-radius:0 0 10px 10px;padding:24px">
+        <h2 style="font-size:16px;font-weight:700;margin:0 0 14px">${title}</h2>
+        ${bodyHtml}
+        <p style="font-size:11px;color:#999;margin-top:20px;border-top:1px solid #eee;padding-top:12px">Sent via RentSafe AI · rentsafeai.co.uk · Manage reminders in your dashboard</p>
+      </div>
+    </div>`;
+  }
 
-      const html = `<!DOCTYPE html><html><body style="font-family:DM Sans,Arial,sans-serif;color:#1a2030;max-width:600px;margin:0 auto;padding:24px">
-        <div style="background:#0B1E3D;border-radius:10px;padding:20px 24px;margin-bottom:24px">
-          <h1 style="color:#fff;margin:0;font-size:20px">&#9888;&#65039; Compliance reminder</h1>
-          <p style="color:rgba(255,255,255,0.6);margin:6px 0 0;font-size:13px">${prop.address}${prop.city ? ', ' + prop.city : ''}</p>
-        </div>
-        <p style="font-size:14px;margin-bottom:16px">The following certificate${expiring.length!==1?'s are':' is'} due to expire in approximately <strong>${milestone} days</strong>:</p>
-        <table style="width:100%;border-collapse:collapse;border-radius:8px;overflow:hidden;margin-bottom:20px;border:1px solid #eee">
-          <thead><tr style="background:#0B1E3D">
-            <th style="padding:10px 12px;color:#fff;text-align:left;font-size:12px;font-weight:600">Certificate</th>
-            <th style="padding:10px 12px;color:#fff;text-align:left;font-size:12px;font-weight:600">Days remaining</th>
-            <th style="padding:10px 12px;color:#fff;text-align:left;font-size:12px;font-weight:600">Expiry date</th>
-          </tr></thead>
-          <tbody>${certRows}</tbody>
-        </table>
-        <p style="font-size:13px;color:#7A8FA6;margin-top:16px">Please arrange renewal to maintain compliance. Log in to RentSafe to manage your certificates.</p>
-      </body></html>`;
-
-      try {
-        await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'send_email', to: landlordEmail, subject: `⚠️ Compliance reminder — ${prop.address}`, html })
+  // ── 1. Certificate expiry ──
+  if (isReminderEnabled('cert')) {
+    for (const prop of D.properties) {
+      for (const ms of [60,30,14]) {
+        const expiring = D.certs.filter(c => {
+          if (String(c.prop_id) !== String(prop.id) || !c.expiry) return false;
+          const d = Math.round((new Date(c.expiry)-today)/864e5);
+          return d >= ms-TOL && d <= ms+TOL;
         });
-        await logAudit('COMPLIANCE_REMINDER_SENT', 'certificates', prop.id, `${milestoneKey} reminder sent for ${prop.address}`);
-      } catch(e) { /* non-critical */ }
+        if (!expiring.length) continue;
+        if (await alreadySent('REMINDER_CERT', prop.id, `cert_${ms}d`)) continue;
+        const rows = expiring.map(c=>`<tr><td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:13px">${c.type}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;color:#D97706;font-weight:600;font-size:13px">${Math.round((new Date(c.expiry)-today)/864e5)}d left</td><td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:12px;color:#7A8FA6">${new Date(c.expiry).toLocaleDateString('en-GB')}</td></tr>`).join('');
+        const html = emailWrap(`⚠️ Certificate expiry — ${prop.address}`,`Compliance reminder · ${ms} days`,`<p style="font-size:13px;margin:0 0 14px">The following certificate${expiring.length!==1?'s':''} will expire in approximately <strong>${ms} days</strong>:</p><table style="width:100%;border-collapse:collapse;margin-bottom:16px;border:1px solid #eee"><thead><tr style="background:#0B1E3D"><th style="padding:8px 12px;color:#fff;text-align:left;font-size:11px">Certificate</th><th style="padding:8px 12px;color:#fff;text-align:left;font-size:11px">Days left</th><th style="padding:8px 12px;color:#fff;text-align:left;font-size:11px">Expiry date</th></tr></thead><tbody>${rows}</tbody></table><p style="font-size:12px;color:#7A8FA6">Please arrange renewal to maintain legal compliance.</p>`);
+        await sendReminder(`⚠️ Certificate expiry — ${prop.address} — ${ms} days`, html, 'REMINDER_CERT', prop.id, `cert_${ms}d`);
+      }
     }
   }
+
+  // ── 2. Licence expiry ──
+  if (isReminderEnabled('licence')) {
+    for (const prop of D.properties.filter(p=>p.licence_expiry)) {
+      for (const ms of [60,30,14]) {
+        const d = Math.round((new Date(prop.licence_expiry)-today)/864e5);
+        if (d < ms-TOL || d > ms+TOL) continue;
+        if (await alreadySent('REMINDER_LICENCE', prop.id, `lic_${ms}d`)) continue;
+        const html = emailWrap(`📋 Licence expiry — ${prop.address}`,`Property licence reminder · ${ms} days`,`<p style="font-size:13px">Your <strong>${prop.licence_type||'property licence'}</strong> for <strong>${prop.address}</strong> expires in <strong>${d} days</strong> (${new Date(prop.licence_expiry).toLocaleDateString('en-GB')}).</p><p style="font-size:13px;margin-top:10px;color:#7A8FA6">Non-compliance with licensing requirements can result in fines up to £30,000. Please arrange renewal.</p>`);
+        await sendReminder(`📋 Licence expiry in ${d} days — ${prop.address}`, html, 'REMINDER_LICENCE', prop.id, `lic_${ms}d`);
+      }
+    }
+  }
+
+  // ── 3. Insurance renewal ──
+  if (isReminderEnabled('insurance')) {
+    for (const ins of D.insurance.filter(i=>i.expiry)) {
+      for (const ms of [60,30]) {
+        const d = Math.round((new Date(ins.expiry)-today)/864e5);
+        if (d < ms-TOL || d > ms+TOL) continue;
+        const prop = P(ins.prop_id)||{address:'—'};
+        if (await alreadySent('REMINDER_INSURANCE', ins.id, `ins_${ms}d`)) continue;
+        const html = emailWrap(`🛡 Insurance renewal — ${prop.address}`,`Insurance reminder · ${ms} days`,`<p style="font-size:13px">Your <strong>${ins.type||'insurance policy'}</strong> for <strong>${prop.address}</strong> renews in <strong>${d} days</strong> (${new Date(ins.expiry).toLocaleDateString('en-GB')}).</p><p style="font-size:13px;margin-top:10px;color:#7A8FA6">Provider: ${ins.provider||'—'} · Policy: ${ins.policy||'—'}. Please arrange renewal to maintain cover.</p>`);
+        await sendReminder(`🛡 Insurance renewal in ${d} days — ${prop.address}`, html, 'REMINDER_INSURANCE', ins.id, `ins_${ms}d`);
+      }
+    }
+  }
+
+  // ── 4. Mortgage end ──
+  if (isReminderEnabled('mortgage')) {
+    for (const prop of D.properties.filter(p=>p.mortgage_end)) {
+      for (const ms of [90,30]) {
+        const d = Math.round((new Date(prop.mortgage_end)-today)/864e5);
+        if (d < ms-TOL || d > ms+TOL) continue;
+        if (await alreadySent('REMINDER_MORTGAGE', prop.id, `mort_${ms}d`)) continue;
+        const html = emailWrap(`🏦 Mortgage ending — ${prop.address}`,`Mortgage reminder · ${ms} days`,`<p style="font-size:13px">The mortgage on <strong>${prop.address}</strong> ends in <strong>${d} days</strong> (${new Date(prop.mortgage_end).toLocaleDateString('en-GB')}).</p><p style="font-size:13px;margin-top:10px;color:#7A8FA6">Lender: ${prop.mortgage_lender||'—'} · Outstanding: £${(prop.mortgage_outstanding||0).toLocaleString()}. Please arrange remortgage or contact your lender.</p>`);
+        await sendReminder(`🏦 Mortgage ending in ${d} days — ${prop.address}`, html, 'REMINDER_MORTGAGE', prop.id, `mort_${ms}d`);
+      }
+    }
+  }
+
+  // ── 5. Tenancy end ──
+  if (isReminderEnabled('tenancy')) {
+    for (const t of D.tenants.filter(t=>t.end_date&&t.status==='Active')) {
+      for (const ms of [90,60,30]) {
+        const d = Math.round((new Date(t.end_date)-today)/864e5);
+        if (d < ms-TOL || d > ms+TOL) continue;
+        const prop = P(t.prop_id)||{address:'—'};
+        if (await alreadySent('REMINDER_TENANCY_END', t.id, `tend_${ms}d`)) continue;
+        const html = emailWrap(`🔑 Tenancy ending — ${t.name}`,`Tenancy end reminder · ${ms} days`,`<p style="font-size:13px">The tenancy for <strong>${t.name}</strong> at <strong>${prop.address}</strong> ends in <strong>${d} days</strong> (${new Date(t.end_date).toLocaleDateString('en-GB')}).</p><p style="font-size:13px;margin-top:10px;color:#7A8FA6">Under RRA 2025, all tenancies are now periodic — consider whether you need to serve notice or agree a renewal.</p>`);
+        await sendReminder(`🔑 Tenancy ending in ${d} days — ${t.name}`, html, 'REMINDER_TENANCY_END', t.id, `tend_${ms}d`);
+      }
+    }
+  }
+
+  // ── 6. Boiler service ──
+  if (isReminderEnabled('boiler')) {
+    for (const prop of D.properties.filter(p=>p.boiler_next_service)) {
+      for (const ms of [30,14]) {
+        const d = Math.round((new Date(prop.boiler_next_service)-today)/864e5);
+        if (d < ms-TOL || d > ms+TOL) continue;
+        if (await alreadySent('REMINDER_BOILER', prop.id, `boil_${ms}d`)) continue;
+        const html = emailWrap(`🔧 Boiler service due — ${prop.address}`,`Boiler service reminder · ${ms} days`,`<p style="font-size:13px">The annual boiler service for <strong>${prop.address}</strong> is due in <strong>${d} days</strong> (${new Date(prop.boiler_next_service).toLocaleDateString('en-GB')}).</p><p style="font-size:13px;margin-top:10px;color:#7A8FA6">${prop.boiler_engineer?'Last engineer: '+prop.boiler_engineer+'. ':''} Annual servicing is a legal requirement for landlords under gas safety regulations.</p>`);
+        await sendReminder(`🔧 Boiler service due in ${d} days — ${prop.address}`, html, 'REMINDER_BOILER', prop.id, `boil_${ms}d`);
+      }
+    }
+  }
+
+  // ── 7. Right to Rent re-check ──
+  if (isReminderEnabled('rtr')) {
+    for (const t of D.tenants.filter(t=>t.rtr_expiry&&t.status==='Active')) {
+      for (const ms of [60,30]) {
+        const d = Math.round((new Date(t.rtr_expiry)-today)/864e5);
+        if (d < ms-TOL || d > ms+TOL) continue;
+        const prop = P(t.prop_id)||{address:'—'};
+        if (await alreadySent('REMINDER_RTR', t.id, `rtr_${ms}d`)) continue;
+        const html = emailWrap(`🔍 Right to Rent re-check — ${t.name}`,`Right to Rent reminder · ${ms} days`,`<p style="font-size:13px">The Right to Rent document for <strong>${t.name}</strong> at <strong>${prop.address}</strong> expires in <strong>${d} days</strong> (${new Date(t.rtr_expiry).toLocaleDateString('en-GB')}).</p><p style="font-size:13px;margin-top:10px;color:#7A8FA6">You must carry out a follow-up Right to Rent check before the document expires. Failure to do so is a criminal offence with unlimited fines.</p>`);
+        await sendReminder(`🔍 Right to Rent re-check due — ${t.name}`, html, 'REMINDER_RTR', t.id, `rtr_${ms}d`);
+      }
+    }
+  }
+
+  // ── 8. Rent overdue ──
+  if (isReminderEnabled('rent')) {
+    for (const t of D.tenants.filter(t=>t.rent&&t.rent_day&&t.status==='Active')) {
+      const dueThis = new Date(); dueThis.setDate(t.rent_day);
+      dueThis.setHours(0,0,0,0);
+      const daysLate = Math.round((today-dueThis)/864e5);
+      if (![1,3,7].includes(daysLate)) continue;
+      // Check if paid
+      const paid = D.rent.some(r => String(r.prop_id)===String(t.prop_id) && r.status==='Paid' && new Date(r.due_date).getMonth()===today.getMonth());
+      if (paid) continue;
+      const prop = P(t.prop_id)||{address:'—'};
+      if (await alreadySent('REMINDER_RENT_LATE', t.id, `rent_${daysLate}d`)) continue;
+      const html = emailWrap(`💷 Rent overdue — ${t.name}`,`Rent reminder · ${daysLate} day${daysLate!==1?'s':''} late`,`<p style="font-size:13px">Rent from <strong>${t.name}</strong> at <strong>${prop.address}</strong> was due on the <strong>${t.rent_day}${t.rent_day===1?'st':t.rent_day===2?'nd':t.rent_day===3?'rd':'th'}</strong> and appears to be <strong>${daysLate} day${daysLate!==1?'s':''} late</strong>.</p><p style="font-size:13px;margin-top:10px;color:#7A8FA6">Expected: £${(t.rent||0).toLocaleString()}/mo. Log in to mark as paid or begin the arrears process if needed.</p>`);
+      await sendReminder(`💷 Rent ${daysLate}d overdue — ${t.name}`, html, 'REMINDER_RENT_LATE', t.id, `rent_${daysLate}d`);
+    }
+  }
+
+  // ── 9. S.13 eligibility ──
+  if (isReminderEnabled('s13')) {
+    for (const t of D.tenants.filter(t=>t.start_date&&t.status==='Active')) {
+      const anniv = new Date(t.start_date); anniv.setFullYear(anniv.getFullYear()+1); anniv.setHours(0,0,0,0);
+      const d = Math.round((anniv-today)/864e5);
+      if (d !== 0) continue;
+      if (await alreadySent('REMINDER_S13', t.id, 's13_unlock')) continue;
+      const prop = P(t.prop_id)||{address:'—'};
+      const html = emailWrap(`📈 S.13 rent increase now available — ${t.name}`,`Section 13 eligibility unlocked`,`<p style="font-size:13px">The tenancy for <strong>${t.name}</strong> at <strong>${prop.address}</strong> has now passed its 12-month anniversary.</p><p style="font-size:13px;margin-top:10px">You are now eligible to propose a rent increase using a <strong>Section 13 notice</strong>. Under RRA 2025, rent can only be increased once every 12 months.</p><p style="font-size:13px;margin-top:10px;color:#7A8FA6">Current rent: £${(t.rent||0).toLocaleString()}/mo. Log in to generate a Section 13 notice.</p>`);
+      await sendReminder(`📈 S.13 eligible now — ${t.name}, ${prop.address}`, html, 'REMINDER_S13', t.id, 's13_unlock');
+    }
+  }
+
+  // ── 10. RRA sheet deadline ──
+  if (isReminderEnabled('rra')) {
+    const rraSent = new Set(D.emailLog.filter(e=>e.template_id==='rra_info_sheet'&&e.status==='Sent').map(e=>String(e.tenant_id)));
+    const unsent = D.tenants.filter(t=>t.status==='Active'&&!rraSent.has(String(t.id)));
+    if (unsent.length) {
+      const dToDeadline = Math.round((new Date('2026-05-31')-today)/864e5);
+      for (const ms of [30,14,7]) {
+        if (dToDeadline < ms-TOL || dToDeadline > ms+TOL) continue;
+        if (await alreadySent('REMINDER_RRA', 'portfolio', `rra_${ms}d`)) continue;
+        const names = unsent.map(t=>t.name).join(', ');
+        const html = emailWrap(`⚠️ RRA sheet deadline — ${ms} days left`,`Renters Rights Act 2025 · Urgent`,`<p style="font-size:13px;color:#E53E3E;font-weight:600">You have ${dToDeadline} days to send the mandatory RRA 2025 Information Sheet to ${unsent.length} tenant${unsent.length!==1?'s':''}.</p><p style="font-size:13px;margin-top:10px">Unsent: <strong>${names}</strong></p><p style="font-size:13px;margin-top:10px;color:#7A8FA6">Failure to send by 31 May 2026 can result in a fine of up to <strong>£7,000 per tenant</strong>. Log in now to send.</p>`);
+        await sendReminder(`⚠️ RRA sheet — ${dToDeadline} days left — ${unsent.length} tenant${unsent.length!==1?'s':''} unsent`, html, 'REMINDER_RRA', 'portfolio', `rra_${ms}d`);
+        break; // Only one RRA reminder at a time
+      }
+    }
+  }
+  // ── 11. Compliance score digest (weekly) ──
+  if (isReminderEnabled('compliance_digest') && D.properties.length) {
+    const sevenDaysAgo = new Date(today); sevenDaysAgo.setDate(sevenDaysAgo.getDate()-7);
+    try {
+      const { data: existing } = await sb.from('audit_log').select('id')
+        .eq('action','REMINDER_COMPLIANCE_DIGEST')
+        .eq('record_id','portfolio')
+        .gte('created_at', sevenDaysAgo.toISOString())
+        .limit(1);
+      if (existing && existing.length) return; // already sent this week
+    } catch(e) { return; }
+
+    // Calculate portfolio score
+    const allCerts = D.certs;
+    const totalCerts = allCerts.length;
+    const expiredCerts = allCerts.filter(c => c.expiry && new Date(c.expiry) < today).length;
+    const criticalCerts = allCerts.filter(c => { if(!c.expiry) return false; const d=Math.round((new Date(c.expiry)-today)/864e5); return d>=0&&d<=14; }).length;
+    const portfolioScore = totalCerts > 0
+      ? Math.max(0, Math.min(100, Math.round(((totalCerts-expiredCerts)/totalCerts)*100) - (criticalCerts*5)))
+      : 0;
+    const scoreCol = portfolioScore>=80?'#00C896':portfolioScore>=50?'#D97706':'#E53E3E';
+    const scoreLabel = portfolioScore>=80?'Healthy ✅':portfolioScore>=50?'Needs attention ⚠️':'At risk 🔴';
+
+    // Per-property rows
+    const propRows = D.properties.map(p => {
+      const rag = calcRAG(p.id);
+      const ragColMap = { green:'#00A87A', amber:'#D97706', red:'#E53E3E' };
+      const col = ragColMap[rag.rag]||'#7A8FA6';
+      const pCerts = D.certs.filter(c=>String(c.prop_id)===String(p.id));
+      const expCount = pCerts.filter(c=>c.expiry&&new Date(c.expiry)<today).length;
+      const dueCount = pCerts.filter(c=>{if(!c.expiry)return false;const d=Math.round((new Date(c.expiry)-today)/864e5);return d>=0&&d<=60;}).length;
+      const tenant = D.tenants.find(t=>String(t.prop_id)===String(p.id)&&t.status==='Active');
+      return `<tr>
+        <td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:13px;font-weight:600">${p.address}${p.city?', '+p.city:''}</td>
+        <td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:14px;font-weight:700;color:${col}">${rag.score}/100</td>
+        <td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:12px;color:${col};font-weight:600">${rag.label}</td>
+        <td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:12px;color:#7A8FA6">${expCount>0?`<span style="color:#E53E3E;font-weight:600">${expCount} expired</span>`:dueCount>0?`<span style="color:#D97706">${dueCount} due soon</span>`:'<span style="color:#00A87A">All clear</span>'}</td>
+        <td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:12px;color:#7A8FA6">${tenant?tenant.name:'Vacant'}</td>
+      </tr>`;
+    }).join('');
+
+    // Action items — expiring certs
+    const actionItems = D.certs
+      .filter(c => { if(!c.expiry) return false; const d=Math.round((new Date(c.expiry)-today)/864e5); return d<=60; })
+      .sort((a,b)=>new Date(a.expiry)-new Date(b.expiry))
+      .slice(0,5);
+    const actionHtml = actionItems.length ? `
+      <h3 style="font-size:14px;font-weight:700;margin:20px 0 10px;color:#1A2B45">⚡ Action required</h3>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:16px;border:1px solid #eee">
+        <thead><tr style="background:#0B1E3D">
+          <th style="padding:8px 12px;color:#fff;text-align:left;font-size:11px">Certificate</th>
+          <th style="padding:8px 12px;color:#fff;text-align:left;font-size:11px">Property</th>
+          <th style="padding:8px 12px;color:#fff;text-align:left;font-size:11px">Status</th>
+          <th style="padding:8px 12px;color:#fff;text-align:left;font-size:11px">Expiry</th>
+        </tr></thead>
+        <tbody>${actionItems.map(c => {
+          const daysLeft = Math.round((new Date(c.expiry)-today)/864e5);
+          const prop = P(c.prop_id)||{address:'—'};
+          const col = daysLeft<0?'#E53E3E':daysLeft<=14?'#D97706':'#3B6FE8';
+          const status = daysLeft<0?`${Math.abs(daysLeft)}d overdue`:daysLeft===0?'Expires today':`${daysLeft}d left`;
+          return `<tr><td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:12px">${c.type}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:12px;color:#7A8FA6">${prop.address}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:12px;font-weight:600;color:${col}">${status}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;font-size:12px;color:#7A8FA6">${new Date(c.expiry).toLocaleDateString('en-GB')}</td></tr>`;
+        }).join('')}</tbody>
+      </table>` : '';
+
+    const html = `<div style="font-family:DM Sans,Arial,sans-serif;color:#1A2B45;max-width:620px;margin:0 auto">
+      <div style="background:#0B1E3D;padding:20px 24px;border-radius:10px 10px 0 0">
+        <div style="font-size:17px;font-weight:700;color:#fff">Rent<span style="color:#00C896">Safe AI</span></div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:3px">Weekly compliance digest · ${today.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div>
+      </div>
+      <div style="background:#fff;border:1px solid #E4EAF1;border-top:none;border-radius:0 0 10px 10px;padding:24px">
+
+        <!-- Portfolio score banner -->
+        <div style="background:#0B1E3D;border-radius:10px;padding:20px 24px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:20px">
+          <div>
+            <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Portfolio compliance score</div>
+            <div style="font-size:42px;font-weight:700;color:${scoreCol};line-height:1">${portfolioScore}</div>
+            <div style="font-size:13px;font-weight:600;color:${scoreCol};margin-top:4px">${scoreLabel}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:4px">${D.properties.length} propert${D.properties.length!==1?'ies':'y'}</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:4px">${D.tenants.filter(t=>t.status==='Active').length} active tenant${D.tenants.filter(t=>t.status==='Active').length!==1?'s':''}</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.5)">${totalCerts} certificates tracked</div>
+          </div>
+        </div>
+
+        <!-- Per-property breakdown -->
+        <h3 style="font-size:14px;font-weight:700;margin:0 0 10px;color:#1A2B45">Property breakdown</h3>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:16px;border:1px solid #eee">
+          <thead><tr style="background:#F6F8FB">
+            <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#7A8FA6;text-transform:uppercase;letter-spacing:.4px">Property</th>
+            <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#7A8FA6;text-transform:uppercase;letter-spacing:.4px">Score</th>
+            <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#7A8FA6;text-transform:uppercase;letter-spacing:.4px">Status</th>
+            <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#7A8FA6;text-transform:uppercase;letter-spacing:.4px">Certs</th>
+            <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#7A8FA6;text-transform:uppercase;letter-spacing:.4px">Tenant</th>
+          </tr></thead>
+          <tbody>${propRows}</tbody>
+        </table>
+
+        ${actionHtml}
+
+        <div style="text-align:center;margin-top:20px">
+          <a href="https://rentsafeai.co.uk/landlord.html" style="background:#0B1E3D;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;display:inline-block">Open RentSafe AI dashboard →</a>
+        </div>
+        <p style="font-size:11px;color:#999;margin-top:16px;text-align:center;border-top:1px solid #eee;padding-top:12px">Sent weekly by RentSafe AI · Manage reminders in Settings</p>
+      </div>
+    </div>`;
+
+    await sendReminder(
+      `📊 Weekly compliance digest — Portfolio score: ${portfolioScore}/100`,
+      html, 'REMINDER_COMPLIANCE_DIGEST', 'portfolio', `digest_${today.toISOString().slice(0,10)}`
+    );
+  }
+}
+
+// ── PAGE: REMINDERS ──
+function pgReminders() {
+  const prefs = getReminderPrefs();
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  // Calculate next fire date for each type
+  function nextFire(id) {
+    const events = getCalEvents();
+    const typeMap = { cert:'cert', licence:'licence', insurance:'insurance', mortgage:'mortgage', tenancy:'tenancy', boiler:'boiler', rtr:'compliance', rent:'rent', s13:'tenancy', rra:'compliance' };
+    const t = typeMap[id];
+    const match = events.filter(e => e.type === t && e.days >= -1 && e.days <= 180);
+    if (!match.length) return null;
+    const soonest = match.sort((a,b)=>a.days-b.days)[0];
+    return soonest;
+  }
+
+  const cards = REMINDER_TYPES.map(rt => {
+    const enabled = isReminderEnabled(rt.id);
+    const next = nextFire(rt.id);
+    const nextStr = next ? `Next: ${next.label} · ${calDayLabel(next.days)}` : 'No upcoming events';
+    const milestoneStr = rt.milestones.map(m => rt.unit === 'days' ? `${m}d before` : rt.unit === 'days late' ? `${m}d late` : 'on unlock').join(', ');
+    return `<div style="background:var(--white);border:1px solid ${enabled?'var(--border)':'var(--border)'};border-radius:10px;padding:14px 18px;margin-bottom:10px;display:flex;align-items:flex-start;gap:14px;opacity:${enabled?'1':'0.55'}">
+      <div style="font-size:22px;flex-shrink:0;margin-top:2px">${rt.icon}</div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+          <span style="font-size:13px;font-weight:600;color:var(--txt)">${rt.label}</span>
+          ${rt.mandatory?`<span style="font-size:10px;font-weight:700;color:var(--red);background:var(--red-bg);padding:1px 7px;border-radius:100px">Mandatory</span>`:''}
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px">${rt.desc}</div>
+        <div style="font-size:11px;color:var(--muted)">Fires at: <span style="color:var(--txt);font-weight:500">${milestoneStr}</span></div>
+        <div style="font-size:11px;color:${next&&next.days<=7?'var(--red)':next&&next.days<=30?'var(--amber)':'var(--muted)'};margin-top:3px">${nextStr}</div>
+      </div>
+      <div style="flex-shrink:0;display:flex;align-items:center;gap:10px">
+        <button onclick="testReminder('${rt.id}')" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--off);color:var(--muted);cursor:pointer;font-family:var(--font)">Test</button>
+        ${rt.mandatory
+          ? `<div style="width:36px;height:20px;border-radius:100px;background:var(--green);position:relative;cursor:not-allowed" title="Mandatory — cannot disable"><div style="position:absolute;right:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff"></div></div>`
+          : `<div onclick="toggleReminder('${rt.id}')" style="width:36px;height:20px;border-radius:100px;background:${enabled?'var(--green)':'var(--border)'};position:relative;cursor:pointer;transition:background .2s"><div style="position:absolute;${enabled?'right':'left'}:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .2s,right .2s"></div></div>`
+        }
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<div class="topbar"><span class="tb-title">Reminders</span><div class="tb-right">
+    <button class="btn btn-navy" onclick="checkAllReminders().then(()=>toast('✓ All reminders checked'))">Run check now</button>
+    <button class="btn" onclick="nav('calendar')">← Calendar</button>
+  </div></div>
+  <div class="content">
+    <div class="ph"><h1>Reminder settings</h1><p>Automated emails sent to you when compliance deadlines approach · Runs every login</p></div>
+
+    <div style="background:var(--green-bg);border:1px solid rgba(0,200,150,0.2);border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px">
+      <span style="font-size:22px">✅</span>
+      <div>
+        <div style="font-size:13px;font-weight:600;color:var(--green-dark)">Reminders run automatically on every login</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">Emails are sent to <strong>${currentUser?.email||'your account'}</strong> · Each reminder fires once per window (not repeatedly)</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:20px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:10px">10 reminder types — toggle on/off</div>
+      ${cards}
+    </div>
+
+    <div class="panel">
+      <div class="ph2"><div><h2>Recent reminders sent</h2><p>Last 10 reminders fired</p></div></div>
+      <div style="padding:0">
+        ${(()=>{
+          const recent = (D.emailLog||[]).filter(e=>e.template_id&&e.template_id.startsWith?.('section13')||true)
+            .filter((_,i)=>false).concat([]); // placeholder — audit log not loaded here
+          return `<div style="padding:16px 18px;font-size:12px;color:var(--muted)">Reminder history is stored in your audit log. <button onclick="nav('compliance')" style="color:var(--blue);background:none;border:none;cursor:pointer;font-family:var(--font);font-size:12px">View compliance page →</button></div>`;
+        })()}
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleReminder(id) {
+  const prefs = getReminderPrefs();
+  prefs[id] = !isReminderEnabled(id);
+  saveReminderPrefs(prefs);
+  nav('reminders');
+  toast(isReminderEnabled(id) ? `✓ ${id} reminders enabled` : `${id} reminders disabled`);
+}
+
+async function testReminder(id) {
+  const rt = REMINDER_TYPES.find(r=>r.id===id);
+  if (!rt) return;
+  toast(`Sending test reminder for "${rt.label}"…`);
+  const html = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#fff;border:1px solid #E4EAF1;border-radius:10px">
+    <div style="font-size:17px;font-weight:700;color:#0B1E3D;margin-bottom:14px">Rent<span style="color:#00C896">Safe AI</span> — Test reminder</div>
+    <p style="font-size:13px;color:#1A2B45;margin:0 0 10px">${rt.icon} <strong>${rt.label}</strong></p>
+    <p style="font-size:12px;color:#7A8FA6">${rt.desc}</p>
+    <p style="font-size:11px;color:#999;margin-top:16px">This is a test reminder. Real reminders fire automatically when conditions are met.</p>
+  </div>`;
+  try {
+    await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ type:'send_email', to: currentUser.email, subject:`Test reminder — ${rt.label}`, html })
+    });
+    toast(`✓ Test sent to ${currentUser.email}`);
+  } catch(e) { toast('Error sending test', true); }
 }
 
 // ── PAGE: TENANTS ──
@@ -4189,6 +4547,7 @@ function pgCalendar(){
   }).join('');
 
   return`<div class="topbar"><span class="tb-title">Portfolio Calendar</span><div class="tb-right">
+    <button class="btn" onclick="nav('reminders')">⚙ Reminders</button>
     <select style="padding:6px 10px;border-radius:7px;border:1px solid var(--border);font-family:var(--font);font-size:12px;color:var(--txt);background:var(--white)" onchange="window.calProp=this.value;nav('calendar')">${propOpts}</select>
   </div></div>
   <div class="content">
@@ -4274,6 +4633,7 @@ const PAGES={
   insurance:()=>pgInsurance(),
   assistant:()=>pgAssistant(),
   calendar:()=>pgCalendar(),
+  reminders:()=>pgReminders(),
   'prop-detail':(id)=>pgPropDetail(id),
   financials:()=>pgFinancials(),
   templates:()=>pgTemplates(),
