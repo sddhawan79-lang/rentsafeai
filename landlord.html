@@ -3504,7 +3504,7 @@ function pdTabContent(pid, tab) {
         <div style="font-size:32px;margin-bottom:10px">👤</div>
         <div style="font-size:14px;font-weight:500;margin-bottom:4px">No tenant linked</div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Add a tenant to this property to track rent, generate notices and manage the tenancy.</div>
-        <button class="btn btn-navy" onclick="moTenant('${pid}')">+ Add tenant</button>
+        <button class="btn" onclick="alert('Test button clicked!')">Test</button>&nbsp;<button class="btn btn-navy" onclick="moTenant('${pid}')">+ Add tenant</button>
       </div></div>`;
     return tenantCard;
   }
