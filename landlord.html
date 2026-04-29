@@ -3982,54 +3982,103 @@ function getCalEvents(){
   const events=[];
   const today=new Date(); today.setHours(0,0,0,0);
 
-  // Certificate expiries
+  // ── Certificate expiries ──
   D.certs.filter(c=>c.expiry).forEach(c=>{
     const d=new Date(c.expiry); d.setHours(0,0,0,0);
     const days=Math.round((d-today)/864e5);
     const prop=(P(c.prop_id)||{address:'—'}).address;
     const urg=days<0?'red':days<=7?'red':days<=30?'amber':'blue';
-    events.push({date:c.expiry,type:'cert',label:c.type+' expiry',sub:prop,urg,days,icon:'📄'});
+    events.push({date:c.expiry,type:'cert',label:c.type+' expiry',sub:prop,urg,days,icon:'📄',pid:c.prop_id});
   });
 
-  // Rent due dates (monthly recurring)
+  // ── Rent due dates (monthly recurring — 6 months) ──
   D.tenants.filter(t=>t.rent&&t.status==='Active').forEach(t=>{
     const prop=(P(t.prop_id)||{address:'—'}).address;
     const day=t.rent_day||1;
-    // Generate next 3 months of rent dates
-    for(let m=0;m<3;m++){
+    for(let m=0;m<6;m++){
       const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()+m); d.setDate(day);
       const days=Math.round((d-today)/864e5);
-      if(days>=-1&&days<=90){
+      if(days>=-1&&days<=180){
         const dStr=d.toISOString().slice(0,10);
         const urg=days<0?'red':days===0?'red':days<=3?'amber':'blue';
-        events.push({date:dStr,type:'rent',label:'Rent due — '+t.name,sub:prop,urg,days,icon:'💷'});
+        events.push({date:dStr,type:'rent',label:`Rent due — ${t.name}`,sub:`£${(t.rent||0).toLocaleString()} · ${prop}`,urg,days,icon:'💷',pid:t.prop_id});
       }
     }
   });
 
-  // Insurance expiries
+  // ── Insurance expiries ──
   D.insurance&&D.insurance.filter(i=>i.expiry).forEach(i=>{
     const d=new Date(i.expiry); d.setHours(0,0,0,0);
     const days=Math.round((d-today)/864e5);
     const prop=(P(i.prop_id)||{address:'—'}).address;
-    const urg=days<0?'red':days<=7?'red':days<=30?'amber':'blue';
-    events.push({date:i.expiry,type:'insurance',label:(i.type||'Insurance')+' expiry',sub:prop,urg,days,icon:'🛡'});
+    const urg=days<0?'red':days<=14?'red':days<=60?'amber':'blue';
+    events.push({date:i.expiry,type:'insurance',label:`${i.type||'Insurance'} renewal`,sub:prop,urg,days,icon:'🛡',pid:i.prop_id});
   });
 
-  // Mortgage end dates
+  // ── Mortgage end dates ──
   D.properties.filter(p=>p.mortgage_end).forEach(p=>{
     const d=new Date(p.mortgage_end); d.setHours(0,0,0,0);
     const days=Math.round((d-today)/864e5);
     const urg=days<0?'red':days<=30?'red':days<=90?'amber':'blue';
-    events.push({date:p.mortgage_end,type:'mortgage',label:'Mortgage end',sub:p.address,urg,days,icon:'🏦'});
+    events.push({date:p.mortgage_end,type:'mortgage',label:'Mortgage end',sub:p.address,urg,days,icon:'🏦',pid:p.id});
   });
 
-  // Licence expiries
+  // ── Licence expiries ──
   D.properties.filter(p=>p.licence_expiry).forEach(p=>{
     const d=new Date(p.licence_expiry); d.setHours(0,0,0,0);
     const days=Math.round((d-today)/864e5);
     const urg=days<0?'red':days<=14?'red':days<=60?'amber':'blue';
-    events.push({date:p.licence_expiry,type:'licence',label:(p.licence_type||'Licence')+' expiry',sub:p.address,urg,days,icon:'📋'});
+    events.push({date:p.licence_expiry,type:'licence',label:`${p.licence_type||'Licence'} expiry`,sub:p.address,urg,days,icon:'📋',pid:p.id});
+  });
+
+  // ── Tenancy end dates ──
+  D.tenants.filter(t=>t.end_date&&t.status==='Active').forEach(t=>{
+    const d=new Date(t.end_date); d.setHours(0,0,0,0);
+    const days=Math.round((d-today)/864e5);
+    const prop=(P(t.prop_id)||{address:'—'}).address;
+    const urg=days<0?'red':days<=30?'red':days<=90?'amber':'blue';
+    events.push({date:t.end_date,type:'tenancy',label:`Tenancy ends — ${t.name}`,sub:prop,urg,days,icon:'🔑',pid:t.prop_id});
+  });
+
+  // ── Tenancy 12-month anniversary (S.13 eligibility unlocks) ──
+  D.tenants.filter(t=>t.start_date&&t.status==='Active').forEach(t=>{
+    const anniv=new Date(t.start_date);
+    anniv.setFullYear(anniv.getFullYear()+1);
+    anniv.setHours(0,0,0,0);
+    const days=Math.round((anniv-today)/864e5);
+    if(days>=-7&&days<=180){
+      const prop=(P(t.prop_id)||{address:'—'}).address;
+      const urg=days<=0?'blue':days<=14?'blue':'blue';
+      events.push({date:anniv.toISOString().slice(0,10),type:'tenancy',label:`S.13 eligible — ${t.name}`,sub:`Can now propose rent increase · ${prop}`,urg:'blue',days,icon:'📈',pid:t.prop_id});
+    }
+  });
+
+  // ── Boiler service next due ──
+  D.properties.filter(p=>p.boiler_next_service).forEach(p=>{
+    const d=new Date(p.boiler_next_service); d.setHours(0,0,0,0);
+    const days=Math.round((d-today)/864e5);
+    const urg=days<0?'red':days<=14?'red':days<=60?'amber':'blue';
+    events.push({date:p.boiler_next_service,type:'boiler',label:'Boiler service due',sub:`${p.boiler_engineer?'Engineer: '+p.boiler_engineer+' · ':''}${p.address}`,urg,days,icon:'🔧',pid:p.id});
+  });
+
+  // ── Right to Rent re-check ──
+  D.tenants.filter(t=>t.rtr_expiry&&t.status==='Active').forEach(t=>{
+    const d=new Date(t.rtr_expiry); d.setHours(0,0,0,0);
+    const days=Math.round((d-today)/864e5);
+    const prop=(P(t.prop_id)||{address:'—'}).address;
+    const urg=days<0?'red':days<=14?'red':days<=60?'amber':'blue';
+    events.push({date:t.rtr_expiry,type:'compliance',label:`Right to Rent re-check — ${t.name}`,sub:`Document expires · ${prop}`,urg,days,icon:'🔍',pid:t.prop_id});
+  });
+
+  // ── RRA sheet deadline (31 May 2026) if not sent ──
+  const rraSentIds=new Set(D.emailLog.filter(e=>e.template_id==='rra_info_sheet'&&e.status==='Sent').map(e=>String(e.tenant_id)));
+  D.tenants.filter(t=>t.status==='Active'&&!rraSentIds.has(String(t.id))).forEach(t=>{
+    const daysToDeadline=Math.round((new Date('2026-05-31')-today)/864e5);
+    if(daysToDeadline>=-1){
+      const prop=(P(t.prop_id)||{address:'—'}).address;
+      const urg=daysToDeadline<=7?'red':daysToDeadline<=30?'amber':'blue';
+      events.push({date:'2026-05-31',type:'compliance',label:`RRA sheet unsent — ${t.name}`,sub:`Deadline 31 May 2026 · Fine up to £7,000 · ${prop}`,urg,days:daysToDeadline,icon:'⚠️',pid:t.prop_id});
+    }
   });
 
   return events.sort((a,b)=>new Date(a.date)-new Date(b.date));
@@ -4046,22 +4095,29 @@ function calDayLabel(days){
 
 function pgCalendar(){
   if(window.calYear===undefined){window.calYear=new Date().getFullYear();window.calMonth=new Date().getMonth();}
+  if(window.calFilter===undefined){window.calFilter='all';window.calProp='';}
   const yr=window.calYear,mo=window.calMonth;
   const now=new Date(); now.setHours(0,0,0,0);
   const mn=new Date(yr,mo,1).toLocaleString('en-GB',{month:'long',year:'numeric'});
   const fd=(new Date(yr,mo,1).getDay()+6)%7;
   const dim=new Date(yr,mo+1,0).getDate();
   const dn=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  const allEvents=getCalEvents();
 
-  // Build event map for this month
+  // All events + apply filters
+  let allEvents=getCalEvents();
+  if(window.calProp) allEvents=allEvents.filter(e=>String(e.pid)===String(window.calProp));
+  if(window.calFilter!=='all') allEvents=allEvents.filter(e=>e.type===window.calFilter);
+
+  // Summary counts
+  const urgentCount = allEvents.filter(e=>e.days<=7&&e.days>=-1).length;
+  const soonCount   = allEvents.filter(e=>e.days>7&&e.days<=30).length;
+
+  // Build event map for current month
   const evMap={};
   allEvents.forEach(ev=>{
     const d=new Date(ev.date);
     if(d.getFullYear()===yr&&d.getMonth()===mo){
-      const k=d.getDate();
-      if(!evMap[k]) evMap[k]=[];
-      evMap[k].push(ev);
+      const k=d.getDate(); if(!evMap[k]) evMap[k]=[]; evMap[k].push(ev);
     }
   });
 
@@ -4080,25 +4136,73 @@ function pgCalendar(){
     </div>`;
   }
 
-  // Reminders panel — next 60 days
-  const upcoming=allEvents.filter(e=>{const days=e.days;return days>=-1&&days<=60;});
-  const urgent=upcoming.filter(e=>e.days<=7);
-  const warning=upcoming.filter(e=>e.days>7&&e.days<=30);
-  const normal=upcoming.filter(e=>e.days>30&&e.days<=60);
+  // Property filter options
+  const propOpts = `<option value="">All properties</option>`+D.properties.map(p=>`<option value="${p.id}"${String(p.id)===String(window.calProp)?' selected':''}>${p.address}</option>`).join('');
+
+  // Event type filter chips
+  const filterTypes=[
+    {k:'all',label:'All',icon:'📅'},
+    {k:'cert',label:'Certs',icon:'📄'},
+    {k:'rent',label:'Rent',icon:'💷'},
+    {k:'tenancy',label:'Tenancy',icon:'🔑'},
+    {k:'insurance',label:'Insurance',icon:'🛡'},
+    {k:'compliance',label:'Compliance',icon:'⚠️'},
+    {k:'boiler',label:'Boiler',icon:'🔧'},
+    {k:'mortgage',label:'Mortgage',icon:'🏦'},
+  ];
+  const filterChips = filterTypes.map(f=>`<button onclick="window.calFilter='${f.k}';nav('calendar')" style="padding:5px 12px;border-radius:100px;font-size:11px;font-weight:${window.calFilter===f.k?'700':'500'};border:1px solid ${window.calFilter===f.k?'var(--navy)':'var(--border)'};background:${window.calFilter===f.k?'var(--navy)':'var(--white)'};color:${window.calFilter===f.k?'#fff':'var(--muted)'};cursor:pointer;font-family:var(--font)">${f.icon} ${f.label}</button>`).join('');
+
+  // Upcoming panel — grouped by time window, 180 days
+  const upcoming = allEvents.filter(e=>e.days>=-1&&e.days<=180);
+  const bands=[
+    {label:'🔴 Urgent — overdue or within 7 days', min:-999, max:7,  col:'var(--red)'},
+    {label:'🟡 Due soon — 8 to 30 days',           min:8,   max:30, col:'var(--amber)'},
+    {label:'🔵 Next 2 months — 31 to 60 days',     min:31,  max:60, col:'var(--blue)'},
+    {label:'📅 3–6 months ahead',                  min:61,  max:180,col:'var(--muted)'},
+  ];
 
   function evRow(e){
     const col=e.urg==='red'?'var(--red)':e.urg==='amber'?'var(--amber)':'var(--blue)';
     const bg=e.urg==='red'?'var(--red-bg)':e.urg==='amber'?'var(--amber-bg)':'var(--blue-bg)';
-    return`<div class="ai-row">
-      <div style="text-align:center;min-width:40px;font-size:18px">${e.icon}</div>
-      <div class="ai-body"><div class="ai-title">${e.label}</div><div class="ai-sub">${e.sub}</div></div>
-      <span style="font-size:11px;font-weight:600;color:${col};background:${bg};padding:2px 8px;border-radius:100px;white-space:nowrap">${calDayLabel(e.days)}</span>
+    const actionBtn = e.type==='cert'?`<button onclick="nav('compliance')" style="font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid var(--border);background:var(--white);color:var(--muted);cursor:pointer;font-family:var(--font)">View →</button>`
+      : e.type==='tenancy'&&e.icon==='📈'?`<button onclick="moSection13('${e.pid}')" style="font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid var(--blue);background:var(--blue-bg);color:var(--blue);cursor:pointer;font-family:var(--font)">S.13 →</button>`
+      : e.type==='compliance'&&e.icon==='⚠️'?`<button onclick="moRRASheet()" style="font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid var(--red);background:var(--red-bg);color:var(--red);cursor:pointer;font-family:var(--font)">Send now</button>`
+      : e.type==='boiler'?`<button onclick="moPropertySetup('${e.pid}')" style="font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid var(--border);background:var(--white);color:var(--muted);cursor:pointer;font-family:var(--font)">Update →</button>`
+      : '';
+    return`<div class="ai-row" style="align-items:center">
+      <div style="text-align:center;min-width:32px;font-size:16px">${e.icon}</div>
+      <div class="ai-body"><div class="ai-title" style="font-size:13px">${e.label}</div><div class="ai-sub" style="font-size:11px">${e.sub}</div></div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        <span style="font-size:10px;font-weight:700;color:${col};background:${bg};padding:2px 8px;border-radius:100px;white-space:nowrap">${calDayLabel(e.days)}</span>
+        ${actionBtn}
+      </div>
     </div>`;
   }
 
-  return`<div class="topbar"><span class="tb-title">Calendar</span><div class="tb-right"><button class="btn btn-sm" onclick="nav('dashboard')">← Dashboard</button></div></div>
+  const bandHtml = bands.map(b=>{
+    const items=upcoming.filter(e=>e.days>=b.min&&e.days<=b.max);
+    if(!items.length) return '';
+    return`<div class="panel" style="margin-bottom:14px">
+      <div class="ph2"><div><h2 style="font-size:13px">${b.label}</h2><p>${items.length} item${items.length!==1?'s':''}</p></div></div>
+      ${items.map(evRow).join('')}
+    </div>`;
+  }).join('');
+
+  return`<div class="topbar"><span class="tb-title">Portfolio Calendar</span><div class="tb-right">
+    <select style="padding:6px 10px;border-radius:7px;border:1px solid var(--border);font-family:var(--font);font-size:12px;color:var(--txt);background:var(--white)" onchange="window.calProp=this.value;nav('calendar')">${propOpts}</select>
+  </div></div>
   <div class="content">
-    <div class="ph"><h1>Calendar</h1><p>Smart reminders · rent, certificates, inspections, licences</p></div>
+    <div class="ph"><h1>Portfolio Calendar</h1><p>Auto-populated from all your compliance, tenancy and financial data</p></div>
+
+    ${urgentCount?`<div style="background:var(--red-bg);border:2px solid var(--red);border-radius:10px;padding:12px 18px;margin-bottom:16px;display:flex;align-items:center;gap:14px">
+      <div style="font-size:24px">🔴</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--red)">${urgentCount} urgent item${urgentCount!==1?'s':''} — action needed now</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px">${soonCount} more due in the next 30 days</div></div>
+      <button class="btn btn-sm" style="border-color:var(--red);color:var(--red);flex-shrink:0" onclick="window.calFilter='all';document.querySelector('.cal-bands')?.scrollIntoView({behavior:'smooth'})">View all →</button>
+    </div>`:''}
+
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px">${filterChips}</div>
+
     <div class="g2">
       <div>
         <div class="panel" style="margin-bottom:16px">
@@ -4116,27 +4220,15 @@ function pgCalendar(){
           <div class="ph2"><h2 id="cal-day-title">Events</h2></div>
           <div id="cal-day-body"></div>
         </div>
+        <div style="background:var(--off);border-radius:8px;padding:12px 14px;font-size:11px;color:var(--muted);margin-top:12px">
+          <strong style="color:var(--txt)">Legend:</strong>&nbsp;
+          🔴 Overdue / urgent &nbsp;🟡 Due soon &nbsp;🔵 Upcoming &nbsp;
+          📄 Cert &nbsp;💷 Rent &nbsp;🔑 Tenancy &nbsp;🛡 Insurance &nbsp;🔧 Boiler &nbsp;📈 S.13 eligible &nbsp;🔍 RTR re-check
+        </div>
       </div>
 
-      <div>
-        ${urgent.length?`<div class="panel" style="margin-bottom:16px">
-          <div class="ph2"><div><h2>🔴 Urgent — within 7 days</h2><p>${urgent.length} item${urgent.length!==1?'s':''}</p></div></div>
-          ${urgent.map(evRow).join('')}
-        </div>`:''}
-
-        ${warning.length?`<div class="panel" style="margin-bottom:16px">
-          <div class="ph2"><div><h2>🟡 Due soon — 8 to 30 days</h2><p>${warning.length} item${warning.length!==1?'s':''}</p></div></div>
-          ${warning.map(evRow).join('')}
-        </div>`:''}
-
-        ${normal.length?`<div class="panel" style="margin-bottom:16px">
-          <div class="ph2"><div><h2>🔵 Upcoming — 31 to 60 days</h2><p>${normal.length} item${normal.length!==1?'s':''}</p></div></div>
-          ${normal.map(evRow).join('')}
-        </div>`:''}
-
-        ${!upcoming.length?`<div class="panel">
-          <div class="empty"><div class="empty-ic">✓</div><div class="empty-t">All clear</div><div class="empty-s">No events in the next 60 days</div></div>
-        </div>`:''}
+      <div class="cal-bands">
+        ${bandHtml||`<div class="panel"><div class="empty"><div class="empty-ic">✓</div><div class="empty-t">All clear</div><div class="empty-s">No events in the next 6 months</div></div></div>`}
       </div>
     </div>
   </div>`;
