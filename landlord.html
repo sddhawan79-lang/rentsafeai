@@ -1699,6 +1699,66 @@ function setupStepBack() {
   document.querySelector('.mo-box')?.scrollTo?.(0, 0);
 }
 
+async function _savePropertySetupToDB() {
+  const btn = document.getElementById('psetup-next');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Saving…'; }
+  const s = window._psetup;
+  const pid = s.pid;
+
+  try {
+    // ① Update properties table (licence + boiler + epc)
+    const propUpdates = {};
+    if (s.licType)    propUpdates.licence_type     = s.licType;
+    if (s.licRef)     propUpdates.licence_ref       = s.licRef;
+    if (s.licExpiry)  propUpdates.licence_expiry    = s.licExpiry;
+    if (s.epcRating)  propUpdates.epc_rating        = s.epcRating;
+    if (s.epcExpiry)  propUpdates.epc_expiry        = s.epcExpiry;
+    if (s.boilerLast) propUpdates.boiler_last_service = s.boilerLast;
+    if (s.boilerNext) propUpdates.boiler_next_service = s.boilerNext;
+    if (s.boilerEng)  propUpdates.boiler_engineer   = s.boilerEng;
+
+    if (Object.keys(propUpdates).length) {
+      const { error: pe } = await sb.from('properties').update(propUpdates).eq('id', pid);
+      if (!pe) { const p = P(pid); if (p) Object.assign(p, propUpdates); }
+    }
+
+    // ② Certificates
+    const mkStatus = exp => exp ? (new Date(exp) < new Date() ? 'Expired' : 'Valid') : 'Valid';
+    const certsToInsert = [];
+    if (s.gasExpiry || s.gasEngineer)   certsToInsert.push({ prop_id:parseInt(pid), type:'Gas Safety Certificate (GSC)',                    expiry:s.gasExpiry||null,  engineer:s.gasEngineer||null,  status:mkStatus(s.gasExpiry),  has_file:false, served:false, user_id:currentUser.id });
+    if (s.eicrExpiry || s.eicrEngineer) certsToInsert.push({ prop_id:parseInt(pid), type:'Electrical Installation Condition Report (EICR)', expiry:s.eicrExpiry||null, engineer:s.eicrEngineer||null, status:mkStatus(s.eicrExpiry), has_file:false, served:false, user_id:currentUser.id });
+    if (s.epcRating || s.epcExpiry)     certsToInsert.push({ prop_id:parseInt(pid), type:'Energy Performance Certificate (EPC)',             expiry:s.epcExpiry||null,  engineer:null,                 status:mkStatus(s.epcExpiry),  has_file:false, served:false, user_id:currentUser.id });
+    if (certsToInsert.length) {
+      const { data: cd } = await sb.from('certificates').insert(certsToInsert).select();
+      if (cd) D.certs.push(...cd.map(c=>({...c,file:false})));
+    }
+
+    // ③ Insurance
+    const mkInsStatus = exp => exp ? (new Date(exp) < new Date() ? 'Expired' : 'Active') : 'Active';
+    const existing = D.insurance.filter(i=>String(i.prop_id)===String(pid));
+    const insToInsert = [];
+    if ((s.bldProvider||s.bldExpiry) && !existing.find(i=>(i.type||'').toLowerCase().includes('buildings')))
+      insToInsert.push({ prop_id:parseInt(pid), type:'Buildings Insurance',        provider:s.bldProvider||'Not set', policy:s.bldPolicyRef||null, expiry:s.bldExpiry||null, premium:null, status:mkInsStatus(s.bldExpiry), user_id:currentUser.id });
+    if ((s.llProvider||s.llExpiry) && !existing.find(i=>(i.type||'').toLowerCase().includes('contents')))
+      insToInsert.push({ prop_id:parseInt(pid), type:'Landlord Contents Insurance', provider:s.llProvider||'Not set', policy:s.llPolicyRef||null, expiry:s.llExpiry||null,  premium:null, status:mkInsStatus(s.llExpiry),  user_id:currentUser.id });
+    if ((s.rgProvider||s.rgExpiry) && !existing.find(i=>(i.type||'').toLowerCase().includes('guarantee')))
+      insToInsert.push({ prop_id:parseInt(pid), type:'Rent Guarantee Insurance',   provider:s.rgProvider||'Not set', policy:null,                 expiry:s.rgExpiry||null,  premium:null, status:mkInsStatus(s.rgExpiry),  user_id:currentUser.id });
+    if (insToInsert.length) {
+      const { data: id2 } = await sb.from('insurance').insert(insToInsert).select();
+      if (id2) D.insurance.push(...id2);
+    }
+
+    await logAudit('PROPERTY_SETUP','properties',pid,'Compliance setup wizard completed');
+    closeMo();
+    toast('✓ Property setup saved!');
+    nav('prop-detail', pid);
+
+  } catch(err) {
+    if (btn) { btn.disabled=false; btn.textContent='Save setup ✓'; }
+    toast('Error: '+err.message, true);
+  }
+}
+
 function scanSetupLicence(input) {
   if (!input.files[0]) return;
   const file = input.files[0];
@@ -1750,78 +1810,215 @@ function scanSetupCert(certType, input) {
   });
 }
 
-async function _savePropertySetupToDB() {
-  const btn = document.getElementById('psetup-next');
-  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Saving…'; }
-  const s = window._psetup;
-  const pid = s.pid;
-  let hasErrors = false;
+// ── RTR DOCUMENT SCAN ──
+function scanRTRDoc(input) {
+  if (!input.files[0]) return;
+  const file = input.files[0];
+  const box = document.getElementById('ts-rtr-scan-box');
+  if (box) box.innerHTML = `<div style="font-size:13px;color:var(--muted)">⏳ Scanning document…</div><div class="scan-badge" style="margin-top:6px">✦ AI reading</div>`;
 
-  try {
-    // ① Update properties table (licence + boiler + epc rating)
-    const propUpdates = {};
-    if (s.licType)   propUpdates.licence_type   = s.licType;
-    if (s.licRef)    propUpdates.licence_ref     = s.licRef;
-    if (s.licExpiry) propUpdates.licence_expiry  = s.licExpiry;
-    if (s.epcRating) propUpdates.epc_rating      = s.epcRating;
-    if (s.epcExpiry) propUpdates.epc_expiry      = s.epcExpiry;
-    if (s.boilerLast) propUpdates.boiler_last_service = s.boilerLast;
-    if (s.boilerNext) propUpdates.boiler_next_service = s.boilerNext;
-    if (s.boilerEng)  propUpdates.boiler_engineer     = s.boilerEng;
+  // Custom prompt for RTR docs
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const b64 = reader.result.split(',')[1];
+    const isImg = file.type.startsWith('image/');
+    const msgContent = isImg
+      ? [{type:'image',source:{type:'base64',media_type:file.type,data:b64}},{type:'text',text:'This is a UK Right to Rent identity document. Extract: document type (e.g. Passport, Biometric Residence Permit, Share Code, Birth Certificate), document/reference number, expiry date (YYYY-MM-DD if present, null if none), nationality if visible. Return JSON only, keys: doc_type, ref, expiry, nationality.'}]
+      : [{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:'This is a UK Right to Rent identity document. Extract: document type, reference number, expiry date (YYYY-MM-DD if present, null if none), nationality if visible. Return JSON only, keys: doc_type, ref, expiry, nationality.'}];
+    try {
+      const res = await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({model:'claude-sonnet-4-5',max_tokens:300,messages:[{role:'user',content:msgContent}]})
+      });
+      const data = await res.json();
+      const parsed = JSON.parse((data.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim());
 
-    if (Object.keys(propUpdates).length) {
-      const { error: pe } = await sb.from('properties').update(propUpdates).eq('id', pid);
-      if (pe) { toast('Error saving property: ' + pe.message, true); hasErrors = true; }
-      else {
-        const p = P(pid);
-        if (p) Object.assign(p, propUpdates);
+      // Map detected doc type to dropdown options
+      const dt = (parsed.doc_type||'').toLowerCase();
+      const sel = document.getElementById('ts-rtr-doctype');
+      if (sel) {
+        if (dt.includes('passport')) sel.value = 'Passport (UK/EU)';
+        else if (dt.includes('biometric')||dt.includes('brp')) sel.value = 'Biometric Residence Permit';
+        else if (dt.includes('share')||dt.includes('evisa')) sel.value = 'Share Code (eVisa)';
+        else if (dt.includes('birth')) sel.value = 'UK Birth Certificate + NI';
       }
+      if (parsed.ref) { const el=document.getElementById('ts-rtr-ref'); if(el) el.value=parsed.ref; }
+      if (parsed.expiry) { const el=document.getElementById('ts-rtr-expiry'); if(el) el.value=parsed.expiry; window._tsetup.rtrExpiry=parsed.expiry; }
+
+      const result = document.getElementById('ts-rtr-ai-result');
+      if (result) {
+        result.style.display = 'block';
+        result.innerHTML = `✦ Detected: <strong>${parsed.doc_type||'Unknown'}</strong>${parsed.expiry?` · Expires ${parsed.expiry}`:''}${parsed.nationality?' · '+parsed.nationality:''} — confirm below`;
+      }
+      if (box) box.innerHTML = `<div style="font-size:13px;color:var(--green-dark);font-weight:600">✓ Document scanned — fields filled below</div><div style="font-size:11px;color:var(--muted);margin-top:3px">${file.name}</div>`;
+      toast('✓ RTR document scanned');
+    } catch(e) {
+      if (box) box.innerHTML = `<div style="font-size:13px;color:var(--amber)">⚠ Could not scan — fill in manually</div>`;
     }
+  };
+  reader.readAsDataURL(file);
+}
 
-    // ② Certificates — insert any that have data
-    const certsToInsert = [];
-    const mkCertStatus = exp => exp ? (new Date(exp) < new Date() ? 'Expired' : 'Valid') : 'Valid';
-    if (s.gasExpiry || s.gasEngineer)   certsToInsert.push({ prop_id: parseInt(pid), type: 'Gas Safety Certificate (GSC)',                      expiry: s.gasExpiry||null,  engineer: s.gasEngineer||null,  status: mkCertStatus(s.gasExpiry),  has_file: false, served: false, user_id: currentUser.id });
-    if (s.eicrExpiry || s.eicrEngineer) certsToInsert.push({ prop_id: parseInt(pid), type: 'Electrical Installation Condition Report (EICR)',   expiry: s.eicrExpiry||null, engineer: s.eicrEngineer||null, status: mkCertStatus(s.eicrExpiry), has_file: false, served: false, user_id: currentUser.id });
-    if (s.epcRating || s.epcExpiry)     certsToInsert.push({ prop_id: parseInt(pid), type: 'Energy Performance Certificate (EPC)',               expiry: s.epcExpiry||null,  engineer: null,                 status: mkCertStatus(s.epcExpiry),  has_file: false, served: false, user_id: currentUser.id });
+// ── BULK SCAN MODAL ──
+// Upload multiple cert files — AI scans each, creates records in batch
+window._bulkScan = { files:[], results:[], pid:'' };
 
-    if (certsToInsert.length) {
-      const { data: cd, error: ce } = await sb.from('certificates').insert(certsToInsert).select();
-      if (ce) { toast('Warning — cert save error: ' + ce.message, true); hasErrors = true; }
-      else if (cd) D.certs.push(...cd.map(c => ({...c, file: false})));
+function moBulkScan(pid) {
+  const propOpts = D.properties.map(p=>`<option value="${p.id}"${String(p.id)===String(pid||'')?' selected':''}>${p.address}, ${p.city}</option>`).join('');
+  if (!D.properties.length) { toast('Add a property first', true); return; }
+  window._bulkScan = { files:[], results:[], pid: pid||String(D.properties[0]?.id||'') };
+
+  openMo('✦ Bulk document scan','Upload multiple certs — AI scans and fills all details',`
+    <div style="font-size:13px;color:var(--muted);margin-bottom:14px">Drop up to 10 documents at once — Gas Safety, EICR, EPC, licences. AI reads each one and creates records automatically.</div>
+
+    <div class="fg" style="margin-bottom:14px"><label>Property</label>
+      <select id="bulk-prop" onchange="window._bulkScan.pid=this.value">${propOpts}</select>
+    </div>
+
+    <div id="bulk-drop-zone" style="border:2px dashed var(--border);border-radius:10px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;position:relative;margin-bottom:14px" ondragover="event.preventDefault();this.style.borderColor='var(--green)';this.style.background='var(--green-bg)'" ondragleave="this.style.borderColor='var(--border)';this.style.background=''" ondrop="bulkDropFiles(event)">
+      <input type="file" accept=".pdf,.jpg,.jpeg,.png" multiple id="bulk-file-input" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%" onchange="bulkFilesSelected(this)">
+      <div style="font-size:32px;margin-bottom:10px">📂</div>
+      <div style="font-size:14px;font-weight:600;color:var(--txt);margin-bottom:4px">Drop files here or click to browse</div>
+      <div style="font-size:12px;color:var(--muted)">PDF, JPG or PNG · Up to 10 files · AI scans each one</div>
+      <div class="scan-badge" style="margin-top:10px">✦ AI auto-extraction</div>
+    </div>
+
+    <div id="bulk-queue" style="display:none">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px">Files queued for scanning</div>
+      <div id="bulk-queue-list"></div>
+    </div>
+
+    <div id="bulk-results" style="display:none">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px">Scan results — confirm before saving</div>
+      <div id="bulk-results-list"></div>
+    </div>
+  `,`<button class="btn" onclick="closeMo()">Cancel</button>
+    <button class="btn btn-navy" id="bulk-scan-btn" onclick="runBulkScan()" style="display:none">✦ Scan all files</button>
+    <button class="btn btn-navy" id="bulk-save-btn" onclick="saveBulkResults()" style="display:none">Save all records ✓</button>`);
+}
+
+function bulkDropFiles(e) {
+  e.preventDefault();
+  document.getElementById('bulk-drop-zone').style.borderColor = 'var(--border)';
+  document.getElementById('bulk-drop-zone').style.background = '';
+  const files = [...e.dataTransfer.files].filter(f=>f.type.match(/image\/|application\/pdf/)).slice(0,10);
+  _setBulkFiles(files);
+}
+
+function bulkFilesSelected(input) {
+  const files = [...input.files].slice(0,10);
+  _setBulkFiles(files);
+}
+
+function _setBulkFiles(files) {
+  window._bulkScan.files = files;
+  window._bulkScan.results = [];
+  const queue = document.getElementById('bulk-queue');
+  const list  = document.getElementById('bulk-queue-list');
+  const btn   = document.getElementById('bulk-scan-btn');
+  const saveBtn = document.getElementById('bulk-save-btn');
+  if (!files.length) return;
+
+  queue.style.display = 'block';
+  document.getElementById('bulk-results').style.display = 'none';
+  if (saveBtn) saveBtn.style.display = 'none';
+  list.innerHTML = files.map((f,i)=>`<div id="bulk-item-${i}" style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--off);border-radius:7px;margin-bottom:6px">
+    <span style="font-size:16px">${f.type.includes('pdf')?'📄':'🖼'}</span>
+    <span style="flex:1;font-size:12px;font-weight:500;color:var(--txt)">${f.name}</span>
+    <span style="font-size:11px;color:var(--muted)">${(f.size/1024).toFixed(0)}KB</span>
+    <span id="bulk-status-${i}" style="font-size:11px;color:var(--muted)">Queued</span>
+  </div>`).join('');
+  if (btn) btn.style.display = 'inline-flex';
+}
+
+async function runBulkScan() {
+  const btn = document.getElementById('bulk-scan-btn');
+  if (btn) { btn.disabled=true; btn.innerHTML='<span class="spin"></span>Scanning…'; }
+  const files = window._bulkScan.files;
+  const results = [];
+
+  for (let i=0; i<files.length; i++) {
+    const f = files[i];
+    const statusEl = document.getElementById(`bulk-status-${i}`);
+    const itemEl   = document.getElementById(`bulk-item-${i}`);
+    if (statusEl) statusEl.innerHTML = '<span style="color:var(--blue)">⏳ Scanning…</span>';
+
+    await new Promise(resolve => {
+      scanAndFill(f, (parsed) => {
+        results.push({ file:f, parsed, idx:i });
+        if (statusEl) statusEl.innerHTML = '<span style="color:var(--green-dark);font-weight:600">✓ Done</span>';
+        if (itemEl) itemEl.style.background = 'rgba(0,200,150,0.07)';
+        resolve();
+      });
+      setTimeout(resolve, 8000); // timeout safety
+    });
+  }
+
+  window._bulkScan.results = results;
+  _renderBulkResults(results);
+  if (btn) { btn.style.display='none'; }
+}
+
+function _renderBulkResults(results) {
+  const container = document.getElementById('bulk-results');
+  const list = document.getElementById('bulk-results-list');
+  const saveBtn = document.getElementById('bulk-save-btn');
+  if (!container||!list) return;
+
+  const certTypeOpts = ['Gas Safety Certificate (GSC)','Electrical Installation Condition Report (EICR)','Energy Performance Certificate (EPC)','How to Rent Guide','Deposit Certificate','Tenancy Agreement','Property Licence','Other'];
+
+  list.innerHTML = results.map((r,i)=>`<div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <span style="font-size:16px">${r.file.type.includes('pdf')?'📄':'🖼'}</span>
+      <span style="font-size:12px;font-weight:600;color:var(--txt);flex:1">${r.file.name}</span>
+      <span class="badge b-green" style="font-size:10px">✦ AI scanned</span>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Certificate type</label>
+        <select id="br-type-${i}">
+          ${certTypeOpts.map(t=>`<option${t===r.parsed.type||t.toLowerCase().includes((r.parsed.type||'').toLowerCase().slice(0,4))?' selected':''}>${t}</option>`).join('')}
+        </select>
+      </div>
+      <div class="fg"><label>Expiry date</label><input type="date" id="br-expiry-${i}" value="${r.parsed.expiry||''}"></div>
+    </div>
+    <div class="fg-row" style="margin-bottom:0">
+      <div class="fg"><label>Engineer / provider</label><input type="text" id="br-eng-${i}" value="${r.parsed.engineer||''}" placeholder="Auto-detected or enter manually"></div>
+      <div class="fg"><label>Address detected</label><input type="text" id="br-addr-${i}" value="${r.parsed.address||''}" disabled style="background:var(--off);color:var(--muted)"></div>
+    </div>
+  </div>`).join('');
+
+  container.style.display = 'block';
+  if (saveBtn) saveBtn.style.display = 'inline-flex';
+}
+
+async function saveBulkResults() {
+  const btn = document.getElementById('bulk-save-btn');
+  if (btn) { btn.disabled=true; btn.innerHTML='<span class="spin"></span>Saving…'; }
+  const pid = parseInt(document.getElementById('bulk-prop')?.value || window._bulkScan.pid);
+  const results = window._bulkScan.results;
+  let saved = 0;
+
+  for (let i=0; i<results.length; i++) {
+    const type   = document.getElementById(`br-type-${i}`)?.value;
+    const expiry = document.getElementById(`br-expiry-${i}`)?.value || null;
+    const eng    = document.getElementById(`br-eng-${i}`)?.value.trim() || null;
+    if (!type) continue;
+
+    const status = expiry ? (new Date(expiry)<new Date()?'Expired':'Valid') : 'Valid';
+    const cert = { prop_id:pid, type, expiry:expiry||null, engineer:eng, status, has_file:true, served:false, user_id:currentUser.id };
+
+    const { data, error } = await sb.from('certificates').insert(cert).select().single();
+    if (!error && data) {
+      D.certs.push({...data, file:true});
+      await logAudit('BULK_SCAN_CERT','certificates',data.id,`Bulk scan: ${type} · ${expiry||'no expiry'}`);
+      saved++;
     }
-
-    // ③ Insurance — insert any that have data (skip if already exists for this property + type)
-    const existingIns = D.insurance.filter(i => String(i.prop_id) === String(pid));
-    const insToInsert = [];
-    const mkInsStatus = exp => exp ? (new Date(exp) < new Date() ? 'Expired' : 'Active') : 'Active';
-
-    if ((s.bldProvider || s.bldExpiry) && !existingIns.find(i => (i.type||'').toLowerCase().includes('buildings')))
-      insToInsert.push({ prop_id: parseInt(pid), type: 'Buildings Insurance',       provider: s.bldProvider||'Not set', policy: s.bldPolicyRef||null, expiry: s.bldExpiry||null, premium: null, status: mkInsStatus(s.bldExpiry), user_id: currentUser.id });
-    if ((s.llProvider || s.llExpiry) && !existingIns.find(i => (i.type||'').toLowerCase().includes('contents') || (i.type||'').toLowerCase().includes('landlord')))
-      insToInsert.push({ prop_id: parseInt(pid), type: 'Landlord Contents Insurance', provider: s.llProvider||'Not set', policy: s.llPolicyRef||null, expiry: s.llExpiry||null, premium: null, status: mkInsStatus(s.llExpiry),  user_id: currentUser.id });
-    if ((s.rgProvider || s.rgExpiry) && !existingIns.find(i => (i.type||'').toLowerCase().includes('guarantee') || (i.type||'').toLowerCase().includes('rent guarantee')))
-      insToInsert.push({ prop_id: parseInt(pid), type: 'Rent Guarantee Insurance',  provider: s.rgProvider||'Not set', policy: null,                 expiry: s.rgExpiry||null,  premium: null, status: mkInsStatus(s.rgExpiry),  user_id: currentUser.id });
-
-    if (insToInsert.length) {
-      const { data: id2, error: ie } = await sb.from('insurance').insert(insToInsert).select();
-      if (ie) { toast('Warning — insurance save error: ' + ie.message, true); hasErrors = true; }
-      else if (id2) D.insurance.push(...id2);
-    }
-
-    await logAudit('PROPERTY_SETUP', 'properties', pid, `Compliance setup wizard completed. Score: filled items saved.`);
-
-  } catch(err) {
-    if (btn) { btn.disabled = false; btn.textContent = 'Save setup ✓'; }
-    toast('Error: ' + err.message, true);
-    return;
   }
 
   closeMo();
-  if (!hasErrors) toast('✓ Property setup saved!');
-  nav('prop-detail', pid);
+  toast(`✓ ${saved} certificate${saved!==1?'s':''} saved from bulk scan`);
+  nav('compliance');
 }
-
 // ── MODAL: INSPECTION ──
 function moInspection(pid){
   openMo('Log inspection','Record a property inspection',`
@@ -1948,6 +2145,14 @@ function _tenantStepHtml(n) {
       <span style="font-size:16px;flex-shrink:0">⚠️</span>
       <div><strong>Criminal offence</strong> to rent to someone without the right to rent in the UK. Landlords face an unlimited fine or up to 5 years imprisonment.</div>
     </div>
+    <div class="scan-box" id="ts-rtr-scan-box" style="margin-bottom:14px">
+      <input type="file" accept="image/*,.pdf" onchange="scanRTRDoc(this)">
+      <div class="scan-ic">🔍</div>
+      <div class="scan-t">Upload RTR document — AI will detect type & expiry</div>
+      <div class="scan-s">Passport, BRP, share code screenshot, birth certificate</div>
+      <div class="scan-badge">✦ AI auto-extraction</div>
+    </div>
+    <div id="ts-rtr-ai-result" style="display:none;background:var(--off);border:1px solid rgba(0,200,150,0.25);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green-dark);font-weight:600;margin-bottom:14px">✦ AI detected — confirm the fields below</div>
     <div class="fg-row">
       <div class="fg"><label>Document type <span class="req">*</span></label>
         <select id="ts-rtr-doctype">
@@ -2781,6 +2986,7 @@ function pgDashboard(){
   const today=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   return`<div class="topbar"><span class="tb-title">Dashboard</span><div class="tb-right">
     <button class="btn btn-navy" onclick="moAddProp()">+ Add property</button>
+    <button class="btn" onclick="moBulkScan()">✦ Scan docs</button>
     <button class="btn" onclick="moCert()">+ Add certificate</button>
     <button class="btn" onclick="moIssue()">Report issue</button>
   </div></div>
@@ -3578,7 +3784,8 @@ function pgCompliance(){
     </div>`).join('');
 
   return `<div class="topbar"><span class="tb-title">Compliance</span><div class="tb-right">
-    <button class="btn btn-navy" onclick="moCert()">+ Add certificate</button>
+    <button class="btn btn-navy" onclick="moBulkScan()">✦ Bulk scan</button>
+    <button class="btn" onclick="moCert()">+ Add certificate</button>
   </div></div>
   <div class="content">
 
