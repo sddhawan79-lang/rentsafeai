@@ -3107,6 +3107,15 @@ function moStarterKit(pid) {
       <div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--blue);margin-bottom:12px">
         💡 Tick documents as you prepare them — send when all are ready. Prescribed Information must be served within 30 days of receiving deposit.
       </div>
+
+      <div style="background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:10px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <div>
+          <div style="font-size:10px;font-weight:700;color:#3B6FE8;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px">Step 1 — before sending this pack</div>
+          <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:3px">📷 Generate Move-In Inventory Report</div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.5)">AI analyses room photos · Condition report for deposit protection · Include in this pack</div>
+        </div>
+        <button class="btn btn-sm" style="background:#3B6FE8;color:#fff;border:none;font-weight:700;flex-shrink:0" onclick="closeMo();setTimeout(()=>moInventoryReport('${pid}'),100)">Generate →</button>
+      </div>
       ${day30Docs.map(d=>docRow(d,'day30')).join('')}
 
       ${pCerts.length ? `<div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-top:10px">
@@ -4740,12 +4749,19 @@ function pgTenants(){
   <div class="content">
     <div class="ph"><h1>Tenants</h1><p>${D.tenants.filter(t=>t.status==='Active').length} active tenant${D.tenants.filter(t=>t.status==='Active').length!==1?'s':''} · Click any row to view details</p></div>
     ${D.tenants.filter(t=>t.status==='Active').length?`<div class="panel"><div class="tw"><table>
-      <thead><tr><th>Name</th><th>Property</th><th>Email</th><th>Start</th><th>End</th><th>Deposit</th><th>Status</th></tr></thead>
-      <tbody>${D.tenants.map(t=>{const p=P(t.prop_id)||{address:'—'};return`<tr style="cursor:pointer" onclick="moTenantDetail('${t.id}')">
+      <thead><tr><th>Name</th><th>Property</th><th>Email</th><th>Start</th><th>End</th><th>Deposit</th><th>Status</th><th style="text-align:center">Actions</th></tr></thead>
+      <tbody>${D.tenants.map(t=>{const p=P(t.prop_id)||{address:'—'};const isNew=t.start_date&&Math.floor((new Date()-new Date(t.start_date))/(864e5))<=30;return`<tr style="cursor:pointer" onclick="moTenantDetail('${t.id}')">
         <td><div style="display:flex;align-items:center;gap:10px"><div class="t-av">${INI(t.name)}</div><div><div class="td-bold">${t.name}</div><div style="font-size:11px;color:var(--muted)">${t.phone||'—'}</div></div></div></td>
         <td>${p.address}</td><td style="font-size:12px;color:var(--muted)">${t.email||'—'}</td>
         <td>${FMS(t.start||t.start_date)}</td><td>${FMS(t.end||t.end_date)}</td>
         <td>${t.scheme?B('Protected'):'<span style="color:var(--muted);font-size:12px">Not set</span>'}</td><td>${B(t.status)}</td>
+        <td onclick="event.stopPropagation()" style="white-space:nowrap">
+          <div style="display:flex;gap:4px;justify-content:center">
+            <button onclick="event.stopPropagation();moInventoryReport('${t.prop_id}')" title="AI Inventory Report — move-in/move-out condition report" style="padding:4px 8px;border-radius:6px;border:1px solid var(--blue);background:var(--blue-bg);color:var(--blue);cursor:pointer;font-size:11px;font-weight:600;font-family:var(--font);white-space:nowrap">📷 Inventory${isNew?` <span style="background:var(--green);color:#fff;border-radius:100px;padding:0 5px;font-size:9px">NEW</span>`:''}
+            </button>
+            <button onclick="event.stopPropagation();moStarterKit('${t.prop_id}')" title="Tenancy Starter Kit — Day 1 and 30-day compliance pack" style="padding:4px 8px;border-radius:6px;border:1px solid var(--green-dark);background:var(--green-bg);color:var(--green-dark);cursor:pointer;font-size:11px;font-weight:600;font-family:var(--font)">📦 Kit</button>
+          </div>
+        </td>
       </tr>`}).join('')}</tbody>
     </table></div></div>`:'<div class="empty"><div class="empty-ic">👤</div><div class="empty-t">No tenants yet</div><div class="empty-s">Click + Add tenant to get started</div></div>'}
   </div>`;
