@@ -3461,18 +3461,21 @@ function pgPropDetail(pid) {
 
   // Tabs
   const tabDefs = [
-    { id:'tenant',      icon:'👤', label:'Tenant',      cnt: D.tenants.filter(x=>String(x.prop_id)===String(pid)).length },
-    { id:'financials',  icon:'💷', label:'Financials',  cnt: D.rent.filter(r=>String(r.prop_id)===String(pid)).length },
-    { id:'compliance',  icon:'🛡', label:'Compliance',  cnt: pc.length },
-    { id:'maintenance', icon:'🔧', label:'Maintenance', cnt: D.maintenance.filter(m=>String(m.prop_id)===String(pid)).length },
-    { id:'property',    icon:'🏠', label:'Property',    cnt: 0 },
+    { id:'tenant',      icon:'👤', label:'Tenant',      cnt: D.tenants.filter(x=>String(x.prop_id)===String(pid)).length, col:'#3B6FE8' },
+    { id:'financials',  icon:'💷', label:'Financials',  cnt: D.rent.filter(r=>String(r.prop_id)===String(pid)).length,   col:'#00A87A' },
+    { id:'compliance',  icon:'🛡', label:'Compliance',  cnt: pc.length,                                                   col:'#D97706' },
+    { id:'maintenance', icon:'🔧', label:'Maintenance', cnt: D.maintenance.filter(m=>String(m.prop_id)===String(pid)).length, col:'#E53E3E' },
+    { id:'property',    icon:'🏠', label:'Property',    cnt: 0,                                                           col:'#0B1E3D' },
   ];
 
-  const tabBar = `<div class="pd-tabs">${tabDefs.map(tb=>`
-    <button class="pd-tab${tb.id===activeTab?' active':''}" data-tab="${tb.id}" onclick="pdSetTab('${pid}','${tb.id}')">
+  const tabBar = `<div class="pd-tabs">${tabDefs.map(tb=>{
+    const isActive = tb.id===activeTab;
+    return `<button class="pd-tab${isActive?' active':''}" data-tab="${tb.id}" onclick="pdSetTab('${pid}','${tb.id}')"
+      style="${isActive?`color:${tb.col};border-bottom-color:${tb.col};font-weight:700`:``}">
       ${tb.icon} ${tb.label}
-      ${tb.cnt > 0 ? `<span class="pd-cnt">${tb.cnt}</span>` : ''}
-    </button>`).join('')}</div>`;
+      ${tb.cnt > 0 ? `<span class="pd-cnt"${isActive?` style="background:${tb.col};border-color:${tb.col};color:#fff"`:``}>${tb.cnt}</span>` : ''}
+    </button>`;
+  }).join('')}</div>`;
 
   return `<div class="topbar"><span class="tb-title">Properties</span><div class="tb-right">
     <button class="btn" onclick="moEditProp('${pid}')">✎ Edit</button>
@@ -3536,13 +3539,14 @@ function pdTabContent(pid, tab) {
           <div style="display:flex;align-items:center;gap:12px">
             <div class="t-av" style="width:42px;height:42px;font-size:14px">${INI(t.name)}</div>
             <div>
-              <div style="font-size:15px;font-weight:600">${t.name}${t.is_lead?` <span style="font-size:10px;font-weight:700;background:var(--amber-bg);color:var(--amber);border:1px solid rgba(217,119,6,0.2);border-radius:4px;padding:2px 6px;letter-spacing:.3px">⭐ LEAD</span>`:''}</div>
+              <div style="font-size:15px;font-weight:600">${t.name}${t.is_lead?` <span style="font-size:10px;font-weight:700;background:var(--amber-bg);color:var(--amber);border:1px solid rgba(217,119,6,0.2);border-radius:4px;padding:2px 6px;letter-spacing:.3px">⭐ LEAD</span>`:` <button onclick="setLeadTenant('${t.id}','${pid}')" style="font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:var(--off);color:var(--muted);cursor:pointer;font-family:var(--font)">Set as lead</button>`}</div>
               <div style="font-size:12px;color:var(--muted);margin-top:1px">${t.email||'No email'} · ${t.phone||'No phone'}</div>
             </div>
           </div>
-          <div style="display:flex;gap:6px">
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            ${t.email?`<a href="mailto:${t.email}" class="btn btn-sm" style="border-color:var(--blue);color:var(--blue)">✉ Email</a>`:''}
+            ${t.phone?`<a href="tel:${t.phone}" class="btn btn-sm" style="border-color:var(--green-dark);color:var(--green-dark)">📞 Call</a>`:''}
             <button class="btn btn-sm" onclick="moTenantDetail('${t.id}')">✎ Edit</button>
-            <button class="btn btn-sm btn-navy" onclick="moSection8('${pid}')">⚖️ Section 8</button>
           </div>
         </div>
         <div style="padding:14px 18px">
@@ -3551,16 +3555,15 @@ function pdTabContent(pid, tab) {
               ['Tenancy start', FMS(t.start_date)],
               ['Tenancy end', t.end_date ? FMS(t.end_date) : 'Periodic (APT)'],
               ['Monthly rent', t.rent ? `£${t.rent.toLocaleString()}` : '—'],
-              ['Deposit', t.deposit ? `£${t.deposit.toLocaleString()}` : 'Not set'],
-              ['Deposit scheme', t.scheme || 'Not set'],
-              ['Scheme ref', t.scheme_ref || '—'],
-            ].map(([l,v])=>`<div class="det-f"><label>${l}</label><span>${v}</span></div>`).join('')}
+              t.is_lead ? ['Deposit', t.deposit ? `£${t.deposit.toLocaleString()}` : 'Not set'] : ['Role', 'Co-tenant'],
+              t.is_lead ? ['Deposit scheme', t.scheme || 'Not set'] : ['', ''],
+              t.is_lead ? ['Scheme ref', t.scheme_ref || '—'] : ['', ''],
+            ].filter(([l])=>l).map(([l,v])=>`<div class="det-f"><label>${l}</label><span>${v}</span></div>`).join('')}
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
-            ${t.email?`<a href="mailto:${t.email}" class="btn btn-sm">✉ Email</a>`:''}
-            ${t.phone?`<a href="tel:${t.phone}" class="btn btn-sm">📞 Call</a>`:''}
             <button class="btn btn-sm" style="border-color:var(--amber);color:var(--amber)" onclick="moRRASheet()">📋 RRA Sheet</button>
             <button class="btn btn-sm" style="border-color:var(--green-dark);color:var(--green-dark)" onclick="moWelcomeKit('${pid}')">📦 Welcome kit</button>
+            <button class="btn btn-sm" style="border-color:var(--navy);color:var(--navy)" onclick="moSection8('${pid}')">⚖️ Section 8</button>
             ${(()=>{
               const monthsSince = t.start_date ? Math.floor((new Date()-new Date(t.start_date))/(30.44*864e5)) : 99;
               const lastS13 = D.emailLog.filter(e=>String(e.prop_id)===String(pid)&&e.template_id==='section13').sort((a,b)=>new Date(b.sent_at)-new Date(a.sent_at))[0];
@@ -3572,7 +3575,7 @@ function pdTabContent(pid, tab) {
                 : `<button class="btn btn-sm" style="border-color:var(--border);color:var(--muted);cursor:not-allowed" title="Eligible in ${daysLeft} days" disabled>📈 S.13 (${daysLeft}d)</button>`;
             })()}
             ${t.email?`<button class="btn btn-sm" style="border-color:var(--green);color:var(--green-dark)" id="invite-btn-${t.id}" onclick="sendPortalInvite('${t.id}')">🔗 ${t.invite_used?'Resend invite':'Send portal invite'}</button>`:''}
-            <button class="btn btn-sm" style="border-color:var(--blue);color:var(--blue)" onclick="moEsign('${pid}','${t.id}')">✍️ Send for Signing</button>
+            <button class="btn btn-sm" style="border-color:var(--blue);color:var(--blue)" onclick="moEsign('${pid}','${t.id}')">✍️ Sign doc</button>
           </div>
         </div>
       </div>`).join('')}
@@ -6635,9 +6638,27 @@ const S8_CATS = [
 let _s8 = {};
 
 function moSection8(pid) {
+  // If no valid pid, show property picker first
+  if (!pid || pid === 'undefined' || pid === '') {
+    if (!D.properties.length) { toast('Add a property first', true); return; }
+    if (D.properties.length === 1) { moSection8(String(D.properties[0].id)); return; }
+    openMo('Section 8 Generator','Select property to start',
+      `<div class="fg"><label>Which property?</label><select id="s8-prop-sel">${D.properties.map(p=>`<option value="${p.id}">${p.address}, ${p.city}</option>`).join('')}</select></div>`,
+      `<button class="btn" onclick="closeMo()">Cancel</button><button class="btn btn-navy" onclick="const v=document.getElementById('s8-prop-sel').value;closeMo();setTimeout(()=>moSection8(v),50)">Start →</button>`
+    ); return;
+  }
   const p = D.properties.find(x => String(x.id) === String(pid));
-  const t = D.tenants.find(x => String(x.prop_id) === String(pid));
-  if (!p) { toast('Property not found', true); return; }
+  if (!p) {
+    // Property ID not matched — show selector
+    if (!D.properties.length) { toast('No properties found', true); return; }
+    openMo('Section 8 Generator','Select property to start',
+      `<div style="background:var(--amber-bg);border:1px solid var(--amber);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--amber);margin-bottom:14px">⚠ Property not found — please select one below</div>
+      <div class="fg"><label>Property</label><select id="s8-prop-sel">${D.properties.map(p=>`<option value="${p.id}">${p.address}, ${p.city}</option>`).join('')}</select></div>`,
+      `<button class="btn" onclick="closeMo()">Cancel</button><button class="btn btn-navy" onclick="const v=document.getElementById('s8-prop-sel').value;closeMo();setTimeout(()=>moSection8(v),50)">Start →</button>`
+    ); return;
+  }
+
+  const t = D.tenants.find(x => String(x.prop_id) === String(pid) && (x.is_lead !== false || true));
 
   _s8 = { pid: String(pid), tid: t ? String(t.id) : null, step: 1, category: null,
           selectedGrounds: [], fields: {}, prop: p, tenant: t };
@@ -8128,6 +8149,20 @@ function closeMobSidebar(){
   const hm=document.getElementById('mob-ham');
   if(hm) hm.classList.remove('open');
   document.body.style.overflow='';
+}
+
+// ── SET LEAD TENANT ──
+async function setLeadTenant(tid, pid) {
+  if (!confirm('Set this tenant as the lead tenant? The current lead will be changed.')) return;
+  // Clear all leads for this property
+  const propTenants = D.tenants.filter(t => String(t.prop_id) === String(pid));
+  for (const t of propTenants) {
+    await sb.from('tenants').update({ is_lead: String(t.id) === String(tid) }).eq('id', t.id).catch(()=>{});
+    t.is_lead = String(t.id) === String(tid);
+  }
+  await logAudit('SET_LEAD_TENANT', 'tenants', tid, `Set as lead tenant`);
+  toast('✓ Lead tenant updated');
+  pdSetTab(pid, 'tenant');
 }
 
 // ── MAINTENANCE: NOTIFY TENANT ──
