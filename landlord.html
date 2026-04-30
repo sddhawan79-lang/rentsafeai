@@ -71,7 +71,8 @@ html,body{height:100%;font-family:var(--font);color:var(--txt);background:var(--
 .ph p{font-size:13px;color:var(--muted)}
 .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
 .metrics-3{grid-template-columns:repeat(3,1fr)}
-.mc{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:16px 18px}
+.mc{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:16px 18px;transition:box-shadow .15s,transform .1s}
+.mc[onclick]:hover{box-shadow:0 3px 14px rgba(0,0,0,0.09);transform:translateY(-1px)}
 .mc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
 .mc-label{font-size:12px;color:var(--muted)}
 .mc-icon{width:30px;height:30px;border-radius:7px;background:var(--off);display:flex;align-items:center;justify-content:center;font-size:14px}
@@ -3170,10 +3171,10 @@ function pgDashboard(){
     })()}
 
     <div class="metrics">
-      <div class="mc"><div class="mc-top"><span class="mc-label">Properties</span><div class="mc-icon">🏠</div></div><div class="mc-val">${D.properties.length}</div><div class="mc-sub">Active</div></div>
-      <div class="mc"><div class="mc-top"><span class="mc-label">Active tenants</span><div class="mc-icon">👤</div></div><div class="mc-val">${D.tenants.filter(t=>t.status==='Active').length}</div><div class="mc-sub">All active</div></div>
-      <div class="mc"><div class="mc-top"><span class="mc-label">Monthly rent</span><div class="mc-icon">💷</div></div><div class="mc-val">£${tot.toLocaleString()}</div><div class="mc-sub">Total portfolio</div></div>
-      <div class="mc"><div class="mc-top"><span class="mc-label">Open issues</span><div class="mc-icon">🔧</div></div><div class="mc-val">${open}</div><div class="mc-sub">${D.maintenance.filter(m=>m.awaab&&m.status!=='Resolved').length} Awaab flagged</div></div>
+      <div class="mc" style="cursor:pointer" onclick="nav('properties')" title="View all properties"><div class="mc-top"><span class="mc-label">Properties</span><div class="mc-icon">🏠</div></div><div class="mc-val">${D.properties.length}</div><div class="mc-sub">Active</div></div>
+      <div class="mc" style="cursor:pointer" onclick="nav('tenants')" title="View all tenants"><div class="mc-top"><span class="mc-label">Active tenants</span><div class="mc-icon">👤</div></div><div class="mc-val">${D.tenants.filter(t=>t.status==='Active').length}</div><div class="mc-sub">All active</div></div>
+      <div class="mc" style="cursor:pointer" onclick="nav('rent')" title="View rent records"><div class="mc-top"><span class="mc-label">Monthly rent</span><div class="mc-icon">💷</div></div><div class="mc-val">£${tot.toLocaleString()}</div><div class="mc-sub">Total portfolio</div></div>
+      <div class="mc" style="cursor:pointer" onclick="nav('maintenance')" title="View maintenance"><div class="mc-top"><span class="mc-label">Open issues</span><div class="mc-icon">🔧</div></div><div class="mc-val">${open}</div><div class="mc-sub">${D.maintenance.filter(m=>m.awaab&&m.status!=='Resolved').length} Awaab flagged</div></div>
     </div>
     <div class="g2">
       <div class="panel">
@@ -3502,10 +3503,21 @@ function pdSetTab(pid, tab) {
   window._pdTab[pid] = tab;
   document.querySelectorAll('.pd-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   const el = document.getElementById('pd-tab-content');
-  if (el) el.innerHTML = pdTabContent(pid, tab);
+  if (!el) return;
+  try {
+    el.innerHTML = pdTabContent(pid, tab);
+  } catch(err) {
+    el.innerHTML = `<div style="padding:24px;background:rgba(229,62,62,0.06);border:1px solid rgba(229,62,62,0.2);border-radius:10px;margin-top:8px">
+      <div style="font-size:13px;font-weight:600;color:var(--red);margin-bottom:4px">Error loading ${tab} tab</div>
+      <div style="font-size:11px;color:var(--muted);font-family:monospace">${err.message}</div>
+    </div>`;
+    console.error('pdTabContent error:', tab, err);
+  }
   if (tab === 'tenant') {
-    initPropChecklist('ob', pid, 'onboard');
-    initPropChecklist('db', pid, 'deboard');
+    try {
+      initPropChecklist('ob', pid, 'onboard');
+      initPropChecklist('db', pid, 'deboard');
+    } catch(e) { console.warn('checklist init failed', e); }
   }
 }
 
@@ -3894,10 +3906,21 @@ function pgCompliance(){
     <text x="${cx}" y="${cy + 26}" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="9" font-family="DM Sans,sans-serif">out of 100</text>
   </svg>`;
 
-  // Action items — sorted by urgency then days
+  // Action items — filtered by stat card click, sorted by urgency then days
+  const activeFilter = window._compFilter || 'all';
   const actionItems = allCerts
-    .filter(c => c.urgency === 'expired' || c.urgency === 'critical' || c.urgency === 'soon')
+    .filter(c => {
+      if (activeFilter === 'expired') return c.urgency === 'expired';
+      if (activeFilter === 'critical') return c.urgency === 'critical' || c.urgency === 'soon';
+      if (activeFilter === 'ok') return c.urgency === 'ok' || c.urgency === 'none';
+      return c.urgency === 'expired' || c.urgency === 'critical' || c.urgency === 'soon';
+    })
     .sort((a,b) => (a.daysLeft ?? 999) - (b.daysLeft ?? 999));
+
+  const filterLabel = activeFilter === 'expired' ? 'Expired certificates'
+    : activeFilter === 'critical' ? 'Expiring soon (critical)'
+    : activeFilter === 'ok' ? 'Compliant certificates'
+    : 'Action required';
 
   const actionHtml = actionItems.length ? actionItems.map(c => {
     const isExpired = c.urgency === 'expired';
@@ -3965,32 +3988,37 @@ function pgCompliance(){
 
       <!-- Stats strip -->
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
-        <div style="background:var(--white);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+        <div style="background:var(--white);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:box-shadow .15s" onclick="filterCompliance('all')" onmouseenter="this.style.boxShadow='0 2px 12px rgba(0,0,0,0.08)'" onmouseleave="this.style.boxShadow=''">
           <div style="font-size:28px;font-weight:700;color:var(--txt)">${total}</div>
           <div style="font-size:11px;color:var(--muted);margin-top:2px">Total certs</div>
+          <div style="font-size:10px;color:var(--blue);margin-top:4px;font-weight:500">View all →</div>
         </div>
-        <div style="background:${expired?'rgba(229,62,62,0.07)':'var(--white)'};border:1px solid ${expired?'rgba(229,62,62,0.2)':'var(--border)'};border-radius:12px;padding:16px;text-align:center">
+        <div style="background:${expired?'rgba(229,62,62,0.07)':'var(--white)'};border:1px solid ${expired?'rgba(229,62,62,0.2)':'var(--border)'};border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:box-shadow .15s" onclick="filterCompliance('expired')" onmouseenter="this.style.boxShadow='0 2px 12px rgba(229,62,62,0.12)'" onmouseleave="this.style.boxShadow=''">
           <div style="font-size:28px;font-weight:700;color:${expired?'var(--red)':'var(--muted)'}">${expired}</div>
           <div style="font-size:11px;color:var(--muted);margin-top:2px">Expired</div>
+          ${expired?`<div style="font-size:10px;color:var(--red);margin-top:4px;font-weight:500">Action needed →</div>`:''}
         </div>
-        <div style="background:${critical?'rgba(217,119,6,0.07)':'var(--white)'};border:1px solid ${critical?'rgba(217,119,6,0.2)':'var(--border)'};border-radius:12px;padding:16px;text-align:center">
+        <div style="background:${critical?'rgba(217,119,6,0.07)':'var(--white)'};border:1px solid ${critical?'rgba(217,119,6,0.2)':'var(--border)'};border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:box-shadow .15s" onclick="filterCompliance('critical')" onmouseenter="this.style.boxShadow='0 2px 12px rgba(217,119,6,0.12)'" onmouseleave="this.style.boxShadow=''">
           <div style="font-size:28px;font-weight:700;color:${critical?'var(--amber)':'var(--muted)'}">${critical}</div>
           <div style="font-size:11px;color:var(--muted);margin-top:2px">Critical</div>
+          ${critical?`<div style="font-size:10px;color:var(--amber);margin-top:4px;font-weight:500">Expiring soon →</div>`:''}
         </div>
-        <div style="background:rgba(0,200,150,0.07);border:1px solid rgba(0,200,150,0.15);border-radius:12px;padding:16px;text-align:center">
+        <div style="background:rgba(0,200,150,0.07);border:1px solid rgba(0,200,150,0.15);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:box-shadow .15s" onclick="filterCompliance('ok')" onmouseenter="this.style.boxShadow='0 2px 12px rgba(0,200,150,0.12)'" onmouseleave="this.style.boxShadow=''">
           <div style="font-size:28px;font-weight:700;color:var(--green-dark)">${ok + noExpiry}</div>
           <div style="font-size:11px;color:var(--muted);margin-top:2px">Compliant</div>
+          <div style="font-size:10px;color:var(--green-dark);margin-top:4px;font-weight:500">View all →</div>
         </div>
       </div>
     </div>
 
     <!-- Action list -->
-    <div class="panel" style="margin-bottom:18px">
+    <div class="panel" style="margin-bottom:18px" id="comp-action-list">
       <div class="ph2">
         <div>
-          <h2>Action required</h2>
-          <p>${actionItems.length ? `${actionItems.length} item${actionItems.length!==1?'s':''} need attention` : 'Nothing to do right now'}</p>
+          <h2>${filterLabel}</h2>
+          <p>${actionItems.length ? `${actionItems.length} item${actionItems.length!==1?'s':''} ${activeFilter==='ok'?'compliant':'need attention'}` : activeFilter==='ok'?'All compliant':'Nothing to do right now'}</p>
         </div>
+        ${activeFilter !== 'all' ? `<button class="btn btn-sm" onclick="filterCompliance('all')" style="font-size:11px">✕ Clear filter</button>` : ''}
       </div>
       ${actionHtml}
     </div>
@@ -7969,6 +7997,17 @@ function closeMobSidebar(){
   const hm=document.getElementById('mob-ham');
   if(hm) hm.classList.remove('open');
   document.body.style.overflow='';
+}
+
+// ── COMPLIANCE FILTER ──
+function filterCompliance(filter) {
+  window._compFilter = filter;
+  nav('compliance');
+  // Scroll to action list after render
+  setTimeout(() => {
+    const el = document.getElementById('comp-action-list');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 80);
 }
 
 // ── POSTCODE LOOKUP (moAddProp Step 1) ──
