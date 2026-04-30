@@ -3854,7 +3854,7 @@ function pdTabContent(pid, tab) {
                 : `<button class="btn btn-sm" style="border-color:var(--border);color:var(--muted);cursor:not-allowed" title="Eligible in ${daysLeft} days" disabled>📈 S.13 (${daysLeft}d)</button>`;
             })()}
             ${t.email?`<button class="btn btn-sm" style="border-color:var(--green);color:var(--green-dark)" id="invite-btn-${t.id}" onclick="sendPortalInvite('${t.id}')">🔗 ${t.invite_used?'Resend invite':'Send portal invite'}</button>`:''}
-            <button class="btn btn-sm" style="border-color:var(--blue);color:var(--blue)" onclick="moEsign('${pid}','${t.id}')">✍️ Sign doc</button>
+            <button class="btn btn-sm" style="border-color:var(--blue);color:var(--blue)" onclick="moEsign('${pid}')">✍️ Sign doc</button>
           </div>
         </div>
       </div>`).join('')}
@@ -3880,6 +3880,14 @@ function pdTabContent(pid, tab) {
 
       <div style="margin-bottom:14px">
         <button class="btn btn-sm" onclick="moTenant('${pid}')" style="border-color:var(--green);color:var(--green-dark)">+ Add co-tenant</button>
+        <button class="btn btn-sm" onclick="moEsign('${pid}')" style="border-color:var(--blue);color:var(--blue);margin-left:6px">✍️ New signing request</button>
+      </div>
+
+      <div class="panel" style="margin-bottom:16px">
+        <div class="ph2"><div><h2>✍️ Document signing</h2><p>Active signing requests — all parties tracked</p></div><button class="btn btn-sm" onclick="renderEsignStatusPanel('${pid}')">↻ Refresh</button></div>
+        <div style="padding:14px 18px" id="esign-status-${pid}">
+          <div style="font-size:12px;color:var(--muted)">Click ↻ Refresh to load signing status</div>
+        </div>
       </div>
 
       <div class="panel" style="margin-bottom:16px">
@@ -7929,17 +7937,403 @@ async function sendPortalInvite(tenantId) {
   toast(`✓ Portal invite sent to ${t.name}`);
 }
 
-// ── E-SIGN: SEND FOR SIGNING ──
-// esign_requests table schema (assumes table exists in Supabase):
-//   id uuid PK, property_id uuid, tenant_id uuid, document_type text,
-//   document_html text, document_pdf_url text, token text unique,
-//   status text default 'pending', created_at timestamptz default now(),
-//   expires_at timestamptz, signed_at timestamptz, signed_pdf_url text, ip_address text
+}
+
+// ── E-SIGN: MULTI-PARTY DOCUMENT SIGNING ──
+// esign_requests schema (updated):
+//   id, property_id, tenant_id (lead), document_type, document_html, document_pdf_url,
+//   token (lead tenant legacy), signatories JSONB [{party_id,name,email,role,token,signed_at}],
+//   doc_label, status, signed_count, total_signatories, completed_at, expires_at, created_at
+// tenant.html: look up token in signatories array via:
+//   SELECT * FROM esign_requests WHERE signatories @> '[{"token":"TOKEN"}]'::jsonb
+//   Then identify party from signatories where token matches, show their block only.
 
 let _esignDocHtml = null;
 let _esignPdfUrl  = null;
+window._esign = {};
 
-function moEsign(pid, tid) {
+function moEsign(pid) {
+  const p = P(pid);
+  if (!p) { toast('Property not found', true); return; }
+  const tenants = D.tenants.filter(t => String(t.prop_id) === String(pid) && t.status === 'Active');
+
+  // Pre-populate signatories: landlord first, then all active tenants
+  const signatories = [
+    { party_id: crypto.randomUUID(), name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'Landlord', email: currentUser.email, role: 'Landlord', token: crypto.randomUUID(), signed_at: null },
+    ...tenants.map(t => ({ party_id: crypto.randomUUID(), name: t.name, email: t.email || '', role: 'Tenant', token: crypto.randomUUID(), signed_at: null }))
+  ];
+
+  window._esign = { pid, step: 1, docMode: null, signatories, docLabel: 'Written Statement of Terms' };
+  _esignDocHtml = null;
+  _esignPdfUrl  = null;
+
+  document.querySelector('.mo-box')?.classList.add('mo-wide');
+  document.getElementById('mo-t').textContent = '✍️ Multi-Party Document Signing';
+  document.getElementById('mo-s').textContent = `${p.address} · ${signatories.length} signatories`;
+  document.getElementById('mo').classList.add('open');
+  _renderEsignStep(1);
+}
+
+function _renderEsignStep(n) {
+  window._esign.step = n;
+  const steps = ['Document','Preview','Signatories','Send'];
+  const bar = [1,2,3,4].map(i=>`<div style="flex:1;height:3px;border-radius:100px;background:${i<n?'var(--green)':i===n?'var(--blue)':'var(--border)'}"></div>`).join('');
+  const labels = [1,2,3,4].map(i=>`<div style="flex:1;font-size:9px;font-weight:${i===n?700:400};color:${i<n?'var(--green-dark)':i===n?'var(--blue)':'var(--muted)'};text-align:center">${steps[i-1]}</div>`).join('');
+  document.getElementById('mo-b').innerHTML = `
+    <div style="display:flex;gap:4px;margin-bottom:5px">${bar}</div>
+    <div style="display:flex;margin-bottom:18px">${labels}</div>
+    ${_esignStepHtml(n)}`;
+  document.getElementById('mo-f').innerHTML = `
+    <button onclick="${n===1?'closeMo()':'_esignNav(-1)'}" style="background:none;border:none;font-family:var(--font);font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;padding:7px 0">${n===1?'Cancel':'← Back'}</button>
+    <span style="font-size:12px;color:var(--muted)">Step ${n} of 4</span>
+    <button class="btn btn-navy" id="esign-next-btn" onclick="_esignNav(1)">${n===4?'✅ Send to all signatories':'Next →'}</button>`;
+}
+
+function _esignStepHtml(n) {
+  const s = window._esign;
+  const p = P(s.pid);
+
+  if (n === 1) return `
+    <div style="font-size:15px;font-weight:600;margin-bottom:4px">Document to sign</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Choose how to provide the contract — all parties will sign the same document</div>
+    <div style="background:var(--amber-bg);border:1px solid var(--amber);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--amber);margin-bottom:16px">
+      ⚠️ <strong>No legal responsibility:</strong> AI-generated documents are templates only. RentSafe AI accepts no liability. Always verify with a qualified solicitor before serving.
+    </div>
+    <div style="display:grid;gap:10px">
+      <div onclick="_esignSetMode('ai')" id="esign-opt-ai" style="border:2px solid ${s.docMode==='ai'?'var(--blue)':'var(--border)'};border-radius:10px;padding:16px 18px;cursor:pointer;transition:border-color .15s">
+        <div style="font-size:13px;font-weight:600;margin-bottom:4px">✦ AI Generate Written Statement</div>
+        <div style="font-size:12px;color:var(--muted)">RRA 2025 compliant Assured Periodic Tenancy — auto-filled from your data. Template only, no legal advice.</div>
+      </div>
+      <div onclick="_esignSetMode('upload')" id="esign-opt-upload" style="border:2px solid ${s.docMode==='upload'?'var(--blue)':'var(--border)'};border-radius:10px;padding:16px 18px;cursor:pointer;transition:border-color .15s">
+        <div style="font-size:13px;font-weight:600;margin-bottom:4px">📎 Upload Your Own Contract (PDF)</div>
+        <div style="font-size:12px;color:var(--muted)">Upload any PDF contract or tenancy agreement. Sent to all parties for signing.</div>
+      </div>
+    </div>
+
+    <div id="esign-ai-fields" style="display:${s.docMode==='ai'?'block':'none'};margin-top:14px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg"><label>Property</label><input type="text" id="esign-address" value="${p?.address||''}, ${p?.city||''}" readonly style="background:var(--off);color:var(--muted)"></div>
+        <div class="fg"><label>Tenant(s)</label><input type="text" id="esign-tnames" value="${D.tenants.filter(t=>String(t.prop_id)===String(s.pid)&&t.status==='Active').map(t=>t.name).join(', ')||'—'}" readonly style="background:var(--off);color:var(--muted)"></div>
+        <div class="fg"><label>Start date</label><input type="date" id="esign-start" value="${D.tenants.find(t=>String(t.prop_id)===String(s.pid)&&t.status==='Active')?.start_date||''}"></div>
+        <div class="fg"><label>Monthly rent (£)</label><input type="number" id="esign-rent" value="${D.tenants.find(t=>String(t.prop_id)===String(s.pid)&&t.status==='Active')?.rent||p?.rent||''}"></div>
+        <div class="fg"><label>Deposit (£)</label><input type="number" id="esign-deposit" value="${D.tenants.find(t=>String(t.prop_id)===String(s.pid)&&t.status==='Active')?.deposit||''}"></div>
+        <div class="fg"><label>Deposit scheme</label><input type="text" id="esign-scheme" value="${D.tenants.find(t=>String(t.prop_id)===String(s.pid)&&t.status==='Active')?.scheme||''}"></div>
+        <div class="fg"><label>Bills included</label><input type="text" id="esign-bills" placeholder="e.g. None, or Water, Internet"></div>
+        <div class="fg"><label>Pets permitted</label><select id="esign-pets"><option value="No">No</option><option value="Yes">Yes</option></select></div>
+      </div>
+      <div class="fg"><label>Special terms</label><textarea id="esign-terms" placeholder="Additional clauses…" rows="2"></textarea></div>
+      <button class="btn btn-navy" style="width:100%;margin-top:4px" id="esign-gen-btn" onclick="esignGenerateAI()">✦ Generate document</button>
+    </div>
+
+    <div id="esign-upload-fields" style="display:${s.docMode==='upload'?'block':'none'};margin-top:14px">
+      <div style="border:2px dashed var(--border);border-radius:8px;padding:28px;text-align:center;position:relative" id="esign-upload-box">
+        <input type="file" accept=".pdf" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%" onchange="esignHandlePDF(this)">
+        <div style="font-size:28px;margin-bottom:8px">📎</div>
+        <div style="font-size:13px;color:var(--muted)" id="esign-upload-label">Click to upload PDF (max 5MB)</div>
+      </div>
+      <div class="fg" style="margin-top:12px"><label>Document label</label><input type="text" id="esign-doc-label" value="${s.docLabel}" placeholder="e.g. Written Statement of Terms"></div>
+    </div>`;
+
+  if (n === 2) return `
+    <div style="font-size:15px;font-weight:600;margin-bottom:4px">Review document</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Check the document before sending to all parties — all signatories will see this exact content</div>
+    ${_esignDocHtml ? `
+      <div style="border:1px solid var(--border);border-radius:8px;max-height:380px;overflow-y:auto;padding:16px;font-size:12px;line-height:1.7;background:var(--white)">${_esignDocHtml}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px;text-align:right">Document generated ${new Date().toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
+    ` : _esignPdfUrl ? `
+      <div style="border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center;background:var(--off)">
+        <div style="font-size:28px;margin-bottom:8px">📄</div>
+        <div style="font-size:13px;font-weight:600">PDF uploaded successfully</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">Document is ready to send to all signatories</div>
+        <a href="${_esignPdfUrl}" target="_blank" class="btn btn-sm" style="margin-top:10px;display:inline-block">Preview PDF →</a>
+      </div>
+    ` : `<div style="background:var(--red-bg);border:1px solid rgba(229,62,62,0.2);border-radius:8px;padding:14px;font-size:13px;color:var(--red)">No document loaded — go back to Step 1</div>`}`;
+
+  if (n === 3) {
+    const sigRows = s.signatories.map((sig,i) => `
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 14px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;background:var(--white)">
+        <div style="width:34px;height:34px;border-radius:50%;background:${sig.role==='Landlord'?'var(--navy)':'var(--blue-bg)'};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:${sig.role==='Landlord'?'#fff':'var(--blue)'};">${INI(sig.name)}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600">${sig.name} <span style="font-size:10px;font-weight:700;background:${sig.role==='Landlord'?'var(--navy)':'var(--blue-bg)'};color:${sig.role==='Landlord'?'#fff':'var(--blue)'};padding:1px 7px;border-radius:100px;letter-spacing:.3px">${sig.role.toUpperCase()}</span></div>
+          <div style="font-size:11px;color:var(--muted);margin-top:1px">${sig.email||'No email — add email to send signing link'}</div>
+        </div>
+        <div style="font-size:11px;color:${sig.email?'var(--green-dark)':'var(--red)'};font-weight:600">${sig.email?'✅ Will receive link':'❌ No email'}</div>
+      </div>`).join('');
+    const missingEmails = s.signatories.filter(x=>!x.email).length;
+    return `
+    <div style="font-size:15px;font-weight:600;margin-bottom:4px">Signatories</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">All parties listed below will receive a unique private signing link via email</div>
+    ${missingEmails ? `<div style="background:var(--red-bg);border:1px solid rgba(229,62,62,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--red);margin-bottom:12px">⚠ ${missingEmails} signator${missingEmails>1?'ies have':'y has'} no email address — add emails in tenant details before sending.</div>` : `<div style="background:var(--green-bg);border:1px solid rgba(0,200,150,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green-dark);margin-bottom:12px">✅ All signatories have email addresses — ready to send.</div>`}
+    <div class="fg"><label>Document label (shows in compliance)</label><input type="text" id="esign-final-label" value="${s.docLabel}" placeholder="e.g. Written Statement of Terms — May 2026"></div>
+    ${sigRows}
+    <div style="font-size:11px;color:var(--muted);margin-top:10px;background:var(--off);border-radius:8px;padding:10px 14px">
+      🔒 Each person receives a unique private link — they can only sign their own signature block. Links expire in 7 days. Document is complete when ALL parties have signed.
+    </div>`;
+  }
+
+  if (n === 4) {
+    const readyCount = s.signatories.filter(x=>!!x.email).length;
+    return `
+    <div style="font-size:15px;font-weight:600;margin-bottom:4px">Confirm & send</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Review before sending — this cannot be undone</div>
+    <div style="background:var(--off);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+        <div><span style="color:var(--muted)">Property</span><br><strong>${p?.address||'—'}</strong></div>
+        <div><span style="color:var(--muted)">Document</span><br><strong>${s.docLabel}</strong></div>
+        <div><span style="color:var(--muted)">Signatories</span><br><strong>${s.signatories.length} parties</strong></div>
+        <div><span style="color:var(--muted)">Sending to</span><br><strong>${readyCount} emails</strong></div>
+      </div>
+    </div>
+    <div style="margin-bottom:12px">
+      ${s.signatories.map(sig=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--white);border:1px solid var(--border);border-radius:7px;margin-bottom:5px">
+        <span style="font-size:11px;font-weight:700;color:${sig.role==='Landlord'?'var(--navy)':'var(--blue)';}">${sig.role}</span>
+        <span style="font-size:12px;flex:1">${sig.name}</span>
+        <span style="font-size:11px;color:${sig.email?'var(--green-dark)':'var(--red)'}">${sig.email||'No email — will be skipped'}</span>
+      </div>`).join('')}
+    </div>
+    <div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--blue)">
+      📬 Each signatory receives a personalised email with their unique signing link. You'll see live status in the property Tenant tab. When everyone signs, the document auto-saves to your Compliance tab.
+    </div>`;
+  }
+  return '';
+}
+
+function _esignSetMode(mode) {
+  window._esign.docMode = mode;
+  document.getElementById('esign-ai-fields').style.display   = mode==='ai'     ? 'block' : 'none';
+  document.getElementById('esign-upload-fields').style.display = mode==='upload' ? 'block' : 'none';
+  ['esign-opt-ai','esign-opt-upload'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.borderColor = (id==='esign-opt-ai'&&mode==='ai')||(id==='esign-opt-upload'&&mode==='upload') ? 'var(--blue)' : 'var(--border)';
+  });
+}
+
+async function esignGenerateAI() {
+  const s = window._esign;
+  const p = P(s.pid);
+  const btn = document.getElementById('esign-gen-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Generating…';
+  try {
+    const address = document.getElementById('esign-address')?.value;
+    const tnames  = document.getElementById('esign-tnames')?.value;
+    const start   = document.getElementById('esign-start')?.value;
+    const rent    = document.getElementById('esign-rent')?.value;
+    const deposit = document.getElementById('esign-deposit')?.value;
+    const scheme  = document.getElementById('esign-scheme')?.value;
+    const bills   = document.getElementById('esign-bills')?.value || 'None';
+    const pets    = document.getElementById('esign-pets')?.value;
+    const terms   = document.getElementById('esign-terms')?.value;
+    const landlordName = currentUser.user_metadata?.full_name || currentUser.email;
+    const res = await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:4000,messages:[{role:'user',content:`Generate a fully compliant UK Assured Periodic Tenancy Written Statement under the Renters Rights Act 2025.\nProperty: ${address}\nTenant(s): ${tnames}\nLandlord: ${landlordName}\nStart: ${start}\nRent: £${rent}/month\nDeposit: £${deposit} — ${scheme}\nBills: ${bills}\nPets: ${pets}\nSpecial terms: ${terms||'None'}\nInclude all RRA 2025 mandatory terms, repair obligations, notice periods (S.8/S.13), signature blocks for each tenant and landlord with printed name, date, and signature line.\nFormat as clean semantic HTML. No markdown. Return only the HTML document.`}]})
+    });
+    const data = await res.json();
+    _esignDocHtml = data.content?.[0]?.text || '';
+    toast('✓ Document generated — review in Step 2');
+    btn.disabled=false; btn.innerHTML='✦ Regenerate';
+    // Auto-advance
+    window._esign.docMode = 'ai';
+    _esignNav(1);
+  } catch(e) {
+    btn.disabled=false; btn.innerHTML='✦ Generate document';
+    toast('Generation failed: '+e.message, true);
+  }
+}
+
+async function esignHandlePDF(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 5*1024*1024) { toast('PDF must be under 5MB', true); return; }
+  const label = document.getElementById('esign-upload-label');
+  label.innerHTML = '<span class="spin spin-dark" style="display:inline-block;margin-right:6px"></span>Uploading…';
+  const filename = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+  const { error } = await sb.storage.from('esign-documents').upload(filename, file, {contentType:'application/pdf'});
+  if (error) { label.textContent='Upload failed'; toast('Upload error: '+error.message, true); return; }
+  const { data:urlData } = sb.storage.from('esign-documents').getPublicUrl(filename);
+  _esignPdfUrl = urlData.publicUrl;
+  label.innerHTML = `<span style="color:var(--green-dark);font-weight:600">✓ ${file.name}</span>`;
+  const labelInput = document.getElementById('esign-doc-label');
+  if (labelInput) window._esign.docLabel = file.name.replace('.pdf','');
+}
+
+function _esignNav(dir) {
+  const s = window._esign;
+  const n = s.step;
+
+  if (dir === 1) {
+    if (n === 1) {
+      if (!s.docMode) { toast('Please choose a document option', true); return; }
+      if (s.docMode === 'ai' && !_esignDocHtml) { toast('Please generate the document first', true); return; }
+      if (s.docMode === 'upload' && !_esignPdfUrl) { toast('Please upload a PDF first', true); return; }
+      const labelEl = document.getElementById('esign-doc-label');
+      if (labelEl) s.docLabel = labelEl.value.trim() || s.docLabel;
+    }
+    if (n === 2) { /* Preview step — just advance */ }
+    if (n === 3) {
+      const labelEl = document.getElementById('esign-final-label');
+      if (labelEl) s.docLabel = labelEl.value.trim() || s.docLabel;
+      const missingEmails = s.signatories.filter(x=>!x.email).length;
+      if (missingEmails === s.signatories.length) { toast('No signatories have email addresses', true); return; }
+    }
+    if (n === 4) { _sendMultiPartyEsign(); return; }
+  }
+
+  _renderEsignStep(Math.max(1, Math.min(4, n + dir)));
+}
+
+async function _sendMultiPartyEsign() {
+  const s = window._esign;
+  const p = P(s.pid);
+  const btn = document.getElementById('esign-next-btn');
+  if (btn) { btn.disabled=true; btn.innerHTML='<span class="spin spin-dark"></span>Sending…'; }
+
+  const leadTenant = D.tenants.find(t=>String(t.prop_id)===String(s.pid)&&t.status==='Active');
+  const expiresAt = new Date(Date.now()+7*864e5).toISOString();
+  const mainToken = s.signatories[0]?.token || crypto.randomUUID(); // landlord token
+
+  try {
+    const { data: req, error: reqErr } = await sb.from('esign_requests').insert({
+      property_id:      s.pid,
+      tenant_id:        leadTenant?.id || null,
+      document_type:    'written_statement',
+      document_html:    _esignDocHtml || null,
+      document_pdf_url: _esignPdfUrl  || null,
+      doc_label:        s.docLabel,
+      token:            mainToken,
+      signatories:      JSON.stringify(s.signatories),
+      total_signatories: s.signatories.filter(x=>!!x.email).length,
+      signed_count:     0,
+      status:           'pending',
+      expires_at:       expiresAt
+    }).select().single();
+
+    if (reqErr) throw new Error(reqErr.message);
+
+    // Send unique email to each signatory with an email
+    const origin = window.location.origin;
+    for (const sig of s.signatories.filter(x=>!!x.email)) {
+      const signingLink = `${origin}/tenant.html?esign=${sig.token}`;
+      const expDate = new Date(expiresAt).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+      const othersStr = s.signatories.filter(x=>x.party_id!==sig.party_id).map(x=>`${x.name} (${x.role})`).join(', ');
+      const html = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:28px 24px;color:#1A2B45">
+        <div style="border-bottom:2px solid #0B1E3D;padding-bottom:12px;margin-bottom:20px"><span style="font-size:17px;font-weight:700;color:#0B1E3D">Rent<span style="color:#00C896">Safe AI</span></span></div>
+        <h2 style="font-size:16px;font-weight:600;margin-bottom:8px">✍️ Your signature is required</h2>
+        <p style="font-size:13px;color:#7A8FA6;margin-bottom:16px">Hi ${sig.name}, you have been sent the following document to review and sign electronically.</p>
+        <div style="background:#F6F8FB;border-radius:8px;padding:16px;margin-bottom:20px">
+          <div style="font-size:12px;color:#7A8FA6;margin-bottom:4px">Document</div>
+          <div style="font-size:13px;font-weight:600">${s.docLabel}</div>
+          <div style="font-size:12px;color:#7A8FA6;margin-top:4px">Property: ${p?.address||'—'}</div>
+          <div style="font-size:12px;color:#7A8FA6;margin-top:2px">Other signatories: ${othersStr}</div>
+        </div>
+        <p style="font-size:13px;margin-bottom:20px">Click the link below to review the full document and add your signature. Your link is private and unique to you — it can only be used to sign your own signature block.</p>
+        <div style="text-align:center;margin:28px 0"><a href="${signingLink}" style="background:#0B1E3D;color:#fff;padding:13px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;display:inline-block">Review &amp; Sign →</a></div>
+        <div style="background:#FEF3C7;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400E;margin-bottom:16px">⏰ Link expires: ${expDate}</div>
+        <p style="font-size:11px;color:#999">Sent via RentSafe AI · rentsafeai.co.uk</p>
+      </div>`;
+      await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({type:'send_email',to:sig.email,subject:`Action required — sign: ${s.docLabel}`,html})
+      }).catch(()=>{});
+    }
+
+    // Log to email_log
+    const logEntry = {
+      user_id: currentUser.id, tenant_id: leadTenant?.id||null, prop_id: parseInt(s.pid),
+      template_id: 'esign_multiparty',
+      template_name: `E-Sign: ${s.docLabel} (${s.signatories.length} signatories)`,
+      sent_to: s.signatories.filter(x=>x.email).map(x=>x.email).join(', '),
+      subject: `Multi-party signing: ${s.docLabel}`,
+      status: 'Sent'
+    };
+    await sb.from('email_log').insert(logEntry).catch(()=>{});
+    await logAudit('ESIGN_SENT','esign_requests',req.id,`${s.docLabel} sent to ${s.signatories.length} signatories`);
+
+    closeMo();
+    toast(`✅ Signing links sent to ${s.signatories.filter(x=>x.email).length} parties`);
+
+  } catch(e) {
+    if (btn) { btn.disabled=false; btn.textContent='✅ Send to all signatories'; }
+    toast('Error: '+e.message, true);
+  }
+}
+
+// ── ESIGN STATUS: CHECK SIGNING PROGRESS ──
+async function loadEsignStatus(pid) {
+  try {
+    const { data } = await sb.from('esign_requests')
+      .select('*')
+      .eq('property_id', pid)
+      .eq('status', 'pending')
+      .order('created_at', {ascending:false})
+      .limit(5);
+    return data || [];
+  } catch(e) { return []; }
+}
+
+async function checkEsignCompletion(reqId, pid) {
+  try {
+    const { data: req } = await sb.from('esign_requests').select('*').eq('id', reqId).single();
+    if (!req) return;
+    const sigs = typeof req.signatories === 'string' ? JSON.parse(req.signatories) : (req.signatories || []);
+    const withEmails = sigs.filter(s=>s.email);
+    const signedCount = sigs.filter(s=>s.signed_at).length;
+    if (withEmails.length > 0 && signedCount >= withEmails.length) {
+      // All signed — mark complete
+      await sb.from('esign_requests').update({status:'completed',completed_at:new Date().toISOString()}).eq('id',reqId);
+      // Save compliance cert
+      const certEntry = {
+        prop_id: parseInt(pid), type: `${req.doc_label||'Written Statement'} — Fully Signed`,
+        status: 'Valid', served: true, has_file: !!(req.document_pdf_url||req.document_html),
+        engineer: null, expiry: null, user_id: currentUser.id,
+        notes: `Multi-party e-signed · ${signedCount} signatories · ${new Date().toLocaleDateString('en-GB')}`
+      };
+      const { data: cert } = await sb.from('certificates').insert(certEntry).select().single().catch(()=>({data:null}));
+      if (cert) D.certs.push({...cert, file:true});
+      await logAudit('ESIGN_COMPLETE','esign_requests',reqId,`${req.doc_label} fully signed by all parties`);
+      toast('🎉 Document fully signed — saved to compliance!');
+      nav('prop-detail', pid);
+      setTimeout(()=>pdSetTab(pid,'compliance'),100);
+    }
+  } catch(e) { console.warn('checkEsignCompletion error', e); }
+}
+
+async function renderEsignStatusPanel(pid) {
+  const el = document.getElementById(`esign-status-${pid}`);
+  if (!el) return;
+  el.innerHTML = '<div style="font-size:12px;color:var(--muted)">Loading…</div>';
+  const reqs = await loadEsignStatus(pid);
+  if (!reqs.length) { el.innerHTML = '<div style="font-size:12px;color:var(--muted)">No active signing requests</div>'; return; }
+  el.innerHTML = reqs.map(req => {
+    const sigs = typeof req.signatories==='string'?JSON.parse(req.signatories):(req.signatories||[]);
+    const signedCount = sigs.filter(s=>s.signed_at).length;
+    const total = sigs.filter(s=>s.email).length;
+    const pct = total ? Math.round(signedCount/total*100) : 0;
+    const expDays = Math.ceil((new Date(req.expires_at)-new Date())/864e5);
+    return `<div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div>
+          <div style="font-size:13px;font-weight:600">${req.doc_label||'Document'}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${signedCount}/${total} signed · Expires in ${expDays}d</div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button onclick="checkEsignCompletion('${req.id}','${pid}')" class="btn btn-sm" style="font-size:11px">↻ Check</button>
+          <button onclick="moEsign('${pid}')" class="btn btn-sm btn-navy" style="font-size:11px">+ New</button>
+        </div>
+      </div>
+      <div style="height:5px;background:var(--off);border-radius:100px;margin-bottom:10px">
+        <div style="height:100%;width:${pct}%;background:${pct===100?'var(--green)':'var(--blue)'};border-radius:100px;transition:width .5s"></div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${sigs.map(sig=>`<div style="display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;background:${sig.signed_at?'var(--green-bg)':'var(--off)'};border:1px solid ${sig.signed_at?'rgba(0,200,150,0.2)':'var(--border)'}">
+          <span style="font-size:11px">${sig.signed_at?'✅':'⏳'}</span>
+          <span style="font-size:11px;font-weight:500">${sig.name}</span>
+          <span style="font-size:9px;color:var(--muted)">${sig.role}</span>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
   const p = P(pid);
   const t = D.tenants.find(x => String(x.id) === String(tid));
   if (!p || !t) { toast('Property or tenant not found', true); return; }
@@ -8005,141 +8399,6 @@ function moEsign(pid, tid) {
     </div>
   `, '');
   document.querySelector('.mo-box').classList.add('mo-wide');
-}
-
-function esignShowOptionA() {
-  document.getElementById('esign-chooser').style.display = 'none';
-  document.getElementById('esign-form-a').style.display = 'block';
-}
-
-function esignShowOptionB() {
-  document.getElementById('esign-chooser').style.display = 'none';
-  document.getElementById('esign-form-b').style.display = 'block';
-}
-
-async function esignHandlePDF(input) {
-  const file = input.files[0];
-  if (!file) return;
-  if (file.size > 5 * 1024 * 1024) { toast('PDF must be under 5MB', true); return; }
-  const label = document.getElementById('esign-upload-label');
-  label.innerHTML = '<span class="spin spin-dark" style="display:inline-block;margin-right:6px"></span>Uploading…';
-  const filename = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-  const { error } = await sb.storage.from('esign-documents').upload(filename, file, { contentType: 'application/pdf' });
-  if (error) { label.textContent = 'Upload failed — try again'; toast('Upload error: ' + error.message, true); return; }
-  const { data: urlData } = sb.storage.from('esign-documents').getPublicUrl(filename);
-  _esignPdfUrl = urlData.publicUrl;
-  label.innerHTML = `<span style="color:var(--green-dark);font-weight:600">✓ ${file.name} uploaded</span>`;
-  document.getElementById('esign-send-row-b').style.display = 'block';
-}
-
-async function esignGenerateDoc(pid, tid) {
-  const p = P(pid);
-  const address  = document.getElementById('esign-address').value;
-  const tenantName = document.getElementById('esign-tname').value;
-  const startDate  = document.getElementById('esign-start').value;
-  const rent       = document.getElementById('esign-rent').value;
-  const deposit    = document.getElementById('esign-deposit').value;
-  const scheme     = document.getElementById('esign-scheme').value;
-  const bills      = document.getElementById('esign-bills').value || 'None';
-  const pets       = document.getElementById('esign-pets').value;
-  const terms      = document.getElementById('esign-terms').value;
-  const landlordName = currentUser.user_metadata?.full_name || currentUser.email;
-
-  const btn = document.getElementById('esign-gen-btn');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spin"></span> Generating…';
-
-  try {
-    const res = await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 4000,
-        messages: [{
-          role: 'user',
-          content: `Generate a fully compliant UK Assured Periodic Tenancy Written Statement under the Renters Rights Act 2025. Use these details:\nProperty: ${address}\nTenant: ${tenantName}\nLandlord: ${landlordName}\nStart date: ${startDate}\nMonthly rent: £${rent} payable monthly in advance\nDeposit: £${deposit} protected with ${scheme}\nBills included: ${bills}\nPets: ${pets}\nSpecial terms: ${terms||'None'}\n\nInclude all mandatory RRA 2025 terms: periodic tenancy (no fixed end date), 2 months landlord notice via Section 8 only, rent increases via Section 13 max once per year with 2 months notice, tenant 2 months notice to quit, landlord repair obligations under s11 Landlord and Tenant Act 1985, right of entry with 24hrs notice, deposit protection obligations.\n\nFormat as clean HTML with proper headings and sections. Professional and legally precise. Return only the HTML document content, no preamble.`
-        }]
-      })
-    });
-    if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.error?.message || `API error ${res.status}`); }
-    const data = await res.json();
-    _esignDocHtml = data.content?.[0]?.text || '';
-    document.getElementById('esign-doc-preview').innerHTML = _esignDocHtml;
-    document.getElementById('esign-preview-a').style.display = 'block';
-    document.getElementById('esign-generate-row').style.display = 'none';
-    document.getElementById('esign-send-row-a').style.display = 'block';
-  } catch(e) {
-    toast('Generation failed: ' + e.message, true);
-    btn.disabled = false;
-    btn.innerHTML = '✦ Generate Document';
-  }
-}
-
-async function _sendEsignRequest(pid, tid, mode) {
-  const t = D.tenants.find(x => String(x.id) === String(tid));
-  const p = P(pid);
-  if (!t || !p) return;
-  if (!t.email) { toast('Tenant has no email address on file', true); return; }
-  if (mode === 'html' && !_esignDocHtml) { toast('No document generated yet', true); return; }
-  if (mode === 'pdf'  && !_esignPdfUrl)  { toast('No PDF uploaded yet', true); return; }
-
-  const btn = mode === 'html'
-    ? document.getElementById('esign-send-a-btn')
-    : document.getElementById('esign-send-b-btn');
-  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin spin-dark"></span> Sending…'; }
-
-  const token      = crypto.randomUUID();
-  const expiresAt  = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-  const docType    = mode === 'html' ? 'written_statement' : 'rra_receipt';
-
-  const { error: insertErr } = await sb.from('esign_requests').insert({
-    property_id:      pid,
-    tenant_id:        tid,
-    document_type:    docType,
-    document_html:    mode === 'html' ? _esignDocHtml : null,
-    document_pdf_url: mode === 'pdf'  ? _esignPdfUrl  : null,
-    token,
-    status:     'pending',
-    expires_at: expiresAt
-  });
-  if (insertErr) {
-    if (btn) { btn.disabled = false; btn.textContent = 'Send to Tenant'; }
-    toast('Error: ' + insertErr.message, true);
-    return;
-  }
-
-  const signingLink = `${window.location.origin}/tenant.html?esign=${token}`;
-  const docLabel    = docType === 'written_statement' ? 'Written Statement of Tenancy Terms' : 'Tenancy Document';
-  const expDate     = new Date(expiresAt).toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'});
-
-  const html = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:28px 24px;color:#1A2B45">
-    <div style="border-bottom:2px solid #0B1E3D;padding-bottom:12px;margin-bottom:20px"><span style="font-size:17px;font-weight:700;color:#0B1E3D">Rent<span style="color:#00C896">Safe AI</span></span></div>
-    <h2 style="font-size:16px;font-weight:600;margin-bottom:8px">Action required — please sign your tenancy document</h2>
-    <p style="font-size:13px;color:#7A8FA6;margin-bottom:20px">Hi ${t.name}, your landlord has sent a document for you to review and sign electronically.</p>
-    <div style="background:#F6F8FB;border-radius:8px;padding:16px;margin-bottom:24px">
-      <div style="font-size:12px;color:#7A8FA6;margin-bottom:4px">Document</div>
-      <div style="font-size:13px;font-weight:600">${docLabel}</div>
-      <div style="font-size:12px;color:#7A8FA6;margin-top:4px">Property: ${p.address}${p.city?', '+p.city:''}</div>
-    </div>
-    <p style="font-size:13px;margin-bottom:24px">Click the link below to review and sign. You will need to give electronic consent before viewing.</p>
-    <div style="text-align:center;margin:28px 0"><a href="${signingLink}" style="background:#0B1E3D;color:#fff;padding:13px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;display:inline-block">Review &amp; Sign Document →</a></div>
-    <p style="font-size:12px;color:#7A8FA6">Or copy this link: <a href="${signingLink}" style="color:#3B6FE8;word-break:break-all">${signingLink}</a></p>
-    <div style="margin-top:20px;background:#FEF3C7;border-radius:8px;padding:12px 14px;font-size:12px;color:#92400E">⏰ This link expires on ${expDate}.</div>
-    <div style="margin-top:20px;padding-top:14px;border-top:1px solid #eee;font-size:11px;color:#999">Sent via RentSafe AI · documents@rentsafeai.co.uk</div>
-  </div>`;
-
-  await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type: 'send_email', to: t.email, subject: 'Action required — please sign your tenancy document', html })
-  }).catch(() => {});
-
-  await logAudit('esign_request_sent', 'esign_requests', pid, `E-sign sent to ${t.email} for ${p.address}`);
-  closeMo();
-  _esignDocHtml = null;
-  _esignPdfUrl  = null;
-  toast(`✓ Signing request sent to ${t.email}`);
 }
 
 // ── SECTION 13 RENT INCREASE NOTICE GENERATOR ──
