@@ -2239,7 +2239,7 @@ function _tenantStepHtml(n) {
     </div>
     <div class="fg-row">
       <div class="fg"><label>Check date <span class="req">*</span></label><input type="date" id="ts-rtr-date" value="${s.rtrCheckDate}"></div>
-      <div class="fg"><label>Checked by</label><input type="text" id="ts-rtr-by" value="${s.rtrCheckedBy}" placeholder="e.g. Saurabh Dhawan (landlord)"></div>
+      <div class="fg"><label>Checked by</label><input type="text" id="ts-rtr-by" value="${s.rtrCheckedBy}" placeholder="e.g. Your Name (landlord)"></div>
     </div>
     <div class="fg"><label>Document expiry <span style="font-weight:400;color:var(--muted)">(leave blank if no expiry)</span></label><input type="date" id="ts-rtr-expiry" value="${s.rtrExpiry}"></div>
     <div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--muted);margin-top:4px;display:flex;gap:8px;align-items:flex-start">
@@ -4655,6 +4655,51 @@ async function moveStage(id,stage){
   const m=D.maintenance.find(x=>String(x.id)===String(id));
   if(m){m.stage=stage;m.status=statusMap[stage]||'Open';}
   await logAudit('UPDATE_STAGE','maintenance',id,`Stage → ${stage}`);
+
+  // Auto-notify tenant on key stage changes
+  const notifyStages = ['Assigned','In Progress','Completed'];
+  if (notifyStages.includes(stage)) {
+    const prop = P(m?.prop_id);
+    const tenant = D.tenants.find(t=>String(t.prop_id)===String(m?.prop_id)&&t.status==='Active'&&t.is_lead!==false);
+    if (tenant?.email && prop) {
+      const stageMsg = {
+        'Assigned':    `Your maintenance request has been received and assigned. We will be in touch shortly.`,
+        'In Progress': `Work on your maintenance request is now in progress. Thank you for your patience.`,
+        'Completed':   `Your maintenance request has been completed. Please contact us if you have any concerns.`,
+      }[stage];
+      const html = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1A2B45">
+        <div style="border-bottom:2px solid #0B1E3D;padding-bottom:10px;margin-bottom:16px"><span style="font-size:16px;font-weight:700;color:#0B1E3D">Rent<span style="color:#00C896">Safe AI</span></span></div>
+        <h2 style="font-size:15px;margin-bottom:8px">Maintenance Update — ${m?.title||'Job'}</h2>
+        <p style="font-size:13px;color:#7A8FA6">${prop.address}, ${prop.city}</p>
+        <div style="background:#f0fdf9;border:1px solid #00C896;border-radius:8px;padding:14px;margin:16px 0">
+          <div style="font-size:12px;font-weight:700;color:#00A87A;margin-bottom:4px">Status update: ${stage}</div>
+          <div style="font-size:13px;color:#1A2B45">${stageMsg}</div>
+        </div>
+        <div style="font-size:11px;color:#999;margin-top:16px;padding-top:12px;border-top:1px solid #eee">Sent via RentSafe AI · rentsafeai.co.uk · ${new Date().toLocaleString('en-GB')}</div>
+      </div>`;
+      try {
+        await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor',{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({type:'send_email',to:tenant.email,subject:`Maintenance update: ${m?.title||'Job'} — ${stage}`,html})
+        });
+        // Log to email_log
+        const logEntry = {
+          user_id: currentUser.id,
+          tenant_id: tenant.id||null,
+          prop_id: parseInt(m?.prop_id),
+          template_id: 'maintenance_notification',
+          template_name: `Maintenance: ${m?.title||'Job'} → ${stage}`,
+          sent_to: tenant.email,
+          subject: `Maintenance update: ${m?.title||'Job'} — ${stage}`,
+          status: 'Sent',
+          email_body: html
+        };
+        const { data: logData } = await sb.from('email_log').insert(logEntry).select().single().catch(()=>({data:null}));
+        D.emailLog.unshift({...logEntry, sent_at: new Date().toISOString(), id: logData?.id});
+      } catch(e) { console.warn('Maintenance notification failed:', e); }
+    }
+  }
+
   toast(`✓ Moved to ${stage}`);
   nav('maintenance');
 }
@@ -4665,15 +4710,30 @@ function moIssueDetail(id){
   const p=P(m.prop_id)||{address:'—'};
   const stages=['Reported','Assigned','In Progress','Completed','Closed'];
   const stageCol={'Reported':'#7A8FA6','Assigned':'#3B6FE8','In Progress':'#D97706','Completed':'#00C896','Closed':'#556678'};
+  const tenant = D.tenants.find(t=>String(t.prop_id)===String(m.prop_id)&&t.status==='Active');
+  const commLogs = D.emailLog.filter(e=>e.template_id==='maintenance_notification'&&D.maintenance.find(x=>String(x.id)===String(id))&&String(e.prop_id)===String(m.prop_id));
+  const commLogHtml = commLogs.length ? `<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:8px">📬 Communication log</div>
+    ${commLogs.slice(0,5).map(e=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:11px;color:var(--muted);flex:1">${e.template_name||'—'}</span>
+      <span style="font-size:10px;color:var(--muted)">${e.sent_at?new Date(e.sent_at).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—'}</span>
+      <span class="badge b-green" style="font-size:9px">✓ Sent</span>
+    </div>`).join('')}
+  </div>` : '';
   openMo(m.title||'Maintenance job',`${p.address} · ${m.cat||'—'}`,`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
       ${[['Property',p.address],['Category',m.cat||'—'],['Priority',m.priority||'Low'],['Reported',FMS(m.date||m.issue_date)],['Assigned to',m.assigned_to||'Not assigned'],['Cost',m.cost?'£'+m.cost:'Not set'],['Completed',m.completed_date?FMS(m.completed_date):'—'],['Awaab',m.awaab?'⚠️ Yes':'No']].map(([l,v])=>`<div class="det-f"><label>${l}</label><span>${v}</span></div>`).join('')}
     </div>
     <div style="background:var(--off);border-radius:8px;padding:12px;margin-bottom:14px;font-size:13px;line-height:1.6">${m.description||m.desc||'—'}</div>
     <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:8px">Move to stage</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
       ${stages.map(s=>`<button onclick="moveStage('${m.id}','${s}');closeMo()" style="font-size:12px;padding:6px 12px;border-radius:6px;border:2px solid ${(m.stage||'Reported')===s?stageCol[s]:'var(--border)'};background:${(m.stage||'Reported')===s?stageCol[s]:'var(--white)'};color:${(m.stage||'Reported')===s?'#fff':'var(--muted)'};cursor:pointer;font-family:var(--font);font-weight:${(m.stage||'Reported')===s?'700':'400'}">${s}</button>`).join('')}
     </div>
+    ${tenant?.email?`<div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:8px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <div><div style="font-size:12px;font-weight:600">📧 Notify tenant</div><div style="font-size:11px;color:var(--muted)">Send a custom update to ${tenant.name} · ${tenant.email}</div></div>
+      <button class="btn btn-sm" style="border-color:var(--blue);color:var(--blue);flex-shrink:0" onclick="moNotifyTenant('${m.id}')">Send update →</button>
+    </div>`:''}
+    ${commLogHtml}
   `,`<button class="btn" onclick="closeMo()">Close</button>`);
 }
 
@@ -4827,6 +4887,16 @@ function getCalEvents(){
     events.push({date:t.rtr_expiry,type:'compliance',label:`Right to Rent re-check — ${t.name}`,sub:`Document expires · ${prop}`,urg,days,icon:'🔍',pid:t.prop_id});
   });
 
+  // ── Open maintenance jobs ──
+  D.maintenance.filter(m=>m.status!=='Resolved'&&m.status!=='Closed').forEach(m=>{
+    const d=new Date(m.date||m.issue_date||m.created_at||today);
+    d.setHours(0,0,0,0);
+    const days=Math.round((d-today)/864e5);
+    const prop=(P(m.prop_id)||{address:'—'}).address;
+    const urg=m.priority==='Urgent'||m.awaab?'red':m.priority==='High'?'amber':'blue';
+    events.push({date:d.toISOString().slice(0,10),type:'maintenance',label:`${m.title||'Maintenance job'}`,sub:`${m.stage||m.status||'Open'} · ${prop}`,urg,days,icon:'🔧',pid:m.prop_id,mid:m.id});
+  });
+
   // ── RRA sheet deadline (31 May 2026) if not sent ──
   const rraSentIds=new Set(D.emailLog.filter(e=>e.template_id==='rra_info_sheet'&&e.status==='Sent').map(e=>String(e.tenant_id)));
   D.tenants.filter(t=>t.status==='Active'&&!rraSentIds.has(String(t.id))).forEach(t=>{
@@ -4878,20 +4948,30 @@ function pgCalendar(){
     }
   });
 
-  // Calendar cells
+  // Calendar cells — up to 3 coloured dots per day
   let cells='';
   for(let i=0;i<fd;i++) cells+=`<div class="cc"></div>`;
   for(let d=1;d<=dim;d++){
     const isToday=(yr===now.getFullYear()&&mo===now.getMonth()&&d===now.getDate());
     const dayEvs=evMap[d]||[];
-    const hasRed=dayEvs.some(e=>e.urg==='red');
-    const hasAmber=dayEvs.some(e=>e.urg==='amber');
-    const dotCol=hasRed?'#E53E3E':hasAmber?'#D97706':dayEvs.length?'#3B6FE8':'';
-    cells+=`<div class="cc cm${isToday?' td':''}" onclick="showCalDay(${yr},${mo},${d})" style="cursor:${dayEvs.length?'pointer':'default'}">
+    const dotColors=[...new Set(dayEvs.map(e=>e.urg==='red'?'#E53E3E':e.urg==='amber'?'#D97706':'#3B6FE8'))].slice(0,3);
+    const dots=dotColors.map(c=>`<div style="width:4px;height:4px;border-radius:50%;background:${c}"></div>`).join('');
+    cells+=`<div class="cc cm${isToday?' td':''}" onclick="${dayEvs.length?`showCalDay(${yr},${mo},${d})`:'void(0)'}" style="cursor:${dayEvs.length?'pointer':'default'}">
       ${d}
-      ${dotCol?`<div style="width:5px;height:5px;border-radius:50%;background:${dotCol};margin:2px auto 0"></div>`:'<div style="height:7px"></div>'}
+      <div style="display:flex;justify-content:center;gap:2px;margin-top:2px;min-height:6px">${dots}</div>
     </div>`;
   }
+
+  // Today's events summary strip
+  const todayEvs = allEvents.filter(e=>{const ev=new Date(e.date);return ev.getFullYear()===now.getFullYear()&&ev.getMonth()===now.getMonth()&&ev.getDate()===now.getDate();});
+  const todayStrip = todayEvs.length ? `<div style="background:var(--navy);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.4px;flex-shrink:0">📅 Today</div>
+    ${todayEvs.slice(0,3).map(e=>`<div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.08);border-radius:6px;padding:4px 10px">
+      <span style="font-size:12px">${e.icon}</span>
+      <span style="font-size:11px;color:#fff;font-weight:500">${e.label}</span>
+    </div>`).join('')}
+    ${todayEvs.length>3?`<div style="font-size:11px;color:rgba(255,255,255,0.5)">+${todayEvs.length-3} more</div>`:''}
+  </div>` : '';
 
   // Property filter options
   const propOpts = `<option value="">All properties</option>`+D.properties.map(p=>`<option value="${p.id}"${String(p.id)===String(window.calProp)?' selected':''}>${p.address}</option>`).join('');
@@ -4900,11 +4980,12 @@ function pgCalendar(){
   const filterTypes=[
     {k:'all',label:'All',icon:'📅'},
     {k:'cert',label:'Certs',icon:'📄'},
+    {k:'maintenance',label:'Jobs',icon:'🔧'},
     {k:'rent',label:'Rent',icon:'💷'},
     {k:'tenancy',label:'Tenancy',icon:'🔑'},
     {k:'insurance',label:'Insurance',icon:'🛡'},
     {k:'compliance',label:'Compliance',icon:'⚠️'},
-    {k:'boiler',label:'Boiler',icon:'🔧'},
+    {k:'boiler',label:'Boiler',icon:'🔥'},
     {k:'mortgage',label:'Mortgage',icon:'🏦'},
   ];
   const filterChips = filterTypes.map(f=>`<button onclick="window.calFilter='${f.k}';nav('calendar')" style="padding:5px 12px;border-radius:100px;font-size:11px;font-weight:${window.calFilter===f.k?'700':'500'};border:1px solid ${window.calFilter===f.k?'var(--navy)':'var(--border)'};background:${window.calFilter===f.k?'var(--navy)':'var(--white)'};color:${window.calFilter===f.k?'#fff':'var(--muted)'};cursor:pointer;font-family:var(--font)">${f.icon} ${f.label}</button>`).join('');
@@ -4922,6 +5003,7 @@ function pgCalendar(){
     const col=e.urg==='red'?'var(--red)':e.urg==='amber'?'var(--amber)':'var(--blue)';
     const bg=e.urg==='red'?'var(--red-bg)':e.urg==='amber'?'var(--amber-bg)':'var(--blue-bg)';
     const actionBtn = e.type==='cert'?`<button onclick="nav('compliance')" style="font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid var(--border);background:var(--white);color:var(--muted);cursor:pointer;font-family:var(--font)">View →</button>`
+      : e.type==='maintenance'?`<button onclick="moIssueDetail('${e.mid}')" style="font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid var(--amber);background:var(--amber-bg);color:var(--amber);cursor:pointer;font-family:var(--font)">Job →</button>`
       : e.type==='tenancy'&&e.icon==='📈'?`<button onclick="moSection13('${e.pid}')" style="font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid var(--blue);background:var(--blue-bg);color:var(--blue);cursor:pointer;font-family:var(--font)">S.13 →</button>`
       : e.type==='compliance'&&e.icon==='⚠️'?`<button onclick="moRRASheet()" style="font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid var(--red);background:var(--red-bg);color:var(--red);cursor:pointer;font-family:var(--font)">Send now</button>`
       : e.type==='boiler'?`<button onclick="moPropertySetup('${e.pid}')" style="font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid var(--border);background:var(--white);color:var(--muted);cursor:pointer;font-family:var(--font)">Update →</button>`
@@ -4950,7 +5032,9 @@ function pgCalendar(){
     <select style="padding:6px 10px;border-radius:7px;border:1px solid var(--border);font-family:var(--font);font-size:12px;color:var(--txt);background:var(--white)" onchange="window.calProp=this.value;nav('calendar')">${propOpts}</select>
   </div></div>
   <div class="content">
-    <div class="ph"><h1>Portfolio Calendar</h1><p>Auto-populated from all your compliance, tenancy and financial data</p></div>
+    <div class="ph"><h1>Portfolio Calendar</h1><p>Auto-populated from compliance, tenancy, financials and open maintenance jobs</p></div>
+
+    ${todayStrip}
 
     ${urgentCount?`<div style="background:var(--red-bg);border:2px solid var(--red);border-radius:10px;padding:12px 18px;margin-bottom:16px;display:flex;align-items:center;gap:14px">
       <div style="font-size:24px">🔴</div>
@@ -4980,8 +5064,8 @@ function pgCalendar(){
         </div>
         <div style="background:var(--off);border-radius:8px;padding:12px 14px;font-size:11px;color:var(--muted);margin-top:12px">
           <strong style="color:var(--txt)">Legend:</strong>&nbsp;
-          🔴 Overdue / urgent &nbsp;🟡 Due soon &nbsp;🔵 Upcoming &nbsp;
-          📄 Cert &nbsp;💷 Rent &nbsp;🔑 Tenancy &nbsp;🛡 Insurance &nbsp;🔧 Boiler &nbsp;📈 S.13 eligible &nbsp;🔍 RTR re-check
+          🔴 Overdue/urgent &nbsp;🟡 Due soon &nbsp;🔵 Upcoming &nbsp;
+          📄 Cert &nbsp;🔧 Maintenance &nbsp;💷 Rent &nbsp;🔑 Tenancy &nbsp;🛡 Insurance &nbsp;🔥 Boiler &nbsp;📈 S.13 &nbsp;🔍 RTR
         </div>
       </div>
 
@@ -6270,7 +6354,8 @@ async function sendEmailNow() {
       template_name: ctx.templateName,
       sent_to: to,
       subject,
-      status: 'Sent'
+      status: 'Sent',
+      email_body: htmlBody || null
     };
     const { data: logData } = await sb.from('email_log').insert(logEntry).select().single();
     D.emailLog.unshift({ ...logEntry, sent_at: new Date().toISOString(), id: logData?.id });
@@ -6289,13 +6374,59 @@ async function sendEmailNow() {
 function propEmailLogHtml(pid) {
   const logs = D.emailLog.filter(e => String(e.prop_id) === String(pid));
   if (!logs.length) return '<div style="color:var(--muted);font-size:13px">No emails sent yet — generate a template and use ✉ Send to Tenant</div>';
-  return `<div class="tw"><table><thead><tr><th>Document</th><th>Sent to</th><th>Date</th><th>Status</th></tr></thead>
+  return `
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+      <button class="btn btn-sm" onclick="exportAuditTrail('${pid}')" style="font-size:11px;border-color:var(--navy);color:var(--navy)">📋 Export audit trail</button>
+    </div>
+    <div class="tw"><table><thead><tr><th>Document / Event</th><th>Sent to</th><th>Date &amp; time</th><th>Status</th><th></th></tr></thead>
     <tbody>${logs.map(e=>`<tr>
       <td class="td-bold" style="font-size:12px">${e.template_name||e.template_id||'—'}</td>
       <td style="font-size:12px;color:var(--muted)">${e.sent_to||'—'}</td>
-      <td style="font-size:12px;white-space:nowrap">${FMT(e.sent_at)}</td>
+      <td style="font-size:11px;white-space:nowrap;color:var(--muted)">${e.sent_at ? new Date(e.sent_at).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}</td>
       <td>${B(e.status||'Sent')}</td>
+      <td>${e.email_body||e.subject?`<button onclick="moViewEmail('${e.id}')" style="font-size:10px;padding:2px 7px;border-radius:5px;border:1px solid var(--border);background:var(--white);color:var(--muted);cursor:pointer;font-family:var(--font)">View</button>`:'—'}</td>
     </tr>`).join('')}</tbody></table></div>`;
+}
+
+function moViewEmail(logId) {
+  const e = D.emailLog.find(x => String(x.id) === String(logId));
+  if (!e) { toast('Email not found', true); return; }
+  const sentAt = e.sent_at ? new Date(e.sent_at).toLocaleString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '—';
+  openMo('📧 Email record', `Sent ${sentAt}`, `
+    <div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:14px">
+      ${[['Document',e.template_name||e.template_id||'—'],['Sent to',e.sent_to||'—'],['Subject',e.subject||'—'],['Status',e.status||'Sent'],['Timestamp',sentAt]].map(([l,v])=>`<div style="display:flex;gap:12px;padding:4px 0;border-bottom:1px solid var(--border)"><span style="font-size:11px;color:var(--muted);min-width:80px;flex-shrink:0">${l}</span><span style="font-size:12px;font-weight:500">${v}</span></div>`).join('')}
+    </div>
+    ${e.email_body ? `<div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:600">EMAIL CONTENT</div>
+    <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;max-height:400px;overflow-y:auto">
+      <iframe srcdoc="${e.email_body.replace(/"/g,'&quot;')}" style="width:100%;min-height:360px;border:none"></iframe>
+    </div>` : `<div style="color:var(--muted);font-size:12px">Email content not stored — only available for emails sent after this feature was added.</div>`}
+  `, `<button class="btn" onclick="closeMo()">Close</button><button class="btn btn-sm btn-navy" onclick="window.print()">🖨 Print</button>`);
+}
+
+function exportAuditTrail(pid) {
+  const p = P(pid);
+  const logs = D.emailLog.filter(e => String(e.prop_id) === String(pid));
+  const tenant = D.tenants.find(t => String(t.prop_id) === String(pid) && t.status === 'Active');
+  const rows = logs.map(e => {
+    const ts = e.sent_at ? new Date(e.sent_at).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '—';
+    return `<tr><td>${ts}</td><td>${e.template_name||e.template_id||'—'}</td><td>${e.sent_to||'—'}</td><td>${e.subject||'—'}</td><td>${e.status||'Sent'}</td></tr>`;
+  }).join('');
+  const html = `<!DOCTYPE html><html><head><title>Email Audit Trail — ${p?.address||'Property'}</title>
+  <style>body{font-family:Arial,sans-serif;font-size:12px;padding:24px;color:#222}h1{font-size:16px;margin-bottom:4px}p{font-size:12px;color:#666;margin:0 0 16px}table{width:100%;border-collapse:collapse}th{background:#0B1E3D;color:#fff;padding:8px;text-align:left;font-size:11px}td{padding:7px 8px;border-bottom:1px solid #ddd;font-size:11px}tr:nth-child(even){background:#f9f9f9}.meta{background:#f5f5f5;border:1px solid #ddd;border-radius:6px;padding:12px;margin-bottom:16px}@media print{button{display:none}}</style>
+  </head><body>
+  <h1>Communication Audit Trail — Court Ready</h1>
+  <div class="meta"><strong>Property:</strong> ${p?.address||'—'}, ${p?.city||''} ${p?.postcode||''}<br>
+  <strong>Tenant:</strong> ${tenant?.name||'—'} &nbsp;&nbsp; <strong>Email:</strong> ${tenant?.email||'—'}<br>
+  <strong>Generated:</strong> ${new Date().toLocaleString('en-GB',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'})}<br>
+  <strong>Reference:</strong> RentSafe AI — Timestamped Compliance Record</div>
+  <p>This document provides a full timestamped record of all communications sent via RentSafe AI for use in legal proceedings, deposit disputes or compliance audits.</p>
+  <table><thead><tr><th>Timestamp</th><th>Document / Event</th><th>Sent to</th><th>Subject</th><th>Status</th></tr></thead>
+  <tbody>${rows||'<tr><td colspan="5">No emails logged</td></tr>'}</tbody></table>
+  <p style="margin-top:16px;font-size:10px;color:#999">Generated by RentSafe AI · rentsafeai.co.uk · Records stored securely with full timestamps</p>
+  <script>window.onload=()=>window.print();</script>
+  </body></html>`;
+  const w = window.open('','_blank');
+  if (w) { w.document.write(html); w.document.close(); }
 }
 
 function s8LaunchFromTemplates() {
@@ -7997,6 +8128,63 @@ function closeMobSidebar(){
   const hm=document.getElementById('mob-ham');
   if(hm) hm.classList.remove('open');
   document.body.style.overflow='';
+}
+
+// ── MAINTENANCE: NOTIFY TENANT ──
+function moNotifyTenant(maintenanceId) {
+  const m = D.maintenance.find(x=>String(x.id)===String(maintenanceId));
+  if (!m) return;
+  const tenant = D.tenants.find(t=>String(t.prop_id)===String(m.prop_id)&&t.status==='Active');
+  if (!tenant?.email) { toast('No tenant email on file', true); return; }
+  openMo('📧 Notify tenant','Send a maintenance update',`
+    <div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--muted)">
+      To: <strong style="color:var(--txt)">${tenant.name}</strong> · ${tenant.email} &nbsp;|&nbsp; Job: <strong style="color:var(--txt)">${m.title||'Maintenance'}</strong>
+    </div>
+    <div class="fg"><label>Message to tenant</label>
+      <textarea id="mnt-msg" style="min-height:100px" placeholder="e.g. We have arranged for the plumber to attend on Thursday between 10am–12pm. Please ensure someone is home to provide access.">${m.stage==='Completed'?'Your maintenance request has been completed. Please let us know if you have any further concerns.':''}</textarea>
+    </div>
+    <div class="fg"><label>Your name / signature</label>
+      <input type="text" id="mnt-sig" placeholder="e.g. Your Name, Landlord">
+    </div>
+  `, `<button class="btn" onclick="closeMo()">Cancel</button><button class="btn btn-navy" onclick="sendMaintenanceNotify('${maintenanceId}')">Send →</button>`);
+}
+
+async function sendMaintenanceNotify(maintenanceId) {
+  const m = D.maintenance.find(x=>String(x.id)===String(maintenanceId));
+  const tenant = D.tenants.find(t=>String(t.prop_id)===String(m?.prop_id)&&t.status==='Active');
+  const msg = document.getElementById('mnt-msg')?.value.trim();
+  const sig = document.getElementById('mnt-sig')?.value.trim() || 'Your Landlord';
+  if (!msg) { toast('Please enter a message', true); return; }
+  if (!tenant?.email) { toast('No tenant email', true); return; }
+  const prop = P(m.prop_id);
+  const html = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1A2B45">
+    <div style="border-bottom:2px solid #0B1E3D;padding-bottom:10px;margin-bottom:16px"><span style="font-size:16px;font-weight:700;color:#0B1E3D">Rent<span style="color:#00C896">Safe AI</span></span></div>
+    <h2 style="font-size:15px;margin-bottom:8px">Maintenance Update — ${m.title||'Maintenance'}</h2>
+    <p style="font-size:13px;color:#7A8FA6;margin-bottom:16px">${prop?.address||''}</p>
+    <div style="font-size:13px;line-height:1.7;white-space:pre-wrap">${msg}</div>
+    <p style="font-size:13px;margin-top:16px">Kind regards,<br><strong>${sig}</strong></p>
+    <div style="font-size:11px;color:#999;margin-top:16px;padding-top:12px;border-top:1px solid #eee">Sent via RentSafe AI · ${new Date().toLocaleString('en-GB')}</div>
+  </div>`;
+  try {
+    await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:'send_email',to:tenant.email,subject:`Maintenance update: ${m.title||'Job'}`,html})
+    });
+    const logEntry = {
+      user_id: currentUser.id, tenant_id: tenant.id||null,
+      prop_id: parseInt(m.prop_id), template_id: 'maintenance_notification',
+      template_name: `Maintenance: ${m.title||'Job'}`,
+      sent_to: tenant.email, subject: `Maintenance update: ${m.title||'Job'}`,
+      status: 'Sent', email_body: html
+    };
+    const { data: logData } = await sb.from('email_log').insert(logEntry).select().single().catch(()=>({data:null}));
+    D.emailLog.unshift({...logEntry, sent_at: new Date().toISOString(), id: logData?.id});
+    await logAudit('MAINT_NOTIFY','email_log',maintenanceId,`Tenant notified: ${m.title}`);
+    closeMo();
+    toast('✉ Tenant notified and logged');
+  } catch(e) {
+    toast('Error: ' + e.message, true);
+  }
 }
 
 // ── COMPLIANCE FILTER ──
