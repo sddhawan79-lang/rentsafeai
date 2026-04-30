@@ -762,6 +762,22 @@ async function loadData() {
   await checkComplianceReminders();
 }
 
+function checkComplianceReminders() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const urgent = [];
+  D.certs.filter(c => c.expiry).forEach(c => {
+    const d = new Date(c.expiry); d.setHours(0,0,0,0);
+    const days = Math.round((d - today) / 864e5);
+    if (days >= 0 && days <= 7) urgent.push(`${c.type} expires in ${days === 0 ? 'today' : days + ' day' + (days !== 1 ? 's' : '')}`);
+  });
+  D.properties.filter(p => p.licence_expiry).forEach(p => {
+    const d = new Date(p.licence_expiry); d.setHours(0,0,0,0);
+    const days = Math.round((d - today) / 864e5);
+    if (days >= 0 && days <= 7) urgent.push(`${p.licence_type || 'Licence'} expires in ${days} day${days !== 1 ? 's' : ''} — ${p.address}`);
+  });
+  if (urgent.length) toast('⚠ ' + urgent[0] + (urgent.length > 1 ? ` (+${urgent.length - 1} more)` : ''), true);
+}
+
 // ── INIT ──
 async function initApp() {
   const { data: { session } } = await sb.auth.getSession();
@@ -772,7 +788,7 @@ async function initApp() {
   document.getElementById('sb-username').textContent = email.split('@')[0];
   document.getElementById('th-av').textContent = email.slice(0,2).toUpperCase();
 
-  await loadData();
+  try { await loadData(); } catch(e) { console.error('loadData error:', e); }
   updateNavBadges();
   try {
     nav('dashboard');
@@ -1151,7 +1167,13 @@ function moAddProp(){
       <div class="fg"><label>Street address <span class="req">*</span></label><input type="text" id="p-addr" placeholder="e.g. 14 Maple Street"></div>
       <div class="fg-row">
         <div class="fg"><label>City / town <span class="req">*</span></label><input type="text" id="p-city" placeholder="e.g. Manchester"></div>
-        <div class="fg"><label>Postcode <span class="req">*</span></label><input type="text" id="p-post" placeholder="e.g. M4 1AQ" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
+        <div class="fg"><label>Postcode <span class="req">*</span></label>
+          <div style="display:flex;gap:6px">
+            <input type="text" id="p-post" placeholder="e.g. M4 1AQ" style="text-transform:uppercase;flex:1" oninput="this.value=this.value.toUpperCase()">
+            <button type="button" id="p-post-btn" onclick="lookupPostcode()" style="padding:0 12px;border-radius:7px;border:1px solid var(--border);background:var(--off);color:var(--txt);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:var(--font)">Find →</button>
+          </div>
+          <div id="p-post-result" style="font-size:11px;margin-top:4px;color:var(--muted)"></div>
+        </div>
       </div>
       <div class="fg"><label>Country</label>
         <select id="p-country">
@@ -1227,7 +1249,17 @@ function moAddProp(){
     <!-- STEP 4: Compliance & licence -->
     <div class="step-box" id="step4">
       <div style="font-size:15px;font-weight:600;margin-bottom:2px">Compliance setup</div>
-      <div class="step-title">Licence type and compliance notes — we'll remind you what to upload next</div>
+      <div class="step-title">Upload your licence and EPC — AI will extract the details automatically</div>
+
+      <div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:14px">
+        <div style="font-size:12px;font-weight:600;margin-bottom:8px">📋 Property Licence — AI Scanner</div>
+        <label id="p-lic-scan-box" style="display:flex;align-items:center;gap:10px;padding:10px;border:1.5px dashed var(--border);border-radius:7px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='var(--navy)'" onmouseout="this.style.borderColor='var(--border)'">
+          <span style="font-size:20px">📄</span>
+          <div><div style="font-size:12px;font-weight:600">Upload licence document</div><div style="font-size:11px;color:var(--muted)">PDF or image — AI will fill reference, type and expiry</div></div>
+          <input type="file" accept="image/*,.pdf" style="display:none" onchange="scanPropLicence(this)">
+        </label>
+      </div>
+
       <div class="fg"><label>Licence type</label>
         <select id="p-licence">
           <option value="None">None required</option>
@@ -1242,6 +1274,16 @@ function moAddProp(){
         <div class="fg"><label>Licence reference</label><input type="text" id="p-lic-ref" placeholder="e.g. SL-2024-00412"></div>
         <div class="fg"><label>Licence expiry</label><input type="date" id="p-lic-expiry"></div>
       </div>
+
+      <div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin:14px 0">
+        <div style="font-size:12px;font-weight:600;margin-bottom:8px">⚡ EPC Certificate — AI Scanner</div>
+        <label id="p-epc-scan-box" style="display:flex;align-items:center;gap:10px;padding:10px;border:1.5px dashed var(--border);border-radius:7px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='var(--navy)'" onmouseout="this.style.borderColor='var(--border)'">
+          <span style="font-size:20px">📄</span>
+          <div><div style="font-size:12px;font-weight:600">Upload EPC certificate</div><div style="font-size:11px;color:var(--muted)">PDF or image — AI will fill rating and expiry date</div></div>
+          <input type="file" accept="image/*,.pdf" style="display:none" onchange="scanPropEPC(this)">
+        </label>
+      </div>
+
       <div class="fg-row">
         <div class="fg"><label>EPC rating</label>
           <select id="p-epc">
@@ -1270,6 +1312,16 @@ function moAddProp(){
         <div class="fg"><label>Tenancy start date</label><input type="date" id="p-tstart"></div>
         <div class="fg"><label>Tenancy end date</label><input type="date" id="p-tend"></div>
       </div>
+
+      <div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+        <div style="font-size:12px;font-weight:600;margin-bottom:8px">🔐 Deposit Certificate — AI Scanner</div>
+        <label id="p-dep-scan-box" style="display:flex;align-items:center;gap:10px;padding:10px;border:1.5px dashed var(--border);border-radius:7px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='var(--navy)'" onmouseout="this.style.borderColor='var(--border)'">
+          <span style="font-size:20px">📄</span>
+          <div><div style="font-size:12px;font-weight:600">Upload deposit protection certificate</div><div style="font-size:11px;color:var(--muted)">PDF or image — AI will fill amount and scheme</div></div>
+          <input type="file" accept="image/*,.pdf" style="display:none" onchange="scanPropDeposit(this)">
+        </label>
+      </div>
+
       <div class="fg-row">
         <div class="fg"><label>Deposit amount (£)</label><input type="number" id="p-deposit" placeholder="e.g. 1500" min="0"></div>
         <div class="fg"><label>Deposit scheme</label>
@@ -7862,6 +7914,132 @@ function closeMobSidebar(){
   const hm=document.getElementById('mob-ham');
   if(hm) hm.classList.remove('open');
   document.body.style.overflow='';
+}
+
+// ── POSTCODE LOOKUP (moAddProp Step 1) ──
+async function lookupPostcode() {
+  const pc = (document.getElementById('p-post')?.value || '').trim().replace(/\s+/g,'');
+  if (!pc) { toast('Enter a postcode first', true); return; }
+  const btn = document.getElementById('p-post-btn');
+  const res_div = document.getElementById('p-post-result');
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  try {
+    const r = await fetch(`https://api.postcodes.io/postcodes/${encodeURIComponent(pc)}`);
+    const d = await r.json();
+    if (d.status === 200 && d.result) {
+      const city = d.result.admin_district || d.result.parliamentary_constituency || d.result.region || '';
+      const cityEl = document.getElementById('p-city');
+      if (cityEl && !cityEl.value) cityEl.value = city;
+      if (res_div) res_div.innerHTML = `<span style="color:var(--green-dark)">✓ ${d.result.admin_ward || ''}, ${city}, ${d.result.region || ''}</span>`;
+    } else {
+      if (res_div) res_div.innerHTML = `<span style="color:var(--red)">Postcode not found — enter city manually</span>`;
+    }
+  } catch(e) {
+    if (res_div) res_div.innerHTML = `<span style="color:var(--red)">Lookup failed — enter city manually</span>`;
+  }
+  if (btn) { btn.disabled = false; btn.textContent = 'Find →'; }
+}
+
+// ── AI SCAN: PROPERTY LICENCE (moAddProp Step 4) ──
+function scanPropLicence(input) {
+  if (!input.files[0]) return;
+  const file = input.files[0];
+  const box = document.getElementById('p-lic-scan-box');
+  if (box) box.innerHTML = `<span style="font-size:20px">⏳</span><div><div style="font-size:12px;font-weight:600;color:var(--muted)">Scanning licence…</div><div class="scan-badge" style="margin-top:4px">✦ AI reading</div></div>`;
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const b64 = reader.result.split(',')[1];
+    const isImg = file.type.startsWith('image/');
+    const msgContent = isImg
+      ? [{type:'image',source:{type:'base64',media_type:file.type,data:b64}},{type:'text',text:'UK property licence document. Extract: licence type (e.g. Selective, Mandatory HMO, Additional HMO), licence reference number, expiry date (YYYY-MM-DD), issuing council. Return JSON only, keys: type, ref, expiry, council.'}]
+      : [{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:'UK property licence document. Extract: licence type (e.g. Selective, Mandatory HMO, Additional HMO), licence reference number, expiry date (YYYY-MM-DD), issuing council. Return JSON only, keys: type, ref, expiry, council.'}];
+    try {
+      const res = await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:300,messages:[{role:'user',content:msgContent}]})});
+      const data = await res.json();
+      const parsed = JSON.parse((data.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim());
+      if (parsed.expiry) { const el=document.getElementById('p-lic-expiry'); if(el) el.value=parsed.expiry; }
+      if (parsed.ref) { const el=document.getElementById('p-lic-ref'); if(el) el.value=parsed.ref; }
+      if (parsed.type) {
+        const lt = parsed.type.toLowerCase();
+        const sel = document.getElementById('p-licence');
+        const matchMap = { hmo:'Mandatory HMO', additional:'Additional HMO', selective:'Selective Licence', 'article 4':'Article 4', 'short-term':'Short-term Let', 'short term':'Short-term Let' };
+        for (const [key, val] of Object.entries(matchMap)) { if (lt.includes(key) && sel) { sel.value = val; break; } }
+      }
+      if (box) box.innerHTML = `<span style="font-size:20px">✅</span><div><div style="font-size:12px;font-weight:600;color:var(--green-dark)">✓ Licence scanned — fields filled</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${file.name}</div></div>`;
+      toast('✓ Licence scanned — check fields below');
+    } catch(e) {
+      if (box) box.innerHTML = `<span style="font-size:20px">📄</span><div><div style="font-size:12px;color:var(--red)">Scan failed — fill manually</div></div>`;
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── AI SCAN: EPC (moAddProp Step 4) ──
+function scanPropEPC(input) {
+  if (!input.files[0]) return;
+  const file = input.files[0];
+  const box = document.getElementById('p-epc-scan-box');
+  if (box) box.innerHTML = `<span style="font-size:20px">⏳</span><div><div style="font-size:12px;font-weight:600;color:var(--muted)">Scanning EPC…</div><div class="scan-badge" style="margin-top:4px">✦ AI reading</div></div>`;
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const b64 = reader.result.split(',')[1];
+    const isImg = file.type.startsWith('image/');
+    const msgContent = isImg
+      ? [{type:'image',source:{type:'base64',media_type:file.type,data:b64}},{type:'text',text:'UK EPC (Energy Performance Certificate). Extract: energy rating (single letter A-G), expiry or valid until date (YYYY-MM-DD). Return JSON only, keys: rating, expiry.'}]
+      : [{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:'UK EPC (Energy Performance Certificate). Extract: energy rating (single letter A-G), expiry or valid until date (YYYY-MM-DD). Return JSON only, keys: rating, expiry.'}];
+    try {
+      const res = await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:200,messages:[{role:'user',content:msgContent}]})});
+      const data = await res.json();
+      const parsed = JSON.parse((data.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim());
+      if (parsed.expiry) { const el=document.getElementById('p-epc-expiry'); if(el) el.value=parsed.expiry; }
+      if (parsed.rating) {
+        const r = parsed.rating.toUpperCase().charAt(0);
+        const sel = document.getElementById('p-epc');
+        if (sel) { for (const opt of sel.options) { if (opt.value.startsWith(r)) { sel.value = opt.value; break; } } }
+      }
+      if (box) box.innerHTML = `<span style="font-size:20px">✅</span><div><div style="font-size:12px;font-weight:600;color:var(--green-dark)">✓ EPC scanned${parsed.rating?' — Rating '+parsed.rating.toUpperCase().charAt(0):''}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${file.name}</div></div>`;
+      toast('✓ EPC scanned — check fields below');
+    } catch(e) {
+      if (box) box.innerHTML = `<span style="font-size:20px">📄</span><div><div style="font-size:12px;color:var(--red)">Scan failed — fill manually</div></div>`;
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── AI SCAN: DEPOSIT CERTIFICATE (moAddProp Step 5) ──
+function scanPropDeposit(input) {
+  if (!input.files[0]) return;
+  const file = input.files[0];
+  const box = document.getElementById('p-dep-scan-box');
+  if (box) box.innerHTML = `<span style="font-size:20px">⏳</span><div><div style="font-size:12px;font-weight:600;color:var(--muted)">Scanning deposit certificate…</div><div class="scan-badge" style="margin-top:4px">✦ AI reading</div></div>`;
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const b64 = reader.result.split(',')[1];
+    const isImg = file.type.startsWith('image/');
+    const msgContent = isImg
+      ? [{type:'image',source:{type:'base64',media_type:file.type,data:b64}},{type:'text',text:'UK tenancy deposit protection certificate. Extract: scheme name (DPS, MyDeposits, or TDS), deposit amount in GBP (number only), protection reference number. Return JSON only, keys: scheme, amount, ref.'}]
+      : [{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:'UK tenancy deposit protection certificate. Extract: scheme name (DPS, MyDeposits, or TDS), deposit amount in GBP (number only), protection reference number. Return JSON only, keys: scheme, amount, ref.'}];
+    try {
+      const res = await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:200,messages:[{role:'user',content:msgContent}]})});
+      const data = await res.json();
+      const parsed = JSON.parse((data.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim());
+      if (parsed.amount) { const el=document.getElementById('p-deposit'); if(el) el.value=parsed.amount; }
+      if (parsed.scheme) {
+        const s = parsed.scheme.toLowerCase();
+        const sel = document.getElementById('p-dep-scheme');
+        if (sel) {
+          if (s.includes('dps')) sel.value='DPS (Deposit Protection Service)';
+          else if (s.includes('mydeposit')) sel.value='MyDeposits';
+          else if (s.includes('tds')) sel.value='TDS (Tenancy Deposit Scheme)';
+        }
+      }
+      if (box) box.innerHTML = `<span style="font-size:20px">✅</span><div><div style="font-size:12px;font-weight:600;color:var(--green-dark)">✓ Deposit certificate scanned${parsed.amount?' — £'+parsed.amount:''}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${file.name}</div></div>`;
+      toast('✓ Deposit certificate scanned — check fields below');
+    } catch(e) {
+      if (box) box.innerHTML = `<span style="font-size:20px">📄</span><div><div style="font-size:12px;color:var(--red)">Scan failed — fill manually</div></div>`;
+    }
+  };
+  reader.readAsDataURL(file);
 }
 
 // ── START ──
