@@ -792,6 +792,9 @@ async function initApp() {
     document.getElementById('main').innerHTML = '<div style="padding:32px;font-family:sans-serif"><h2 style="color:#E53E3E">Dashboard Error</h2><pre style="background:#fff5f5;padding:16px;border-radius:8px;font-size:12px;overflow:auto">'+err.stack+'</pre><p style="margin-top:12px;color:#666">Please share this error with the developer.</p></div>';
     console.error('Dashboard error:', err);
   }
+  // Run compliance reminders in background after dashboard loads — fires once per login
+  // De-duplication in checkAllReminders (2-day audit_log window) prevents email spam
+  setTimeout(() => checkAllReminders().catch(e => console.warn('Reminder check failed:', e)), 3000);
 }
 
 // ── SAVE: PROPERTY ──
