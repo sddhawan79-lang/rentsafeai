@@ -3159,7 +3159,7 @@ function pgDashboard(){
       if (!props.length) return '';
       const btn = props.length === 1
         ? `<button class="btn btn-sm" style="background:#00C896;color:#0B1E3D;border:none;font-weight:600" onclick="moSection8('${props[0].id}')">Generate notice →</button>`
-        : `<select id="s8-dash-sel" style="padding:6px 10px;border-radius:7px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:#fff;font-family:var(--font);font-size:12px;cursor:pointer"><option value="">Select property…</option>${props.map(p=>`<option value="${p.id}">${p.address}</option>`).join('')}</select><button class="btn btn-sm" style="background:#00C896;color:#0B1E3D;border:none;font-weight:600;margin-left:6px" onclick="const v=document.getElementById('s8-dash-sel').value;if(v)moSection8(v);else toast('Please select a property',true)">Go →</button>`;
+        : `<select id="s8-dash-sel" style="padding:6px 10px;border-radius:7px;border:1px solid rgba(255,255,255,0.3);background:#fff;color:#0B1E3D;font-family:var(--font);font-size:12px;cursor:pointer;font-weight:500"><option value="">Select property…</option>${props.map(p=>`<option value="${p.id}">${p.address}</option>`).join('')}</select><button class="btn btn-sm" style="background:#00C896;color:#0B1E3D;border:none;font-weight:600;margin-left:6px" onclick="const v=document.getElementById('s8-dash-sel').value;if(v)moSection8(v);else toast('Please select a property',true)">Go →</button>`;
       return `<div class="s8-dash-card">
         <div>
           <div style="font-size:10px;font-weight:700;color:#00C896;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px">✦ RRA 2025 — Section 21 abolished 1 May 2026</div>
