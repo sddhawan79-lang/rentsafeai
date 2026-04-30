@@ -394,11 +394,6 @@ tr:hover td{background:rgba(246,248,251,.8)}
       <span class="sb-label">Contractors</span>
     </button>
 
-    <button class="sb-item" data-page="reportsuggest">
-      <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2a6 6 0 100 12A6 6 0 008 2z"/><path d="M8 5v3M8 10v1"/></svg>
-      <span class="sb-label">Report/Suggest</span> 
-    </button>
-
     <div class="sb-divider"></div>
     <div class="sb-section">AI</div>
 
@@ -822,11 +817,11 @@ async function savePropToDB() {
     current_value:   parseFloat(document.getElementById('p-value')?.value) || null,
     ownership_type:  document.getElementById('p-ownership')?.value || 'Personal',
     mortgage_outstanding: parseFloat(document.getElementById('p-mortgage')?.value) || null,
-    licence_type:    document.getElementById('p-licence')?.value || 'None',
-    licence_ref:     document.getElementById('p-lic-ref')?.value.trim() || null,
-    licence_expiry:  document.getElementById('p-lic-expiry')?.value || null,
-    epc_rating:      document.getElementById('p-epc')?.value || null,
-    epc_expiry:      document.getElementById('p-epc-expiry')?.value || null,
+    licence_type:    null,
+    licence_ref:     null,
+    licence_expiry:  null,
+    epc_rating:      null,
+    epc_expiry:      null,
     notes:           document.getElementById('p-notes')?.value.trim() || null,
     user_id:         currentUser.id,
     score: 50, rooms: [], inspections: []
@@ -841,51 +836,23 @@ async function savePropToDB() {
   D.properties.unshift({...data, rooms:[], inspections:[]});
   await logAudit('ADD_PROPERTY', 'properties', data.id, `Added: ${prop.address}, ${prop.city}`);
 
-  // Optional tenant
-  const tname = document.getElementById('p-tname')?.value.trim();
-  if (tname) {
-    const tenant = {
-      name: tname,
-      email: document.getElementById('p-temail')?.value.trim() || null,
-      prop_id: data.id,
-      start_date: document.getElementById('p-tstart')?.value || null,
-      end_date: document.getElementById('p-tend')?.value || null,
-      rent: prop.rent,
-      deposit: parseFloat(document.getElementById('p-deposit')?.value) || 0,
-      deposit_scheme: document.getElementById('p-dep-scheme')?.value || null,
-      status: 'Active',
-      user_id: currentUser.id
-    };
-    const { data: td, error: te } = await sb.from('tenants').insert(tenant).select().single();
-    if (!te && td) {
-      D.tenants.push({...td, start: td.start_date, end: td.end_date});
-      await logAudit('ADD_TENANT', 'tenants', td.id, `Added tenant: ${tname}`);
-    }
-  }
-
   closeMo();
   toast('✓ Property saved!');
 
   // Show "what's next" guided prompt
   const pid = data.id;
-  const hasTenant = !!tname;
   openMo('🎉 Property added!', `${prop.address}, ${prop.city}`,`
     <div style="margin-bottom:16px;font-size:13px;color:var(--muted)">Here's what to set up next to be fully compliant:</div>
-    <div onclick="closeMo();moPropertySetup(${pid})" style="display:flex;align-items:center;gap:12px;padding:12px;border:2px solid var(--green);border-radius:8px;cursor:pointer;margin-bottom:8px;transition:background .15s;background:var(--green-bg)" onmouseover="this.style.background='rgba(0,200,150,0.15)'" onmouseout="this.style.background='var(--green-bg)'">
-      <div style="width:36px;height:36px;border-radius:8px;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🚀</div>
-      <div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--navy)">Complete compliance setup</div><div style="font-size:12px;color:var(--green-dark)">Licence · Safety certs · Insurance · Boiler — guided 5 steps</div></div>
+    <div onclick="closeMo();moTenant(${pid})" style="display:flex;align-items:center;gap:12px;padding:12px;border:2px solid var(--green);border-radius:8px;cursor:pointer;margin-bottom:8px;background:var(--green-bg)" onmouseover="this.style.background='rgba(0,200,150,0.15)'" onmouseout="this.style.background='var(--green-bg)'">
+      <div style="width:36px;height:36px;border-radius:8px;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">👤</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--navy)">Add tenant</div><div style="font-size:12px;color:var(--green-dark)">Name, dates, RTR, deposit, rent — guided 6-step wizard</div></div>
       <div style="color:var(--green-dark);font-weight:700">›</div>
     </div>
-    <div class="ap-next-item" onclick="closeMo();moCert(${pid})" style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:8px;transition:background .15s" onmouseover="this.style.background='var(--off)'" onmouseout="this.style.background=''">
+    <div onclick="closeMo();moCert(${pid})" style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:8px;transition:background .15s" onmouseover="this.style.background='var(--off)'" onmouseout="this.style.background=''">
       <div style="width:36px;height:36px;border-radius:8px;background:var(--green-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📋</div>
-      <div style="flex:1"><div style="font-size:13px;font-weight:600">Add compliance certificates</div><div style="font-size:12px;color:var(--muted)">Gas Safety, EICR, EPC — AI will scan and fill details</div></div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:600">Upload compliance documents</div><div style="font-size:12px;color:var(--muted)">Gas Safety, EICR, EPC, Licence — AI scans and fills details</div></div>
       <div style="color:var(--muted)">›</div>
     </div>
-    ${!hasTenant ? `<div onclick="closeMo();moTenant(${pid})" style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:8px;transition:background .15s" onmouseover="this.style.background='var(--off)'" onmouseout="this.style.background=''">
-      <div style="width:36px;height:36px;border-radius:8px;background:var(--blue-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">👤</div>
-      <div style="flex:1"><div style="font-size:13px;font-weight:600">Add tenant details</div><div style="font-size:12px;color:var(--muted)">Name, email, tenancy dates and deposit</div></div>
-      <div style="color:var(--muted)">›</div>
-    </div>` : ''}
     <div onclick="closeMo();moMortgage(${pid})" style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:8px;transition:background .15s" onmouseover="this.style.background='var(--off)'" onmouseout="this.style.background=''">
       <div style="width:36px;height:36px;border-radius:8px;background:var(--amber-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🏦</div>
       <div style="flex:1"><div style="font-size:13px;font-weight:600">Add mortgage details</div><div style="font-size:12px;color:var(--muted)">Lender, rate, monthly payment and end date</div></div>
@@ -893,7 +860,7 @@ async function savePropToDB() {
     </div>
     <div onclick="closeMo();nav('prop-detail','${pid}')" style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:8px;transition:background .15s" onmouseover="this.style.background='var(--off)'" onmouseout="this.style.background=''">
       <div style="width:36px;height:36px;border-radius:8px;background:var(--off);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🏠</div>
-      <div style="flex:1"><div style="font-size:13px;font-weight:600">View property page</div><div style="font-size:12px;color:var(--muted)">See full details, compliance score and documents</div></div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:600">View property page</div><div style="font-size:12px;color:var(--muted)">See full details, compliance score and all documents</div></div>
       <div style="color:var(--muted)">›</div>
     </div>
   `, `<button class="btn" onclick="closeMo();nav('properties')">Go to properties</button>`);
@@ -958,7 +925,11 @@ async function uploadScanCert(certId, input){
 
 async function saveCertToDB() {
   const propId = document.getElementById('cp')?.value;
-  const certType = document.getElementById('ct')?.value;
+  let certType = document.getElementById('ct')?.value;
+  if (certType === 'Other') {
+    certType = document.getElementById('ct-other-name')?.value.trim();
+    if (!certType) { toast('Please enter a name for the document', true); return; }
+  }
   const expiry = document.getElementById('ce')?.value || null;
   const engineer = document.getElementById('ceng')?.value.trim() || null;
 
@@ -1033,14 +1004,22 @@ async function saveEditPropToDB(pid) {
   const btn = document.querySelector('#mo-f .btn-navy');
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Saving…'; }
 
-  const inputs = document.querySelectorAll('#mo-b input, #mo-b select, #mo-b textarea');
-  const [addr, city, post, beds, bath, rent, ctb, notes] = [...inputs].map(el => el.value);
+  const addr  = document.getElementById('ep-addr')?.value.trim();
+  const city  = document.getElementById('ep-city')?.value.trim();
+  const post  = document.getElementById('ep-post')?.value.trim();
+  const type  = document.getElementById('ep-type')?.value;
+  const beds  = parseInt(document.getElementById('ep-beds')?.value) || null;
+  const bath  = parseInt(document.getElementById('ep-bath')?.value) || null;
+  const rent  = parseFloat(document.getElementById('ep-rent')?.value) || 0;
+  const ctb   = document.getElementById('ep-ctb')?.value || null;
+  const epc   = document.getElementById('ep-epc')?.value || null;
+  const epcExp= document.getElementById('ep-epc-exp')?.value || null;
+  const notes = document.getElementById('ep-notes')?.value.trim() || null;
 
   const { error } = await sb.from('properties').update({
-    address: addr, city, postcode: post,
-    beds: parseInt(beds)||null, bathrooms: parseInt(bath)||null,
-    rent: parseFloat(rent)||0,
-    council_tax_band: ctb || null, notes
+    address: addr, city, postcode: post, type,
+    beds, bathrooms: bath, rent, council_tax_band: ctb,
+    epc: epc, epc_expiry: epcExp, notes
   }).eq('id', pid);
 
   if (error) {
@@ -1049,7 +1028,7 @@ async function saveEditPropToDB(pid) {
   }
 
   const idx = D.properties.findIndex(p => String(p.id) === String(pid));
-  if (idx >= 0) Object.assign(D.properties[idx], {address:addr,city,postcode:post,beds:parseInt(beds),bathrooms:parseInt(bath),rent:parseFloat(rent),notes});
+  if (idx >= 0) Object.assign(D.properties[idx], {address:addr,city,postcode:post,type,beds,bathrooms:bath,rent,council_tax_band:ctb,epc,epc_expiry:epcExp,notes});
   await logAudit('EDIT_PROPERTY', 'properties', pid, `Updated: ${addr}`);
   closeMo();
   toast('✓ Property updated!');
@@ -1118,7 +1097,43 @@ function moCert(pid){
     <div class="ai-res" id="ar"><div class="ai-res-hd">✦ AI extracted — please confirm below</div><div class="ai-res-g" id="arg"></div></div>
     <div class="fg-div"></div>
     <div class="fg"><label>Property</label><select id="cp">${opts}</select></div>
-    <div class="fg"><label>Certificate type</label><select id="ct"><option>Gas Safety Certificate (GSC)</option><option>Electrical Installation Condition Report (EICR)</option><option>Energy Performance Certificate (EPC)</option><option>How to Rent Guide</option><option>Deposit Certificate</option><option>Tenancy Agreement</option></select></div>
+    <div class="fg"><label>Document / certificate type</label>
+      <select id="ct" onchange="document.getElementById('ct-other-row').style.display=this.value==='Other'?'block':'none'">
+        <optgroup label="Mandatory">
+          <option>Gas Safety Certificate (GSC)</option>
+          <option>EICR (Electrical Installation)</option>
+          <option>EPC (Energy Performance)</option>
+          <option>How to Rent Guide</option>
+          <option>Smoke Alarm Test Record</option>
+          <option>CO Alarm Check Record</option>
+        </optgroup>
+        <optgroup label="Deposit & Tenancy">
+          <option>Deposit Protection Certificate</option>
+          <option>Written Statement of Terms</option>
+          <option>Right to Rent Record</option>
+        </optgroup>
+        <optgroup label="Required for some properties">
+          <option>Legionella Risk Assessment</option>
+          <option>Fire Risk Assessment</option>
+          <option>Asbestos Survey</option>
+          <option>PAT Testing Certificate</option>
+          <option>HMO Licence</option>
+          <option>Selective Licence</option>
+          <option>Planning Permission / Article 4</option>
+        </optgroup>
+        <optgroup label="Property documents">
+          <option>Inventory / Schedule of Condition</option>
+          <option>Buildings Insurance Schedule</option>
+          <option>Contents Insurance Schedule</option>
+          <option>Rent Guarantee Insurance</option>
+          <option>Section 48 Notice (Landlord Address)</option>
+        </optgroup>
+        <optgroup label="Other">
+          <option>Other</option>
+        </optgroup>
+      </select>
+    </div>
+    <div id="ct-other-row" style="display:none" class="fg"><label>Custom document name <span class="req">*</span></label><input type="text" id="ct-other-name" placeholder="e.g. Flood Risk Assessment"></div>
     <div class="fg-row">
       <div class="fg"><label>Issue date</label><input type="date" id="ci"></div>
       <div class="fg"><label>Expiry date</label><input type="date" id="ce"></div>
@@ -1149,15 +1164,13 @@ async function scanDoc(input){
 // ── MODAL: ADD PROPERTY (5-step guided flow) ──
 function moAddProp(){
   document.getElementById('mo-t').textContent = 'Add property';
-  document.getElementById('mo-s').textContent = 'Step 1 of 5 — address';
+  document.getElementById('mo-s').textContent = 'Step 1 of 3 — address';
   document.querySelector('.mo-box').classList.add('mo-wide');
   document.getElementById('mo-b').innerHTML = `
     <div class="step-bar" style="display:flex;gap:4px;margin-bottom:20px">
       <div class="step-bar-seg done" id="seg1"></div>
       <div class="step-bar-seg" id="seg2"></div>
       <div class="step-bar-seg" id="seg3"></div>
-      <div class="step-bar-seg" id="seg4"></div>
-      <div class="step-bar-seg" id="seg5"></div>
     </div>
 
     <!-- STEP 1: Address -->
@@ -1295,50 +1308,15 @@ function moAddProp(){
         <div class="fg"><label>EPC expiry date</label><input type="date" id="p-epc-expiry"></div>
       </div>
       <div class="fg"><label>Landlord notes</label><textarea id="p-notes" placeholder="Internal notes — access codes, managing agent, special instructions…" style="min-height:60px"></textarea></div>
-    </div>
-
-    <!-- STEP 5: Tenant -->
-    <div class="step-box" id="step5">
-      <div style="font-size:15px;font-weight:600;margin-bottom:2px">Who lives there?</div>
-      <div class="step-title">Step 5 of 5 — skip if vacant, add later</div>
-      <div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--muted);margin-bottom:16px">
-        Leave blank if the property is vacant. You can add tenant details any time from the property page.
-      </div>
-      <div class="fg-row">
-        <div class="fg"><label>Tenant full name</label><input type="text" id="p-tname" placeholder="e.g. John Smith"></div>
-        <div class="fg"><label>Tenant email</label><input type="email" id="p-temail" placeholder="john@example.com"></div>
-      </div>
-      <div class="fg-row">
-        <div class="fg"><label>Tenancy start date</label><input type="date" id="p-tstart"></div>
-        <div class="fg"><label>Tenancy end date</label><input type="date" id="p-tend"></div>
-      </div>
-
-      <div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
-        <div style="font-size:12px;font-weight:600;margin-bottom:8px">🔐 Deposit Certificate — AI Scanner</div>
-        <label id="p-dep-scan-box" style="display:flex;align-items:center;gap:10px;padding:10px;border:1.5px dashed var(--border);border-radius:7px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='var(--navy)'" onmouseout="this.style.borderColor='var(--border)'">
-          <span style="font-size:20px">📄</span>
-          <div><div style="font-size:12px;font-weight:600">Upload deposit protection certificate</div><div style="font-size:11px;color:var(--muted)">PDF or image — AI will fill amount and scheme</div></div>
-          <input type="file" accept="image/*,.pdf" style="display:none" onchange="scanPropDeposit(this)">
-        </label>
-      </div>
-
-      <div class="fg-row">
-        <div class="fg"><label>Deposit amount (£)</label><input type="number" id="p-deposit" placeholder="e.g. 1500" min="0"></div>
-        <div class="fg"><label>Deposit scheme</label>
-          <select id="p-dep-scheme">
-            <option value="">Not set</option>
-            <option>DPS (Deposit Protection Service)</option>
-            <option>MyDeposits</option>
-            <option>TDS (Tenancy Deposit Scheme)</option>
-          </select>
-        </div>
+      <div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--blue);margin-top:4px">
+        ℹ️ After saving, you'll be guided to add the tenant, upload compliance documents (EPC, licence, Gas Safety, EICR) and set up insurance — one step at a time.
       </div>
     </div>`;
 
   document.getElementById('mo-f').innerHTML = `
     <div class="mo-nav" style="padding:0;border:none;width:100%;justify-content:space-between">
       <button class="btn-back" id="mo-back-btn" onclick="propStepBack()" style="visibility:hidden">← Back</button>
-      <div style="font-size:12px;color:var(--muted)" id="prop-step-label">Step 1 of 5</div>
+      <div style="font-size:12px;color:var(--muted)" id="prop-step-label">Step 1 of 3</div>
       <button class="btn btn-navy" id="mo-next-btn" onclick="propStepNext()">Next →</button>
     </div>`;
   document.getElementById('mo').classList.add('open');
@@ -1358,10 +1336,6 @@ function propStepNext(){
   } else if(s === 3){
     const rent = document.getElementById('p-rent')?.value;
     if(!rent){ toast('Please enter the monthly rent.', true); return; }
-    goStep(4);
-  } else if(s === 4){
-    goStep(5);
-  } else if(s === 5){
     savePropToDB();
   }
 }
@@ -1371,32 +1345,61 @@ function goStep(n){
   document.querySelectorAll('.step-box').forEach((el,i) => el.classList.toggle('active', i+1 === n));
   document.querySelectorAll('.step-bar-seg').forEach((el,i) => el.classList.toggle('done', i < n));
   document.getElementById('mo-back-btn').style.visibility = n === 1 ? 'hidden' : 'visible';
-  document.getElementById('mo-next-btn').textContent = n === 5 ? 'Add property ✓' : 'Next →';
-  const labels = ['1 — address','2 — property details','3 — financials','4 — compliance','5 — tenant'];
+  document.getElementById('mo-next-btn').textContent = n === 3 ? 'Add property ✓' : 'Next →';
+  const labels = ['1 — address','2 — property details','3 — financials'];
   document.getElementById('mo-s').textContent = 'Step ' + labels[n-1];
   const lbl = document.getElementById('prop-step-label');
-  if(lbl) lbl.textContent = 'Step ' + n + ' of 5';
+  if(lbl) lbl.textContent = 'Step ' + n + ' of 3';
 }
 
 // ── MODAL: EDIT PROPERTY ──
 function moEditProp(pid){
   const p=P(pid);
   openMo('Edit property','Update property details',`
-    <div class="fg"><label>Address</label><input type="text" value="${p.address}"></div>
+    <div class="fg"><label>Street address</label><input type="text" id="ep-addr" value="${p.address}"></div>
     <div class="fg-row">
-      <div class="fg"><label>City</label><input type="text" value="${p.city}"></div>
-      <div class="fg"><label>Postcode</label><input type="text" value="${p.postcode}"></div>
+      <div class="fg"><label>City</label><input type="text" id="ep-city" value="${p.city}"></div>
+      <div class="fg"><label>Postcode</label><input type="text" id="ep-post" value="${p.postcode}"></div>
+    </div>
+    <div class="fg"><label>Property type</label>
+      <select id="ep-type">
+        ${['Flat','Terraced','Semi-detached','Detached','Bungalow','Studio','HMO','Commercial'].map(t=>`<option${t===(p.type||'Flat')?' selected':''}>${t}</option>`).join('')}
+      </select>
     </div>
     <div class="fg-row">
-      <div class="fg"><label>Bedrooms</label><input type="number" value="${p.beds||''}"></div>
-      <div class="fg"><label>Bathrooms</label><input type="number" value="${p.bathrooms||''}"></div>
+      <div class="fg"><label>Bedrooms</label><input type="number" id="ep-beds" value="${p.beds||''}" min="0"></div>
+      <div class="fg"><label>Bathrooms</label><input type="number" id="ep-bath" value="${p.bathrooms||''}" min="0"></div>
     </div>
     <div class="fg-row">
-      <div class="fg"><label>Monthly rent (£)</label><input type="number" value="${p.rent||0}"></div>
-      <div class="fg"><label>Council tax band</label><select>${['A','B','C','D','E','F','G','H'].map(b=>`<option${b===p.council_tax_band?' selected':''}>${b}</option>`).join('')}</select></div>
+      <div class="fg"><label>Monthly rent (£)</label><input type="number" id="ep-rent" value="${p.rent||0}" min="0"></div>
+      <div class="fg"><label>Council tax band</label>
+        <select id="ep-ctb">${['','A','B','C','D','E','F','G','H'].map(b=>`<option${b===(p.council_tax_band||'')?' selected':''}>${b}</option>`).join('')}</select>
+      </div>
     </div>
-    <div class="fg"><label>Landlord notes</label><textarea>${p.notes||''}</textarea></div>
-  `,`<button class="btn" onclick="closeMo()">Cancel</button><button class="btn btn-navy" onclick="saveEditPropToDB(${pid})">Save changes</button>`);
+    <div class="fg-row">
+      <div class="fg"><label>EPC rating</label>
+        <select id="ep-epc">${['','A','B','C','D','E','F','G'].map(r=>`<option value="${r}"${r===(p.epc||p.epc_rating||'')?' selected':''}>${r||'Unknown'}</option>`).join('')}</select>
+      </div>
+      <div class="fg"><label>EPC expiry</label><input type="date" id="ep-epc-exp" value="${p.epc_expiry||''}"></div>
+    </div>
+    <div class="fg"><label>Landlord notes</label><textarea id="ep-notes">${p.notes||''}</textarea></div>
+    <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:14px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--red);margin-bottom:10px">⚠ Danger zone</div>
+      <button type="button" onclick="archiveProperty('${pid}')" style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(229,62,62,0.3);background:rgba(229,62,62,0.05);color:var(--red);font-family:var(--font);font-size:13px;font-weight:500;cursor:pointer;text-align:left">
+        🏚 Mark as sold / archive — removes from active portfolio
+      </button>
+    </div>
+  `,`<button class="btn" onclick="closeMo()">Cancel</button><button class="btn btn-navy" onclick="saveEditPropToDB('${pid}')">Save changes</button>`);
+}
+
+async function archiveProperty(pid) {
+  if (!confirm('Mark this property as sold? It will be archived and removed from your active portfolio. You can restore it from your database if needed.')) return;
+  const { error } = await sb.from('properties').update({ status: 'Archived' }).eq('id', pid);
+  if (error) { toast('Error: ' + error.message, true); return; }
+  const idx = D.properties.findIndex(p => String(p.id) === String(pid));
+  if (idx >= 0) D.properties.splice(idx, 1);
+  await logAudit('ARCHIVE_PROPERTY', 'properties', pid, 'Property archived / marked as sold');
+  closeMo(); toast('✓ Property archived'); nav('properties');
 }
 
 // ── MODAL: LICENCE ──
@@ -2124,6 +2127,7 @@ function moTenant(pid) {
     step: 1,
     // Step 1 — basics
     name:'', email:'', phone:'', tenancyType:'APT', startDate:'', endDate:'',
+    isLead: !D.tenants.filter(t=>t.status==='Active'&&String(t.prop_id)===String(pid)).length, // auto-lead if first
     // Step 2 — Right to Rent
     rtrDocType:'Passport', rtrRef:'', rtrCheckedBy:'', rtrCheckDate:'', rtrExpiry:'', rtrSkipped:false,
     // Step 3 — Address proof + deposit
@@ -2131,7 +2135,12 @@ function moTenant(pid) {
     deposit:'', depositScheme:'', depositRef:'',
     // Step 4 — Rent
     rent:'', rentDay:'1', firstPayDate:'', payMethod:'Standing order',
-    // Step 5 — Review
+    // Step 5 — Insurance (optional, tied to tenancy start)
+    ins_buildings:{ provider:'',policy:'',expiry:'',premium:'' },
+    ins_contents:{ provider:'',policy:'',expiry:'',premium:'' },
+    ins_liability:{ provider:'',policy:'',expiry:'',premium:'' },
+    ins_rentguarantee:{ provider:'',policy:'',expiry:'',premium:'' },
+    // Step 6 — Review
     sendInvite: true, sendWelcomeKit: false,
   };
 
@@ -2144,22 +2153,22 @@ function moTenant(pid) {
 
 function _renderTenantStep(n) {
   const s = window._tsetup;
-  const stepLabels = ['','Details','Right to Rent','Deposit','Rent','Review'];
-  const segBar = [1,2,3,4,5].map(i =>
+  const stepLabels = ['','Details','Right to Rent','Deposit','Rent','Insurance','Review'];
+  const segBar = [1,2,3,4,5,6].map(i =>
     `<div style="flex:1;height:3px;border-radius:100px;background:${i<n?'var(--green)':i===n?'var(--blue)':'var(--border)'};transition:background .3s"></div>`
   ).join('');
 
   document.getElementById('mo-b').innerHTML = `
     <div style="display:flex;gap:4px;margin-bottom:6px">${segBar}</div>
     <div style="display:flex;justify-content:space-between;margin-bottom:20px">
-      ${[1,2,3,4,5].map(i=>`<div style="font-size:9px;font-weight:${i===n?'700':'400'};color:${i<n?'var(--green-dark)':i===n?'var(--blue)':'var(--muted)'};text-align:center;flex:1">${stepLabels[i]}</div>`).join('')}
+      ${[1,2,3,4,5,6].map(i=>`<div style="font-size:9px;font-weight:${i===n?'700':'400'};color:${i<n?'var(--green-dark)':i===n?'var(--blue)':'var(--muted)'};text-align:center;flex:1">${stepLabels[i]}</div>`).join('')}
     </div>
     ${_tenantStepHtml(n)}`;
 
   document.getElementById('mo-f').innerHTML = `
     <button onclick="tenantStepBack()" style="display:inline-flex;align-items:center;gap:6px;background:none;border:none;font-family:var(--font);font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;padding:7px 0;visibility:${n===1?'hidden':'visible'}">← Back</button>
-    <span style="font-size:12px;color:var(--muted)">Step ${n} of 5</span>
-    <button class="btn btn-navy" id="tsetup-next" onclick="tenantStepNext()">${n===5?'Add tenant ✓':'Next →'}</button>`;
+    <span style="font-size:12px;color:var(--muted)">Step ${n} of 6</span>
+    <button class="btn btn-navy" id="tsetup-next" onclick="tenantStepNext()">${n===6?'Add tenant ✓':'Next →'}</button>`;
 }
 
 function _tenantStepHtml(n) {
@@ -2192,6 +2201,15 @@ function _tenantStepHtml(n) {
     </div>
     <div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--blue);margin-top:4px">
       ℹ️ Under the Renters Rights Act 2025, all new tenancies from 1 May 2026 are Assured Periodic Tenancies (APT). Fixed terms are abolished.
+    </div>
+    <div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-top:12px">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+        <input type="checkbox" id="ts-is-lead" ${s.isLead?'checked':''} onchange="window._tsetup.isLead=this.checked" style="width:15px;height:15px;cursor:pointer">
+        <div>
+          <div style="font-size:13px;font-weight:500;color:var(--txt)">⭐ Lead tenant</div>
+          <div style="font-size:11px;color:var(--muted)">Main point of contact for this property — deposit held in their name, receives all primary communications</div>
+        </div>
+      </label>
     </div>`;
 
   // ── STEP 2: RIGHT TO RENT ──
@@ -2323,8 +2341,36 @@ function _tenantStepHtml(n) {
       ℹ️ Under RRA 2025, rent can only be increased once per year using a Section 13 notice. RentSafe AI will generate this for you when the time comes.
     </div>`;
 
-  // ── STEP 5: REVIEW ──
+  // ── STEP 5: INSURANCE ──
   if (n === 5) {
+    const insTypes = [
+      { key:'ins_buildings',    icon:'🏠', label:'Buildings insurance',       desc:'Structure, fixtures & fittings — annual' },
+      { key:'ins_contents',     icon:'🛋', label:'Contents insurance',         desc:'Furnishings & landlord-owned items' },
+      { key:'ins_liability',    icon:'🛡', label:'Landlord liability',          desc:'Public & property owner liability' },
+      { key:'ins_rentguarantee',icon:'💷', label:'Rent guarantee insurance',    desc:'Covers rent if tenant stops paying' },
+    ];
+    return `
+    <div style="font-size:15px;font-weight:600;margin-bottom:2px">Insurance</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:4px">All optional — fill what you have. These are stored against this tenancy.</div>
+    <div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:8px;padding:9px 12px;font-size:11px;color:var(--blue);margin-bottom:14px">
+      💡 Contents and rent guarantee are typically reviewed at tenancy start. Buildings insurance is annual — notify your insurer of the new tenancy to keep cover valid.
+    </div>
+    ${insTypes.map(ins => `
+    <div style="background:var(--off);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:8px">${ins.icon} ${ins.label} <span style="font-weight:400;color:var(--muted);font-size:11px">· ${ins.desc}</span></div>
+      <div class="fg-row" style="margin-bottom:6px">
+        <div class="fg"><label>Provider</label><input type="text" id="ts-${ins.key}-prov" value="${s[ins.key]?.provider||''}" placeholder="e.g. Aviva, Direct Line"></div>
+        <div class="fg"><label>Policy number</label><input type="text" id="ts-${ins.key}-pol" value="${s[ins.key]?.policy||''}" placeholder="e.g. POL-12345"></div>
+      </div>
+      <div class="fg-row" style="margin-bottom:0">
+        <div class="fg"><label>Renewal / expiry date</label><input type="date" id="ts-${ins.key}-exp" value="${s[ins.key]?.expiry||''}"></div>
+        <div class="fg"><label>Annual premium (£)</label><input type="number" id="ts-${ins.key}-prem" value="${s[ins.key]?.premium||''}" placeholder="e.g. 450" min="0"></div>
+      </div>
+    </div>`).join('')}`;
+  }
+
+  // ── STEP 6: REVIEW ──
+  if (n === 6) {
     const p = P(s.pid);
     const rtrStatus = s.rtrSkipped ? { col:'var(--amber)', label:'⚠ Skipped — flags in compliance' } : (s.rtrCheckDate ? { col:'var(--green-dark)', label:'✓ Completed' } : { col:'var(--red)', label:'✗ Not entered' });
     const depStatus = s.deposit ? { col:'var(--green-dark)', label:`✓ £${parseFloat(s.deposit).toLocaleString()} · ${s.depositScheme||'Scheme TBC'}` } : { col:'var(--red)', label:'✗ Not entered' };
@@ -2438,6 +2484,17 @@ function tenantStepNext() {
     if (!s.rent) { toast('Monthly rent is required', true); return; }
 
   } else if (n === 5) {
+    // Save insurance fields from step 5
+    ['ins_buildings','ins_contents','ins_liability','ins_rentguarantee'].forEach(k => {
+      s[k] = {
+        provider: document.getElementById(`ts-${k}-prov`)?.value.trim() || '',
+        policy:   document.getElementById(`ts-${k}-pol`)?.value.trim()  || '',
+        expiry:   document.getElementById(`ts-${k}-exp`)?.value         || '',
+        premium:  document.getElementById(`ts-${k}-prem`)?.value        || '',
+      };
+    });
+
+  } else if (n === 6) {
     s.sendInvite     = document.getElementById('ts-send-invite')?.checked ?? true;
     s.sendWelcomeKit = document.getElementById('ts-send-kit')?.checked ?? false;
     _saveTenantSetupToDB();
@@ -2445,7 +2502,7 @@ function tenantStepNext() {
   }
 
   window._tsetup.step = n + 1;
-  document.getElementById('mo-s').textContent = `Step ${n+1} of 5`;
+  document.getElementById('mo-s').textContent = `Step ${n+1} of 6`;
   _renderTenantStep(n + 1);
   document.querySelector('.mo-box')?.scrollTo?.(0, 0);
 }
@@ -2454,7 +2511,7 @@ function tenantStepBack() {
   const n = window._tsetup.step;
   if (n <= 1) return;
   window._tsetup.step = n - 1;
-  document.getElementById('mo-s').textContent = `Step ${n-1} of 5`;
+  document.getElementById('mo-s').textContent = `Step ${n-1} of 6`;
   _renderTenantStep(n - 1);
   document.querySelector('.mo-box')?.scrollTo?.(0, 0);
 }
@@ -2495,6 +2552,7 @@ async function _saveTenantSetupToDB() {
       first_pay_date: s.firstPayDate || null,
       pay_method:     s.payMethod || null,
       status:         'Active',
+      is_lead:        s.isLead !== false,
       user_id:        currentUser.id,
       invite_token:   crypto.randomUUID(),
       invite_used:    false,
@@ -2506,6 +2564,30 @@ async function _saveTenantSetupToDB() {
 
     D.tenants.push({ ...td, start: td.start_date, end: td.end_date });
     await logAudit('ADD_TENANT', 'tenants', td.id, `Added tenant: ${s.name} · Property: ${s.pid} · Deposit: £${s.deposit} · RTR: ${s.rtrSkipped?'skipped':'completed'}`);
+
+    // Save insurance records if any filled
+    const insTypeMap = {
+      ins_buildings:    'Buildings Insurance',
+      ins_contents:     'Contents Insurance',
+      ins_liability:    'Landlord Liability Insurance',
+      ins_rentguarantee:'Rent Guarantee Insurance',
+    };
+    const insToSave = Object.entries(insTypeMap)
+      .filter(([k]) => s[k]?.provider || s[k]?.expiry || s[k]?.premium)
+      .map(([k, typeName]) => ({
+        prop_id:  parseInt(s.pid),
+        type:     typeName,
+        provider: s[k].provider || null,
+        policy:   s[k].policy   || null,
+        expiry:   s[k].expiry   || null,
+        premium:  parseFloat(s[k].premium) || null,
+        status:   s[k].expiry ? (new Date(s[k].expiry) > new Date() ? 'Active' : 'Expired') : 'Active',
+        user_id:  currentUser.id,
+      }));
+    if (insToSave.length) {
+      const { data: id2 } = await sb.from('insurance').insert(insToSave).select();
+      if (id2) D.insurance.push(...id2);
+    }
 
     // Send portal invite if toggled
     if (s.sendInvite && s.email) {
@@ -3442,7 +3524,7 @@ function pdTabContent(pid, tab) {
           <div style="display:flex;align-items:center;gap:12px">
             <div class="t-av" style="width:42px;height:42px;font-size:14px">${INI(t.name)}</div>
             <div>
-              <div style="font-size:15px;font-weight:600">${t.name}</div>
+              <div style="font-size:15px;font-weight:600">${t.name}${t.is_lead?` <span style="font-size:10px;font-weight:700;background:var(--amber-bg);color:var(--amber);border:1px solid rgba(217,119,6,0.2);border-radius:4px;padding:2px 6px;letter-spacing:.3px">⭐ LEAD</span>`:''}</div>
               <div style="font-size:12px;color:var(--muted);margin-top:1px">${t.email||'No email'} · ${t.phone||'No phone'}</div>
             </div>
           </div>
@@ -3500,6 +3582,10 @@ function pdTabContent(pid, tab) {
           </div>
           <button class="btn btn-sm" style="background:var(--blue);color:#fff;border:none;font-weight:700;flex-shrink:0" onclick="moInventoryReport('${pid}')">Generate →</button>
         </div>
+      </div>
+
+      <div style="margin-bottom:14px">
+        <button class="btn btn-sm" onclick="moTenant('${pid}')" style="border-color:var(--green);color:var(--green-dark)">+ Add co-tenant</button>
       </div>
 
       <div class="panel" style="margin-bottom:16px">
@@ -3684,12 +3770,33 @@ function buildCertStatusGrid(pid) {
   const today = new Date(); today.setHours(0,0,0,0);
   const pc = CF(pid);
   const CERT_TYPES = [
+    // MANDATORY — legal requirement
     'Gas Safety Certificate',
-    'EICR',
-    'EPC',
+    'EICR (Electrical Installation)',
+    'EPC (Energy Performance)',
     'How to Rent Guide',
-    'Deposit Certificate',
-    'Tenancy Agreement'
+    'Smoke Alarm Test Record',
+    'CO Alarm Check Record',
+    // DEPOSIT & TENANCY
+    'Deposit Protection Certificate',
+    'Written Statement of Terms',
+    'Right to Rent Record',
+    // COMPLIANCE — required for some properties
+    'Legionella Risk Assessment',
+    'Fire Risk Assessment',
+    'Asbestos Survey',
+    'PAT Testing Certificate',
+    'HMO Licence',
+    'Selective Licence',
+    'Planning Permission / Article 4',
+    // PROPERTY DOCUMENTS
+    'Inventory / Schedule of Condition',
+    'Buildings Insurance Schedule',
+    'Contents Insurance Schedule',
+    'Rent Guarantee Insurance',
+    'Section 48 Notice (Landlord Address)',
+    // CUSTOM
+    'Other',
   ];
 
   function findCert(label) {
@@ -4902,7 +5009,6 @@ const PAGES={
   financials:()=>pgFinancials(),
   templates:()=>pgTemplates(),
   contractors:()=>pgContractors(),
-  reportsuggest:()=>pgReportSuggest(),
   mtd:()=>pgMTD(),
 };
 
@@ -7212,57 +7318,6 @@ function invDownloadPDF(){
     </div><script>window.onload=function(){window.print();}<\/script>
     </body></html>`);
   win.document.close();
-}
-
-// ── S6b: REPORT/SUGGEST ──
-function pgReportSuggest(){
-  return`<div class="topbar"><span class="tb-title">Report/Suggest</span></div>
-  <div class="content">
-    <div class="ph"><h1>Report an Issue or Suggest a Feature</h1><p>Help us improve RentSafeAI</p></div>
-    <div class="panel" style="max-width:700px">
-      <div style="padding:20px">
-        <div class="fg"><label>Type</label>
-          <select id="rs-type" style="margin-bottom:12px">
-            <option value="bug">🐛 Report a bug</option>
-            <option value="feature">💡 Suggest a feature</option>
-            <option value="improvement">⚡ Suggest an improvement</option>
-            <option value="other">💬 Other</option>
-          </select>
-        </div>
-        <div class="fg"><label>Title <span class="req">*</span></label><input type="text" id="rs-title" placeholder="Brief summary"></div>
-        <div class="fg"><label>Description <span class="req">*</span></label><textarea id="rs-desc" rows="5" placeholder="Please describe the issue or suggestion in detail..." style="min-height:120px"></textarea></div>
-        <div class="fg"><label>Your email (optional)</label><input type="email" id="rs-email" value="${currentUser?.email||''}" placeholder="For follow-up"></div>
-        <button class="btn btn-navy" style="margin-top:10px" onclick="submitReportSuggest()">Submit</button>
-      </div>
-    </div>
-  </div>`;
-}
-
-async function submitReportSuggest(){
-  const title = document.getElementById('rs-title')?.value.trim();
-  const desc = document.getElementById('rs-desc')?.value.trim();
-  const type = document.getElementById('rs-type')?.value;
-  const email = document.getElementById('rs-email')?.value.trim();
-  
-  if(!title || !desc){ toast('Please fill in title and description', true); return; }
-  
-  // Save to feedback table
-  const { error } = await sb.from('feedback').insert({
-    user_id: currentUser?.id,
-    type,
-    title,
-    description: desc,
-    email: email || null
-  });
-  
-  if(error){
-    toast('Error: ' + error.message, true);
-    return;
-  }
-  
-  toast('Thank you! Your feedback has been submitted.');
-  document.getElementById('rs-title').value = '';
-  document.getElementById('rs-desc').value = '';
 }
 
 // ── S6b: CONTRACTORS BOOK ──
