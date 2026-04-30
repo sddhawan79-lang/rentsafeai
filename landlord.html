@@ -6857,7 +6857,7 @@ function moTenantDetail(tid) {
 }
 
 // ── RRA 2025 PDF (base64 embedded) ──
-          content: RRA_PDF_B64
+          content: await fetch("https://mahtcfukgzbonwibtsxz.supabase.co/storage/v1/object/public/documents/rra-guide.pdf").then(r=>r.arrayBuffer()).then(b=>{const u=new Uint8Array(b);let s="";for(let i=0;i<u.length;i++)s+=String.fromCharCode(u[i]);return btoa(s)})
         }]
       })
     });
@@ -7734,4 +7734,5 @@ function declineCookies(){localStorage.setItem('rsa_cookies','essential');docume
 </script>
 </body>
 </html>
+
 
