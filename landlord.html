@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230B1E3D'/%3E%3Ctext x='5' y='23' font-size='20' font-family='Arial' font-weight='bold' fill='%2300C896'%3ER%3C/text%3E%3C/svg%3E">
 <title>Rent Safe AI — Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -251,19 +250,6 @@ tr:hover td{background:rgba(246,248,251,.8)}
 .t-det-row .lbl{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.3px}
 /* Dashboard S8 card */
 .s8-dash-card{background:linear-gradient(135deg,#0B1E3D 0%,#1a3a6b 100%);border-radius:12px;padding:20px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between;gap:16px;border:none}
-/* ── COMPLIANCE REMINDER BANNER ── */
-.cr-wrap{margin-bottom:16px}
-.cr-header{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:0 2px}
-.cr-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;margin-bottom:6px;flex-wrap:wrap}
-.cr-item:last-child{margin-bottom:0}
-.cr-type{font-size:12px;font-weight:600;color:var(--txt);min-width:180px}
-.cr-prop{font-size:12px;color:var(--muted);flex:1}
-.cr-status{font-size:12px;font-weight:600;white-space:nowrap}
-.cr-overdue{background:#fde8e8;border-left:4px solid #E53E3E}
-.cr-urgent{background:#fff0f0;border-left:4px solid #fc8181}
-.cr-warning{background:#fff8ed;border-left:4px solid #f6ad55}
-.cr-notice{background:#fefce8;border-left:4px solid #ecc94b}
-.cr-clear{background:#f0fff4;border-left:4px solid #48bb78;padding:12px 16px;border-radius:8px;font-size:13px;color:#276749;font-weight:500}
 /* ── MOBILE HEADER ── */
 .mob-header{display:none;align-items:center;justify-content:space-between;padding:0 16px;height:52px;background:#0B1E3D;flex-shrink:0;position:sticky;top:0;z-index:150}
 .mob-logo{font-family:var(--disp);font-size:16px;color:#fff;text-decoration:none}
@@ -773,7 +759,7 @@ async function loadData() {
   if (ct.data?.length) D.customTemplates = ct.data;
   if (con.data?.length) D.contractors = con.data;
   if (ja.data?.length) D.jobAssignments = ja.data;
-  await checkAllReminders();
+  await checkComplianceReminders();
 }
 
 // ── INIT ──
@@ -3055,33 +3041,6 @@ function pgDashboard(){
       <div class="mc"><div class="mc-top"><span class="mc-label">Monthly rent</span><div class="mc-icon">💷</div></div><div class="mc-val">£${tot.toLocaleString()}</div><div class="mc-sub">Total portfolio</div></div>
       <div class="mc"><div class="mc-top"><span class="mc-label">Open issues</span><div class="mc-icon">🔧</div></div><div class="mc-val">${open}</div><div class="mc-sub">${D.maintenance.filter(m=>m.awaab&&m.status!=='Resolved').length} Awaab flagged</div></div>
     </div>
-    ${(function(){
-      const today=new Date(); today.setHours(0,0,0,0);
-      function daysUntil(ds){if(!ds)return null;const d=new Date(ds);d.setHours(0,0,0,0);return Math.floor((d-today)/864e5);}
-      function urg(d){if(d<0)return['cr-overdue','⛔ Overdue by '+Math.abs(d)+' day'+(Math.abs(d)!==1?'s':'')];if(d===0)return['cr-urgent','🚨 Expires TODAY'];if(d<=30)return['cr-urgent','🔴 Expires in '+d+' day'+(d!==1?'s':'')];if(d<=60)return['cr-warning','🟠 Expires in '+d+' days'];return['cr-notice','🟡 Expires in '+d+' days'];}
-      const items=[];
-      const certFields=[
-        {key:'expiry',label:'Certificate'}
-      ];
-      D.certs.forEach(c=>{
-        const d=daysUntil(c.expiry);
-        if(d===null||d>90)return;
-        const prop=D.properties.find(p=>String(p.id)===String(c.prop_id));
-        const [cls,lbl]=urg(d);
-        items.push({cls,lbl,type:c.type||'Certificate',prop:prop?prop.address+', '+prop.city:'Unknown property',d});
-      });
-      D.insurance.forEach(i=>{
-        const d=daysUntil(i.expiry);
-        if(d===null||d>90)return;
-        const prop=D.properties.find(p=>String(p.id)===String(i.prop_id));
-        const [cls,lbl]=urg(d);
-        items.push({cls,lbl,type:i.type||'Insurance Policy',prop:prop?prop.address+', '+prop.city:'Unknown property',d});
-      });
-      items.sort((a,b)=>a.d-b.d);
-      if(!items.length) return `<div class="cr-clear">✅ All certificates and insurance are up to date — nothing expiring in the next 90 days.</div>`;
-      return `<div class="cr-wrap"><div class="cr-header">⚠️ ${items.length} compliance item${items.length!==1?'s':''} need attention</div>${items.map(i=>`<div class="cr-item ${i.cls}"><span class="cr-type">${i.type}</span><span class="cr-prop">📍 ${i.prop}</span><span class="cr-status">${i.lbl}</span></div>`).join('')}</div>`;
-    })()}
-
     <div class="g2">
       <div class="panel">
         <div class="ph2"><div><h2>Action items</h2><p>Sorted by urgency</p></div></div>
@@ -3509,7 +3468,7 @@ function pdTabContent(pid, tab) {
         <div style="font-size:32px;margin-bottom:10px">👤</div>
         <div style="font-size:14px;font-weight:500;margin-bottom:4px">No tenant linked</div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Add a tenant to this property to track rent, generate notices and manage the tenancy.</div>
-        <button class="btn" onclick="alert('Test button clicked!')">Test</button>&nbsp;<button class="btn btn-navy" onclick="moTenant('${pid}')">+ Add tenant</button>
+        <button class="btn btn-navy" onclick="moTenant('${pid}')">+ Add tenant</button>
       </div></div>`;
     return tenantCard;
   }
