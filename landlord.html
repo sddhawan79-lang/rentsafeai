@@ -408,6 +408,11 @@ tr:hover td{background:rgba(246,248,251,.8)}
       <span class="sb-label">Contractors</span>
     </button>
 
+    <button class="sb-item" data-page="reportsuggest">
+      <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2a6 6 0 100 12A6 6 0 008 2z"/><path d="M8 5v3M8 10v1"/></svg>
+      <span class="sb-label">Report/Suggest</span>
+    </button>
+
     <div class="sb-divider"></div>
     <div class="sb-section">AI</div>
 
@@ -4886,6 +4891,7 @@ const PAGES={
   financials:()=>pgFinancials(),
   templates:()=>pgTemplates(),
   contractors:()=>pgContractors(),
+  reportsuggest:()=>pgReportSuggest(),
   mtd:()=>pgMTD(),
 };
 
@@ -7195,6 +7201,57 @@ function invDownloadPDF(){
     </div><script>window.onload=function(){window.print();}<\/script>
     </body></html>`);
   win.document.close();
+}
+
+// ── S6b: REPORT/SUGGEST ──
+function pgReportSuggest(){
+  return`<div class="topbar"><span class="tb-title">Report/Suggest</span></div>
+  <div class="content">
+    <div class="ph"><h1>Report an Issue or Suggest a Feature</h1><p>Help us improve RentSafeAI</p></div>
+    <div class="panel" style="max-width:700px">
+      <div style="padding:20px">
+        <div class="fg"><label>Type</label>
+          <select id="rs-type" style="margin-bottom:12px">
+            <option value="bug">🐛 Report a bug</option>
+            <option value="feature">💡 Suggest a feature</option>
+            <option value="improvement">⚡ Suggest an improvement</option>
+            <option value="other">💬 Other</option>
+          </select>
+        </div>
+        <div class="fg"><label>Title <span class="req">*</span></label><input type="text" id="rs-title" placeholder="Brief summary"></div>
+        <div class="fg"><label>Description <span class="req">*</span></label><textarea id="rs-desc" rows="5" placeholder="Please describe the issue or suggestion in detail..." style="min-height:120px"></textarea></div>
+        <div class="fg"><label>Your email (optional)</label><input type="email" id="rs-email" value="${currentUser?.email||''}" placeholder="For follow-up"></div>
+        <button class="btn btn-navy" style="margin-top:10px" onclick="submitReportSuggest()">Submit</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function submitReportSuggest(){
+  const title = document.getElementById('rs-title')?.value.trim();
+  const desc = document.getElementById('rs-desc')?.value.trim();
+  const type = document.getElementById('rs-type')?.value;
+  const email = document.getElementById('rs-email')?.value.trim();
+  
+  if(!title || !desc){ toast('Please fill in title and description', true); return; }
+  
+  // Save to feedback table
+  const { error } = await sb.from('feedback').insert({
+    user_id: currentUser?.id,
+    type,
+    title,
+    description: desc,
+    email: email || null
+  });
+  
+  if(error){
+    toast('Error: ' + error.message, true);
+    return;
+  }
+  
+  toast('Thank you! Your feedback has been submitted.');
+  document.getElementById('rs-title').value = '';
+  document.getElementById('rs-desc').value = '';
 }
 
 // ── S6b: CONTRACTORS BOOK ──
