@@ -8459,6 +8459,8 @@ async function esignViewDoc(reqId) {
   } catch(e) { toast('Error loading document', true); }
 }
 
+function _moEsignLegacy(pid, tid) {
+  const p = P(pid), t = D.tenants.find(x=>String(x.id)===String(tid));
   if (!p || !t) { toast('Property or tenant not found', true); return; }
   _esignDocHtml = null;
   _esignPdfUrl  = null;
