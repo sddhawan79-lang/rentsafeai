@@ -8120,7 +8120,7 @@ function _esignStepHtml(n) {
     </div>
     <div style="margin-bottom:12px">
       ${s.signatories.map(sig=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--white);border:1px solid var(--border);border-radius:7px;margin-bottom:5px">
-        <span style="font-size:11px;font-weight:700;color:${sig.role==='Landlord'?'var(--navy)':'var(--blue)';}">${sig.role}</span>
+        <span style="font-size:11px;font-weight:700;color:${sig.role==='Landlord'?'var(--navy)':'var(--blue)'}">${sig.role}</span>
         <span style="font-size:12px;flex:1">${sig.name}</span>
         <span style="font-size:11px;color:${sig.email?'var(--green-dark)':'var(--red)'}">${sig.email||'No email — will be skipped'}</span>
       </div>`).join('')}
