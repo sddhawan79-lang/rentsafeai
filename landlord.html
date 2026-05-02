@@ -443,7 +443,6 @@ tr:hover td{background:rgba(246,248,251,.8)}
 
 <!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
 <script>
 // ══════════════════════════════════════════════════════════════
 // RENTSAFE AI — CODE MAP (auto-generated, update each session)
@@ -793,9 +792,6 @@ async function initApp() {
     document.getElementById('main').innerHTML = '<div style="padding:32px;font-family:sans-serif"><h2 style="color:#E53E3E">Dashboard Error</h2><pre style="background:#fff5f5;padding:16px;border-radius:8px;font-size:12px;overflow:auto">'+err.stack+'</pre><p style="margin-top:12px;color:#666">Please share this error with the developer.</p></div>';
     console.error('Dashboard error:', err);
   }
-  // Run compliance reminders in background after dashboard loads — fires once per login
-  // De-duplication in checkAllReminders (2-day audit_log window) prevents email spam
-  setTimeout(() => checkAllReminders().catch(e => console.warn('Reminder check failed:', e)), 3000);
 }
 
 // ── SAVE: PROPERTY ──
@@ -2621,9 +2617,9 @@ async function _saveTenantSetupToDB() {
     const hasCerts = CF(s.pid).length > 0;
     openMo('🎉 Tenant added!', `${s.name} · ${propAddr}`, `
       <div style="margin-bottom:16px;font-size:13px;color:var(--muted)">Here's what to do next for this tenancy:</div>
-      ${s.sendWelcomeKit ? `<div onclick="closeMo();moStarterKit('${s.pid}')" style="display:flex;align-items:center;gap:12px;padding:12px;border:2px solid var(--green);border-radius:8px;cursor:pointer;margin-bottom:8px;background:var(--green-bg)" onmouseover="this.style.background='rgba(0,200,150,0.15)'" onmouseout="this.style.background='var(--green-bg)'">
+      ${s.sendWelcomeKit ? `<div onclick="closeMo();moWelcomeKit('${s.pid}')" style="display:flex;align-items:center;gap:12px;padding:12px;border:2px solid var(--green);border-radius:8px;cursor:pointer;margin-bottom:8px;background:var(--green-bg)" onmouseover="this.style.background='rgba(0,200,150,0.15)'" onmouseout="this.style.background='var(--green-bg)'">
         <div style="width:36px;height:36px;border-radius:8px;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📦</div>
-        <div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--navy)">Open Starter Kit →</div><div style="font-size:12px;color:var(--green-dark)">Day 1 docs + 30-day pack · AI email · Fully logged</div></div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--navy)">Send welcome kit now →</div><div style="font-size:12px;color:var(--green-dark)">How to Rent · GSC · EICR · EPC · RRA sheet · all in one email</div></div>
         <div style="color:var(--green-dark);font-weight:700">›</div>
       </div>` : ''}
       ${s.rtrSkipped ? `<div onclick="closeMo()" style="display:flex;align-items:center;gap:12px;padding:12px;border:2px solid var(--red);border-radius:8px;cursor:pointer;margin-bottom:8px;background:var(--red-bg)">
@@ -2990,300 +2986,6 @@ async function sendWelcomeKit(pid) {
   }
 }
 
-// ── MODAL: STARTER KIT ──
-async function moStarterKit(pid) {
-  const p = P(pid);
-  if (!p) { toast('Property not found', true); return; }
-  const tenant = D.tenants.find(t => String(t.prop_id) === String(pid) && t.status === 'Active' && t.is_lead !== false);
-  const pCerts = CF(pid);
-  const findCert = type => pCerts.find(c => c.type && c.type.toLowerCase().includes(type.toLowerCase()));
-
-  // Check Written Statement e-sign status
-  const writtenSignedCert = pCerts.find(c => c.type && c.type.toLowerCase().includes('written') && c.type.toLowerCase().includes('signed'));
-  const pendingEsigns = await loadEsignStatus(pid).catch(()=>[]);
-  const writtenPending = pendingEsigns.find(r => r.doc_label && r.doc_label.toLowerCase().includes('written'));
-  const writtenPendingAny = pendingEsigns.length > 0 && !writtenSignedCert;
-
-  const gasCert  = findCert('gas');
-  const eicrCert = findCert('eicr') || findCert('electrical');
-  const epcCert  = findCert('epc')  || findCert('energy');
-  const propAddr = [p.address, p.city].filter(Boolean).join(', ');
-  const tenantName  = tenant?.name  || '';
-  const tenantEmail = tenant?.email || '';
-  const startDate   = tenant?.start_date ? new Date(tenant.start_date).toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'}) : '—';
-
-  window._sk = { pid, phase: 'day1' };
-
-  const certSt = c => c ? (c.status==='Expired'?'⚠ Expired':'✅ On file') : '❌ Missing';
-  const certDesc = c => c ? `${c.expiry?'Expires '+new Date(c.expiry).toLocaleDateString('en-GB'):'No expiry'} · ${c.engineer||'—'}` : 'Upload in Compliance tab first';
-  const hasDeposit = !!(tenant?.scheme);
-
-  // Day 1 documents
-  const day1Docs = [
-    { id:'rra',       icon:'📋', label:'RRA 2025 Information Sheet',       desc:'MANDATORY — Renters Rights Act. Fine up to £7,000 if missed', mandatory:true, ok:true,        warn:null },
-    { id:'h2r',       icon:'📖', label:'How to Rent Guide',                 desc:'Latest GOV.UK edition — must be current at tenancy start',  mandatory:true, ok:true,        warn:null },
-    { id:'gsc',       icon:'🔥', label:'Gas Safety Certificate (GSC)',      desc:certDesc(gasCert),                                            mandatory:true, ok:!!gasCert,   warn:!gasCert?'Upload GSC in Compliance first':(gasCert.status==='Expired'?'Certificate EXPIRED — renew before serving':null) },
-    { id:'eicr',      icon:'⚡', label:'EICR (Electrical Report)',          desc:certDesc(eicrCert),                                           mandatory:true, ok:!!eicrCert,  warn:!eicrCert?'Upload EICR in Compliance first':(eicrCert.status==='Expired'?'Expired — renew':null) },
-    { id:'epc',       icon:'🏷', label:'EPC (Energy Performance Cert)',     desc:certDesc(epcCert),                                            mandatory:true, ok:!!epcCert,   warn:!epcCert?'Upload EPC in Compliance first':(epcCert.status==='Expired'?'Expired — renew':null) },
-    { id:'written',   icon:'✍️', label:'Written Statement of Terms',        desc: writtenSignedCert ? `Signed by all parties · ${new Date(writtenSignedCert.created_at||Date.now()).toLocaleDateString('en-GB')}` : writtenPending ? `Awaiting tenant counter-signature — sent ${new Date(writtenPending.created_at).toLocaleDateString('en-GB')}` : 'Replaces AST from 1 May 2026 — send via e-sign', mandatory:true, ok:!!writtenSignedCert, warn: writtenSignedCert ? null : writtenPending ? '⏳ Tenant counter-signature pending' : 'Use ✍️ Sign doc button to send for e-signature' },
-    { id:'deposit_c', icon:'🔒', label:'Deposit Protection Certificate',    desc:hasDeposit?`${tenant.scheme} · Ref: ${tenant.scheme_ref||'—'} · £${(tenant.deposit||0).toLocaleString()}`:'No deposit scheme — add in tenant details', mandatory:true, ok:hasDeposit, warn:!hasDeposit?'Set deposit scheme in tenant details':null },
-    { id:'alarms',    icon:'🔔', label:'Smoke & CO Alarm Test Confirmation', desc:'Landlord must test alarms on Day 1 and confirm in writing', mandatory:true, ok:false,       warn:'Log alarm test in Property → Inspections' },
-  ];
-
-  // Within 30 days documents
-  const day30Docs = [
-    { id:'prescribed', icon:'🏦', label:'Prescribed Information (Deposit)', desc:hasDeposit?`${tenant.scheme} details — must be served within 30 days of receiving deposit`:'Requires deposit scheme to be set', mandatory:true, ok:hasDeposit, warn:!hasDeposit?'Set deposit scheme first':null },
-    { id:'section48',  icon:'🏠', label:'Section 48 Notice (Landlord Address)', desc:'Landlord must give a UK address for service of notices', mandatory:true, ok:false, warn:'Include landlord address in tenancy documents' },
-    { id:'rtr_rec',    icon:'🔍', label:'Right to Rent Check Record',        desc:'Keep signed copy of tenant ID check on file',               mandatory:true, ok:!!(tenant?.rtr_doc_type), warn:!(tenant?.rtr_doc_type)?'Complete RTR check in tenant details':null },
-    { id:'inventory',  icon:'📦', label:'Inventory / Schedule of Condition', desc:'Records property condition at move-in — protects deposit',  mandatory:false, ok:false, warn:null },
-    { id:'ins_sched',  icon:'🛡', label:'Buildings Insurance Schedule',      desc:'Notify insurer of new tenancy — provide schedule if requested', mandatory:false, ok:false, warn:null },
-    { id:'smoke_rec',  icon:'🔔', label:'Smoke & CO Alarm Test Record',      desc:'Signed record from Day 1 test — tenant signs as confirmation', mandatory:true, ok:false, warn:null },
-  ];
-
-  function docRow(doc, phase) {
-    const warnHtml = doc.warn ? `<div style="font-size:11px;color:${doc.mandatory&&!doc.ok?'var(--red)':'var(--amber)'};margin-top:3px">⚠ ${doc.warn}</div>` : '';
-    const statusBadge = doc.mandatory ? `<span style="font-size:9px;font-weight:700;color:var(--red);background:var(--red-bg);padding:1px 6px;border-radius:100px;letter-spacing:.3px">MANDATORY</span>` : `<span style="font-size:9px;font-weight:600;color:var(--muted);background:var(--off);padding:1px 6px;border-radius:100px">Optional</span>`;
-    const checkbox = `<input type="checkbox" id="sk-${phase}-${doc.id}" ${doc.ok||!doc.mandatory?'checked':''} style="width:16px;height:16px;cursor:pointer;accent-color:var(--navy)">`;
-    return `<div style="display:flex;align-items:flex-start;gap:12px;padding:11px 14px;border:1px solid ${doc.warn&&doc.mandatory?'rgba(229,62,62,0.2)':'var(--border)'};border-radius:8px;margin-bottom:6px;background:${doc.warn&&doc.mandatory?'rgba(229,62,62,0.03)':'var(--white)'}">
-      <span style="font-size:18px;flex-shrink:0;margin-top:1px">${doc.icon}</span>
-      <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px">
-          <span style="font-size:13px;font-weight:600">${doc.label}</span>${statusBadge}
-        </div>
-        <div style="font-size:11px;color:var(--muted)">${doc.desc}</div>${warnHtml}
-      </div>
-      <div style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding-top:2px">
-        <span style="font-size:13px">${doc.ok?'✅':doc.warn&&doc.mandatory?'❌':'⬜'}</span>
-        ${checkbox}
-      </div>
-    </div>`;
-  }
-
-  const missingDay1 = day1Docs.filter(d=>d.mandatory&&!d.ok).length;
-  const missingDay30 = day30Docs.filter(d=>d.mandatory&&!d.ok).length;
-
-  document.querySelector('.mo-box').classList.add('mo-wide');
-  openMo('📦 Tenancy Starter Kit', `${propAddr} · ${tenantName||'No tenant linked'}`, `
-    <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Tick documents to include · Mandatory items shown in red if missing · Send each phase separately</div>
-
-    <div style="background:var(--off);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:12px">
-      <div><span style="color:var(--muted)">Property</span><br><strong>${propAddr}</strong></div>
-      <div><span style="color:var(--muted)">Tenant</span><br><strong>${tenantName||'—'}</strong></div>
-      <div><span style="color:var(--muted)">Start date</span><br><strong>${startDate}</strong></div>
-    </div>
-
-    <!-- TABS -->
-    <div style="display:flex;border-bottom:2px solid var(--border);margin-bottom:16px;gap:0">
-      <button id="sk-tab-d1-btn" onclick="switchSkTab('day1')" style="padding:9px 20px;font-size:13px;font-weight:700;border:none;background:none;cursor:pointer;font-family:var(--font);border-bottom:3px solid var(--navy);margin-bottom:-2px;color:var(--navy)">
-        📅 Day 1 <span style="font-size:10px;font-weight:700;background:${missingDay1?'var(--red)':'var(--green)'};color:#fff;border-radius:100px;padding:1px 7px;margin-left:4px">${missingDay1?missingDay1+' missing':'Ready'}</span>
-      </button>
-      <button id="sk-tab-d30-btn" onclick="switchSkTab('day30')" style="padding:9px 20px;font-size:13px;font-weight:500;border:none;background:none;cursor:pointer;font-family:var(--font);border-bottom:3px solid transparent;margin-bottom:-2px;color:var(--muted)">
-        📆 Within 30 days <span style="font-size:10px;font-weight:700;background:${missingDay30?'var(--amber)':'var(--blue)'};color:#fff;border-radius:100px;padding:1px 7px;margin-left:4px">${day30Docs.length} docs</span>
-      </button>
-    </div>
-
-    <!-- DAY 1 PANEL -->
-    <div id="sk-panel-day1">
-      ${missingDay1 ? `<div style="background:var(--red-bg);border:1px solid rgba(229,62,62,0.25);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--red);margin-bottom:12px">⚠️ ${missingDay1} mandatory document${missingDay1!==1?'s':''} missing — you can still send but compliance will be flagged. Upload the missing certs in the Compliance tab first.</div>` : `<div style="background:var(--green-bg);border:1px solid rgba(0,200,150,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green-dark);margin-bottom:12px">✅ All Day 1 documents are on file — ready to send.</div>`}
-      ${day1Docs.map(d=>docRow(d,'day1')).join('')}
-
-      ${pCerts.length ? `<div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-top:10px">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:10px">📁 Also attach from property documents</div>
-        ${pCerts.map(c=>`<label style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);cursor:pointer">
-          <input type="checkbox" id="sk-day1-add-${c.id}" data-label="${c.type}" data-expiry="${c.expiry||''}" style="width:15px;height:15px;cursor:pointer;accent-color:var(--navy)">
-          <div style="flex:1">
-            <div style="font-size:12px;font-weight:600">${c.type}</div>
-            <div style="font-size:11px;color:var(--muted)">${c.expiry?'Expires '+new Date(c.expiry).toLocaleDateString('en-GB'):'No expiry'} · ${c.engineer||'—'} · ${c.has_file||c.file?'✅ File on record':'No file'}</div>
-          </div>
-          <span style="font-size:12px">${c.status==='Valid'||(!c.expiry)?'✅':c.status==='Expired'?'❌':'⚠️'}</span>
-        </label>`).join('')}
-      </div>` : ''}
-
-      <div style="background:var(--off);border-radius:8px;padding:12px 14px;margin-top:12px">
-        <div class="fg-row" style="margin-bottom:0">
-          <div class="fg"><label>Tenant email <span class="req">*</span></label><input type="email" id="sk-email" value="${tenantEmail}" placeholder="tenant@email.com"></div>
-          <div class="fg"><label>Your name (landlord)</label><input type="text" id="sk-landlord" placeholder="e.g. John Smith"></div>
-        </div>
-      </div>
-      <div style="margin-top:14px;display:flex;justify-content:flex-end">
-        <button class="btn btn-navy" id="sk-send-day1" onclick="sendStarterKitPack('${pid}','day1')">
-          <span id="sk-d1-label">✦ AI draft &amp; send Day 1 pack →</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- DAY 30 PANEL -->
-    <div id="sk-panel-day30" style="display:none">
-      <div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--blue);margin-bottom:12px">
-        💡 Tick documents as you prepare them — send when all are ready. Prescribed Information must be served within 30 days of receiving deposit.
-      </div>
-
-      <div style="background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:10px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px">
-        <div>
-          <div style="font-size:10px;font-weight:700;color:#3B6FE8;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px">Step 1 — before sending this pack</div>
-          <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:3px">📷 Generate Move-In Inventory Report</div>
-          <div style="font-size:11px;color:rgba(255,255,255,0.5)">AI analyses room photos · Condition report for deposit protection · Include in this pack</div>
-        </div>
-        <button class="btn btn-sm" style="background:#3B6FE8;color:#fff;border:none;font-weight:700;flex-shrink:0" onclick="closeMo();setTimeout(()=>moInventoryReport('${pid}'),100)">Generate →</button>
-      </div>
-      ${day30Docs.map(d=>docRow(d,'day30')).join('')}
-
-      ${pCerts.length ? `<div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-top:10px">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:10px">📁 Also attach from property documents</div>
-        ${pCerts.map(c=>`<label style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);cursor:pointer">
-          <input type="checkbox" id="sk-day30-add-${c.id}" data-label="${c.type}" data-expiry="${c.expiry||''}" style="width:15px;height:15px;cursor:pointer;accent-color:var(--navy)">
-          <div style="flex:1">
-            <div style="font-size:12px;font-weight:600">${c.type}</div>
-            <div style="font-size:11px;color:var(--muted)">${c.expiry?'Expires '+new Date(c.expiry).toLocaleDateString('en-GB'):'No expiry'} · ${c.engineer||'—'} · ${c.has_file||c.file?'✅ File on record':'No file'}</div>
-          </div>
-          <span style="font-size:12px">${c.status==='Valid'||(!c.expiry)?'✅':c.status==='Expired'?'❌':'⚠️'}</span>
-        </label>`).join('')}
-      </div>` : ''}
-
-      <div style="background:var(--off);border-radius:8px;padding:10px 14px;margin-top:12px;font-size:12px;color:var(--muted)">
-        Sending to: <strong style="color:var(--txt)">${tenantEmail||'No email on file'}</strong> · <a href="#" onclick="document.getElementById('sk-email').focus()" style="color:var(--blue)">Change</a>
-      </div>
-      <div style="margin-top:14px;display:flex;justify-content:flex-end">
-        <button class="btn btn-navy" id="sk-send-day30" onclick="sendStarterKitPack('${pid}','day30')">
-          <span id="sk-d30-label">✦ AI draft &amp; send Day 30 pack →</span>
-        </button>
-      </div>
-    </div>
-  `, `<button class="btn" onclick="closeMo()">Close</button>`);
-}
-
-function switchSkTab(tab) {
-  window._sk.phase = tab;
-  document.getElementById('sk-panel-day1').style.display  = tab==='day1'  ? 'block' : 'none';
-  document.getElementById('sk-panel-day30').style.display = tab==='day30' ? 'block' : 'none';
-  const d1b = document.getElementById('sk-tab-d1-btn');
-  const d30b = document.getElementById('sk-tab-d30-btn');
-  if (d1b)  { d1b.style.borderBottomColor  = tab==='day1'  ? 'var(--navy)' : 'transparent'; d1b.style.color  = tab==='day1'  ? 'var(--navy)'  : 'var(--muted)'; d1b.style.fontWeight  = tab==='day1'  ? '700' : '500'; }
-  if (d30b) { d30b.style.borderBottomColor = tab==='day30' ? 'var(--navy)' : 'transparent'; d30b.style.color = tab==='day30' ? 'var(--navy)'  : 'var(--muted)'; d30b.style.fontWeight = tab==='day30' ? '700' : '500'; }
-}
-
-async function sendStarterKitPack(pid, phase) {
-  const btn = document.getElementById(phase==='day1'?'sk-send-day1':'sk-send-day30');
-  const lbl = document.getElementById(phase==='day1'?'sk-d1-label':'sk-d30-label');
-  if (btn) { btn.disabled = true; if(lbl) lbl.textContent = '⏳ AI drafting email…'; }
-
-  const email = document.getElementById('sk-email')?.value.trim();
-  const landlordName = document.getElementById('sk-landlord')?.value.trim() || 'Your Landlord';
-  if (!email) { toast('Tenant email required', true); if(btn){btn.disabled=false;if(lbl)lbl.textContent=phase==='day1'?'✦ AI draft & send Day 1 pack →':'✦ AI draft & send Day 30 pack →';} return; }
-
-  const p = P(pid);
-  const tenant = D.tenants.find(t => String(t.prop_id) === String(pid) && t.status === 'Active');
-  const propAddr = [p?.address, p?.city].filter(Boolean).join(', ');
-  const pCerts = CF(pid);
-  const findCert = type => pCerts.find(c => c.type && c.type.toLowerCase().includes(type.toLowerCase()));
-
-  // Get checked items for this phase — standard + additional property docs
-  const prefix = `sk-${phase}-`;
-  const checkedIds = [...document.querySelectorAll(`[id^="${prefix}"]`)]
-    .filter(el => el.type==='checkbox' && el.checked)
-    .map(el => el.id.replace(prefix,''));
-
-  const day1Labels = {rra:'RRA 2025 Information Sheet',h2r:'How to Rent Guide',gsc:'Gas Safety Certificate',eicr:'EICR (Electrical Report)',epc:'EPC (Energy Performance Certificate)',written:'Written Statement of Terms',deposit_c:'Deposit Protection Certificate',alarms:'Smoke & CO Alarm Test Confirmation'};
-  const day30Labels = {prescribed:'Prescribed Information (Deposit)',section48:'Section 48 Notice',rtr_rec:'Right to Rent Check Record',inventory:'Inventory / Schedule of Condition',ins_sched:'Buildings Insurance Schedule',smoke_rec:'Smoke & CO Alarm Test Record'};
-  const labelMap = phase==='day1'?day1Labels:day30Labels;
-
-  // Standard doc labels
-  const standardDocs = checkedIds.filter(id=>!id.startsWith('add-')).map(id=>labelMap[id]||id).filter(Boolean);
-
-  // Additional property certs selected
-  const addPrefix = `add-`;
-  const additionalDocs = checkedIds
-    .filter(id=>id.startsWith(addPrefix))
-    .map(id => {
-      const certId = id.replace(addPrefix,'');
-      const el = document.getElementById(`${prefix}${id}`);
-      return el?.dataset?.label || certId;
-    }).filter(Boolean);
-
-  const docList = [...standardDocs, ...additionalDocs];
-
-  if (!docList.length) { toast('Select at least one document to send', true); if(btn){btn.disabled=false;if(lbl)lbl.textContent=phase==='day1'?'✦ AI draft & send Day 1 pack →':'✦ AI draft & send Day 30 pack →';} return; }
-
-  try {
-    // AI generates personalised intro
-    const startDate = tenant?.start_date ? new Date(tenant.start_date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) : 'your agreed start date';
-    const aiPrompt = `Write a warm, professional 2-3 sentence covering email intro for a UK tenancy ${phase==='day1'?'welcome pack':'30-day compliance pack'}. Tenant: ${tenant?.name||'Tenant'}. Property: ${propAddr}. Start date: ${startDate}. Landlord: ${landlordName}. Documents being sent: ${docList.join(', ')}. Be welcoming, clear and legally aware. Do not use greetings like "Dear" or sign off — just the body paragraph.`;
-
-    const aiRes = await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ model:'claude-sonnet-4-5', max_tokens:200, messages:[{role:'user',content:aiPrompt}] })
-    });
-    const aiData = await aiRes.json();
-    const intro = aiData.content?.[0]?.text || `Please find enclosed your ${phase==='day1'?'tenancy welcome':'30-day compliance'} pack for ${propAddr}.`;
-
-    if(lbl) lbl.textContent = '📤 Sending…';
-
-    // Build email HTML
-    const phaseTitle = phase==='day1' ? 'Tenancy Starter Pack — Day 1 Documents' : '30-Day Compliance Pack';
-    const gasCert = findCert('gas'); const eicrCert = findCert('eicr')||findCert('electrical'); const epcCert = findCert('epc')||findCert('energy');
-    // Check Written Statement e-sign status for email
-    const writtenSignedCertEmail = pCerts.find(c => c.type && c.type.toLowerCase().includes('written') && c.type.toLowerCase().includes('signed'));
-    const pendingEsignsEmail = await loadEsignStatus(pid).catch(()=>[]);
-    const writtenPendingEmail = pendingEsignsEmail.find(r => r.doc_label && r.doc_label.toLowerCase().includes('written')) || pendingEsignsEmail[0];
-    const docRows = docList.map(label => {
-      let status='✓ Provided', detail='';
-      if(label.includes('Gas')&&gasCert)detail=`Expires: ${gasCert.expiry?new Date(gasCert.expiry).toLocaleDateString('en-GB'):'No expiry'}`;
-      else if(label.includes('EICR')&&eicrCert)detail=`Expires: ${eicrCert.expiry?new Date(eicrCert.expiry).toLocaleDateString('en-GB'):'No expiry'}`;
-      else if(label.includes('EPC')&&epcCert)detail=`Expires: ${epcCert.expiry?new Date(epcCert.expiry).toLocaleDateString('en-GB'):'No expiry'}`;
-      else if(label.includes('Deposit')&&tenant?.scheme)detail=`${tenant.scheme} · Ref: ${tenant.scheme_ref||'—'} · £${(tenant.deposit||0).toLocaleString()}`;
-      else if(label.includes('Written')||label.includes('Statement')) {
-        if(writtenSignedCertEmail) { status='✅ Signed & on file'; detail='All parties have signed — document saved to compliance'; }
-        else if(writtenPendingEmail&&tenant?.invite_token) { status='⏳ Awaiting your signature'; detail=`<a href="https://rentsafeai.co.uk/tenant.html?token=${tenant.invite_token}" style="color:#0B1E3D;font-weight:600">Sign via your tenant portal →</a>`; }
-        else { status='⚠ To follow'; detail='Your landlord will send this via e-signature shortly'; }
-      }
-      else if(label.includes('Alarm'))status='⚠ To follow';
-      return `<tr><td style="padding:10px 14px;border-bottom:1px solid #eee;font-size:13px">${label}</td><td style="padding:10px 14px;border-bottom:1px solid #eee;font-size:13px;color:${status.includes('✅')||status.includes('✓')?'#00A87A':status.includes('⏳')?'#D97706':'#D97706'};font-weight:600">${status}</td><td style="padding:10px 14px;border-bottom:1px solid #eee;font-size:12px;color:#7A8FA6">${detail}</td></tr>`;
-    }).join('');
-
-    const html = `<!DOCTYPE html><html><body style="font-family:DM Sans,Arial,sans-serif;color:#1A2B45;max-width:620px;margin:0 auto;padding:0">
-      <div style="background:#0B1E3D;padding:24px 28px;border-radius:12px 12px 0 0"><div style="font-size:20px;font-weight:700;color:#fff">Rent<span style="color:#00C896">Safe AI</span></div><div style="font-size:13px;color:rgba(255,255,255,0.5);margin-top:4px">${phaseTitle}</div></div>
-      <div style="background:#fff;border:1px solid #E4EAF1;border-top:none;border-radius:0 0 12px 12px;padding:28px">
-        <h2 style="font-size:18px;font-weight:700;margin:0 0 6px">${phase==='day1'?'Welcome':'Your 30-day compliance documents'}, ${tenant?.name||''}!</h2>
-        <p style="font-size:13px;color:#1A2B45;line-height:1.7;margin:0 0 20px">${intro}</p>
-        <h3 style="font-size:14px;font-weight:700;margin:0 0 10px">Documents included</h3>
-        <table style="width:100%;border-collapse:collapse;margin-bottom:20px;border:1px solid #E4EAF1;border-radius:8px;overflow:hidden">
-          <thead><tr style="background:#F6F8FB"><th style="padding:9px 14px;text-align:left;font-size:11px;font-weight:700;color:#7A8FA6;text-transform:uppercase;letter-spacing:.4px">Document</th><th style="padding:9px 14px;text-align:left;font-size:11px;font-weight:700;color:#7A8FA6;text-transform:uppercase;letter-spacing:.4px">Status</th><th style="padding:9px 14px;text-align:left;font-size:11px;font-weight:700;color:#7A8FA6;text-transform:uppercase;letter-spacing:.4px">Details</th></tr></thead>
-          <tbody>${docRows}</tbody>
-        </table>
-        <div style="background:#F6F8FB;border-radius:8px;padding:14px;margin-bottom:20px">
-          ${[['Property',propAddr],['Monthly rent',tenant?.rent?`£${tenant.rent.toLocaleString()}`:'—'],['Deposit',tenant?.deposit?`£${tenant.deposit.toLocaleString()}`:'—'],['Start date',startDate]].map(([l,v])=>`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px"><span style="color:#7A8FA6">${l}</span><strong>${v}</strong></div>`).join('')}
-        </div>
-        ${tenant?.invite_token?`<div style="background:#F0FBF7;border:1px solid rgba(0,200,150,0.2);border-radius:8px;padding:14px;margin-bottom:20px"><div style="font-size:13px;font-weight:600;color:#009970;margin-bottom:6px">🔗 Your tenant portal</div><div style="font-size:12px;color:#1A2B45;margin-bottom:10px">Report maintenance, view certificates and sign documents.</div><a href="https://rentsafeai.co.uk/tenant.html?token=${tenant.invite_token}" style="background:#0B1E3D;color:#fff;padding:10px 20px;border-radius:7px;text-decoration:none;font-weight:600;font-size:13px;display:inline-block">Access portal →</a></div>`:''}
-        <p style="font-size:12px;color:#7A8FA6;line-height:1.6;margin:0">This document pack was served on <strong>${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</strong>. A timestamped record has been created for compliance purposes.</p>
-        <p style="font-size:13px;margin-top:16px">Kind regards,<br><strong>${landlordName}</strong></p>
-      </div>
-      <div style="padding:16px;text-align:center;font-size:11px;color:#999">Sent via RentSafe AI · rentsafeai.co.uk</div>
-    </body></html>`;
-
-    const subject = phase==='day1' ? `Your tenancy starter pack — ${propAddr}` : `Your 30-day compliance pack — ${propAddr}`;
-    await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor',{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ type:'send_email', to:email, subject, html })
-    });
-
-    // Log to email_log
-    const logEntry = { user_id:currentUser.id, tenant_id:tenant?.id||null, prop_id:parseInt(pid),
-      template_id: phase==='day1'?'starter_kit_day1':'starter_kit_day30',
-      template_name: phase==='day1'?`Starter Kit — Day 1 (${docList.length} docs)`:`Starter Kit — 30 days (${docList.length} docs)`,
-      sent_to:email, subject, status:'Sent', email_body:html };
-    const { data:logData } = await sb.from('email_log').insert(logEntry).select().single().catch(()=>({data:null}));
-    D.emailLog.unshift({...logEntry, sent_at:new Date().toISOString(), id:logData?.id});
-    await logAudit('STARTER_KIT_SENT','tenants',tenant?.id||pid,`${phase==='day1'?'Day 1':'30-day'} starter kit sent to ${email} · Docs: ${docList.join(', ')}`);
-
-    closeMo();
-    toast(`✅ ${phase==='day1'?'Day 1':'30-day'} starter kit sent to ${email}`);
-
-  } catch(err) {
-    if(btn){btn.disabled=false;if(lbl)lbl.textContent=phase==='day1'?'✦ AI draft & send Day 1 pack →':'✦ AI draft & send Day 30 pack →';}
-    toast('Error: '+err.message, true);
-  }
-}
-
 // ── MODAL: MAINTENANCE ISSUE ──
 function moIssue(pid){
   const opts=D.properties.map(p=>`<option value="${p.id}"${p.id==pid?' selected':''}>${p.address}, ${p.city}</option>`).join('');
@@ -3457,7 +3159,7 @@ function pgDashboard(){
       if (!props.length) return '';
       const btn = props.length === 1
         ? `<button class="btn btn-sm" style="background:#00C896;color:#0B1E3D;border:none;font-weight:600" onclick="moSection8('${props[0].id}')">Generate notice →</button>`
-        : `<select id="s8-dash-sel" style="padding:6px 10px;border-radius:7px;border:1px solid rgba(255,255,255,0.3);background:#fff;color:#0B1E3D;font-family:var(--font);font-size:12px;cursor:pointer;font-weight:500"><option value="">Select property…</option>${props.map(p=>`<option value="${p.id}">${p.address}</option>`).join('')}</select><button class="btn btn-sm" style="background:#00C896;color:#0B1E3D;border:none;font-weight:600;margin-left:6px" onclick="const v=document.getElementById('s8-dash-sel').value;if(v)moSection8(v);else toast('Please select a property',true)">Go →</button>`;
+        : `<select id="s8-dash-sel" style="padding:6px 10px;border-radius:7px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:#fff;font-family:var(--font);font-size:12px;cursor:pointer"><option value="">Select property…</option>${props.map(p=>`<option value="${p.id}">${p.address}</option>`).join('')}</select><button class="btn btn-sm" style="background:#00C896;color:#0B1E3D;border:none;font-weight:600;margin-left:6px" onclick="const v=document.getElementById('s8-dash-sel').value;if(v)moSection8(v);else toast('Please select a property',true)">Go →</button>`;
       return `<div class="s8-dash-card">
         <div>
           <div style="font-size:10px;font-weight:700;color:#00C896;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px">✦ RRA 2025 — Section 21 abolished 1 May 2026</div>
@@ -3759,21 +3461,18 @@ function pgPropDetail(pid) {
 
   // Tabs
   const tabDefs = [
-    { id:'tenant',      icon:'👤', label:'Tenant',      cnt: D.tenants.filter(x=>String(x.prop_id)===String(pid)).length, col:'#3B6FE8' },
-    { id:'financials',  icon:'💷', label:'Financials',  cnt: D.rent.filter(r=>String(r.prop_id)===String(pid)).length,   col:'#00A87A' },
-    { id:'compliance',  icon:'🛡', label:'Compliance',  cnt: pc.length,                                                   col:'#D97706' },
-    { id:'maintenance', icon:'🔧', label:'Maintenance', cnt: D.maintenance.filter(m=>String(m.prop_id)===String(pid)).length, col:'#E53E3E' },
-    { id:'property',    icon:'🏠', label:'Property',    cnt: 0,                                                           col:'#0B1E3D' },
+    { id:'tenant',      icon:'👤', label:'Tenant',      cnt: D.tenants.filter(x=>String(x.prop_id)===String(pid)).length },
+    { id:'financials',  icon:'💷', label:'Financials',  cnt: D.rent.filter(r=>String(r.prop_id)===String(pid)).length },
+    { id:'compliance',  icon:'🛡', label:'Compliance',  cnt: pc.length },
+    { id:'maintenance', icon:'🔧', label:'Maintenance', cnt: D.maintenance.filter(m=>String(m.prop_id)===String(pid)).length },
+    { id:'property',    icon:'🏠', label:'Property',    cnt: 0 },
   ];
 
-  const tabBar = `<div class="pd-tabs">${tabDefs.map(tb=>{
-    const isActive = tb.id===activeTab;
-    return `<button class="pd-tab${isActive?' active':''}" data-tab="${tb.id}" onclick="pdSetTab('${pid}','${tb.id}')"
-      style="${isActive?`color:${tb.col};border-bottom-color:${tb.col};font-weight:700`:``}">
+  const tabBar = `<div class="pd-tabs">${tabDefs.map(tb=>`
+    <button class="pd-tab${tb.id===activeTab?' active':''}" data-tab="${tb.id}" onclick="pdSetTab('${pid}','${tb.id}')">
       ${tb.icon} ${tb.label}
-      ${tb.cnt > 0 ? `<span class="pd-cnt"${isActive?` style="background:${tb.col};border-color:${tb.col};color:#fff"`:``}>${tb.cnt}</span>` : ''}
-    </button>`;
-  }).join('')}</div>`;
+      ${tb.cnt > 0 ? `<span class="pd-cnt">${tb.cnt}</span>` : ''}
+    </button>`).join('')}</div>`;
 
   return `<div class="topbar"><span class="tb-title">Properties</span><div class="tb-right">
     <button class="btn" onclick="moEditProp('${pid}')">✎ Edit</button>
@@ -3802,24 +3501,11 @@ function pgPropDetail(pid) {
 
 function pdSetTab(pid, tab) {
   window._pdTab[pid] = tab;
-  // Update active state on all tab buttons
   document.querySelectorAll('.pd-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-  let el = document.getElementById('pd-tab-content');
-  // If container is missing, re-render the whole prop-detail page and retry
-  if (!el) {
-    console.warn('pd-tab-content not found — re-rendering prop detail');
-    nav('prop-detail', pid);
-    setTimeout(() => {
-      const el2 = document.getElementById('pd-tab-content');
-      if (el2) {
-        try { el2.innerHTML = pdTabContent(pid, tab); } catch(e) { console.error(e); }
-      }
-    }, 80);
-    return;
-  }
+  const el = document.getElementById('pd-tab-content');
+  if (!el) return;
   try {
     el.innerHTML = pdTabContent(pid, tab);
-    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   } catch(err) {
     el.innerHTML = `<div style="padding:24px;background:rgba(229,62,62,0.06);border:1px solid rgba(229,62,62,0.2);border-radius:10px;margin-top:8px">
       <div style="font-size:13px;font-weight:600;color:var(--red);margin-bottom:4px">Error loading ${tab} tab</div>
@@ -3850,14 +3536,13 @@ function pdTabContent(pid, tab) {
           <div style="display:flex;align-items:center;gap:12px">
             <div class="t-av" style="width:42px;height:42px;font-size:14px">${INI(t.name)}</div>
             <div>
-              <div style="font-size:15px;font-weight:600">${t.name}${t.is_lead?` <span style="font-size:10px;font-weight:700;background:var(--amber-bg);color:var(--amber);border:1px solid rgba(217,119,6,0.2);border-radius:4px;padding:2px 6px;letter-spacing:.3px">⭐ LEAD</span>`:` <button onclick="setLeadTenant('${t.id}','${pid}')" style="font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:var(--off);color:var(--muted);cursor:pointer;font-family:var(--font)">Set as lead</button>`}</div>
+              <div style="font-size:15px;font-weight:600">${t.name}${t.is_lead?` <span style="font-size:10px;font-weight:700;background:var(--amber-bg);color:var(--amber);border:1px solid rgba(217,119,6,0.2);border-radius:4px;padding:2px 6px;letter-spacing:.3px">⭐ LEAD</span>`:''}</div>
               <div style="font-size:12px;color:var(--muted);margin-top:1px">${t.email||'No email'} · ${t.phone||'No phone'}</div>
             </div>
           </div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            ${t.email?`<a href="mailto:${t.email}" class="btn btn-sm" style="border-color:var(--blue);color:var(--blue)">✉ Email</a>`:''}
-            ${t.phone?`<a href="tel:${t.phone}" class="btn btn-sm" style="border-color:var(--green-dark);color:var(--green-dark)">📞 Call</a>`:''}
+          <div style="display:flex;gap:6px">
             <button class="btn btn-sm" onclick="moTenantDetail('${t.id}')">✎ Edit</button>
+            <button class="btn btn-sm btn-navy" onclick="moSection8('${pid}')">⚖️ Section 8</button>
           </div>
         </div>
         <div style="padding:14px 18px">
@@ -3866,15 +3551,16 @@ function pdTabContent(pid, tab) {
               ['Tenancy start', FMS(t.start_date)],
               ['Tenancy end', t.end_date ? FMS(t.end_date) : 'Periodic (APT)'],
               ['Monthly rent', t.rent ? `£${t.rent.toLocaleString()}` : '—'],
-              t.is_lead ? ['Deposit', t.deposit ? `£${t.deposit.toLocaleString()}` : 'Not set'] : ['Role', 'Co-tenant'],
-              t.is_lead ? ['Deposit scheme', t.scheme || 'Not set'] : ['', ''],
-              t.is_lead ? ['Scheme ref', t.scheme_ref || '—'] : ['', ''],
-            ].filter(([l])=>l).map(([l,v])=>`<div class="det-f"><label>${l}</label><span>${v}</span></div>`).join('')}
+              ['Deposit', t.deposit ? `£${t.deposit.toLocaleString()}` : 'Not set'],
+              ['Deposit scheme', t.scheme || 'Not set'],
+              ['Scheme ref', t.scheme_ref || '—'],
+            ].map(([l,v])=>`<div class="det-f"><label>${l}</label><span>${v}</span></div>`).join('')}
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
+            ${t.email?`<a href="mailto:${t.email}" class="btn btn-sm">✉ Email</a>`:''}
+            ${t.phone?`<a href="tel:${t.phone}" class="btn btn-sm">📞 Call</a>`:''}
             <button class="btn btn-sm" style="border-color:var(--amber);color:var(--amber)" onclick="moRRASheet()">📋 RRA Sheet</button>
-            <button class="btn btn-sm" style="border-color:var(--green-dark);color:var(--green-dark)" onclick="moStarterKit('${pid}')">📦 Starter Kit</button>
-            <button class="btn btn-sm" style="border-color:var(--navy);color:var(--navy)" onclick="moSection8('${pid}')">⚖️ Section 8</button>
+            <button class="btn btn-sm" style="border-color:var(--green-dark);color:var(--green-dark)" onclick="moWelcomeKit('${pid}')">📦 Welcome kit</button>
             ${(()=>{
               const monthsSince = t.start_date ? Math.floor((new Date()-new Date(t.start_date))/(30.44*864e5)) : 99;
               const lastS13 = D.emailLog.filter(e=>String(e.prop_id)===String(pid)&&e.template_id==='section13').sort((a,b)=>new Date(b.sent_at)-new Date(a.sent_at))[0];
@@ -3886,7 +3572,7 @@ function pdTabContent(pid, tab) {
                 : `<button class="btn btn-sm" style="border-color:var(--border);color:var(--muted);cursor:not-allowed" title="Eligible in ${daysLeft} days" disabled>📈 S.13 (${daysLeft}d)</button>`;
             })()}
             ${t.email?`<button class="btn btn-sm" style="border-color:var(--green);color:var(--green-dark)" id="invite-btn-${t.id}" onclick="sendPortalInvite('${t.id}')">🔗 ${t.invite_used?'Resend invite':'Send portal invite'}</button>`:''}
-            <button class="btn btn-sm" style="border-color:var(--blue);color:var(--blue)" onclick="moEsign('${pid}')">✍️ Sign doc</button>
+            <button class="btn btn-sm" style="border-color:var(--blue);color:var(--blue)" onclick="moEsign('${pid}','${t.id}')">✍️ Send for Signing</button>
           </div>
         </div>
       </div>`).join('')}
@@ -3912,14 +3598,6 @@ function pdTabContent(pid, tab) {
 
       <div style="margin-bottom:14px">
         <button class="btn btn-sm" onclick="moTenant('${pid}')" style="border-color:var(--green);color:var(--green-dark)">+ Add co-tenant</button>
-        <button class="btn btn-sm" onclick="moEsign('${pid}')" style="border-color:var(--blue);color:var(--blue);margin-left:6px">✍️ New signing request</button>
-      </div>
-
-      <div class="panel" style="margin-bottom:16px">
-        <div class="ph2"><div><h2>✍️ Document signing</h2><p>Active signing requests — all parties tracked</p></div><button class="btn btn-sm" onclick="renderEsignStatusPanel('${pid}')">↻ Refresh</button></div>
-        <div style="padding:14px 18px" id="esign-status-${pid}">
-          <div style="font-size:12px;color:var(--muted)">Click ↻ Refresh to load signing status</div>
-        </div>
       </div>
 
       <div class="panel" style="margin-bottom:16px">
@@ -4789,19 +4467,12 @@ function pgTenants(){
   <div class="content">
     <div class="ph"><h1>Tenants</h1><p>${D.tenants.filter(t=>t.status==='Active').length} active tenant${D.tenants.filter(t=>t.status==='Active').length!==1?'s':''} · Click any row to view details</p></div>
     ${D.tenants.filter(t=>t.status==='Active').length?`<div class="panel"><div class="tw"><table>
-      <thead><tr><th>Name</th><th>Property</th><th>Email</th><th>Start</th><th>End</th><th>Deposit</th><th>Status</th><th style="text-align:center">Actions</th></tr></thead>
-      <tbody>${D.tenants.map(t=>{const p=P(t.prop_id)||{address:'—'};const isNew=t.start_date&&Math.floor((new Date()-new Date(t.start_date))/(864e5))<=30;return`<tr style="cursor:pointer" onclick="moTenantDetail('${t.id}')">
+      <thead><tr><th>Name</th><th>Property</th><th>Email</th><th>Start</th><th>End</th><th>Deposit</th><th>Status</th></tr></thead>
+      <tbody>${D.tenants.map(t=>{const p=P(t.prop_id)||{address:'—'};return`<tr style="cursor:pointer" onclick="moTenantDetail('${t.id}')">
         <td><div style="display:flex;align-items:center;gap:10px"><div class="t-av">${INI(t.name)}</div><div><div class="td-bold">${t.name}</div><div style="font-size:11px;color:var(--muted)">${t.phone||'—'}</div></div></div></td>
         <td>${p.address}</td><td style="font-size:12px;color:var(--muted)">${t.email||'—'}</td>
         <td>${FMS(t.start||t.start_date)}</td><td>${FMS(t.end||t.end_date)}</td>
         <td>${t.scheme?B('Protected'):'<span style="color:var(--muted);font-size:12px">Not set</span>'}</td><td>${B(t.status)}</td>
-        <td onclick="event.stopPropagation()" style="white-space:nowrap">
-          <div style="display:flex;gap:4px;justify-content:center">
-            <button onclick="event.stopPropagation();moInventoryReport('${t.prop_id}')" title="AI Inventory Report — move-in/move-out condition report" style="padding:4px 8px;border-radius:6px;border:1px solid var(--blue);background:var(--blue-bg);color:var(--blue);cursor:pointer;font-size:11px;font-weight:600;font-family:var(--font);white-space:nowrap">📷 Inventory${isNew?` <span style="background:var(--green);color:#fff;border-radius:100px;padding:0 5px;font-size:9px">NEW</span>`:''}
-            </button>
-            <button onclick="event.stopPropagation();moStarterKit('${t.prop_id}')" title="Tenancy Starter Kit — Day 1 and 30-day compliance pack" style="padding:4px 8px;border-radius:6px;border:1px solid var(--green-dark);background:var(--green-bg);color:var(--green-dark);cursor:pointer;font-size:11px;font-weight:600;font-family:var(--font)">📦 Kit</button>
-          </div>
-        </td>
       </tr>`}).join('')}</tbody>
     </table></div></div>`:'<div class="empty"><div class="empty-ic">👤</div><div class="empty-t">No tenants yet</div><div class="empty-s">Click + Add tenant to get started</div></div>'}
   </div>`;
@@ -6177,21 +5848,6 @@ function pgTemplates() {
         ⚠️ <strong style="color:var(--txt)">Disclaimer:</strong> Templates are for reference only and do not constitute legal advice. Always seek independent legal advice before serving notices or signing tenancy documents.
       </div>
 
-      <div style="background:linear-gradient(135deg,#0B1E3D,#1a3a6b);border-radius:12px;padding:20px 24px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
-        <div>
-          <div style="font-size:10px;font-weight:700;color:#00C896;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px">✦ New tenancy</div>
-          <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:4px">📦 Tenancy Starter Kit</div>
-          <div style="font-size:12px;color:rgba(255,255,255,0.6)">Day 1 mandatory docs + 30-day compliance pack · AI-drafted email · Fully logged</div>
-        </div>
-        <div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap">
-          ${D.properties.length===1
-            ? `<button class="btn btn-sm" style="background:#00C896;color:#0B1E3D;border:none;font-weight:700" onclick="moStarterKit('${D.properties[0].id}')">Open Starter Kit →</button>`
-            : D.properties.length > 1
-              ? `<select id="sk-prop-sel" style="padding:6px 10px;border-radius:7px;border:none;background:#fff;color:#0B1E3D;font-family:var(--font);font-size:12px;font-weight:500;cursor:pointer"><option value="">Select property…</option>${D.properties.map(p=>`<option value="${p.id}">${p.address}</option>`).join('')}</select><button class="btn btn-sm" style="background:#00C896;color:#0B1E3D;border:none;font-weight:700" onclick="const v=document.getElementById('sk-prop-sel').value;if(v)moStarterKit(v);else toast('Select a property first',true)">Open →</button>`
-              : `<button class="btn btn-sm" style="background:rgba(255,255,255,0.15);color:#fff;border:none" onclick="moAddProp()">Add a property first</button>`}
-        </div>
-      </div>
-
       ${cats.map(cat => `
         <div class="coll" style="margin-bottom:14px">
           <div class="coll-hd" onclick="toggleColl('tmpl-${cat.id}')">
@@ -6719,9 +6375,8 @@ function propEmailLogHtml(pid) {
   const logs = D.emailLog.filter(e => String(e.prop_id) === String(pid));
   if (!logs.length) return '<div style="color:var(--muted);font-size:13px">No emails sent yet — generate a template and use ✉ Send to Tenant</div>';
   return `
-    <div style="display:flex;justify-content:flex-end;gap:6px;margin-bottom:10px">
-      <button class="btn btn-sm" onclick="downloadEmailLogCSV('${pid}')" style="font-size:11px;border-color:var(--green-dark);color:var(--green-dark)">⬇ Download CSV</button>
-      <button class="btn btn-sm" onclick="exportAuditTrail('${pid}')" style="font-size:11px;border-color:var(--navy);color:var(--navy)">📋 Print audit trail</button>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+      <button class="btn btn-sm" onclick="exportAuditTrail('${pid}')" style="font-size:11px;border-color:var(--navy);color:var(--navy)">📋 Export audit trail</button>
     </div>
     <div class="tw"><table><thead><tr><th>Document / Event</th><th>Sent to</th><th>Date &amp; time</th><th>Status</th><th></th></tr></thead>
     <tbody>${logs.map(e=>`<tr>
@@ -6768,33 +6423,10 @@ function exportAuditTrail(pid) {
   <table><thead><tr><th>Timestamp</th><th>Document / Event</th><th>Sent to</th><th>Subject</th><th>Status</th></tr></thead>
   <tbody>${rows||'<tr><td colspan="5">No emails logged</td></tr>'}</tbody></table>
   <p style="margin-top:16px;font-size:10px;color:#999">Generated by RentSafe AI · rentsafeai.co.uk · Records stored securely with full timestamps</p>
-  <script>window.onload=()=>window.print();<\/script>
+  <script>window.onload=()=>window.print();</script>
   </body></html>`;
   const w = window.open('','_blank');
   if (w) { w.document.write(html); w.document.close(); }
-}
-
-function downloadEmailLogCSV(pid) {
-  const p = P(pid);
-  const logs = D.emailLog.filter(e => String(e.prop_id) === String(pid));
-  if (!logs.length) { toast('No emails logged yet', true); return; }
-  const headers = ['Timestamp','Document / Event','Sent To','Subject','Status'];
-  const rows = logs.map(e => {
-    const ts = e.sent_at ? new Date(e.sent_at).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '—';
-    return [ts, e.template_name||e.template_id||'—', e.sent_to||'—', e.subject||'—', e.status||'Sent']
-      .map(v => `"${String(v).replace(/"/g,'""')}"`).join(',');
-  });
-  const csv = [headers.join(','), ...rows].join('\n');
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `email-log-${(p?.address||'property').replace(/\s+/g,'-').toLowerCase()}-${new Date().toISOString().slice(0,10)}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  toast('✅ CSV downloaded');
 }
 
 function s8LaunchFromTemplates() {
@@ -7003,27 +6635,9 @@ const S8_CATS = [
 let _s8 = {};
 
 function moSection8(pid) {
-  // If no valid pid, show property picker first
-  if (!pid || pid === 'undefined' || pid === '') {
-    if (!D.properties.length) { toast('Add a property first', true); return; }
-    if (D.properties.length === 1) { moSection8(String(D.properties[0].id)); return; }
-    openMo('Section 8 Generator','Select property to start',
-      `<div class="fg"><label>Which property?</label><select id="s8-prop-sel">${D.properties.map(p=>`<option value="${p.id}">${p.address}, ${p.city}</option>`).join('')}</select></div>`,
-      `<button class="btn" onclick="closeMo()">Cancel</button><button class="btn btn-navy" onclick="const v=document.getElementById('s8-prop-sel').value;closeMo();setTimeout(()=>moSection8(v),50)">Start →</button>`
-    ); return;
-  }
   const p = D.properties.find(x => String(x.id) === String(pid));
-  if (!p) {
-    // Property ID not matched — show selector
-    if (!D.properties.length) { toast('No properties found', true); return; }
-    openMo('Section 8 Generator','Select property to start',
-      `<div style="background:var(--amber-bg);border:1px solid var(--amber);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--amber);margin-bottom:14px">⚠ Property not found — please select one below</div>
-      <div class="fg"><label>Property</label><select id="s8-prop-sel">${D.properties.map(p=>`<option value="${p.id}">${p.address}, ${p.city}</option>`).join('')}</select></div>`,
-      `<button class="btn" onclick="closeMo()">Cancel</button><button class="btn btn-navy" onclick="const v=document.getElementById('s8-prop-sel').value;closeMo();setTimeout(()=>moSection8(v),50)">Start →</button>`
-    ); return;
-  }
-
-  const t = D.tenants.find(x => String(x.prop_id) === String(pid) && (x.is_lead !== false || true));
+  const t = D.tenants.find(x => String(x.prop_id) === String(pid));
+  if (!p) { toast('Property not found', true); return; }
 
   _s8 = { pid: String(pid), tid: t ? String(t.id) : null, step: 1, category: null,
           selectedGrounds: [], fields: {}, prop: p, tenant: t };
@@ -7993,511 +7607,19 @@ async function sendPortalInvite(tenantId) {
   toast(`✓ Portal invite sent to ${t.name}`);
 }
 
-// ── E-SIGN: MULTI-PARTY DOCUMENT SIGNING ──
-// esign_requests schema (updated):
-//   id, property_id, tenant_id (lead), document_type, document_html, document_pdf_url,
-//   token (lead tenant legacy), signatories JSONB [{party_id,name,email,role,token,signed_at}],
-//   doc_label, status, signed_count, total_signatories, completed_at, expires_at, created_at
-// tenant.html: look up token in signatories array via:
-//   SELECT * FROM esign_requests WHERE signatories @> '[{"token":"TOKEN"}]'::jsonb
-//   Then identify party from signatories where token matches, show their block only.
+// ── E-SIGN: SEND FOR SIGNING ──
+// esign_requests table schema (assumes table exists in Supabase):
+//   id uuid PK, property_id uuid, tenant_id uuid, document_type text,
+//   document_html text, document_pdf_url text, token text unique,
+//   status text default 'pending', created_at timestamptz default now(),
+//   expires_at timestamptz, signed_at timestamptz, signed_pdf_url text, ip_address text
 
 let _esignDocHtml = null;
 let _esignPdfUrl  = null;
-window._esign = {};
 
-function moEsign(pid) {
+function moEsign(pid, tid) {
   const p = P(pid);
-  if (!p) { toast('Property not found', true); return; }
-  const tenants = D.tenants.filter(t => String(t.prop_id) === String(pid) && t.status === 'Active');
-
-  // Pre-populate signatories: landlord first, then all active tenants
-  const signatories = [
-    { party_id: crypto.randomUUID(), name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'Landlord', email: currentUser.email, role: 'Landlord', token: crypto.randomUUID(), signed_at: null },
-    ...tenants.map(t => ({ party_id: crypto.randomUUID(), name: t.name, email: t.email || '', role: 'Tenant', token: crypto.randomUUID(), signed_at: null }))
-  ];
-
-  window._esign = { pid, step: 1, docMode: null, signatories, docLabel: 'Written Statement of Terms' };
-  _esignDocHtml = null;
-  _esignPdfUrl  = null;
-
-  document.querySelector('.mo-box')?.classList.add('mo-wide');
-  document.getElementById('mo-t').textContent = '✍️ Multi-Party Document Signing';
-  document.getElementById('mo-s').textContent = `${p.address} · ${signatories.length} signatories`;
-  document.getElementById('mo').classList.add('open');
-  _renderEsignStep(1);
-}
-
-function _renderEsignStep(n) {
-  window._esign.step = n;
-  const steps = ['Document','Preview','Signatories','Confirm','Sign'];
-  const bar = [1,2,3,4,5].map(i=>`<div style="flex:1;height:3px;border-radius:100px;background:${i<n?'var(--green)':i===n?'var(--blue)':'var(--border)'}"></div>`).join('');
-  const labels = [1,2,3,4,5].map(i=>`<div style="flex:1;font-size:9px;font-weight:${i===n?700:400};color:${i<n?'var(--green-dark)':i===n?'var(--blue)':'var(--muted)'};text-align:center">${steps[i-1]}</div>`).join('');
-  // Expand modal to full-screen on step 5 (signing step)
-  const moBox = document.querySelector('.mo-box');
-  if (moBox) {
-    if (n === 5) {
-      moBox.style.maxWidth = '100vw';
-      moBox.style.width = '100vw';
-      moBox.style.height = '100vh';
-      moBox.style.margin = '0';
-      moBox.style.borderRadius = '0';
-    } else {
-      moBox.style.maxWidth = '';
-      moBox.style.width = '';
-      moBox.style.height = '';
-      moBox.style.margin = '';
-      moBox.style.borderRadius = '';
-    }
-  }
-  document.getElementById('mo-b').innerHTML = `
-    <div style="display:flex;gap:4px;margin-bottom:5px">${bar}</div>
-    <div style="display:flex;margin-bottom:18px">${labels}</div>
-    ${_esignStepHtml(n)}`;
-  document.getElementById('mo-f').innerHTML = `
-    <button onclick="${n===1?'closeMo()':'_esignNav(-1)'}" style="background:none;border:none;font-family:var(--font);font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;padding:7px 0">${n===1?'Cancel':'← Back'}</button>
-    <span style="font-size:12px;color:var(--muted)">Step ${n} of 5</span>
-    <button class="btn btn-navy" id="esign-next-btn" onclick="_esignNav(1)">${n===5?'✅ Sign & send to tenant':'Next →'}</button>`;
-}
-
-function _esignStepHtml(n) {
-  const s = window._esign;
-  const p = P(s.pid);
-
-  if (n === 1) return `
-    <div style="font-size:15px;font-weight:600;margin-bottom:4px">Document to sign</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Choose how to provide the contract — all parties will sign the same document</div>
-    <div style="background:var(--amber-bg);border:1px solid var(--amber);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--amber);margin-bottom:16px">
-      ⚠️ <strong>No legal responsibility:</strong> AI-generated documents are templates only. RentSafe AI accepts no liability. Always verify with a qualified solicitor before serving.
-    </div>
-    <div style="display:grid;gap:10px">
-      <div onclick="_esignSetMode('ai')" id="esign-opt-ai" style="border:2px solid ${s.docMode==='ai'?'var(--blue)':'var(--border)'};border-radius:10px;padding:16px 18px;cursor:pointer;transition:border-color .15s">
-        <div style="font-size:13px;font-weight:600;margin-bottom:4px">✦ AI Generate Written Statement</div>
-        <div style="font-size:12px;color:var(--muted)">RRA 2025 compliant Assured Periodic Tenancy — auto-filled from your data. Template only, no legal advice.</div>
-      </div>
-      <div onclick="_esignSetMode('upload')" id="esign-opt-upload" style="border:2px solid ${s.docMode==='upload'?'var(--blue)':'var(--border)'};border-radius:10px;padding:16px 18px;cursor:pointer;transition:border-color .15s">
-        <div style="font-size:13px;font-weight:600;margin-bottom:4px">📎 Upload Your Own Contract (PDF)</div>
-        <div style="font-size:12px;color:var(--muted)">Upload any PDF contract or tenancy agreement. Sent to all parties for signing.</div>
-      </div>
-    </div>
-
-    <div id="esign-ai-fields" style="display:${s.docMode==='ai'?'block':'none'};margin-top:14px">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div class="fg"><label>Property</label><input type="text" id="esign-address" value="${p?.address||''}, ${p?.city||''}" readonly style="background:var(--off);color:var(--muted)"></div>
-        <div class="fg"><label>Tenant(s)</label><input type="text" id="esign-tnames" value="${D.tenants.filter(t=>String(t.prop_id)===String(s.pid)&&t.status==='Active').map(t=>t.name).join(', ')||'—'}" readonly style="background:var(--off);color:var(--muted)"></div>
-        <div class="fg"><label>Start date</label><input type="date" id="esign-start" value="${D.tenants.find(t=>String(t.prop_id)===String(s.pid)&&t.status==='Active')?.start_date||''}"></div>
-        <div class="fg"><label>Monthly rent (£)</label><input type="number" id="esign-rent" value="${D.tenants.find(t=>String(t.prop_id)===String(s.pid)&&t.status==='Active')?.rent||p?.rent||''}"></div>
-        <div class="fg"><label>Deposit (£)</label><input type="number" id="esign-deposit" value="${D.tenants.find(t=>String(t.prop_id)===String(s.pid)&&t.status==='Active')?.deposit||''}"></div>
-        <div class="fg"><label>Deposit scheme</label><input type="text" id="esign-scheme" value="${D.tenants.find(t=>String(t.prop_id)===String(s.pid)&&t.status==='Active')?.scheme||''}"></div>
-        <div class="fg"><label>Bills included</label><input type="text" id="esign-bills" placeholder="e.g. None, or Water, Internet"></div>
-        <div class="fg"><label>Pets permitted</label><select id="esign-pets"><option value="No">No</option><option value="Yes">Yes</option></select></div>
-      </div>
-      <div class="fg"><label>Special terms</label><textarea id="esign-terms" placeholder="Additional clauses…" rows="2"></textarea></div>
-      <button class="btn btn-navy" style="width:100%;margin-top:4px" id="esign-gen-btn" onclick="esignGenerateAI()">✦ Generate document</button>
-    </div>
-
-    <div id="esign-upload-fields" style="display:${s.docMode==='upload'?'block':'none'};margin-top:14px">
-      <div style="border:2px dashed var(--border);border-radius:8px;padding:28px;text-align:center;position:relative" id="esign-upload-box">
-        <input type="file" accept=".pdf" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%" onchange="esignHandlePDF(this)">
-        <div style="font-size:28px;margin-bottom:8px">📎</div>
-        <div style="font-size:13px;color:var(--muted)" id="esign-upload-label">Click to upload PDF (max 5MB)</div>
-      </div>
-      <div class="fg" style="margin-top:12px"><label>Document label</label><input type="text" id="esign-doc-label" value="${s.docLabel}" placeholder="e.g. Written Statement of Terms"></div>
-    </div>`;
-
-  if (n === 2) return `
-    <div style="font-size:15px;font-weight:600;margin-bottom:4px">Review document</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Check the document before sending to all parties — all signatories will see this exact content</div>
-    ${_esignDocHtml ? `
-      <div style="border:1px solid var(--border);border-radius:8px;max-height:380px;overflow-y:auto;padding:16px;font-size:12px;line-height:1.7;background:var(--white)">${_esignDocHtml}</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:8px;text-align:right">Document generated ${new Date().toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
-    ` : _esignPdfUrl ? `
-      <div style="border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center;background:var(--off)">
-        <div style="font-size:28px;margin-bottom:8px">📄</div>
-        <div style="font-size:13px;font-weight:600">PDF uploaded successfully</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:4px">Document is ready to send to all signatories</div>
-        <a href="${_esignPdfUrl}" target="_blank" class="btn btn-sm" style="margin-top:10px;display:inline-block">Preview PDF →</a>
-      </div>
-    ` : `<div style="background:var(--red-bg);border:1px solid rgba(229,62,62,0.2);border-radius:8px;padding:14px;font-size:13px;color:var(--red)">No document loaded — go back to Step 1</div>`}`;
-
-  if (n === 3) {
-    const sigRows = s.signatories.map((sig,i) => `
-      <div style="display:flex;align-items:center;gap:12px;padding:11px 14px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;background:var(--white)">
-        <div style="width:34px;height:34px;border-radius:50%;background:${sig.role==='Landlord'?'var(--navy)':'var(--blue-bg)'};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:${sig.role==='Landlord'?'#fff':'var(--blue)'};">${INI(sig.name)}</div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:600">${sig.name} <span style="font-size:10px;font-weight:700;background:${sig.role==='Landlord'?'var(--navy)':'var(--blue-bg)'};color:${sig.role==='Landlord'?'#fff':'var(--blue)'};padding:1px 7px;border-radius:100px;letter-spacing:.3px">${sig.role.toUpperCase()}</span></div>
-          <div style="font-size:11px;color:var(--muted);margin-top:1px">${sig.email||'No email — add email to send signing link'}</div>
-        </div>
-        <div style="font-size:11px;color:${sig.email?'var(--green-dark)':'var(--red)'};font-weight:600">${sig.email?'✅ Will receive link':'❌ No email'}</div>
-      </div>`).join('');
-    const missingEmails = s.signatories.filter(x=>!x.email).length;
-    return `
-    <div style="font-size:15px;font-weight:600;margin-bottom:4px">Signatories</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">All parties listed below will receive a unique private signing link via email</div>
-    ${missingEmails ? `<div style="background:var(--red-bg);border:1px solid rgba(229,62,62,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--red);margin-bottom:12px">⚠ ${missingEmails} signator${missingEmails>1?'ies have':'y has'} no email address — add emails in tenant details before sending.</div>` : `<div style="background:var(--green-bg);border:1px solid rgba(0,200,150,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green-dark);margin-bottom:12px">✅ All signatories have email addresses — ready to send.</div>`}
-    <div class="fg"><label>Document label (shows in compliance)</label><input type="text" id="esign-final-label" value="${s.docLabel}" placeholder="e.g. Written Statement of Terms — May 2026"></div>
-    ${sigRows}
-    <div style="font-size:11px;color:var(--muted);margin-top:10px;background:var(--off);border-radius:8px;padding:10px 14px">
-      🔒 Each person receives a unique private link — they can only sign their own signature block. Links expire in 7 days. Document is complete when ALL parties have signed.
-    </div>`;
-  }
-
-  if (n === 4) {
-    const readyCount = s.signatories.filter(x=>!!x.email).length;
-    return `
-    <div style="font-size:15px;font-weight:600;margin-bottom:4px">Confirm & send</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Review before sending — this cannot be undone</div>
-    <div style="background:var(--off);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
-        <div><span style="color:var(--muted)">Property</span><br><strong>${p?.address||'—'}</strong></div>
-        <div><span style="color:var(--muted)">Document</span><br><strong>${s.docLabel}</strong></div>
-        <div><span style="color:var(--muted)">Signatories</span><br><strong>${s.signatories.length} parties</strong></div>
-        <div><span style="color:var(--muted)">Sending to</span><br><strong>${readyCount} emails</strong></div>
-      </div>
-    </div>
-    <div style="margin-bottom:12px">
-      ${s.signatories.map(sig=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--white);border:1px solid var(--border);border-radius:7px;margin-bottom:5px">
-        <span style="font-size:11px;font-weight:700;color:${sig.role==='Landlord'?'var(--navy)':'var(--blue)'}">${sig.role}</span>
-        <span style="font-size:12px;flex:1">${sig.name}</span>
-        <span style="font-size:11px;color:${sig.email?'var(--green-dark)':'var(--red)'}">${sig.email||'No email — will be skipped'}</span>
-      </div>`).join('')}
-    </div>
-    <div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--blue)">
-      📬 You'll sign first in Step 5, then your tenant receives their unique signing link automatically. When everyone signs, the document auto-saves to your Compliance tab.
-    </div>`;
-  }
-  if (n === 5) {
-    const landlordSig = window._esign.signatories.find(x=>x.role==='Landlord');
-    return `
-    <div style="font-size:15px;font-weight:600;margin-bottom:4px">✍️ Your signature</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Sign below — once complete, your tenant will automatically receive their signing link.</div>
-    <div style="background:var(--amber-bg);border:1px solid var(--amber);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--amber);margin-bottom:16px">
-      ⚖️ By signing you confirm this is your legally binding electronic signature for <strong>${window._esign.docLabel}</strong>.
-    </div>
-    <div style="margin-bottom:14px">
-      <label style="font-size:12px;font-weight:600;display:block;margin-bottom:6px">Draw your signature</label>
-      <div style="border:2px solid var(--border);border-radius:8px;background:#fff;position:relative" id="sig-pad-wrap">
-        <canvas id="esign-landlord-pad" style="display:block;width:100%;height:160px;border-radius:8px;touch-action:none"></canvas>
-        <button type="button" onclick="esignClearPad()" style="position:absolute;top:8px;right:8px;background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:11px;color:var(--muted);cursor:pointer">Clear</button>
-      </div>
-    </div>
-    <div class="fg" style="margin-bottom:14px">
-      <label>Full legal name</label>
-      <input type="text" id="esign-landlord-name" value="${landlordSig?.name||''}" placeholder="Type your full name as it appears on the document">
-    </div>
-    <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:12px;color:var(--text);line-height:1.5">
-      <input type="checkbox" id="esign-landlord-consent" style="margin-top:2px;width:16px;height:16px;flex-shrink:0">
-      I confirm this constitutes my legally binding electronic signature and I agree to sign this document electronically.
-    </label>`;
-  }
-  return '';
-}
-
-function _esignSetMode(mode) {
-  window._esign.docMode = mode;
-  document.getElementById('esign-ai-fields').style.display   = mode==='ai'     ? 'block' : 'none';
-  document.getElementById('esign-upload-fields').style.display = mode==='upload' ? 'block' : 'none';
-  ['esign-opt-ai','esign-opt-upload'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.borderColor = (id==='esign-opt-ai'&&mode==='ai')||(id==='esign-opt-upload'&&mode==='upload') ? 'var(--blue)' : 'var(--border)';
-  });
-}
-
-async function esignGenerateAI() {
-  const s = window._esign;
-  const p = P(s.pid);
-  const btn = document.getElementById('esign-gen-btn');
-  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Generating…';
-  try {
-    const address = document.getElementById('esign-address')?.value;
-    const tnames  = document.getElementById('esign-tnames')?.value;
-    const start   = document.getElementById('esign-start')?.value;
-    const rent    = document.getElementById('esign-rent')?.value;
-    const deposit = document.getElementById('esign-deposit')?.value;
-    const scheme  = document.getElementById('esign-scheme')?.value;
-    const bills   = document.getElementById('esign-bills')?.value || 'None';
-    const pets    = document.getElementById('esign-pets')?.value;
-    const terms   = document.getElementById('esign-terms')?.value;
-    const landlordName = currentUser.user_metadata?.full_name || currentUser.email;
-    const res = await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:4000,messages:[{role:'user',content:`Generate a fully compliant UK Assured Periodic Tenancy Written Statement under the Renters Rights Act 2025.\nProperty: ${address}\nTenant(s): ${tnames}\nLandlord: ${landlordName}\nStart: ${start}\nRent: £${rent}/month\nDeposit: £${deposit} — ${scheme}\nBills: ${bills}\nPets: ${pets}\nSpecial terms: ${terms||'None'}\nInclude all RRA 2025 mandatory terms, repair obligations, notice periods (S.8/S.13), signature blocks for each tenant and landlord with printed name, date, and signature line.\nFormat as clean semantic HTML. No markdown. Return only the HTML document.`}]})
-    });
-    const data = await res.json();
-    _esignDocHtml = data.content?.[0]?.text || '';
-    toast('✓ Document generated — review in Step 2');
-    btn.disabled=false; btn.innerHTML='✦ Regenerate';
-    // Auto-advance
-    window._esign.docMode = 'ai';
-    _esignNav(1);
-  } catch(e) {
-    btn.disabled=false; btn.innerHTML='✦ Generate document';
-    toast('Generation failed: '+e.message, true);
-  }
-}
-
-async function esignHandlePDF(input) {
-  const file = input.files[0];
-  if (!file) return;
-  if (file.size > 5*1024*1024) { toast('PDF must be under 5MB', true); return; }
-  const label = document.getElementById('esign-upload-label');
-  label.innerHTML = '<span class="spin spin-dark" style="display:inline-block;margin-right:6px"></span>Uploading…';
-  const filename = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
-  const { error } = await sb.storage.from('esign-documents').upload(filename, file, {contentType:'application/pdf'});
-  if (error) { label.textContent='Upload failed'; toast('Upload error: '+error.message, true); return; }
-  const { data:urlData } = sb.storage.from('esign-documents').getPublicUrl(filename);
-  _esignPdfUrl = urlData.publicUrl;
-  label.innerHTML = `<span style="color:var(--green-dark);font-weight:600">✓ ${file.name}</span>`;
-  const labelInput = document.getElementById('esign-doc-label');
-  if (labelInput) window._esign.docLabel = file.name.replace('.pdf','');
-}
-
-function _esignNav(dir) {
-  const s = window._esign;
-  const n = s.step;
-
-  if (dir === 1) {
-    if (n === 1) {
-      if (!s.docMode) { toast('Please choose a document option', true); return; }
-      if (s.docMode === 'ai' && !_esignDocHtml) { toast('Please generate the document first', true); return; }
-      if (s.docMode === 'upload' && !_esignPdfUrl) { toast('Please upload a PDF first', true); return; }
-      const labelEl = document.getElementById('esign-doc-label');
-      if (labelEl) s.docLabel = labelEl.value.trim() || s.docLabel;
-    }
-    if (n === 2) { /* Preview step — just advance */ }
-    if (n === 3) {
-      const labelEl = document.getElementById('esign-final-label');
-      if (labelEl) s.docLabel = labelEl.value.trim() || s.docLabel;
-      const missingEmails = s.signatories.filter(x=>!x.email&&x.role!=='Landlord').length;
-      if (missingEmails === s.signatories.filter(x=>x.role!=='Landlord').length && s.signatories.filter(x=>x.role!=='Landlord').length > 0) { toast('No tenants have email addresses', true); return; }
-    }
-    if (n === 4) { /* Confirm step — just advance to signing */ }
-    if (n === 5) { esignLandlordSign(); return; }
-  }
-
-  _renderEsignStep(Math.max(1, Math.min(5, n + dir)));
-
-  // Init SignaturePad on step 5 after render
-  if (n + dir === 5) {
-    setTimeout(() => {
-      const canvas = document.getElementById('esign-landlord-pad');
-      if (canvas && typeof SignaturePad !== 'undefined') {
-        const wrap = document.getElementById('sig-pad-wrap');
-        const ratio = Math.max(window.devicePixelRatio||1, 1);
-        canvas.width = (wrap?.offsetWidth||600) * ratio;
-        canvas.height = 160 * ratio;
-        canvas.getContext('2d').scale(ratio, ratio);
-        window._esignPad = new SignaturePad(canvas, { backgroundColor:'rgba(255,255,255,0)', penColor:'#0B1E3D' });
-      }
-    }, 80);
-  }
-}
-
-function esignClearPad() {
-  if (window._esignPad) window._esignPad.clear();
-}
-
-async function esignLandlordSign() {
-  const s = window._esign;
-  const btn = document.getElementById('esign-next-btn');
-
-  // Validate
-  const pad = window._esignPad;
-  if (!pad || pad.isEmpty()) { toast('Please draw your signature', true); return; }
-  const nameVal = document.getElementById('esign-landlord-name')?.value.trim();
-  if (!nameVal) { toast('Please enter your full legal name', true); return; }
-  if (!document.getElementById('esign-landlord-consent')?.checked) { toast('Please confirm your consent to sign electronically', true); return; }
-
-  if (btn) { btn.disabled=true; btn.innerHTML='<span class="spin spin-dark"></span>Signing…'; }
-
-  const signatureDataUrl = pad.toDataURL('image/png');
-  const signedAt = new Date().toISOString();
-
-  // Mark landlord as signed in signatories array
-  s.signatories = s.signatories.map(sig =>
-    sig.role === 'Landlord' ? { ...sig, signed_at: signedAt, signature_data: signatureDataUrl, printed_name: nameVal } : sig
-  );
-
-  // Now send — only to tenants
-  await _sendMultiPartyEsign(true);
-}
-
-async function _sendMultiPartyEsign(landlordAlreadySigned=false) {
-  const s = window._esign;
-  const p = P(s.pid);
-  const btn = document.getElementById('esign-next-btn');
-  if (btn) { btn.disabled=true; btn.innerHTML='<span class="spin spin-dark"></span>Sending…'; }
-
-  const leadTenant = D.tenants.find(t=>String(t.prop_id)===String(s.pid)&&t.status==='Active');
-  const expiresAt = new Date(Date.now()+7*864e5).toISOString();
-  const mainToken = s.signatories[0]?.token || crypto.randomUUID(); // landlord token
-  // Count: landlord already signed counts as 1
-  const initialSignedCount = landlordAlreadySigned ? 1 : 0;
-
-  try {
-    const { data: req, error: reqErr } = await sb.from('esign_requests').insert({
-      property_id:      s.pid,
-      tenant_id:        leadTenant?.id || null,
-      document_type:    'written_statement',
-      document_html:    _esignDocHtml || null,
-      document_pdf_url: _esignPdfUrl  || null,
-      doc_label:        s.docLabel,
-      token:            mainToken,
-      signatories:      JSON.stringify(s.signatories),
-      total_signatories: s.signatories.filter(x=>!!x.email).length,
-      signed_count:     initialSignedCount,
-      status:           'pending',
-      expires_at:       expiresAt
-    }).select().single();
-
-    if (reqErr) throw new Error(reqErr.message);
-
-    // Send unique email only to TENANTS (landlord signs first in-app)
-    const origin = window.location.origin;
-    const tenantsToEmail = s.signatories.filter(x=>!!x.email && x.role !== 'Landlord');
-    for (const sig of tenantsToEmail) {
-      const signingLink = `${origin}/tenant.html?esign=${sig.token}`;
-      const expDate = new Date(expiresAt).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
-      const othersStr = s.signatories.filter(x=>x.party_id!==sig.party_id).map(x=>`${x.name} (${x.role})`).join(', ');
-      const html = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:28px 24px;color:#1A2B45">
-        <div style="border-bottom:2px solid #0B1E3D;padding-bottom:12px;margin-bottom:20px"><span style="font-size:17px;font-weight:700;color:#0B1E3D">Rent<span style="color:#00C896">Safe AI</span></span></div>
-        <h2 style="font-size:16px;font-weight:600;margin-bottom:8px">✍️ Your signature is required</h2>
-        <p style="font-size:13px;color:#7A8FA6;margin-bottom:16px">Hi ${sig.name}, your landlord has signed the following document and it is now ready for your counter-signature.</p>
-        <div style="background:#F6F8FB;border-radius:8px;padding:16px;margin-bottom:20px">
-          <div style="font-size:12px;color:#7A8FA6;margin-bottom:4px">Document</div>
-          <div style="font-size:13px;font-weight:600">${s.docLabel}</div>
-          <div style="font-size:12px;color:#7A8FA6;margin-top:4px">Property: ${p?.address||'—'}</div>
-          <div style="font-size:12px;color:#7A8FA6;margin-top:2px">Other signatories: ${othersStr}</div>
-        </div>
-        <p style="font-size:13px;margin-bottom:20px">Click the link below to review the full document and add your signature. Your link is private and unique to you.</p>
-        <div style="text-align:center;margin:28px 0"><a href="${signingLink}" style="background:#0B1E3D;color:#fff;padding:13px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;display:inline-block">Review &amp; Sign →</a></div>
-        <div style="background:#FEF3C7;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400E;margin-bottom:16px">⏰ Link expires: ${expDate}</div>
-        <p style="font-size:11px;color:#999">Sent via RentSafe AI · rentsafeai.co.uk</p>
-      </div>`;
-      await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor',{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({type:'send_email',to:sig.email,subject:`Action required — please counter-sign: ${s.docLabel}`,html})
-      }).catch(()=>{});
-    }
-
-    // Log to email_log
-    const logEntry = {
-      user_id: currentUser.id, tenant_id: leadTenant?.id||null, prop_id: parseInt(s.pid),
-      template_id: 'esign_multiparty',
-      template_name: `E-Sign: ${s.docLabel} (${s.signatories.length} signatories)`,
-      sent_to: s.signatories.filter(x=>x.email).map(x=>x.email).join(', '),
-      subject: `Multi-party signing: ${s.docLabel}`,
-      status: 'Sent'
-    };
-    await sb.from('email_log').insert(logEntry).catch(()=>{});
-    await logAudit('ESIGN_SENT','esign_requests',req.id,`${s.docLabel} sent to ${s.signatories.length} signatories`);
-
-    closeMo();
-    toast(`✅ You have signed. Signing link sent to ${tenantsToEmail.length} tenant${tenantsToEmail.length!==1?'s':''}`);
-
-  } catch(e) {
-    if (btn) { btn.disabled=false; btn.textContent='✅ Sign & send to tenant'; }
-    toast('Error: '+e.message, true);
-  }
-}
-
-// ── ESIGN STATUS: CHECK SIGNING PROGRESS ──
-async function loadEsignStatus(pid) {
-  try {
-    const { data } = await sb.from('esign_requests')
-      .select('*')
-      .eq('property_id', pid)
-      .eq('status', 'pending')
-      .order('created_at', {ascending:false})
-      .limit(5);
-    return data || [];
-  } catch(e) { return []; }
-}
-
-async function checkEsignCompletion(reqId, pid) {
-  try {
-    const { data: req } = await sb.from('esign_requests').select('*').eq('id', reqId).single();
-    if (!req) return;
-    const sigs = typeof req.signatories === 'string' ? JSON.parse(req.signatories) : (req.signatories || []);
-    const withEmails = sigs.filter(s=>s.email);
-    const signedCount = sigs.filter(s=>s.signed_at).length;
-    if (withEmails.length > 0 && signedCount >= withEmails.length) {
-      // All signed — mark complete
-      await sb.from('esign_requests').update({status:'completed',completed_at:new Date().toISOString()}).eq('id',reqId);
-      // Save compliance cert
-      const certEntry = {
-        prop_id: parseInt(pid), type: `Written Statement of Terms — Fully Signed`,
-        status: 'Valid', served: true, has_file: !!(req.document_pdf_url||req.document_html),
-        engineer: null, expiry: null, user_id: currentUser.id,
-        notes: `Multi-party e-signed · ${signedCount} signatories · ${new Date().toLocaleDateString('en-GB')} · Doc: ${req.doc_label||'Written Statement'}`
-      };
-      const { data: cert } = await sb.from('certificates').insert(certEntry).select().single().catch(()=>({data:null}));
-      if (cert) D.certs.push({...cert, file:true});
-      await logAudit('ESIGN_COMPLETE','esign_requests',reqId,`${req.doc_label} fully signed by all parties`);
-      toast('🎉 Document fully signed — saved to compliance!');
-      nav('prop-detail', pid);
-      setTimeout(()=>pdSetTab(pid,'compliance'),100);
-    }
-  } catch(e) { console.warn('checkEsignCompletion error', e); }
-}
-
-async function renderEsignStatusPanel(pid) {
-  const el = document.getElementById(`esign-status-${pid}`);
-  if (!el) return;
-  el.innerHTML = '<div style="font-size:12px;color:var(--muted)">Loading…</div>';
-  const reqs = await loadEsignStatus(pid);
-  if (!reqs.length) { el.innerHTML = '<div style="font-size:12px;color:var(--muted)">No active signing requests</div>'; return; }
-  el.innerHTML = reqs.map(req => {
-    const sigs = typeof req.signatories==='string'?JSON.parse(req.signatories):(req.signatories||[]);
-    const signedCount = sigs.filter(s=>s.signed_at).length;
-    const total = sigs.filter(s=>s.email).length;
-    const pct = total ? Math.round(signedCount/total*100) : 0;
-    const expDays = Math.ceil((new Date(req.expires_at)-new Date())/864e5);
-    return `<div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <div>
-          <div style="font-size:13px;font-weight:600">${req.doc_label||'Document'}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">${signedCount}/${total} signed · Expires in ${expDays}d</div>
-        </div>
-        <div style="display:flex;gap:6px">
-          ${req.document_html ? `<button onclick="esignViewDoc('${req.id}')" class="btn btn-sm" style="font-size:11px">📄 View</button>` : ''}
-          <button onclick="checkEsignCompletion('${req.id}','${pid}')" class="btn btn-sm" style="font-size:11px">↻ Check</button>
-          <button onclick="moEsign('${pid}')" class="btn btn-sm btn-navy" style="font-size:11px">+ New</button>
-        </div>
-      </div>
-      <div style="height:5px;background:var(--off);border-radius:100px;margin-bottom:10px">
-        <div style="height:100%;width:${pct}%;background:${pct===100?'var(--green)':'var(--blue)'};border-radius:100px;transition:width .5s"></div>
-      </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
-        ${sigs.map(sig=>`<div style="display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;background:${sig.signed_at?'var(--green-bg)':'var(--off)'};border:1px solid ${sig.signed_at?'rgba(0,200,150,0.2)':'var(--border)'}">
-          <span style="font-size:11px">${sig.signed_at?'✅':'⏳'}</span>
-          <span style="font-size:11px;font-weight:500">${sig.name}</span>
-          <span style="font-size:9px;color:var(--muted)">${sig.role}</span>
-        </div>`).join('')}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-async function esignViewDoc(reqId) {
-  try {
-    const { data: req } = await sb.from('esign_requests').select('*').eq('id', reqId).single();
-    if (!req) { toast('Document not found', true); return; }
-    if (req.document_pdf_url) { window.open(req.document_pdf_url, '_blank'); return; }
-    if (req.document_html) {
-      const sigs = typeof req.signatories === 'string' ? JSON.parse(req.signatories) : (req.signatories || []);
-      const sigBlock = sigs.map(s => `<div style="margin-top:8px;padding:8px 14px;border:1px solid #ccc;border-radius:6px;font-size:12px"><strong>${s.role}: ${s.name}</strong>${s.signed_at ? ` — ✅ Signed ${new Date(s.signed_at).toLocaleDateString('en-GB')}` : ' — ⏳ Awaiting signature'}</div>`).join('');
-      const win = window.open('', '_blank');
-      if (win) {
-        win.document.write(`<!DOCTYPE html><html><head><title>${req.doc_label||'Signed Document'}</title><meta charset="utf-8"><style>body{font-family:Arial,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;color:#1A2B45}.sig-panel{background:#f6f8fb;border:1px solid #e4eaf1;border-radius:10px;padding:20px;margin-top:32px}</style></head><body>${req.document_html}<div class="sig-panel"><h3 style="margin:0 0 10px;font-size:15px">Signatures</h3>${sigBlock}</div></body></html>`);
-        win.document.close();
-      }
-    } else { toast('No document content available', true); }
-  } catch(e) { toast('Error loading document', true); }
-}
-
-function _moEsignLegacy(pid, tid) {
-  const p = P(pid), t = D.tenants.find(x=>String(x.id)===String(tid));
+  const t = D.tenants.find(x => String(x.id) === String(tid));
   if (!p || !t) { toast('Property or tenant not found', true); return; }
   _esignDocHtml = null;
   _esignPdfUrl  = null;
@@ -8561,6 +7683,141 @@ function _moEsignLegacy(pid, tid) {
     </div>
   `, '');
   document.querySelector('.mo-box').classList.add('mo-wide');
+}
+
+function esignShowOptionA() {
+  document.getElementById('esign-chooser').style.display = 'none';
+  document.getElementById('esign-form-a').style.display = 'block';
+}
+
+function esignShowOptionB() {
+  document.getElementById('esign-chooser').style.display = 'none';
+  document.getElementById('esign-form-b').style.display = 'block';
+}
+
+async function esignHandlePDF(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { toast('PDF must be under 5MB', true); return; }
+  const label = document.getElementById('esign-upload-label');
+  label.innerHTML = '<span class="spin spin-dark" style="display:inline-block;margin-right:6px"></span>Uploading…';
+  const filename = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+  const { error } = await sb.storage.from('esign-documents').upload(filename, file, { contentType: 'application/pdf' });
+  if (error) { label.textContent = 'Upload failed — try again'; toast('Upload error: ' + error.message, true); return; }
+  const { data: urlData } = sb.storage.from('esign-documents').getPublicUrl(filename);
+  _esignPdfUrl = urlData.publicUrl;
+  label.innerHTML = `<span style="color:var(--green-dark);font-weight:600">✓ ${file.name} uploaded</span>`;
+  document.getElementById('esign-send-row-b').style.display = 'block';
+}
+
+async function esignGenerateDoc(pid, tid) {
+  const p = P(pid);
+  const address  = document.getElementById('esign-address').value;
+  const tenantName = document.getElementById('esign-tname').value;
+  const startDate  = document.getElementById('esign-start').value;
+  const rent       = document.getElementById('esign-rent').value;
+  const deposit    = document.getElementById('esign-deposit').value;
+  const scheme     = document.getElementById('esign-scheme').value;
+  const bills      = document.getElementById('esign-bills').value || 'None';
+  const pets       = document.getElementById('esign-pets').value;
+  const terms      = document.getElementById('esign-terms').value;
+  const landlordName = currentUser.user_metadata?.full_name || currentUser.email;
+
+  const btn = document.getElementById('esign-gen-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Generating…';
+
+  try {
+    const res = await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 4000,
+        messages: [{
+          role: 'user',
+          content: `Generate a fully compliant UK Assured Periodic Tenancy Written Statement under the Renters Rights Act 2025. Use these details:\nProperty: ${address}\nTenant: ${tenantName}\nLandlord: ${landlordName}\nStart date: ${startDate}\nMonthly rent: £${rent} payable monthly in advance\nDeposit: £${deposit} protected with ${scheme}\nBills included: ${bills}\nPets: ${pets}\nSpecial terms: ${terms||'None'}\n\nInclude all mandatory RRA 2025 terms: periodic tenancy (no fixed end date), 2 months landlord notice via Section 8 only, rent increases via Section 13 max once per year with 2 months notice, tenant 2 months notice to quit, landlord repair obligations under s11 Landlord and Tenant Act 1985, right of entry with 24hrs notice, deposit protection obligations.\n\nFormat as clean HTML with proper headings and sections. Professional and legally precise. Return only the HTML document content, no preamble.`
+        }]
+      })
+    });
+    if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.error?.message || `API error ${res.status}`); }
+    const data = await res.json();
+    _esignDocHtml = data.content?.[0]?.text || '';
+    document.getElementById('esign-doc-preview').innerHTML = _esignDocHtml;
+    document.getElementById('esign-preview-a').style.display = 'block';
+    document.getElementById('esign-generate-row').style.display = 'none';
+    document.getElementById('esign-send-row-a').style.display = 'block';
+  } catch(e) {
+    toast('Generation failed: ' + e.message, true);
+    btn.disabled = false;
+    btn.innerHTML = '✦ Generate Document';
+  }
+}
+
+async function _sendEsignRequest(pid, tid, mode) {
+  const t = D.tenants.find(x => String(x.id) === String(tid));
+  const p = P(pid);
+  if (!t || !p) return;
+  if (!t.email) { toast('Tenant has no email address on file', true); return; }
+  if (mode === 'html' && !_esignDocHtml) { toast('No document generated yet', true); return; }
+  if (mode === 'pdf'  && !_esignPdfUrl)  { toast('No PDF uploaded yet', true); return; }
+
+  const btn = mode === 'html'
+    ? document.getElementById('esign-send-a-btn')
+    : document.getElementById('esign-send-b-btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin spin-dark"></span> Sending…'; }
+
+  const token      = crypto.randomUUID();
+  const expiresAt  = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const docType    = mode === 'html' ? 'written_statement' : 'rra_receipt';
+
+  const { error: insertErr } = await sb.from('esign_requests').insert({
+    property_id:      pid,
+    tenant_id:        tid,
+    document_type:    docType,
+    document_html:    mode === 'html' ? _esignDocHtml : null,
+    document_pdf_url: mode === 'pdf'  ? _esignPdfUrl  : null,
+    token,
+    status:     'pending',
+    expires_at: expiresAt
+  });
+  if (insertErr) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Send to Tenant'; }
+    toast('Error: ' + insertErr.message, true);
+    return;
+  }
+
+  const signingLink = `${window.location.origin}/tenant.html?esign=${token}`;
+  const docLabel    = docType === 'written_statement' ? 'Written Statement of Tenancy Terms' : 'Tenancy Document';
+  const expDate     = new Date(expiresAt).toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'});
+
+  const html = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:28px 24px;color:#1A2B45">
+    <div style="border-bottom:2px solid #0B1E3D;padding-bottom:12px;margin-bottom:20px"><span style="font-size:17px;font-weight:700;color:#0B1E3D">Rent<span style="color:#00C896">Safe AI</span></span></div>
+    <h2 style="font-size:16px;font-weight:600;margin-bottom:8px">Action required — please sign your tenancy document</h2>
+    <p style="font-size:13px;color:#7A8FA6;margin-bottom:20px">Hi ${t.name}, your landlord has sent a document for you to review and sign electronically.</p>
+    <div style="background:#F6F8FB;border-radius:8px;padding:16px;margin-bottom:24px">
+      <div style="font-size:12px;color:#7A8FA6;margin-bottom:4px">Document</div>
+      <div style="font-size:13px;font-weight:600">${docLabel}</div>
+      <div style="font-size:12px;color:#7A8FA6;margin-top:4px">Property: ${p.address}${p.city?', '+p.city:''}</div>
+    </div>
+    <p style="font-size:13px;margin-bottom:24px">Click the link below to review and sign. You will need to give electronic consent before viewing.</p>
+    <div style="text-align:center;margin:28px 0"><a href="${signingLink}" style="background:#0B1E3D;color:#fff;padding:13px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;display:inline-block">Review &amp; Sign Document →</a></div>
+    <p style="font-size:12px;color:#7A8FA6">Or copy this link: <a href="${signingLink}" style="color:#3B6FE8;word-break:break-all">${signingLink}</a></p>
+    <div style="margin-top:20px;background:#FEF3C7;border-radius:8px;padding:12px 14px;font-size:12px;color:#92400E">⏰ This link expires on ${expDate}.</div>
+    <div style="margin-top:20px;padding-top:14px;border-top:1px solid #eee;font-size:11px;color:#999">Sent via RentSafe AI · documents@rentsafeai.co.uk</div>
+  </div>`;
+
+  await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'send_email', to: t.email, subject: 'Action required — please sign your tenancy document', html })
+  }).catch(() => {});
+
+  await logAudit('esign_request_sent', 'esign_requests', pid, `E-sign sent to ${t.email} for ${p.address}`);
+  closeMo();
+  _esignDocHtml = null;
+  _esignPdfUrl  = null;
+  toast(`✓ Signing request sent to ${t.email}`);
 }
 
 // ── SECTION 13 RENT INCREASE NOTICE GENERATOR ──
@@ -8871,20 +8128,6 @@ function closeMobSidebar(){
   const hm=document.getElementById('mob-ham');
   if(hm) hm.classList.remove('open');
   document.body.style.overflow='';
-}
-
-// ── SET LEAD TENANT ──
-async function setLeadTenant(tid, pid) {
-  if (!confirm('Set this tenant as the lead tenant? The current lead will be changed.')) return;
-  // Clear all leads for this property
-  const propTenants = D.tenants.filter(t => String(t.prop_id) === String(pid));
-  for (const t of propTenants) {
-    await sb.from('tenants').update({ is_lead: String(t.id) === String(tid) }).eq('id', t.id).catch(()=>{});
-    t.is_lead = String(t.id) === String(tid);
-  }
-  await logAudit('SET_LEAD_TENANT', 'tenants', tid, `Set as lead tenant`);
-  toast('✓ Lead tenant updated');
-  pdSetTab(pid, 'tenant');
 }
 
 // ── MAINTENANCE: NOTIFY TENANT ──
