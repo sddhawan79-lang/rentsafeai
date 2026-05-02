@@ -3700,7 +3700,7 @@ function pdTabContent(pid, tab) {
         if (days <= 60) return { lbl:'EXPIRING SOON', bg:'rgba(59,111,232,0.08)', col:'#3B6FE8', bdr:'rgba(59,111,232,0.2)', days, overdue:false };
         return               { lbl:'VALID',           bg:'rgba(0,200,150,0.08)',  col:'#00A87A', bdr:'rgba(0,200,150,0.2)',  days, overdue:false };
       }
-      return { lbl:'VALID', bg:'rgba(0,200,150,0.08)', col:'#00A87A', bdr:'rgba(0,200,150,0.2)', days:null, overdue:false };
+      return { lbl:'NO DATE SET', bg:'rgba(229,62,62,0.07)', col:'#E53E3E', bdr:'rgba(229,62,62,0.2)', days:null, overdue:true };
     };
 
     const _cgGroup = (gid, icon, title, types, addBtn) => {
