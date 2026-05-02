@@ -3802,11 +3802,24 @@ function pgPropDetail(pid) {
 
 function pdSetTab(pid, tab) {
   window._pdTab[pid] = tab;
+  // Update active state on all tab buttons
   document.querySelectorAll('.pd-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-  const el = document.getElementById('pd-tab-content');
-  if (!el) return;
+  let el = document.getElementById('pd-tab-content');
+  // If container is missing, re-render the whole prop-detail page and retry
+  if (!el) {
+    console.warn('pd-tab-content not found — re-rendering prop detail');
+    nav('prop-detail', pid);
+    setTimeout(() => {
+      const el2 = document.getElementById('pd-tab-content');
+      if (el2) {
+        try { el2.innerHTML = pdTabContent(pid, tab); } catch(e) { console.error(e); }
+      }
+    }, 80);
+    return;
+  }
   try {
     el.innerHTML = pdTabContent(pid, tab);
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   } catch(err) {
     el.innerHTML = `<div style="padding:24px;background:rgba(229,62,62,0.06);border:1px solid rgba(229,62,62,0.2);border-radius:10px;margin-top:8px">
       <div style="font-size:13px;font-weight:600;color:var(--red);margin-bottom:4px">Error loading ${tab} tab</div>
@@ -6706,8 +6719,9 @@ function propEmailLogHtml(pid) {
   const logs = D.emailLog.filter(e => String(e.prop_id) === String(pid));
   if (!logs.length) return '<div style="color:var(--muted);font-size:13px">No emails sent yet — generate a template and use ✉ Send to Tenant</div>';
   return `
-    <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
-      <button class="btn btn-sm" onclick="exportAuditTrail('${pid}')" style="font-size:11px;border-color:var(--navy);color:var(--navy)">📋 Export audit trail</button>
+    <div style="display:flex;justify-content:flex-end;gap:6px;margin-bottom:10px">
+      <button class="btn btn-sm" onclick="downloadEmailLogCSV('${pid}')" style="font-size:11px;border-color:var(--green-dark);color:var(--green-dark)">⬇ Download CSV</button>
+      <button class="btn btn-sm" onclick="exportAuditTrail('${pid}')" style="font-size:11px;border-color:var(--navy);color:var(--navy)">📋 Print audit trail</button>
     </div>
     <div class="tw"><table><thead><tr><th>Document / Event</th><th>Sent to</th><th>Date &amp; time</th><th>Status</th><th></th></tr></thead>
     <tbody>${logs.map(e=>`<tr>
@@ -6758,6 +6772,29 @@ function exportAuditTrail(pid) {
   </body></html>`;
   const w = window.open('','_blank');
   if (w) { w.document.write(html); w.document.close(); }
+}
+
+function downloadEmailLogCSV(pid) {
+  const p = P(pid);
+  const logs = D.emailLog.filter(e => String(e.prop_id) === String(pid));
+  if (!logs.length) { toast('No emails logged yet', true); return; }
+  const headers = ['Timestamp','Document / Event','Sent To','Subject','Status'];
+  const rows = logs.map(e => {
+    const ts = e.sent_at ? new Date(e.sent_at).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '—';
+    return [ts, e.template_name||e.template_id||'—', e.sent_to||'—', e.subject||'—', e.status||'Sent']
+      .map(v => `"${String(v).replace(/"/g,'""')}"`).join(',');
+  });
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `email-log-${(p?.address||'property').replace(/\s+/g,'-').toLowerCase()}-${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('✅ CSV downloaded');
 }
 
 function s8LaunchFromTemplates() {
