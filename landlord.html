@@ -42,6 +42,11 @@ html,body{height:100%;font-family:var(--font);color:var(--txt);background:var(--
 .sb-badge{font-size:10px;font-weight:700;background:var(--red);color:#fff;padding:1px 6px;border-radius:100px;min-width:18px;text-align:center}
 .sb-divider{height:1px;background:rgba(255,255,255,0.07);margin:8px 14px}
 .sb-section{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,0.22);padding:10px 18px 4px}
+.sb-group-hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 16px 4px;cursor:pointer;user-select:none}
+.sb-group-hdr span:first-child{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,0.22)}
+.sb-chev{font-size:10px;color:rgba(255,255,255,0.2);transition:transform .2s}
+.sb-chev.closed{transform:rotate(-90deg)}
+.sb-group-body{overflow:hidden;transition:max-height .25s ease}
 .sb-item[data-page="assistant"]{color:rgba(0,200,150,0.75)}
 .sb-item[data-page="assistant"]:hover{color:var(--green);background:rgba(0,200,150,0.1)}
 .sb-item[data-page="assistant"].active{color:var(--green)}
@@ -350,53 +355,82 @@ tr:hover td{background:rgba(246,248,251,.8)}
   </div>
 
   <nav class="sb-nav" id="main-nav">
-    <div class="sb-section">Main</div>
 
     <button class="sb-item active" data-page="dashboard">
       <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>
       <span class="sb-label">Dashboard</span>
     </button>
 
-    <button class="sb-item" data-page="properties">
-      <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 14V7L8 2l6 5v7"/><path d="M6 14v-4h4v4"/></svg>
-      <span class="sb-label">Properties</span>
-      <span id="nav-badge-properties" class="sb-badge" style="display:none"></span>
-    </button>
+    <!-- My Properties group -->
+    <div class="sb-group-hdr" onclick="toggleSbGroup('properties')">
+      <span>My Properties</span><span class="sb-chev" id="sbchev-properties">▾</span>
+    </div>
+    <div class="sb-group-body" id="sbgb-properties">
+      <button class="sb-item" data-page="properties">
+        <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 14V7L8 2l6 5v7"/><path d="M6 14v-4h4v4"/></svg>
+        <span class="sb-label">Properties</span>
+        <span id="nav-badge-properties" class="sb-badge" style="display:none"></span>
+      </button>
+      <button class="sb-item" data-page="tenants">
+        <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5"/></svg>
+        <span class="sb-label">Tenants</span>
+      </button>
+      <button class="sb-item" data-page="contractors">
+        <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.5 2.5a3 3 0 00-4 4L2 11a1.5 1.5 0 002 2l4.5-4.5a3 3 0 004-4l-2 2-1.5-1.5 2-2z"/></svg>
+        <span class="sb-label">Contractors</span>
+      </button>
+    </div>
 
-    <button class="sb-item" data-page="compliance">
-      <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5L2 4v4c0 3.5 2.5 6 6 7 3.5-1 6-3.5 6-7V4L8 1.5z"/><path d="M5.5 8l2 2 3-3"/></svg>
-      <span class="sb-label">Compliance</span>
-      <span id="nav-badge-compliance" class="sb-badge" style="display:none"></span>
-    </button>
+    <!-- Compliance group -->
+    <div class="sb-group-hdr" onclick="toggleSbGroup('compliance')">
+      <span>Compliance</span><span class="sb-chev" id="sbchev-compliance">▾</span>
+    </div>
+    <div class="sb-group-body" id="sbgb-compliance">
+      <button class="sb-item" data-page="compliance">
+        <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5L2 4v4c0 3.5 2.5 6 6 7 3.5-1 6-3.5 6-7V4L8 1.5z"/><path d="M5.5 8l2 2 3-3"/></svg>
+        <span class="sb-label">Compliance</span>
+        <span id="nav-badge-compliance" class="sb-badge" style="display:none"></span>
+      </button>
+    </div>
 
+    <!-- Maintenance standalone -->
     <button class="sb-item" data-page="maintenance">
       <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.5 2.5a3 3 0 00-4 4L2 11a1.5 1.5 0 002 2l4.5-4.5a3 3 0 004-4l-2 2-1.5-1.5 2-2z"/></svg>
       <span class="sb-label">Maintenance</span>
       <span id="nav-badge-maintenance" class="sb-badge" style="display:none"></span>
     </button>
 
-    <button class="sb-item" data-page="financials">
-      <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12V4l4 3 3-4 3 3 2-2v8H2z"/></svg>
-      <span class="sb-label">Finance</span>
-    </button>
+    <!-- Finance & Tax group -->
+    <div class="sb-group-hdr" onclick="toggleSbGroup('finance')">
+      <span>Finance &amp; Tax</span><span class="sb-chev" id="sbchev-finance">▾</span>
+    </div>
+    <div class="sb-group-body" id="sbgb-finance">
+      <button class="sb-item" data-page="financials">
+        <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12V4l4 3 3-4 3 3 2-2v8H2z"/></svg>
+        <span class="sb-label">Finance</span>
+      </button>
+      <button class="sb-item" data-page="mtd">
+        <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="3" width="13" height="10" rx="1.5"/><path d="M5 7h6M5 9.5h4"/><path d="M11.5 1.5v3M4.5 1.5v3"/></svg>
+        <span class="sb-label">MTD Tax</span>
+      </button>
+    </div>
 
-    <button class="sb-item" data-page="mtd">
-      <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="3" width="13" height="10" rx="1.5"/><path d="M5 7h6M5 9.5h4"/><path d="M11.5 1.5v3M4.5 1.5v3"/></svg>
-      <span class="sb-label">MTD Tax</span>
-    </button>
-
-    <button class="sb-item" data-page="templates">
-      <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="1" width="9" height="12" rx="1.5"/><path d="M5 4h5M5 7h5M5 10h3"/><path d="M11 9l3 3-1.5 1.5L9 10.5"/></svg>
-      <span class="sb-label">Documents</span>
-    </button>
-
-    <button class="sb-item" data-page="contractors">
-      <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.5 2.5a3 3 0 00-4 4L2 11a1.5 1.5 0 002 2l4.5-4.5a3 3 0 004-4l-2 2-1.5-1.5 2-2z"/></svg>
-      <span class="sb-label">Contractors</span>
-    </button>
+    <!-- Documents group -->
+    <div class="sb-group-hdr" onclick="toggleSbGroup('docs')">
+      <span>Documents</span><span class="sb-chev" id="sbchev-docs">▾</span>
+    </div>
+    <div class="sb-group-body" id="sbgb-docs">
+      <button class="sb-item" data-page="templates">
+        <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="1" width="9" height="12" rx="1.5"/><path d="M5 4h5M5 7h5M5 10h3"/><path d="M11 9l3 3-1.5 1.5L9 10.5"/></svg>
+        <span class="sb-label">Templates</span>
+      </button>
+      <button class="sb-item" data-page="doclibrary">
+        <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2h7l3 3v9H3z"/><path d="M10 2v3h3"/><path d="M6 7h5M6 9.5h5M6 12h3"/></svg>
+        <span class="sb-label">Document Library</span>
+      </button>
+    </div>
 
     <div class="sb-divider"></div>
-    <div class="sb-section">AI</div>
 
     <button class="sb-item" data-page="assistant">
       <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5c3.5 0 6 2 6 4.5 0 1.5-1 2.8-2.5 3.5L13 12l-3-1.5c-.6.1-1.3.2-2 .2-3.5 0-6-2-6-4.5S4.5 1.5 8 1.5z"/><path d="M5.5 6h5M5.5 8.5h3"/></svg>
@@ -786,6 +820,7 @@ async function initApp() {
 
   try { await loadData(); } catch(e) { console.error('loadData error:', e); }
   updateNavBadges();
+  initSbGroups();
   try {
     nav('dashboard');
   } catch(err) {
@@ -4010,7 +4045,7 @@ function pgCompliance(){
 
   // Property breakdown — 3 collapsible groups per property
   const _pgGD = ['Gas Safety Certificate','EICR (Electrical Installation)','EPC (Energy Performance)','Smoke Alarm Test Record','CO Alarm Check Record','Legionella Risk Assessment','Fire Risk Assessment','Asbestos Survey','PAT Testing Certificate','HMO Licence','Selective Licence','Planning Permission / Article 4','Buildings Insurance Schedule','Contents Insurance Schedule','Rent Guarantee Insurance'];
-  const _pgGN = ['Deposit Protection Certificate','Right to Rent Record','Section 48 Notice (Landlord Address)'];
+  const _pgGN = ['RRA Information Sheet 2026','Deposit Protection Certificate','Prescribed Information (Deposit)','Right to Rent Record','Section 48 Notice (Landlord Address)','Section 13 Rent Increase Notice','Pet Policy / Addendum'];
   const _pgGS = ['How to Rent Guide','Written Statement of Terms','Inventory / Schedule of Condition'];
 
   const _pgGetSt = (pc, label) => {
@@ -4074,7 +4109,7 @@ function pgCompliance(){
         <div style="display:flex;align-items:center;gap:4px"><h2>${icon} ${title}</h2>${hdrBadge}</div>
         <div style="display:flex;align-items:center;gap:8px">${addBtn||''}<span class="cg-chev" style="font-size:13px;color:var(--muted)">${expanded?'▾':'▸'}</span></div>
       </div>
-      <div id="cg-${gid}" style="${expanded?'':'display:none'}"
+      <div id="cg-${gid}" style="${expanded?'':'display:none'}">
         <div style="padding:12px 18px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">${rows}</div></div>
       </div>
     </div>`;
@@ -5270,6 +5305,7 @@ const PAGES={
   templates:()=>pgTemplates(),
   contractors:()=>pgContractors(),
   mtd:()=>pgMTD(),
+  doclibrary:()=>pgDocLibrary(),
 };
 
 // ── FINANCE HELPERS ──
@@ -5560,6 +5596,74 @@ function getMTDProfile() {
 }
 function saveMTDProfile(obj) {
   localStorage.setItem('rsa_mtd_profile', JSON.stringify(obj));
+}
+
+function pgDocLibrary(){
+  const docs = D.certs.filter(c=>c.type&&c.type.startsWith('__DOC__:'));
+  const props = D.properties;
+  const propOpts = props.map(p=>`<option value="${p.id}">${p.address}</option>`).join('');
+  return `<div class="content">
+    <div class="ph"><h1>📁 Document Library</h1><p>Upload and store any landlord document — tenancy agreements, correspondence, licences, anything not in compliance checklists.</p></div>
+    <div class="panel" style="margin-bottom:18px">
+      <div class="ph2"><h2>Upload Document</h2></div>
+      <div style="padding:0 18px 18px;display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end">
+        <div class="fg"><label>Document Name</label><input type="text" id="dl-name" placeholder="e.g. Tenancy Agreement 2024" class="fi"></div>
+        <div class="fg"><label>Property</label><select id="dl-prop" class="fi"><option value="">All properties</option>${propOpts}</select></div>
+        <div class="fg"><label>File</label><input type="file" id="dl-file" accept=".pdf,.doc,.docx,.jpg,.png" class="fi"></div>
+        <button class="btn btn-navy" onclick="dlUpload()">Upload</button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph2"><h2>Stored Documents</h2><span style="font-size:12px;color:var(--muted)">${docs.length} document${docs.length!==1?'s':''}</span></div>
+      <div style="padding:0 18px 18px">
+        ${docs.length===0?`<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px">No documents uploaded yet. Use the form above to add your first document.</div>`
+        :docs.map(d=>{
+          const name=d.type.replace('__DOC__:','');
+          const prop=props.find(p=>String(p.id)===String(d.prop_id));
+          const date=d.expiry?new Date(d.expiry).toLocaleDateString('en-GB'):'—';
+          return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+            <span style="font-size:20px">📄</span>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:600;color:var(--txt)">${name}</div>
+              <div style="font-size:11px;color:var(--muted)">${prop?prop.address:'All properties'} · Uploaded ${date}</div>
+            </div>
+            ${d.engineer?`<a href="${d.engineer}" target="_blank" class="btn btn-sm">Download</a>`:''}
+            <button class="btn btn-sm" style="color:var(--red);border-color:var(--red)" onclick="dlDelete('${d.id}')">Delete</button>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+async function dlUpload(){
+  const name=document.getElementById('dl-name')?.value?.trim();
+  const propId=document.getElementById('dl-prop')?.value||null;
+  const fileEl=document.getElementById('dl-file');
+  const file=fileEl?.files?.[0];
+  if(!name){toast('Please enter a document name',true);return;}
+  if(!file){toast('Please select a file',true);return;}
+  toast('Uploading…');
+  const ext=file.name.split('.').pop();
+  const filename=`docs/${currentUser.id}_${Date.now()}.${ext}`;
+  const{error:upErr}=await sb.storage.from('esign-documents').upload(filename,file,{contentType:file.type});
+  if(upErr){toast('Upload failed: '+upErr.message,true);return;}
+  const{data:urlData}=sb.storage.from('esign-documents').getPublicUrl(filename);
+  const cert={prop_id:propId?parseInt(propId):null,type:'__DOC__:'+name,expiry:new Date().toISOString().split('T')[0],engineer:urlData.publicUrl,status:'Uploaded',has_file:true,served:false,user_id:currentUser.id};
+  const{data,error}=await sb.from('certificates').insert(cert).select().single();
+  if(error){toast('Save failed: '+error.message,true);return;}
+  D.certs.push(data);
+  toast('✓ Document uploaded');
+  nav('doclibrary');
+}
+
+async function dlDelete(id){
+  if(!confirm('Delete this document?'))return;
+  const{error}=await sb.from('certificates').delete().eq('id',id);
+  if(error){toast('Delete failed',true);return;}
+  D.certs=D.certs.filter(c=>c.id!==id);
+  toast('Document deleted');
+  nav('doclibrary');
 }
 
 function pgMTD() {
@@ -5869,13 +5973,29 @@ function mtdExportCSV() {
   toast('✓ CSV exported');
 }
 
+function toggleSbGroup(id){
+  const body=document.getElementById('sbgb-'+id);
+  const chev=document.getElementById('sbchev-'+id);
+  if(!body)return;
+  const open=body.style.maxHeight&&body.style.maxHeight!=='0px';
+  body.style.maxHeight=open?'0px':body.scrollHeight+'px';
+  if(chev)chev.classList.toggle('closed',open);
+}
+function initSbGroups(){
+  ['properties','compliance','finance','docs'].forEach(id=>{
+    const body=document.getElementById('sbgb-'+id);
+    if(body)body.style.maxHeight=body.scrollHeight+'px';
+  });
+}
+
 function nav(page, param){
   const pageMap = {
     'prop-detail': 'properties',
-    'tenants': 'properties',
+    'tenants': 'tenants',
     'rent': 'financials',
     'insurance': 'financials',
     'calendar': 'dashboard',
+    'doclibrary': 'doclibrary',
   };
   const activeTab = pageMap[page] || page;
   document.querySelectorAll('.sb-item[data-page]').forEach(el=>{
