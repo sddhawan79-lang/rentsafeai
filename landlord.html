@@ -3284,29 +3284,92 @@ function pgDashboard(){
 
 // ── PAGE: PROPERTIES ──
 function pgProperties(){
-  return`<div class="topbar"><span class="tb-title">Properties</span><div class="tb-right"><button class="btn btn-navy" onclick="moAddProp()">+ Add property</button></div></div>
-
-  <div class="content">
-    <div class="ph"><h1>Properties</h1><p>Manage your portfolio</p></div>
-    ${D.properties.length?`<div class="prop-grid">${D.properties.map(p=>{const t=D.tenants.find(x=>String(x.prop_id)===String(p.id));return`<div class="pc" style="cursor:pointer" onclick="nav('prop-detail','${p.id}')">
-        <div class="pc-head">
-          <div><div class="pc-addr">${p.address}</div><div class="pc-city">${p.city}, ${p.postcode}</div><div style="font-size:12px;color:var(--muted);margin-top:3px">${t?t.name:'No tenant'}</div></div>
-          <button style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px" onclick="event.stopPropagation()">⋯</button>
-        </div>
-        <div class="pc-info">
-          ${t?B('Active'):B('Vacant')}
-          ${p.beds?`<span class="pc-tag">${p.beds} bed</span>`:''}
-          ${p.type?`<span class="pc-tag">${p.type}</span>`:''}
-          ${t?`<span style="font-size:13px;font-weight:600;color:var(--txt);margin-left:auto">£${(p.rent||0).toLocaleString()}/mo</span>`:''}
-        </div>
-        <div class="pc-foot">
-          <button class="btn btn-sm" style="flex:1;background:var(--green);color:var(--navy);border-color:var(--green);font-weight:600" onclick="event.stopPropagation();moPropertySetup('${p.id}')">🚀 Setup</button>
-          <button class="btn btn-sm" style="flex:1" onclick="event.stopPropagation();nav('compliance')">Compliance</button>
-          <button class="btn btn-sm" style="flex:1" onclick="event.stopPropagation();nav('maintenance')">Maintenance</button>
-        </div>
-      </div>`}).join('')}</div>`:'<div class="empty"><div class="empty-ic">🏠</div><div class="empty-t">No properties yet</div><div class="empty-s">Add your first property to get started</div><div style="margin-top:16px"><button class="btn btn-navy" onclick="moAddProp()">+ Add property</button></div></div>'}
-  </div>`;
+  const allProps=D.properties;
+  const q=(_propSearch||'').toLowerCase().trim();
+  const filtered=q?allProps.filter(p=>{
+    const t=D.tenants.find(x=>String(x.prop_id)===String(p.id)&&x.status==='Active');
+    return (p.address||'').toLowerCase().includes(q)||(p.city||'').toLowerCase().includes(q)||(p.postcode||'').toLowerCase().includes(q)||(t&&(t.name||'').toLowerCase().includes(q));
+  }):allProps;
+  const totalRent=allProps.reduce((s,p)=>s+(p.rent||0),0);
+  const occupied=allProps.filter(p=>D.tenants.some(t=>String(t.prop_id)===String(p.id)&&t.status==='Active')).length;
+  const occupancyPct=allProps.length?Math.round(occupied/allProps.length*100):0;
+  const occColor=occupancyPct===100?'#00C896':occupancyPct>=50?'#D97706':'#E53E3E';
+  const attention=[],active=[],archived=[];
+  filtered.forEach(p=>{
+    if(p.status==='Archived'){archived.push(p);return;}
+    const hasTenant=D.tenants.some(t=>String(t.prop_id)===String(p.id)&&t.status==='Active');
+    const rag=calcRAG(p.id);
+    if(!hasTenant||rag.rag==='red')attention.push(p); else active.push(p);
+  });
+  function propRow(p){
+    const t=D.tenants.find(x=>String(x.prop_id)===String(p.id)&&x.status==='Active');
+    const rag=calcRAG(p.id);
+    const ragCol=rag.rag==='green'?'#00C896':rag.rag==='amber'?'#D97706':'#E53E3E';
+    const openIssues=D.maintenance.filter(m=>String(m.prop_id)===String(p.id)&&m.status!=='Resolved').length;
+    const awaab=D.maintenance.some(m=>String(m.prop_id)===String(p.id)&&m.awaab&&m.status!=='Resolved');
+    return '<div style="display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s" onclick="nav(\'prop-detail\',\''+p.id+'\')" onmouseenter="this.style.background=\'var(--off)\'" onmouseleave="this.style.background=\'transparent\'">'
+      +'<div style="width:9px;height:9px;border-radius:50%;background:'+ragCol+';flex-shrink:0" title="'+rag.label+'"></div>'
+      +'<div style="flex:2;min-width:0">'
+        +'<div style="font-size:13px;font-weight:600;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+p.address+'</div>'
+        +'<div style="font-size:11px;color:var(--muted)">'+(p.city||'')+(p.postcode?'· '+p.postcode:'')+'</div>'
+      +'</div>'
+      +'<div style="flex:1.5;min-width:0">'
+        +(t?'<div style="font-size:12px;font-weight:500;color:var(--txt)">'+t.name+'</div><div style="font-size:11px;color:var(--muted)">Active tenant</div>'
+           :'<span style="font-size:11px;font-weight:600;color:#E53E3E;background:rgba(229,62,62,0.08);padding:2px 8px;border-radius:100px">Vacant</span>')
+      +'</div>'
+      +'<div style="flex:1;text-align:right;font-size:13px;font-weight:600;color:var(--green-dark)">'+(p.rent?'£'+(p.rent).toLocaleString()+'/mo':'&#8212;')+'</div>'
+      +'<div style="flex:1;display:flex;gap:5px;flex-wrap:wrap;justify-content:center">'
+        +(p.beds?'<span style="font-size:10px;color:var(--muted);background:var(--off);border:1px solid var(--border);padding:1px 7px;border-radius:100px">'+p.beds+' bed</span>':'')
+        +(p.type?'<span style="font-size:10px;color:var(--muted);background:var(--off);border:1px solid var(--border);padding:1px 7px;border-radius:100px">'+p.type+'</span>':'')
+      +'</div>'
+      +'<div style="flex:0.7;text-align:center">'
+        +(openIssues>0?'<span style="font-size:11px;font-weight:600;color:'+(awaab?'#E53E3E':'#D97706')+'">'+(awaab?'⚠ ':'')+openIssues+' issue'+(openIssues!==1?'s':'')+' open</span>'
+                     :'<span style="font-size:11px;color:var(--muted)">&#8212;</span>')
+      +'</div>'
+      +'<div style="display:flex;gap:6px;flex-shrink:0" onclick="event.stopPropagation()">'
+        +'<button class="btn btn-sm" style="background:var(--green);color:var(--navy);border-color:var(--green);font-weight:600;font-size:11px" onclick="moPropertySetup(\''+p.id+'\')">🚀 Setup</button>'
+        +'<button class="btn btn-sm" style="font-size:13px;padding:4px 10px" onclick="nav(\'prop-detail\',\''+p.id+'\')">&#8250;</button>'
+      +'</div>'
+    +'</div>';
+  }
+  function groupBlock(id,icon,label,items,defaultOpen){
+    if(!items.length)return '';
+    return '<div class="panel" style="margin-bottom:12px;overflow:hidden">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer;background:var(--off);user-select:none"'
+      +' onclick="var b=document.getElementById(\'pg-body-'+id+'\');var a=document.getElementById(\'pg-arr-'+id+'\');var open=b.style.display!==\'none\';b.style.display=open?\'none\':\'block\';a.style.transform=open?\'rotate(-90deg)\':\'rotate(0deg)\'">
+'
+      +'<div style="display:flex;align-items:center;gap:10px">'
+        +'<span style="font-size:14px">'+icon+'</span>'
+        +'<span style="font-size:13px;font-weight:700;color:var(--txt)">'+label+'</span>'
+        +'<span style="font-size:11px;font-weight:700;background:var(--navy);color:#fff;padding:1px 8px;border-radius:100px">'+items.length+'</span>'
+      +'</div>'
+      +'<span id="pg-arr-'+id+'" style="color:var(--muted);font-size:12px;transition:transform .2s;transform:'+(defaultOpen?'rotate(0deg)':'rotate(-90deg)')+'">&#9662;</span>'
+      +'</div>'
+      +'<div id="pg-body-'+id+'" style="display:'+(defaultOpen?'block':'none')+'">'+items.map(propRow).join('')+'</div>'
+    +'</div>';
+  }
+  if(!allProps.length)return '<div class="topbar"><span class="tb-title">Properties</span><div class="tb-right"><button class="btn btn-navy" onclick="moAddProp()">+ Add property</button></div></div><div class="content"><div class="empty"><div class="empty-ic">🏠</div><div class="empty-t">No properties yet</div><div class="empty-s">Add your first property to get started</div><div style="margin-top:16px"><button class="btn btn-navy" onclick="moAddProp()">+ Add property</button></div></div></div>';
+  const noResults=filtered.length===0&&q;
+  const searchBar='<div style="position:relative">'
+    +'<input id="prop-search" type="text" placeholder="Search address, tenant…" value="'+(_propSearch||'').replace(/"/g,'&quot;')+'" oninput="_propSearch=this.value;nav(\'properties\')" style="padding:7px 12px 7px 32px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:var(--font);color:var(--txt);background:var(--white);width:220px;outline:none" onfocus="this.style.borderColor=\'var(--navy)\'" onblur="this.style.borderColor=\'var(--border)\'">'
+    +'<span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;pointer-events:none">🔍</span>'
+    +(q?'<button onclick="_propSearch=\'\';nav(\'properties\')" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px;padding:0">✕</button>':'')
+  +'</div>';
+  return '<div class="topbar"><span class="tb-title">Properties</span><div class="tb-right"><button class="btn btn-navy" onclick="moAddProp()">+ Add property</button></div></div>'
+  +'<div class="content">'
+  +'<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px">'
+    +'<div>'
+      +'<h1 style="font-size:20px;font-weight:700;color:var(--navy);margin:0 0 4px">Properties</h1>'
+      +'<p style="font-size:12px;color:var(--muted);margin:0">'+allProps.length+' propert'+(allProps.length!==1?'ies':'y')+' · <span style="color:'+occColor+';font-weight:600">'+occupancyPct+'% occupied</span> · <span style="color:var(--green-dark);font-weight:600">£'+totalRent.toLocaleString()+'/mo</span></p>'
+    +'</div>'
+    +searchBar
+  +'</div>'
+  +(noResults
+    ?'<div class="empty"><div class="empty-ic">🔍</div><div class="empty-t">No results for &ldquo;'+q+'&rdquo;</div><div class="empty-s">Try a different address, city or tenant name</div></div>'
+    :groupBlock('attention','⚠️','Needs attention',attention,true)+groupBlock('active','✅','Active',active,true)+groupBlock('archived','📦','Archived',archived,false))
+  +'</div>';
 }
+
 
 // ── PAGE: PROPERTY DETAIL ──
 
@@ -5335,6 +5398,7 @@ function pgRent(){
 let _mview = 'kanban';
 let _mfilterProp = '';
 let _mfilterPri = '';
+let _propSearch = '';
 
 function pgMaintenance(){
   const stages=['Reported','Assigned','In Progress','Completed','Closed'];
