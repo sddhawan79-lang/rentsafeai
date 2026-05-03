@@ -4066,13 +4066,15 @@ function pgCompliance(){
         </div>
       </div>`;
     }).join('');
-    const hdrBadge = overdueCount ? `<span style="font-size:10px;font-weight:700;color:#fff;background:#E53E3E;padding:2px 7px;border-radius:100px;margin-left:8px">${overdueCount} overdue</span>` : '';
+    const hdrBadge = overdueCount
+      ? `<span style="font-size:10px;font-weight:700;color:#fff;background:#E53E3E;padding:2px 7px;border-radius:100px;margin-left:8px">${overdueCount} overdue</span>`
+      : `<span style="font-size:10px;font-weight:700;color:#fff;background:#00A87A;padding:2px 7px;border-radius:100px;margin-left:8px">All good</span>`;
     return `<div class="panel" style="margin-bottom:8px">
       <div class="ph2" style="cursor:pointer;user-select:none" onclick="(function(el){var b=document.getElementById('cg-${gid}');var open=b.style.display!=='none';b.style.display=open?'none':'block';el.querySelector('.cg-chev').textContent=open?'▸':'▾';})(this)">
         <div style="display:flex;align-items:center;gap:4px"><h2>${icon} ${title}</h2>${hdrBadge}</div>
-        <div style="display:flex;align-items:center;gap:8px">${addBtn||''}<span class="cg-chev" style="font-size:13px;color:var(--muted)">▾</span></div>
+        <div style="display:flex;align-items:center;gap:8px">${addBtn||''}<span class="cg-chev" style="font-size:13px;color:var(--muted)">▸</span></div>
       </div>
-      <div id="cg-${gid}">
+      <div id="cg-${gid}" style="display:none">
         <div style="padding:12px 18px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">${rows}</div></div>
       </div>
     </div>`;
@@ -4082,9 +4084,8 @@ function pgCompliance(){
     const pc = CF(p.id);
     return `<div style="margin-bottom:24px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <div style="cursor:pointer" onclick="nav('prop-detail','${p.id}');setTimeout(function(){pdSetTab('${p.id}','compliance')},100)">
+        <div>
           <div style="font-size:14px;font-weight:700;color:var(--txt)">${p.address}${p.city?', '+p.city:''}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:1px">Click to manage</div>
         </div>
         <button class="btn btn-sm" onclick="moCert('${p.id}')">+ Add cert</button>
       </div>
