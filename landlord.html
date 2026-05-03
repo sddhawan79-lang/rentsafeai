@@ -4008,21 +4008,91 @@ function pgCompliance(){
     <div style="font-size:12px;color:var(--muted)">No certificates expiring in the next 60 days</div>
   </div>`;
 
-  // Property cert grid cards
-  const propCards = D.properties.map(p => `
-    <div class="panel" style="margin-bottom:12px">
-      <div class="ph2" style="cursor:pointer" onclick="nav('prop-detail','${p.id}');setTimeout(function(){pdSetTab('${p.id}','compliance')},100)">
-        <div>
-          <h2 style="margin:0;font-size:14px">${p.address}, ${p.city}</h2>
-          <p style="margin:2px 0 0;font-size:11px">Click to manage certificates</p>
+  // Property breakdown — 3 collapsible groups per property
+  const _pgGD = ['Gas Safety Certificate','EICR (Electrical Installation)','EPC (Energy Performance)','Smoke Alarm Test Record','CO Alarm Check Record','Legionella Risk Assessment','Fire Risk Assessment','Asbestos Survey','PAT Testing Certificate','HMO Licence','Selective Licence','Planning Permission / Article 4','Buildings Insurance Schedule','Contents Insurance Schedule','Rent Guarantee Insurance'];
+  const _pgGN = ['Deposit Protection Certificate','Right to Rent Record','Section 48 Notice (Landlord Address)'];
+  const _pgGS = ['How to Rent Guide','Written Statement of Terms','Inventory / Schedule of Condition'];
+
+  const _pgGetSt = (pc, label) => {
+    const lo = label.toLowerCase();
+    const cert = pc.find(c => {
+      const t = (c.type||'').toLowerCase();
+      if (lo.includes('gas safety')) return t.includes('gas');
+      if (lo.includes('eicr')||lo.includes('electrical installation')) return t.includes('eicr')||t.includes('electrical installation');
+      if (lo.includes('epc')||lo.includes('energy performance')) return t.includes('epc')||t.includes('energy performance');
+      if (lo.includes('how to rent')) return t.includes('how to rent');
+      if (lo.includes('deposit protection')) return t.includes('deposit');
+      if (lo.includes('written statement')) return t.includes('written statement')||t.includes('tenancy agreement');
+      if (lo.includes('right to rent')) return t.includes('right to rent');
+      if (lo.includes('smoke alarm')) return t.includes('smoke alarm');
+      if (lo.includes('co alarm')) return t.includes('co alarm');
+      if (lo.includes('legionella')) return t.includes('legionella');
+      if (lo.includes('fire risk')) return t.includes('fire risk');
+      if (lo.includes('asbestos')) return t.includes('asbestos');
+      if (lo.includes('pat testing')) return t.includes('pat');
+      if (lo.includes('hmo licence')) return t.includes('hmo');
+      if (lo.includes('selective licence')) return t.includes('selective');
+      if (lo.includes('planning permission')) return t.includes('planning')||t.includes('article 4');
+      if (lo.includes('inventory')) return t.includes('inventory');
+      if (lo.includes('buildings insurance')) return t.includes('buildings insurance');
+      if (lo.includes('contents insurance')) return t.includes('contents insurance');
+      if (lo.includes('rent guarantee')) return t.includes('rent guarantee');
+      if (lo.includes('section 48')) return t.includes('section 48')||t.includes('s48');
+      return t.includes(lo.substring(0,8));
+    });
+    if (!cert) return { lbl:'MISSING', bg:'#E4EAF1', col:'#7A8FA6', bdr:'transparent', days:null, overdue:true };
+    if (cert.expiry) {
+      const days = Math.round((new Date(cert.expiry)-today)/864e5);
+      if (days < 0)   return { lbl:'EXPIRED',      bg:'rgba(229,62,62,0.1)',   col:'#E53E3E', bdr:'rgba(229,62,62,0.25)',  days, overdue:true  };
+      if (days <= 14) return { lbl:'URGENT',        bg:'rgba(217,119,6,0.1)',   col:'#D97706', bdr:'rgba(217,119,6,0.25)',  days, overdue:false };
+      if (days <= 60) return { lbl:'EXPIRING SOON', bg:'rgba(59,111,232,0.08)', col:'#3B6FE8', bdr:'rgba(59,111,232,0.2)', days, overdue:false };
+      return               { lbl:'VALID',           bg:'rgba(0,200,150,0.08)',  col:'#00A87A', bdr:'rgba(0,200,150,0.2)',  days, overdue:false };
+    }
+    return { lbl:'NO DATE SET', bg:'rgba(229,62,62,0.07)', col:'#E53E3E', bdr:'rgba(229,62,62,0.2)', days:null, overdue:true };
+  };
+
+  const _pgGroup = (gid, pc, icon, title, types, addBtn) => {
+    const items = types.map(label => ({ label, st: _pgGetSt(pc, label) }));
+    items.sort((a,b) => (b.st.overdue?1:0)-(a.st.overdue?1:0));
+    const overdueCount = items.filter(i=>i.st.overdue).length;
+    const rows = items.map(({label,st}) => {
+      const dayStr = st.days!==null ? (st.days<0?`${Math.abs(st.days)}d overdue`:`${st.days}d left`) : '';
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 11px;background:${st.bg};border:1px solid ${st.bdr};border-radius:7px;gap:8px">
+        <span style="font-size:12px;font-weight:500;color:var(--txt);flex:1;min-width:0">${label}</span>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+          ${st.overdue?`<span style="font-size:10px;font-weight:700;color:#fff;background:#E53E3E;padding:2px 7px;border-radius:100px">Action required</span>`:''}
+          ${dayStr?`<span style="font-size:10px;color:${st.col}">${dayStr}</span>`:''}
+          <span style="font-size:10px;font-weight:700;color:${st.col};letter-spacing:.3px;white-space:nowrap">${st.lbl}</span>
         </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <button class="btn btn-sm" onclick="event.stopPropagation();moCert('${p.id}')">+ Add cert</button>
-          <span style="color:var(--muted);font-size:18px;line-height:1">→</span>
-        </div>
+      </div>`;
+    }).join('');
+    const hdrBadge = overdueCount ? `<span style="font-size:10px;font-weight:700;color:#fff;background:#E53E3E;padding:2px 7px;border-radius:100px;margin-left:8px">${overdueCount} overdue</span>` : '';
+    return `<div class="panel" style="margin-bottom:8px">
+      <div class="ph2" style="cursor:pointer;user-select:none" onclick="(function(el){var b=document.getElementById('cg-${gid}');var open=b.style.display!=='none';b.style.display=open?'none':'block';el.querySelector('.cg-chev').textContent=open?'▸':'▾';})(this)">
+        <div style="display:flex;align-items:center;gap:4px"><h2>${icon} ${title}</h2>${hdrBadge}</div>
+        <div style="display:flex;align-items:center;gap:8px">${addBtn||''}<span class="cg-chev" style="font-size:13px;color:var(--muted)">▾</span></div>
       </div>
-      <div style="padding:12px 18px">${buildCertStatusGrid(p.id)}</div>
-    </div>`).join('');
+      <div id="cg-${gid}">
+        <div style="padding:12px 18px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">${rows}</div></div>
+      </div>
+    </div>`;
+  };
+
+  const propCards = D.properties.map(p => {
+    const pc = CF(p.id);
+    return `<div style="margin-bottom:24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="cursor:pointer" onclick="nav('prop-detail','${p.id}');setTimeout(function(){pdSetTab('${p.id}','compliance')},100)">
+          <div style="font-size:14px;font-weight:700;color:var(--txt)">${p.address}${p.city?', '+p.city:''}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:1px">Click to manage</div>
+        </div>
+        <button class="btn btn-sm" onclick="moCert('${p.id}')">+ Add cert</button>
+      </div>
+      ${_pgGroup('pg-'+p.id+'-docs', pc, '📄', 'Documents & Certificates', _pgGD, `<button class="btn btn-sm btn-navy" onclick="event.stopPropagation();moCert('${p.id}')">+ Add</button>`)}
+      ${_pgGroup('pg-'+p.id+'-notices', pc, '📋', 'Tenancy Notices', _pgGN, '')}
+      ${_pgGroup('pg-'+p.id+'-starter', pc, '🚀', 'Starter Kit', _pgGS, '')}
+    </div>`;
+  }).join('');
 
   return `<div class="topbar"><span class="tb-title">Compliance</span><div class="tb-right">
     <button class="btn btn-navy" onclick="moBulkScan()">✦ Bulk scan</button>
