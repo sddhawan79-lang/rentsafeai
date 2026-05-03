@@ -3663,6 +3663,77 @@ function pdTabContent(pid, tab) {
     const rag = calcRAG(pid);
     const ragCol = rag.rag==='red'?'#E53E3E':rag.rag==='amber'?'#D97706':'#00C896';
     const ragBg = rag.rag==='red'?'#fff5f5':rag.rag==='amber'?'#fffbeb':'#f0fdf9';
+    const _cgToday = new Date(); _cgToday.setHours(0,0,0,0);
+
+    const _cgGetSt = label => {
+      const lo = label.toLowerCase();
+      const cert = pc.find(c => {
+        const t = (c.type||'').toLowerCase();
+        if (lo.includes('gas safety')) return t.includes('gas');
+        if (lo.includes('eicr')||lo.includes('electrical installation')) return t.includes('eicr')||t.includes('electrical installation');
+        if (lo.includes('epc')||lo.includes('energy performance')) return t.includes('epc')||t.includes('energy performance');
+        if (lo.includes('how to rent')) return t.includes('how to rent');
+        if (lo.includes('deposit protection')) return t.includes('deposit');
+        if (lo.includes('written statement')) return t.includes('written statement')||t.includes('tenancy agreement');
+        if (lo.includes('right to rent')) return t.includes('right to rent');
+        if (lo.includes('smoke alarm')) return t.includes('smoke alarm');
+        if (lo.includes('co alarm')) return t.includes('co alarm');
+        if (lo.includes('legionella')) return t.includes('legionella');
+        if (lo.includes('fire risk')) return t.includes('fire risk');
+        if (lo.includes('asbestos')) return t.includes('asbestos');
+        if (lo.includes('pat testing')) return t.includes('pat');
+        if (lo.includes('hmo licence')) return t.includes('hmo');
+        if (lo.includes('selective licence')) return t.includes('selective');
+        if (lo.includes('planning permission')) return t.includes('planning')||t.includes('article 4');
+        if (lo.includes('inventory')) return t.includes('inventory');
+        if (lo.includes('buildings insurance')) return t.includes('buildings insurance');
+        if (lo.includes('contents insurance')) return t.includes('contents insurance');
+        if (lo.includes('rent guarantee')) return t.includes('rent guarantee');
+        if (lo.includes('section 48')) return t.includes('section 48')||t.includes('s48');
+        return t.includes(lo.substring(0,8));
+      });
+      if (!cert) return { lbl:'MISSING', bg:'#E4EAF1', col:'#7A8FA6', bdr:'transparent', days:null, overdue:true };
+      if (cert.expiry) {
+        const days = Math.round((new Date(cert.expiry)-_cgToday)/864e5);
+        if (days < 0)   return { lbl:'EXPIRED',      bg:'rgba(229,62,62,0.1)',   col:'#E53E3E', bdr:'rgba(229,62,62,0.25)',  days, overdue:true  };
+        if (days <= 14) return { lbl:'URGENT',        bg:'rgba(217,119,6,0.1)',   col:'#D97706', bdr:'rgba(217,119,6,0.25)',  days, overdue:false };
+        if (days <= 60) return { lbl:'EXPIRING SOON', bg:'rgba(59,111,232,0.08)', col:'#3B6FE8', bdr:'rgba(59,111,232,0.2)', days, overdue:false };
+        return               { lbl:'VALID',           bg:'rgba(0,200,150,0.08)',  col:'#00A87A', bdr:'rgba(0,200,150,0.2)',  days, overdue:false };
+      }
+      return { lbl:'NO DATE SET', bg:'rgba(229,62,62,0.07)', col:'#E53E3E', bdr:'rgba(229,62,62,0.2)', days:null, overdue:true };
+    };
+
+    const _cgGroup = (gid, icon, title, types, addBtn) => {
+      const items = types.map(label => ({ label, st: _cgGetSt(label) }));
+      items.sort((a,b) => (b.st.overdue?1:0)-(a.st.overdue?1:0));
+      const overdueCount = items.filter(i=>i.st.overdue).length;
+      const rows = items.map(({label,st}) => {
+        const dayStr = st.days!==null ? (st.days<0?`${Math.abs(st.days)}d overdue`:`${st.days}d left`) : '';
+        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 11px;background:${st.bg};border:1px solid ${st.bdr};border-radius:7px;gap:8px">
+          <span style="font-size:12px;font-weight:500;color:var(--txt);flex:1;min-width:0">${label}</span>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+            ${st.overdue?`<span style="font-size:10px;font-weight:700;color:#fff;background:#E53E3E;padding:2px 7px;border-radius:100px">Action required</span>`:''}
+            ${dayStr?`<span style="font-size:10px;color:${st.col}">${dayStr}</span>`:''}
+            <span style="font-size:10px;font-weight:700;color:${st.col};letter-spacing:.3px;white-space:nowrap">${st.lbl}</span>
+          </div>
+        </div>`;
+      }).join('');
+      const hdrBadge = overdueCount ? `<span style="font-size:10px;font-weight:700;color:#fff;background:#E53E3E;padding:2px 7px;border-radius:100px;margin-left:8px">${overdueCount} overdue</span>` : '';
+      return `<div class="panel" style="margin-bottom:16px">
+        <div class="ph2" style="cursor:pointer;user-select:none" onclick="(function(el){var b=document.getElementById('cg-${gid}');var open=b.style.display!=='none';b.style.display=open?'none':'block';el.querySelector('.cg-chev').textContent=open?'▸':'▾';})(this)">
+          <div style="display:flex;align-items:center;gap:4px"><h2>${icon} ${title}</h2>${hdrBadge}</div>
+          <div style="display:flex;align-items:center;gap:8px">${addBtn||''}<span class="cg-chev" style="font-size:13px;color:var(--muted)">▾</span></div>
+        </div>
+        <div id="cg-${gid}">
+          <div style="padding:12px 18px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">${rows}</div></div>
+        </div>
+      </div>`;
+    };
+
+    const _GD = ['Gas Safety Certificate','EICR (Electrical Installation)','EPC (Energy Performance)','Smoke Alarm Test Record','CO Alarm Check Record','Legionella Risk Assessment','Fire Risk Assessment','Asbestos Survey','PAT Testing Certificate','HMO Licence','Selective Licence','Planning Permission / Article 4','Buildings Insurance Schedule','Contents Insurance Schedule','Rent Guarantee Insurance'];
+    const _GN = ['Deposit Protection Certificate','Right to Rent Record','Section 48 Notice (Landlord Address)'];
+    const _GS = ['How to Rent Guide','Written Statement of Terms','Inventory / Schedule of Condition'];
+
     return `
       <div style="background:${ragBg};border:1px solid ${ragCol};border-radius:10px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:14px">
         <div style="font-size:26px">${rag.rag==='red'?'⚠️':rag.rag==='amber'?'⚡':'✅'}</div>
@@ -3676,26 +3747,9 @@ function pdTabContent(pid, tab) {
         </div>
       </div>
 
-      <div class="panel" style="margin-bottom:16px">
-        <div class="ph2"><div><h2>📄 Documents & certificates</h2></div><button class="btn btn-sm btn-navy" onclick="moCert('${pid}')">+ Add certificate</button></div>
-        ${pc.length
-          ? `<div class="tw"><table><thead><tr><th>Document</th><th>Status</th><th>Expiry</th><th>Engineer</th><th>Served</th><th>File</th></tr></thead>
-              <tbody>${pc.map(c=>`<tr>
-                <td class="td-bold">${c.type}</td>
-                <td>${B(c.status)}</td>
-                <td>${FMT(c.expiry)}</td>
-                <td style="font-size:12px;color:var(--muted)">${c.engineer||'—'}</td>
-                <td>${c.served?`<button onclick="markServed(${c.id})" style="background:var(--green-bg);border:1px solid var(--green);color:var(--green-dark);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font)">✓ Served</button>`:`<button onclick="markServed(${c.id})" style="background:var(--off);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;font-family:var(--font)">Mark served</button>`}</td>
-                <td>${(c.file||c.has_file)?'<span class="badge b-green">✓</span>':`<label style="cursor:pointer;font-size:11px;font-weight:600;color:var(--blue);padding:3px 8px;border:1px solid var(--blue);border-radius:6px;background:var(--blue-bg)">Upload<input type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="uploadScanCert(${c.id},this)"></label>`}</td>
-              </tr>`).join('')}</tbody>
-            </table></div>`
-          : `<div style="padding:14px 18px;font-size:13px;color:var(--muted)">No certificates yet — <a href="#" onclick="moCert('${pid}')" style="color:var(--navy);font-weight:500">add one</a></div>`}
-      </div>
-
-      <div class="panel" style="margin-bottom:16px">
-        <div class="ph2"><div><h2>📊 Certificate status</h2><p>All 6 required certificates at a glance</p></div></div>
-        <div style="padding:12px 18px">${buildCertStatusGrid(pid)}</div>
-      </div>
+      ${_cgGroup(`${pid}-docs`,'📄','Documents & Certificates',_GD,`<button class="btn btn-sm btn-navy" onclick="event.stopPropagation();moCert('${pid}')">+ Add certificate</button>`)}
+      ${_cgGroup(`${pid}-notices`,'📋','Tenancy Notices',_GN,'')}
+      ${_cgGroup(`${pid}-starter`,'🚀','Starter Kit',_GS,'')}
 
       <div class="panel">
         <div class="ph2"><div><h2>🔍 Inspections</h2></div><button class="btn btn-sm" onclick="moInspection('${pid}')">+ Log inspection</button></div>
