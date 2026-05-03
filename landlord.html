@@ -3283,6 +3283,14 @@ function pgDashboard(){
 }
 
 // ── PAGE: PROPERTIES ──
+function pgToggleGrp(id){
+  var b=document.getElementById('pg-body-'+id);
+  var a=document.getElementById('pg-arr-'+id);
+  if(!b)return;
+  var open=b.style.display!=='none';
+  b.style.display=open?'none':'block';
+  if(a)a.style.transform=open?'rotate(-90deg)':'rotate(0deg)';
+}
 function pgProperties(){
   const allProps=D.properties;
   const q=(_propSearch||'').toLowerCase().trim();
@@ -3335,8 +3343,7 @@ function pgProperties(){
   function groupBlock(id,icon,label,items,defaultOpen){
     if(!items.length)return '';
     return '<div class="panel" style="margin-bottom:12px;overflow:hidden">'
-      +'<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer;background:var(--off);user-select:none"'
-      +' onclick="var b=document.getElementById(\'pg-body-'+id+'\');var a=document.getElementById(\'pg-arr-'+id+'\');var open=b.style.display!==\'none\';b.style.display=open?\'none\':\'block\';a.style.transform=open?\'rotate(-90deg)\':\'rotate(0deg)\'">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer;background:var(--off);user-select:none" data-gid="'+id+'" onclick="pgToggleGrp(this.dataset.gid)">'
       +'<div style="display:flex;align-items:center;gap:10px">'
         +'<span style="font-size:14px">'+icon+'</span>'
         +'<span style="font-size:13px;font-weight:700;color:var(--txt)">'+label+'</span>'
