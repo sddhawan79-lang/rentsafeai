@@ -3170,6 +3170,7 @@ function pgDashboard(){
     <button class="btn" onclick="moIssue()">Report issue</button>
   </div></div>
   <div class="content">
+    <div id="setup-banner-slot"></div>
     <div class="ph"><h1>Dashboard</h1><p>${acts.length} urgent, ${acts.filter(a=>a.b==='amber').length} due soon</p></div>
 
     ${(function(){
@@ -6709,6 +6710,102 @@ function initSbGroups(){
   });
 }
 
+// ── SETUP BANNER (async inject) ──
+async function loadSetupBanner() {
+  const slot = document.getElementById('setup-banner-slot');
+  if (!slot) return;
+
+  const ITEMS = getPropCheckItems('onboard');
+  const props = D.properties;
+  if (!props.length) return;
+
+  // Fetch all onboarding checklist progress in one query
+  let rows = [];
+  try {
+    const { data } = await sb.from('checklist_progress')
+      .select('prop_id, data')
+      .in('prop_id', props.map(p => String(p.id)))
+      .eq('prefix', 'ob');
+    rows = data || [];
+    // Populate cache so property detail pages don't re-fetch
+    rows.forEach(r => { _checkCache['ob_' + r.prop_id] = r.data || {}; });
+  } catch(e) { return; }
+
+  // Compute incomplete items per property
+  const incomplete = [];
+  props.forEach(p => {
+    const saved = rows.find(r => String(r.prop_id) === String(p.id))?.data || {};
+    ITEMS.forEach(item => {
+      if (!saved[item.id]) incomplete.push({ pid: p.id, addr: p.address, itemId: item.id, label: item.label });
+    });
+  });
+
+  // All done — hide banner
+  if (!incomplete.length) { slot.innerHTML = ''; return; }
+
+  // Dismiss logic — fingerprint of incomplete keys; resets if new ones appear
+  const LS_KEY = 'rsai_setup_banner_v1';
+  const currentKeys = incomplete.map(i => i.pid + ':' + i.itemId).sort().join(',');
+  try {
+    const stored = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
+    if (stored?.dismissed) {
+      const storedKeys = (stored.keys || '').split(',').filter(Boolean);
+      const newItems = incomplete.filter(i => !storedKeys.includes(i.pid + ':' + i.itemId));
+      if (!newItems.length) return; // still dismissed, nothing new
+      // New incompletes appeared — reset dismiss
+      localStorage.removeItem(LS_KEY);
+    }
+  } catch(e) {}
+
+  const dismiss = () => {
+    try { localStorage.setItem(LS_KEY, JSON.stringify({ dismissed: true, keys: currentKeys, ts: Date.now() })); } catch(e) {}
+    const s = document.getElementById('setup-banner-slot');
+    if (s) { s.style.transition = 'opacity .25s'; s.style.opacity = '0'; setTimeout(() => { s.innerHTML = ''; }, 260); }
+  };
+
+  // Group by property for the mini list (max 5 items shown)
+  const byProp = {};
+  incomplete.forEach(i => {
+    if (!byProp[i.pid]) byProp[i.pid] = { addr: i.addr, items: [] };
+    byProp[i.pid].items.push(i);
+  });
+  const totalProps = Object.keys(byProp).length;
+  const MAX_ITEMS = 5;
+  let shownCount = 0;
+  const listHtml = Object.entries(byProp).map(([pid, grp]) => {
+    const rows = grp.items.slice(0, Math.max(1, MAX_ITEMS - shownCount)).map(i => {
+      shownCount++;
+      return `<div style="display:flex;align-items:center;gap:6px;padding:3px 0">
+        <span style="color:var(--amber);font-size:11px">○</span>
+        <a href="#" onclick="event.preventDefault();nav('prop-detail','${pid}');setTimeout(()=>pdSetTab('${pid}','tenant'),80)"
+           style="font-size:12px;color:var(--navy);text-decoration:underline;text-underline-offset:2px;cursor:pointer">${i.label}</a>
+      </div>`;
+    }).join('');
+    const propLabel = totalProps > 1 ? `<div style="font-size:11px;font-weight:600;color:var(--muted);margin:6px 0 2px">${grp.addr}</div>` : '';
+    return propLabel + rows;
+  }).join('');
+
+  const remaining = incomplete.length;
+  const moreCount = remaining - shownCount;
+
+  slot.innerHTML = `
+    <div id="setup-banner" style="background:rgba(217,119,6,0.07);border:1.5px solid rgba(217,119,6,0.35);border-radius:12px;padding:14px 16px;margin-bottom:16px;position:relative">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="font-size:16px">📋</span>
+            <span style="font-size:13px;font-weight:700;color:var(--amber)">Complete your setup — ${remaining} step${remaining!==1?'s':''} remaining</span>
+          </div>
+          <div style="padding-left:4px">
+            ${listHtml}
+            ${moreCount > 0 ? `<div style="font-size:11px;color:var(--muted);margin-top:4px;padding:3px 0">+ ${moreCount} more — <a href="#" onclick="event.preventDefault();nav('properties')" style="color:var(--navy);text-decoration:underline">view all properties</a></div>` : ''}
+          </div>
+        </div>
+        <button onclick="(${dismiss.toString()})()" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;line-height:1;padding:0;flex-shrink:0" title="Dismiss">✕</button>
+      </div>
+    </div>`;
+}
+
 function nav(page, param){
   const pageMap = {
     'prop-detail': 'properties',
@@ -6731,6 +6828,7 @@ function nav(page, param){
   }
   main.scrollTo(0,0);
   // Async post-render hooks
+  if (page === 'dashboard') { loadSetupBanner(); }
   if (page === 'prop-detail' && param) {
     const activeTab = window._pdTab && window._pdTab[param] || 'tenant';
     if (activeTab === 'tenant') {
