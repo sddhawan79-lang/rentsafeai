@@ -4051,7 +4051,7 @@ function pgCompliance(){
     return { lbl:'NO DATE SET', bg:'rgba(229,62,62,0.07)', col:'#E53E3E', bdr:'rgba(229,62,62,0.2)', days:null, overdue:true };
   };
 
-  const _pgGroup = (gid, pc, icon, title, types, addBtn) => {
+  const _pgGroup = (gid, pc, icon, title, types, addBtn, expanded=false) => {
     const items = types.map(label => ({ label, st: _pgGetSt(pc, label) }));
     items.sort((a,b) => (b.st.overdue?1:0)-(a.st.overdue?1:0));
     const overdueCount = items.filter(i=>i.st.overdue).length;
@@ -4072,28 +4072,48 @@ function pgCompliance(){
     return `<div class="panel" style="margin-bottom:8px">
       <div class="ph2" style="cursor:pointer;user-select:none" onclick="(function(el){var b=document.getElementById('cg-${gid}');var open=b.style.display!=='none';b.style.display=open?'none':'block';el.querySelector('.cg-chev').textContent=open?'▸':'▾';})(this)">
         <div style="display:flex;align-items:center;gap:4px"><h2>${icon} ${title}</h2>${hdrBadge}</div>
-        <div style="display:flex;align-items:center;gap:8px">${addBtn||''}<span class="cg-chev" style="font-size:13px;color:var(--muted)">▸</span></div>
+        <div style="display:flex;align-items:center;gap:8px">${addBtn||''}<span class="cg-chev" style="font-size:13px;color:var(--muted)">${expanded?'▾':'▸'}</span></div>
       </div>
-      <div id="cg-${gid}" style="display:none">
+      <div id="cg-${gid}" style="${expanded?'':'display:none'}"
         <div style="padding:12px 18px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">${rows}</div></div>
       </div>
     </div>`;
   };
 
-  const propCards = D.properties.map(p => {
+  // Step 1 — property overview cards
+  const propOverview = D.properties.map(p => {
     const pc = CF(p.id);
-    return `<div style="margin-bottom:24px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <div>
+    const allItems = [..._pgGD,..._pgGN,..._pgGS].map(label => _pgGetSt(pc, label));
+    const totalItems = allItems.length;
+    const overdueItems = allItems.filter(i=>i.overdue).length;
+    const pScore = totalItems ? Math.round(((totalItems-overdueItems)/totalItems)*100) : 0;
+    const pCol = pScore>=80?'#00C896':pScore>=50?'#D97706':'#E53E3E';
+    const pr=22,pcx=28,pcy=28,pCirc=2*Math.PI*pr;
+    const pDash=(pCirc-(pScore/100)*pCirc).toFixed(2);
+    const miniGauge=`<svg width="56" height="56" viewBox="0 0 56 56"><circle cx="${pcx}" cy="${pcy}" r="${pr}" fill="none" stroke="rgba(0,0,0,0.07)" stroke-width="5"/><circle cx="${pcx}" cy="${pcy}" r="${pr}" fill="none" stroke="${pCol}" stroke-width="5" stroke-dasharray="${pCirc.toFixed(2)}" stroke-dashoffset="${pDash}" stroke-linecap="round" transform="rotate(-90 ${pcx} ${pcy})"/><text x="${pcx}" y="${pcy+4}" text-anchor="middle" fill="${pCol}" font-size="10" font-weight="700" font-family="DM Sans,sans-serif">${pScore}%</text></svg>`;
+    return `<div class="panel" style="cursor:pointer;margin-bottom:10px;transition:box-shadow .15s" onclick="window._compPropId='${p.id}';nav('compliance')" onmouseenter="this.style.boxShadow='0 2px 12px rgba(0,0,0,0.08)'" onmouseleave="this.style.boxShadow=''">
+      <div style="padding:14px 18px;display:flex;align-items:center;gap:14px">
+        ${miniGauge}
+        <div style="flex:1">
           <div style="font-size:14px;font-weight:700;color:var(--txt)">${p.address}${p.city?', '+p.city:''}</div>
+          <div style="font-size:12px;margin-top:3px;color:${overdueItems?'var(--red)':'var(--green-dark)'}">${overdueItems?overdueItems+' item'+(overdueItems!==1?'s':'')+' need attention':'All items compliant'}</div>
         </div>
-        <button class="btn btn-sm" onclick="moCert('${p.id}')">+ Add cert</button>
+        <span style="font-size:18px;color:var(--muted)">›</span>
       </div>
-      ${_pgGroup('pg-'+p.id+'-docs', pc, '📄', 'Documents & Certificates', _pgGD, `<button class="btn btn-sm btn-navy" onclick="event.stopPropagation();moCert('${p.id}')">+ Add</button>`)}
-      ${_pgGroup('pg-'+p.id+'-notices', pc, '📋', 'Tenancy Notices', _pgGN, '')}
-      ${_pgGroup('pg-'+p.id+'-starter', pc, '🚀', 'Starter Kit', _pgGS, '')}
     </div>`;
   }).join('');
+
+  // Step 2 — detail view for selected property
+  const _selPid = window._compPropId || null;
+  const _selProp = _selPid ? P(_selPid) : null;
+  const _selPc = _selProp ? CF(_selPid) : [];
+  const propDetail = _selProp ? `
+    <button class="btn btn-sm" onclick="window._compPropId=null;nav('compliance')" style="margin-bottom:16px">← All properties</button>
+    <div style="font-size:16px;font-weight:700;color:var(--txt);margin-bottom:16px">${_selProp.address}${_selProp.city?', '+_selProp.city:''}</div>
+    ${_pgGroup('det-'+_selPid+'-docs',_selPc,'📄','Documents & Certificates',_pgGD,`<button class="btn btn-sm btn-navy" onclick="event.stopPropagation();moCert('${_selPid}')">+ Add</button>`,true)}
+    ${_pgGroup('det-'+_selPid+'-notices',_selPc,'📋','Tenancy Notices',_pgGN,'',true)}
+    ${_pgGroup('det-'+_selPid+'-starter',_selPc,'🚀','Starter Kit',_pgGS,'',true)}
+  ` : '';
 
   return `<div class="topbar"><span class="tb-title">Compliance</span><div class="tb-right">
     <button class="btn btn-navy" onclick="moBulkScan()">✦ Bulk scan</button>
@@ -4148,10 +4168,13 @@ function pgCompliance(){
       ${actionHtml}
     </div>
 
-    <!-- Property breakdown cert grid -->
+    <!-- Property breakdown drill-down -->
     ${D.properties.length ? `<div>
-      <div style="margin-bottom:14px"><h2 style="font-size:15px;font-weight:700;margin:0">Property breakdown</h2><p style="font-size:12px;color:var(--muted);margin:3px 0 0">Certificate status across all properties</p></div>
-      ${propCards}
+      <div style="margin-bottom:14px">
+        <h2 style="font-size:15px;font-weight:700;margin:0">Property breakdown</h2>
+        <p style="font-size:12px;color:var(--muted);margin:3px 0 0">${_selProp?(_selProp.address+(_selProp.city?', '+_selProp.city:'')):'Select a property to view details'}</p>
+      </div>
+      ${_selProp ? propDetail : propOverview}
     </div>` : ''}
 
     `}
