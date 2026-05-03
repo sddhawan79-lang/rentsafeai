@@ -8989,148 +8989,122 @@ function moSection13(pid) {
   if (!D.properties.length) { toast('Add a property first', true); return; }
   const p = P(pid) || D.properties[0];
   const tenant = D.tenants.find(t => String(t.prop_id) === String(p?.id) && t.status === 'Active');
-
   const today = new Date();
+  const rentDay = parseInt(tenant?.rent_day || 1);
   const minEff = new Date(today);
   minEff.setMonth(minEff.getMonth() + 2);
-  const rentDay = parseInt(tenant?.rent_day || 1);
   if (minEff.getDate() > rentDay) minEff.setMonth(minEff.getMonth() + 1);
   minEff.setDate(rentDay);
-
   window._s13 = {
-    step: 1, pid: String(p?.id || ''), tenantId: tenant?.id ? String(tenant.id) : '',
+    pid: String(p?.id || ''), tenantId: tenant?.id ? String(tenant.id) : '',
     currentRent: p?.rent || 0, newRent: '',
     noticeDate: today.toISOString().slice(0,10),
     effectiveDate: minEff.toISOString().slice(0,10),
     landlordName: currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'Landlord',
-    landlordAddress: '', noticeHtml: '',
+    landlordAddress: '', noticeHtml: ''
   };
-  document.getElementById('mo-t').textContent = 'Section 13 Notice';
-  document.getElementById('mo-s').textContent = 'Rent increase · Housing Act 1988 s.13';
+  document.getElementById('mo-t').textContent = 'Section 13 Rent Increase Notice';
+  document.getElementById('mo-s').textContent = 'Housing Act 1988 · RRA 2025 compliant';
   document.querySelector('.mo-box').classList.add('mo-wide');
-  _renderS13Step(1);
+  document.getElementById('mo-b').innerHTML = _s13PageHtml();
+  document.getElementById('mo-f').innerHTML = `
+    <span style="font-size:11px;color:var(--muted)">⚖️ 2 months minimum notice required under RRA 2025</span>
+    <button class="btn btn-navy" id="s13-btn" onclick="_sendS13()">📤 Send notice</button>`;
+  _s13UpdatePreview();
   document.getElementById('mo').classList.add('open');
 }
 
-function _renderS13Step(n) {
-  const segBar = [1,2,3].map(i=>`<div style="flex:1;height:3px;border-radius:100px;background:${i<n?'var(--green)':i===n?'var(--blue)':'var(--border)'}"></div>`).join('');
-  const labels = ['','Details','New rent','Preview & send'];
-  document.getElementById('mo-b').innerHTML = `
-    <div style="display:flex;gap:4px;margin-bottom:6px">${segBar}</div>
-    <div style="display:flex;margin-bottom:20px">${[1,2,3].map(i=>`<div style="flex:1;font-size:9px;font-weight:${i===n?700:400};color:${i<n?'var(--green-dark)':i===n?'var(--blue)':'var(--muted)'};text-align:center">${labels[i]}</div>`).join('')}</div>
-    ${_s13StepHtml(n)}`;
-  document.getElementById('mo-f').innerHTML = `
-    <button onclick="s13Back()" style="background:none;border:none;font-family:var(--font);font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;padding:7px 0;visibility:${n===1?'hidden':'visible'}">← Back</button>
-    <span style="font-size:12px;color:var(--muted)">Step ${n} of 3</span>
-    <button class="btn btn-navy" id="s13-btn" onclick="s13Next()">${n===3?'Send notice':'Next →'}</button>`;
-}
-
-function _s13StepHtml(n) {
+function _s13PageHtml() {
   const s = window._s13;
-  if (n === 1) {
-    const propOpts = D.properties.map(p=>`<option value="${p.id}"${String(p.id)===s.pid?' selected':''}>${p.address}, ${p.city}</option>`).join('');
-    const tenOpts  = D.tenants.filter(t=>t.status==='Active').map(t=>`<option value="${t.id}"${String(t.id)===s.tenantId?' selected':''}>${t.name}</option>`).join('') || '<option value="">No active tenants</option>';
-    const p = P(s.pid);
-    const tenant = D.tenants.find(t=>String(t.id)===s.tenantId);
-    const monthsIn = tenant?.start_date ? Math.floor((new Date()-new Date(tenant.start_date))/(30.44*864e5)) : 99;
-    const tooEarly = monthsIn < 12;
-    return `
-    <div style="font-size:15px;font-weight:600;margin-bottom:2px">Property & tenant</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Select the property and tenant receiving this notice</div>
-    <div class="fg-row">
-      <div class="fg"><label>Property <span class="req">*</span></label><select id="s13-prop" onchange="s13PropSwitch(this.value)">${propOpts}</select></div>
-      <div class="fg"><label>Tenant <span class="req">*</span></label><select id="s13-tenant">${tenOpts}</select></div>
-    </div>
-    ${p&&tenant?`<div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:12px 14px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
-      <div><div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:2px">Current rent</div><div style="font-size:16px;font-weight:700">£${(p.rent||0).toLocaleString()}/mo</div></div>
-      <div><div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:2px">Tenant</div><div style="font-size:13px;font-weight:600">${tenant.name}</div></div>
-      <div><div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:2px">Tenancy start</div><div style="font-size:13px;font-weight:600">${FMS(tenant.start_date)}</div></div>
-    </div>`:''}
-    ${tooEarly&&tenant?.start_date?`<div style="background:var(--red-bg);border:1px solid rgba(229,62,62,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--red);margin-bottom:14px;display:flex;gap:8px"><span>⚠️</span><div><strong>Notice may be invalid</strong> — rent cannot be increased in the first 12 months. Tenancy started ${FMS(tenant.start_date)} (${monthsIn} months ago). You can still generate for future use.</div></div>`:''}
-    <div class="fg"><label>Landlord name (as it appears on the notice)</label><input type="text" id="s13-lname" value="${s.landlordName}" placeholder="Full name or company"></div>
-    <div class="fg"><label>Landlord address</label><input type="text" id="s13-laddr" value="${s.landlordAddress}" placeholder="Full UK address including postcode"></div>
-    <div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--blue)">ℹ️ Under RRA 2025, rent can only be increased <strong>once every 12 months</strong> using a Section 13 notice with <strong>2 months minimum notice</strong>.</div>`;
-  }
-  if (n === 2) {
-    const p = P(s.pid);
-    const tenant = D.tenants.find(t=>String(t.id)===s.tenantId);
-    const cur = p?.rent || 0;
-    const nw = parseFloat(s.newRent)||0;
-    const rentDay = parseInt(tenant?.rent_day||1);
-    const dayLabel = rentDay===1?'1st':rentDay===2?'2nd':rentDay===3?'3rd':`${rentDay}th`;
-    return `
-    <div style="font-size:15px;font-weight:600;margin-bottom:2px">New rent & dates</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Notice must give at least 2 months before the effective date</div>
-    <div style="background:var(--off);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px">
+  const propOpts = D.properties.map(p => `<option value="${p.id}"${String(p.id)===s.pid?' selected':''}>${p.address}${p.city?', '+p.city:''}</option>`).join('');
+  const tenOpts = D.tenants.filter(t => String(t.prop_id)===s.pid && t.status==='Active')
+    .map(t => `<option value="${t.id}"${String(t.id)===s.tenantId?' selected':''}>${t.name}</option>`).join('') || '<option value="">No active tenants</option>';
+  const p = P(s.pid);
+  const tenant = D.tenants.find(t => String(t.id)===s.tenantId);
+  const cur = p?.rent || 0;
+  const monthsIn = tenant?.start_date ? Math.floor((new Date()-new Date(tenant.start_date))/(30.44*864e5)) : 99;
+  const tooEarly = monthsIn < 12;
+  const rentDay = parseInt(tenant?.rent_day||1);
+  const dayLabel = rentDay===1?'1st':rentDay===2?'2nd':rentDay===3?'3rd':`${rentDay}th`;
+  return `
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;min-height:420px">
+    <!-- LEFT: FORM -->
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div style="font-size:13px;font-weight:700;color:var(--txt);padding-bottom:8px;border-bottom:1px solid var(--border)">Notice details</div>
+
       <div class="fg-row">
-        <div class="fg"><label>Current monthly rent</label><input type="text" value="£${cur.toLocaleString()}" disabled style="background:var(--off);color:var(--muted)"></div>
-        <div class="fg"><label>New monthly rent (£) <span class="req">*</span></label><input type="number" id="s13-newrent" value="${s.newRent}" placeholder="e.g. 1350" min="${cur+1}" oninput="s13Calc(this.value)"></div>
+        <div class="fg"><label>Property <span class="req">*</span></label>
+          <select id="s13-prop" onchange="s13Switch();">${propOpts}</select></div>
+        <div class="fg"><label>Tenant <span class="req">*</span></label>
+          <select id="s13-tenant" onchange="s13Switch();">${tenOpts}</select></div>
       </div>
+
+      ${p&&tenant?`<div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:10px 14px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+        <div><div style="font-size:9px;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:2px">Current rent</div><div style="font-size:15px;font-weight:700">£${cur.toLocaleString()}/mo</div></div>
+        <div><div style="font-size:9px;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:2px">Tenant</div><div style="font-size:12px;font-weight:600">${tenant.name}</div></div>
+        <div><div style="font-size:9px;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:2px">Started</div><div style="font-size:12px;font-weight:600">${FMS(tenant.start_date)}</div></div>
+      </div>`:''}
+
+      ${tooEarly&&tenant?.start_date?`<div style="background:var(--red-bg);border:1px solid rgba(229,62,62,0.2);border-radius:8px;padding:9px 12px;font-size:11px;color:var(--red);display:flex;gap:8px"><span>⚠️</span><div><strong>Notice may be invalid</strong> — rent cannot be increased in the first 12 months. Tenancy started ${FMS(tenant.start_date)} (${monthsIn} months ago).</div></div>`:''}
+
+      <div class="fg-row">
+        <div class="fg"><label>Current rent</label><input type="text" value="£${cur.toLocaleString()}" disabled style="background:var(--off);color:var(--muted)"></div>
+        <div class="fg"><label>New monthly rent (£) <span class="req">*</span></label><input type="number" id="s13-newrent" value="${s.newRent}" placeholder="e.g. ${cur+50}" min="${cur+1}" oninput="s13Calc(this.value)"></div>
+      </div>
+
       <div id="s13-calc"></div>
-    </div>
-    <div class="fg-row">
-      <div class="fg"><label>Date of this notice</label><input type="date" id="s13-ndate" value="${s.noticeDate}" onchange="s13MinEff(this.value,'${rentDay}')"></div>
-      <div class="fg"><label>Proposed effective date <span class="req">*</span></label><input type="date" id="s13-edate" value="${s.effectiveDate}" min="${s.effectiveDate}"><div style="font-size:10px;color:var(--muted);margin-top:3px">≥2 months from notice · falls on rent day (${dayLabel} of month)</div></div>
-    </div>
-    <div style="background:var(--amber-bg);border:1px solid rgba(217,119,6,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--amber);display:flex;gap:8px"><span>⚠️</span><div>Tenant can refer to the <strong>First-tier Tribunal</strong> before the effective date if they consider the proposed rent above market rate.</div></div>`;
-  }
-  if (n === 3) {
-    const p = P(s.pid);
-    const tenant = D.tenants.find(t=>String(t.id)===s.tenantId);
-    const propAddr = [p?.address,p?.city,p?.postcode].filter(Boolean).join(', ');
-    const nDate = s.noticeDate ? new Date(s.noticeDate).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) : '—';
-    const eDate = s.effectiveDate ? new Date(s.effectiveDate).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) : '—';
-    const cur = p?.rent || 0;
-    const nw = parseFloat(s.newRent)||0;
-    window._s13.noticeHtml = `<div style="font-family:Georgia,serif;font-size:13px;line-height:1.8;color:#1A2B45">
-      <div style="text-align:center;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #0B1E3D">
-        <div style="font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:1px">Notice of Rent Increase</div>
-        <div style="font-size:12px;color:#666;margin-top:4px">Housing Act 1988, Section 13 (as amended by the Renters' Rights Act 2025)</div>
+
+      <div class="fg-row">
+        <div class="fg"><label>Date of notice</label><input type="date" id="s13-ndate" value="${s.noticeDate}" onchange="s13MinEff(this.value,'${rentDay}')"></div>
+        <div class="fg"><label>Effective date <span class="req">*</span></label><input type="date" id="s13-edate" value="${s.effectiveDate}" min="${s.effectiveDate}">
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">≥2 months · falls on rent day (${dayLabel})</div></div>
       </div>
-      <p><strong>To:</strong> ${tenant?.name||'[Tenant]'}<br><strong>Of:</strong> ${propAddr}</p>
-      <p><strong>From (Landlord):</strong> ${s.landlordName}${s.landlordAddress?`<br><strong>Address:</strong> ${s.landlordAddress}`:''}</p>
-      <p><strong>Date of notice:</strong> ${nDate}</p>
-      <hr style="border:none;border-top:1px solid #E4EAF1;margin:14px 0">
-      <p>I give you notice under Section 13 of the Housing Act 1988 that I propose to increase the rent payable under your assured periodic tenancy of the above property.</p>
-      <table style="width:100%;border-collapse:collapse;margin:14px 0;font-size:13px">
-        <tr style="background:#F6F8FB"><td style="padding:8px 12px;border:1px solid #ddd;font-weight:600">Current monthly rent</td><td style="padding:8px 12px;border:1px solid #ddd">£${cur.toLocaleString()}</td></tr>
-        <tr><td style="padding:8px 12px;border:1px solid #ddd;font-weight:600">Proposed new monthly rent</td><td style="padding:8px 12px;border:1px solid #ddd;font-weight:700">£${nw.toLocaleString()}</td></tr>
-        <tr style="background:#F6F8FB"><td style="padding:8px 12px;border:1px solid #ddd;font-weight:600">Proposed effective date</td><td style="padding:8px 12px;border:1px solid #ddd">${eDate}</td></tr>
-      </table>
-      <p>The new rent of <strong>£${nw.toLocaleString()} per calendar month</strong> is proposed to take effect from <strong>${eDate}</strong>.</p>
-      <p><strong>Your right to challenge:</strong> If you consider the proposed rent is above the open market rent, you may refer this notice to the First-tier Tribunal (Property Chamber) before ${eDate}. The Tribunal will set a market rent. You will not be penalised for exercising this right.</p>
-      <p>Please continue paying the current rent of £${cur.toLocaleString()}/month until the effective date.</p>
-      <div style="margin-top:24px;padding-top:14px;border-top:1px solid #E4EAF1">
-        <p style="margin-bottom:24px">Signed: ___________________________</p>
-        <p>Name: <strong>${s.landlordName}</strong> &nbsp;&nbsp; Date: ${nDate}</p>
+
+      <div class="fg"><label>Landlord name</label><input type="text" id="s13-lname" value="${s.landlordName}" placeholder="Full name or company" oninput="_s13UpdatePreview()"></div>
+      <div class="fg"><label>Landlord address</label><input type="text" id="s13-laddr" value="${s.landlordAddress}" placeholder="Full UK address including postcode" oninput="_s13UpdatePreview()"></div>
+
+      <div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:8px;padding:9px 12px;font-size:11px;color:var(--blue)">ℹ️ Rent can only be increased <strong>once every 12 months</strong> under RRA 2025. Tenant can refer to the First-tier Tribunal before the effective date.</div>
+
+      <div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:2px">
+        <div style="font-size:11px;font-weight:700;color:var(--txt);margin-bottom:8px">Delivery options</div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:6px">
+          <input type="checkbox" id="s13-email" ${tenant?.email?'checked':''} ${!tenant?.email?'disabled':''} style="width:13px;height:13px">
+          <div style="font-size:12px">${tenant?.email?'Email to <strong>'+tenant.email+'</strong>':'No email on file — add in tenant details'}</div>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" id="s13-audit" checked style="width:13px;height:13px">
+          <div style="font-size:12px">Log to <strong>audit trail</strong> <span style="color:var(--muted)">(timestamped record)</span></div>
+        </label>
       </div>
-    </div>`;
-    return `
-    <div style="font-size:15px;font-weight:600;margin-bottom:2px">Review & send</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:14px">Review the notice below then send to tenant</div>
-    <div style="border:1px solid var(--border);border-radius:10px;padding:20px;max-height:320px;overflow-y:auto;margin-bottom:14px;background:var(--white)">${window._s13.noticeHtml}</div>
-    <div style="background:var(--off);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">
-      <div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:10px">Delivery</div>
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px">
-        <input type="checkbox" id="s13-email" ${tenant?.email?'checked':''} ${!tenant?.email?'disabled':''} style="width:14px;height:14px">
-        <div><div style="font-size:13px;font-weight:500">${tenant?.email?'Email to '+tenant.email:'No email on file — add in tenant details'}</div></div>
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-        <input type="checkbox" id="s13-audit" checked style="width:14px;height:14px">
-        <div><div style="font-size:13px;font-weight:500">Log to audit trail</div><div style="font-size:11px;color:var(--muted)">Timestamped court-admissible record of service</div></div>
-      </label>
     </div>
-    <div style="background:var(--amber-bg);border:1px solid rgba(217,119,6,0.2);border-radius:8px;padding:10px 14px;font-size:11px;color:var(--amber)">⚠️ Email is valid service under RRA 2025. For extra evidence, also send by first-class post and keep proof of postage.</div>`;
-  }
-  return '';
+
+    <!-- RIGHT: LIVE PREVIEW -->
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="font-size:13px;font-weight:700;color:var(--txt);padding-bottom:8px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <span>Live preview</span>
+        <span style="font-size:10px;font-weight:400;color:var(--muted);background:var(--green-bg);color:var(--green-dark);padding:2px 8px;border-radius:100px">Updates as you type</span>
+      </div>
+      <div id="s13-preview" style="border:1px solid var(--border);border-radius:10px;padding:18px;flex:1;overflow-y:auto;background:var(--white);font-size:12px;line-height:1.8;color:#1A2B45;max-height:500px">
+        <div style="text-align:center;color:var(--muted);padding:40px 0;font-size:12px">Fill in the form to see your notice →</div>
+      </div>
+    </div>
+  </div>`;
 }
 
-function s13PropSwitch(pid) {
-  window._s13.pid = pid;
-  const t = D.tenants.find(t=>String(t.prop_id)===String(pid)&&t.status==='Active');
-  window._s13.tenantId = t?.id ? String(t.id) : '';
-  window._s13.currentRent = P(pid)?.rent || 0;
-  _renderS13Step(1);
+function s13Switch() {
+  const pid = document.getElementById('s13-prop')?.value;
+  const tid = document.getElementById('s13-tenant')?.value;
+  if (pid && pid !== window._s13.pid) {
+    window._s13.pid = pid;
+    const t = D.tenants.find(t => String(t.prop_id)===String(pid) && t.status==='Active');
+    window._s13.tenantId = t?.id ? String(t.id) : '';
+    window._s13.currentRent = P(pid)?.rent || 0;
+    document.getElementById('mo-b').innerHTML = _s13PageHtml();
+    _s13UpdatePreview();
+    return;
+  }
+  if (tid) window._s13.tenantId = tid;
+  _s13UpdatePreview();
 }
 
 function s13Calc(val) {
@@ -9138,13 +9112,14 @@ function s13Calc(val) {
   const nw = parseFloat(val)||0;
   const el = document.getElementById('s13-calc');
   if (!el) return;
-  if (!nw || nw <= cur) { el.innerHTML = ''; return; }
+  if (!nw || nw <= cur) { el.innerHTML = ''; _s13UpdatePreview(); return; }
   const pct = (((nw-cur)/cur)*100).toFixed(1);
-  el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;padding:10px;background:var(--green-bg);border-radius:8px;border:1px solid rgba(0,200,150,0.2)">
-    <div style="text-align:center"><div style="font-size:17px;font-weight:700;color:var(--green-dark)">${pct}%</div><div style="font-size:10px;color:var(--muted)">Increase</div></div>
-    <div style="text-align:center"><div style="font-size:17px;font-weight:700;color:var(--txt)">+£${(nw-cur).toFixed(0)}/mo</div><div style="font-size:10px;color:var(--muted)">Monthly change</div></div>
-    <div style="text-align:center"><div style="font-size:17px;font-weight:700;color:var(--txt)">£${(nw*12).toLocaleString()}/yr</div><div style="font-size:10px;color:var(--muted)">New annual</div></div>
+  el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:10px;background:var(--green-bg);border-radius:8px;border:1px solid rgba(0,200,150,0.2)">
+    <div style="text-align:center"><div style="font-size:16px;font-weight:700;color:var(--green-dark)">${pct}%</div><div style="font-size:9px;color:var(--muted)">Increase</div></div>
+    <div style="text-align:center"><div style="font-size:16px;font-weight:700;color:var(--txt)">+£${(nw-cur).toFixed(0)}/mo</div><div style="font-size:9px;color:var(--muted)">Monthly change</div></div>
+    <div style="text-align:center"><div style="font-size:16px;font-weight:700;color:var(--txt)">£${(nw*12).toLocaleString()}/yr</div><div style="font-size:9px;color:var(--muted)">New annual</div></div>
   </div>`;
+  _s13UpdatePreview();
 }
 
 function s13MinEff(noticeDateVal, rentDay) {
@@ -9156,44 +9131,70 @@ function s13MinEff(noticeDateVal, rentDay) {
   const minStr = d.toISOString().slice(0,10);
   const el = document.getElementById('s13-edate');
   if (el) { el.min = minStr; if (el.value < minStr) el.value = minStr; }
+  _s13UpdatePreview();
 }
 
-function s13Next() {
-  const n = window._s13.step;
+function _s13UpdatePreview() {
   const s = window._s13;
-  if (n===1) {
-    s.pid = document.getElementById('s13-prop')?.value||s.pid;
-    s.tenantId = document.getElementById('s13-tenant')?.value||s.tenantId;
-    s.landlordName = document.getElementById('s13-lname')?.value.trim()||s.landlordName;
-    s.landlordAddress = document.getElementById('s13-laddr')?.value.trim()||'';
-    if (!s.tenantId) { toast('Please select a tenant', true); return; }
-  } else if (n===2) {
-    s.newRent = document.getElementById('s13-newrent')?.value||'';
-    s.noticeDate = document.getElementById('s13-ndate')?.value||s.noticeDate;
-    s.effectiveDate = document.getElementById('s13-edate')?.value||s.effectiveDate;
-    const cur = P(s.pid)?.rent||0;
-    if (!s.newRent||parseFloat(s.newRent)<=cur) { toast('New rent must be higher than current rent', true); return; }
-    if (!s.effectiveDate) { toast('Please set an effective date', true); return; }
-  } else if (n===3) {
-    _sendS13();
-    return;
-  }
-  window._s13.step = n+1;
-  _renderS13Step(n+1);
-  document.querySelector('.mo-box')?.scrollTo?.(0,0);
+  const lname = document.getElementById('s13-lname')?.value || s.landlordName;
+  const laddr = document.getElementById('s13-laddr')?.value || '';
+  const newRentVal = document.getElementById('s13-newrent')?.value || '';
+  const ndate = document.getElementById('s13-ndate')?.value || s.noticeDate;
+  const edate = document.getElementById('s13-edate')?.value || s.effectiveDate;
+  const p = P(s.pid);
+  const tenant = D.tenants.find(t => String(t.id)===s.tenantId);
+  const el = document.getElementById('s13-preview');
+  if (!el) return;
+  if (!tenant || !p) { el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px 0;font-size:12px">Select a property and tenant →</div>'; return; }
+  const cur = p.rent || 0;
+  const nw = parseFloat(newRentVal)||0;
+  const propAddr = [p.address,p.city,p.postcode].filter(Boolean).join(', ');
+  const nDateStr = ndate ? new Date(ndate).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) : '—';
+  const eDateStr = edate ? new Date(edate).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) : '—';
+  const noticeHtml = `<div style="font-family:Georgia,serif;font-size:12px;line-height:1.8;color:#1A2B45">
+    <div style="text-align:center;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #0B1E3D">
+      <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px">Notice of Rent Increase</div>
+      <div style="font-size:10px;color:#666;margin-top:3px">Housing Act 1988, Section 13 (as amended by the Renters' Rights Act 2025)</div>
+    </div>
+    <p style="margin:0 0 10px"><strong>To:</strong> ${tenant.name}<br><strong>Of:</strong> ${propAddr}</p>
+    <p style="margin:0 0 10px"><strong>From (Landlord):</strong> ${lname}${laddr?`<br><strong>Address:</strong> ${laddr}`:''}</p>
+    <p style="margin:0 0 10px"><strong>Date of notice:</strong> ${nDateStr}</p>
+    <hr style="border:none;border-top:1px solid #E4EAF1;margin:12px 0">
+    <p style="margin:0 0 10px">I give you notice under Section 13 of the Housing Act 1988 that I propose to increase the rent payable under your assured periodic tenancy of the above property.</p>
+    <table style="width:100%;border-collapse:collapse;margin:10px 0;font-size:12px">
+      <tr style="background:#F6F8FB"><td style="padding:7px 10px;border:1px solid #ddd;font-weight:600">Current monthly rent</td><td style="padding:7px 10px;border:1px solid #ddd">£${cur.toLocaleString()}</td></tr>
+      <tr><td style="padding:7px 10px;border:1px solid #ddd;font-weight:600">Proposed new monthly rent</td><td style="padding:7px 10px;border:1px solid #ddd;font-weight:700;color:${nw>cur?'#0B6E4F':'#1A2B45'}">${nw?'£'+nw.toLocaleString():'[enter new rent]'}</td></tr>
+      <tr style="background:#F6F8FB"><td style="padding:7px 10px;border:1px solid #ddd;font-weight:600">Proposed effective date</td><td style="padding:7px 10px;border:1px solid #ddd">${eDateStr}</td></tr>
+    </table>
+    <p style="margin:0 0 10px">The new rent of <strong>${nw?'£'+nw.toLocaleString()+' per calendar month':'[new rent]'}</strong> is proposed to take effect from <strong>${eDateStr}</strong>.</p>
+    <p style="margin:0 0 10px"><strong>Your right to challenge:</strong> If you consider the proposed rent is above the open market rent, you may refer this notice to the First-tier Tribunal (Property Chamber) before ${eDateStr}. The Tribunal will set a market rent. You will not be penalised for exercising this right.</p>
+    <p style="margin:0 0 10px">Please continue paying the current rent of £${cur.toLocaleString()}/month until the effective date.</p>
+    <div style="margin-top:20px;padding-top:12px;border-top:1px solid #E4EAF1">
+      <p style="margin-bottom:20px">Signed: ___________________________</p>
+      <p style="margin:0">Name: <strong>${lname}</strong> &nbsp;&nbsp; Date: ${nDateStr}</p>
+    </div>
+  </div>`;
+  el.innerHTML = noticeHtml;
+  window._s13.noticeHtml = noticeHtml;
+  window._s13.newRent = newRentVal;
+  window._s13.noticeDate = ndate;
+  window._s13.effectiveDate = edate;
+  window._s13.landlordName = lname;
+  window._s13.landlordAddress = laddr;
 }
 
-function s13Back() {
-  if (window._s13.step<=1) return;
-  window._s13.step--;
-  _renderS13Step(window._s13.step);
-  document.querySelector('.mo-box')?.scrollTo?.(0,0);
-}
+
 
 async function _sendS13() {
+  // Sync latest form values before sending
+  _s13UpdatePreview();
+  const s = window._s13;
+  const cur = P(s.pid)?.rent || 0;
+  if (!s.tenantId) { toast('Please select a tenant', true); return; }
+  if (!s.newRent || parseFloat(s.newRent) <= cur) { toast('New rent must be higher than current rent', true); return; }
+  if (!s.effectiveDate) { toast('Please set an effective date', true); return; }
   const btn = document.getElementById('s13-btn');
   if (btn) { btn.disabled=true; btn.innerHTML='<span class="spin"></span>Sending…'; }
-  const s = window._s13;
   const p = P(s.pid);
   const tenant = D.tenants.find(t=>String(t.id)===s.tenantId);
   const propAddr = [p?.address,p?.city,p?.postcode].filter(Boolean).join(', ');
