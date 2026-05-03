@@ -617,7 +617,7 @@ let currentUser = null;
 // ── DATA STORE ──
 const D = {
   properties: [], tenants: [], certs: [], maintenance: [], rent: [], insurance: [],
-  emailLog: [], customTemplates: [], contractors: [], jobAssignments: [],
+  emailLog: [], customTemplates: [], contractors: [], jobAssignments: [], tenantDocs: [],
   chat: [{role:'ai', text:'Hello! I\'m your AI compliance assistant. Ask me anything about UK landlord law — Section 8, Renters Rights Act, Awaab\'s Law, deposits, or anything else.'}]
 };
 
@@ -738,7 +738,7 @@ async function logout() {
 
 // ── LOAD DATA ──
 async function loadData() {
-  const [p, t, c, m, r, i, el, ct, con, ja] = await Promise.all([
+  const [p, t, c, m, r, i, el, ct, con, ja, td] = await Promise.all([
     sb.from('properties').select('*').order('created_at', {ascending: false}),
     sb.from('tenants').select('*'),
     sb.from('certificates').select('*'),
@@ -749,6 +749,7 @@ async function loadData() {
     sb.from('custom_templates').select('*').order('created_at', {ascending: false}),
     sb.from('contractors').select('*').order('name', {ascending: true}),
     sb.from('job_assignments').select('*, tenant_maintenance(prop_id, category, submitted_at)'),
+    sb.from('tenant_documents').select('*').order('uploaded_at', {ascending: false}),
   ]);
 
   if (p.data?.length) {
@@ -789,6 +790,7 @@ async function loadData() {
   if (ct.data?.length) D.customTemplates = ct.data;
   if (con.data?.length) D.contractors = con.data;
   if (ja.data?.length) D.jobAssignments = ja.data;
+  if (td.data?.length) D.tenantDocs = td.data;
   await checkComplianceReminders();
 }
 
@@ -4651,7 +4653,7 @@ function pgTenants(){
     <div class="ph"><h1>Tenants</h1><p>${D.tenants.filter(t=>t.status==='Active').length} active tenant${D.tenants.filter(t=>t.status==='Active').length!==1?'s':''} · Click any row to view details</p></div>
     ${D.tenants.filter(t=>t.status==='Active').length?`<div class="panel"><div class="tw"><table>
       <thead><tr><th>Name</th><th>Property</th><th>Email</th><th>Start</th><th>End</th><th>Deposit</th><th>Status</th></tr></thead>
-      <tbody>${D.tenants.map(t=>{const p=P(t.prop_id)||{address:'—'};return`<tr style="cursor:pointer" onclick="moTenantDetail('${t.id}')">
+      <tbody>${D.tenants.map(t=>{const p=P(t.prop_id)||{address:'—'};return`<tr style="cursor:pointer" onclick="nav('tenant-detail','${t.id}')">
         <td><div style="display:flex;align-items:center;gap:10px"><div class="t-av">${INI(t.name)}</div><div><div class="td-bold">${t.name}</div><div style="font-size:11px;color:var(--muted)">${t.phone||'—'}</div></div></div></td>
         <td>${p.address}</td><td style="font-size:12px;color:var(--muted)">${t.email||'—'}</td>
         <td>${FMS(t.start||t.start_date)}</td><td>${FMS(t.end||t.end_date)}</td>
@@ -4659,6 +4661,226 @@ function pgTenants(){
       </tr>`}).join('')}</tbody>
     </table></div></div>`:'<div class="empty"><div class="empty-ic">👤</div><div class="empty-t">No tenants yet</div><div class="empty-s">Click + Add tenant to get started</div></div>'}
   </div>`;
+}
+
+// ── PAGE: TENANT DETAIL ──
+function pgTenantDetail(tid) {
+  const t = D.tenants.find(x => String(x.id) === String(tid));
+  if (!t) return pgTenants();
+  const p = P(t.prop_id) || { address: '—', city: '' };
+  const docs = D.tenantDocs.filter(d => String(d.tenant_id) === String(tid));
+
+  const KYC_SLOTS = [
+    { slot: 'passport',      icon: '🪪', label: 'Passport / Photo ID',   mandatory: true  },
+    { slot: 'right_to_rent', icon: '✅', label: 'Right to Rent',          mandatory: true  },
+    { slot: 'address_1',     icon: '📬', label: 'Address Proof 1',        mandatory: true  },
+    { slot: 'address_2',     icon: '📬', label: 'Address Proof 2',        mandatory: true  },
+    { slot: 'reference',     icon: '📋', label: 'Reference Check',        mandatory: true  },
+    { slot: 'guarantor',     icon: '🤝', label: 'Guarantor Check',        mandatory: false },
+  ];
+
+  const SUPABASE_URL = 'https://mahtcfukgzbonwibtsxz.supabase.co';
+  const getDocUrl = d => d?.file_name ? `${SUPABASE_URL}/storage/v1/object/public/tenant-documents/${d.file_name}` : '#';
+
+  const mandatorySlots = KYC_SLOTS.filter(s => s.mandatory);
+  const uploadedCount  = mandatorySlots.filter(s => docs.some(d => d.slot === s.slot)).length;
+  const total          = mandatorySlots.length;
+  const missing        = mandatorySlots.filter(s => !docs.some(d => d.slot === s.slot));
+  const allDone        = uploadedCount === total;
+
+  // ── Sticky summary card ──
+  const stickyCard = `
+    <div style="position:sticky;top:0;z-index:50;background:var(--white);border:1px solid ${allDone?'rgba(0,200,150,0.3)':'rgba(229,62,62,0.25)'};border-radius:10px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;box-shadow:0 2px 10px rgba(0,0,0,0.07)">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div style="font-size:14px;font-weight:700">🗂 KYC Documents</div>
+        <span style="font-size:12px;font-weight:700;padding:3px 11px;border-radius:100px;background:${allDone?'var(--green-bg)':'rgba(229,62,62,0.08)'};color:${allDone?'var(--green-dark)':'var(--red)'}">
+          ${uploadedCount} of ${total} uploaded
+        </span>
+        ${missing.map(s=>`<span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:100px;background:rgba(229,62,62,0.08);color:var(--red);border:1px solid rgba(229,62,62,0.18)">${s.label}</span>`).join('')}
+      </div>
+      <button class="btn btn-sm btn-navy" onclick="document.getElementById('kyc-docs-section').scrollIntoView({behavior:'smooth'})">
+        ${allDone ? '✓ All uploaded' : 'Upload documents ↓'}
+      </button>
+    </div>`;
+
+  // ── Tenancy info ──
+  const infoFields = [
+    ['Property',      `${p.address}, ${p.city}`],
+    ['Start',         FMS(t.start_date)],
+    ['End',           t.end_date ? FMS(t.end_date) : 'Periodic (APT)'],
+    ['Rent',          t.rent ? `£${t.rent.toLocaleString()}` : '—'],
+    ['Deposit',       t.deposit ? `£${t.deposit.toLocaleString()}` : '—'],
+    ['Scheme',        t.scheme || 'Not set'],
+    ['Scheme ref',    t.scheme_ref || '—'],
+    ['Rent due',      t.rent_day ? `${t.rent_day}${['','st','nd','rd'][t.rent_day]||'th'} of month` : '—'],
+  ];
+  const tenancyCard = `
+    <div class="panel" style="margin-bottom:16px">
+      <div class="ph2">
+        <div><h2>Tenancy Details</h2><p>${p.address}</p></div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-sm" onclick="moTenantDetail('${t.id}')">✎ Edit</button>
+          <button class="btn btn-sm btn-navy" onclick="moSection8('${t.prop_id}')">⚖️ Section 8</button>
+        </div>
+      </div>
+      <div style="padding:14px 18px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">
+          ${infoFields.map(([l,v])=>`<div class="det-f"><label>${l}</label><span>${v}</span></div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+
+  // ── KYC document rows ──
+  const kycRows = KYC_SLOTS.map(s => {
+    const doc = docs.find(d => d.slot === s.slot);
+    const up  = !!doc;
+    const url = up ? getDocUrl(doc) : '#';
+    const uploadedDate = up && doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '';
+    return `
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid ${up?'var(--border)':'rgba(229,62,62,0.2)'};border-radius:8px;margin-bottom:8px;background:${up?'var(--white)':'rgba(229,62,62,0.02)'}">
+        <div style="font-size:20px;width:32px;text-align:center;flex-shrink:0">${s.icon}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;flex-wrap:wrap">
+            <span style="font-size:13px;font-weight:600">${s.label}</span>
+            ${s.mandatory
+              ? `<span style="font-size:10px;font-weight:700;color:var(--red);background:var(--red-bg);padding:1px 6px;border-radius:100px">Required</span>`
+              : `<span style="font-size:10px;color:var(--muted);background:var(--off);padding:1px 6px;border-radius:100px">Optional</span>`}
+          </div>
+          ${up
+            ? `<div style="font-size:11px;color:var(--muted)">📎 ${doc.doc_label||doc.file_name||'File'} · ${uploadedDate}</div>`
+            : `<div style="font-size:11px;color:var(--red)">Not uploaded</div>`}
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          ${up
+            ? `<a href="${url}" target="_blank" class="btn btn-sm">View</a>
+               <button class="btn btn-sm" style="color:var(--red);border-color:rgba(229,62,62,0.3)" onclick="deleteTenantDoc('${doc.id}','${tid}')">✕</button>`
+            : `<label class="btn btn-sm btn-navy" style="cursor:pointer;margin:0">
+                 Upload
+                 <input type="file" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onchange="uploadTenantDoc('${tid}','${s.slot}',this)">
+               </label>`}
+        </div>
+      </div>`;
+  }).join('');
+
+  // ── Actions ──
+  const actionRow = `
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      ${t.email?`<a href="mailto:${t.email}" class="btn btn-sm">✉ Email</a>`:''}
+      ${t.phone?`<a href="tel:${t.phone}" class="btn btn-sm">📞 Call</a>`:''}
+      <button class="btn btn-sm" onclick="moEsign('${t.prop_id}','${t.id}')">✍️ Send for Signing</button>
+      ${t.email?`<button class="btn btn-sm" id="invite-btn-${t.id}" onclick="sendPortalInvite('${t.id}')">🔗 ${t.invite_used?'Resend invite':'Send portal invite'}</button>`:''}
+      <button class="btn btn-sm" onclick="moWelcomeKit('${t.prop_id}')">📦 Welcome kit</button>
+      <button class="btn btn-sm" onclick="moRRASheet()">📋 RRA Sheet</button>
+    </div>`;
+
+  // ── Email log ──
+  const tenantLog = D.emailLog.filter(e => String(e.tenant_id)===String(tid) || String(e.prop_id)===String(t.prop_id)).slice(0,20);
+  const logRows = tenantLog.length
+    ? tenantLog.map(e=>`
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 18px;border-bottom:1px solid var(--border);gap:10px">
+          <div style="min-width:0">
+            <div style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.subject||e.template_id||'Email'}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:1px">${e.sent_at?new Date(e.sent_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):''}</div>
+          </div>
+          <span style="font-size:11px;padding:2px 8px;border-radius:100px;background:var(--green-bg);color:var(--green-dark);flex-shrink:0">Sent</span>
+        </div>`).join('')
+    : `<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px">No emails sent yet</div>`;
+
+  return `
+    <div class="topbar"><span class="tb-title">Tenants</span><div class="tb-right">
+      <button class="btn btn-sm" onclick="moTenantDetail('${t.id}')">✎ Edit tenant</button>
+    </div></div>
+    <div class="content">
+      <button class="detail-back" onclick="nav('tenants')">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3L5 8l5 5"/></svg>
+        Back to tenants
+      </button>
+
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+        <div style="display:flex;align-items:center;gap:14px">
+          <div class="t-av" style="width:52px;height:52px;font-size:18px;flex-shrink:0">${INI(t.name)}</div>
+          <div>
+            <h1 style="font-size:21px;font-weight:700;margin-bottom:3px">${t.name}</h1>
+            <p style="font-size:13px;color:var(--muted)">${t.email||'No email'} · ${t.phone||'No phone'}</p>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          ${B(t.status||'Active')}
+          ${t.is_lead?`<span class="badge b-amber">⭐ Lead</span>`:''}
+        </div>
+      </div>
+
+      ${stickyCard}
+      ${tenancyCard}
+
+      <div id="kyc-docs-section" class="panel" style="margin-bottom:16px">
+        <div class="ph2"><div><h2>🗂 KYC Documents</h2><p>Identity &amp; compliance documents · Stored securely for ${t.name}</p></div></div>
+        <div style="padding:14px 18px">${kycRows}</div>
+      </div>
+
+      <div class="panel" style="margin-bottom:16px">
+        <div class="ph2"><div><h2>⚡ Quick actions</h2></div></div>
+        <div style="padding:14px 18px">${actionRow}</div>
+      </div>
+
+      <div class="panel">
+        <div class="ph2"><div><h2>✉ Email log</h2><p>Documents sent to this tenant</p></div>
+          <button class="btn btn-sm" onclick="nav('templates')">+ Send document</button>
+        </div>
+        <div>${logRows}</div>
+      </div>
+    </div>`;
+}
+
+async function uploadTenantDoc(tid, slot, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) { toast('Not logged in', true); return; }
+
+  // Show spinner on the label
+  const lbl = input.closest('label');
+  if (lbl) { lbl.innerHTML = '<span class="spin"></span>'; lbl.style.pointerEvents = 'none'; }
+
+  const ext   = file.name.split('.').pop();
+  const path  = `${user.id}/${tid}/${slot}_${Date.now()}.${ext}`;
+  const t     = D.tenants.find(x => String(x.id) === String(tid));
+
+  const { error: upErr } = await sb.storage.from('tenant-documents').upload(path, file, { contentType: file.type });
+  if (upErr) { toast('Upload failed — ' + upErr.message, true); nav('tenant-detail', tid); return; }
+
+  const record = {
+    tenant_id:   tid,
+    prop_id:     t?.prop_id || null,
+    user_id:     user.id,
+    slot,
+    doc_type:    slot,
+    doc_label:   file.name,
+    file_name:   path,
+    uploaded_at: new Date().toISOString(),
+  };
+
+  const existing = D.tenantDocs.find(d => String(d.tenant_id) === String(tid) && d.slot === slot);
+  if (existing) {
+    const { data } = await sb.from('tenant_documents').update(record).eq('id', existing.id).select().single();
+    if (data) D.tenantDocs = D.tenantDocs.map(d => d.id === existing.id ? data : d);
+  } else {
+    const { data } = await sb.from('tenant_documents').insert(record).select().single();
+    if (data) D.tenantDocs.push(data);
+  }
+
+  toast('✓ Document uploaded');
+  nav('tenant-detail', tid);
+}
+
+async function deleteTenantDoc(docId, tid) {
+  if (!confirm('Delete this document? This cannot be undone.')) return;
+  const doc = D.tenantDocs.find(d => String(d.id) === String(docId));
+  if (doc?.file_name) await sb.storage.from('tenant-documents').remove([doc.file_name]);
+  await sb.from('tenant_documents').delete().eq('id', docId);
+  D.tenantDocs = D.tenantDocs.filter(d => String(d.id) !== String(docId));
+  toast('✓ Document removed');
+  nav('tenant-detail', tid);
 }
 
 // ── PAGE: RENT ──
@@ -5301,6 +5523,7 @@ const PAGES={
   calendar:()=>pgCalendar(),
   reminders:()=>pgReminders(),
   'prop-detail':(id)=>pgPropDetail(id),
+  'tenant-detail':(id)=>pgTenantDetail(id),
   financials:()=>pgFinancials(),
   templates:()=>pgTemplates(),
   contractors:()=>pgContractors(),
@@ -5991,6 +6214,7 @@ function initSbGroups(){
 function nav(page, param){
   const pageMap = {
     'prop-detail': 'properties',
+    'tenant-detail': 'tenants',
     'tenants': 'tenants',
     'rent': 'financials',
     'insurance': 'financials',
