@@ -4736,29 +4736,66 @@ function pgTenantDetail(tid) {
     const up  = !!doc;
     const url = up ? getDocUrl(doc) : '#';
     const uploadedDate = up && doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '';
-    return `
-      <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid ${up?'var(--border)':'rgba(229,62,62,0.2)'};border-radius:8px;margin-bottom:8px;background:${up?'var(--white)':'rgba(229,62,62,0.02)'}">
-        <div style="font-size:20px;width:32px;text-align:center;flex-shrink:0">${s.icon}</div>
-        <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;flex-wrap:wrap">
-            <span style="font-size:13px;font-weight:600">${s.label}</span>
-            ${s.mandatory
-              ? `<span style="font-size:10px;font-weight:700;color:var(--red);background:var(--red-bg);padding:1px 6px;border-radius:100px">Required</span>`
-              : `<span style="font-size:10px;color:var(--muted);background:var(--off);padding:1px 6px;border-radius:100px">Optional</span>`}
+
+    // Build extracted info block
+    let extractedHtml = '';
+    if (up && doc.extracted_name) {
+      const mismatch = doc.name_mismatch;
+      const verified = doc.verified;
+      const fields = [
+        doc.extracted_name    && ['Name',    doc.extracted_name],
+        doc.extracted_doc_number && ['Ref',  doc.extracted_doc_number],
+        doc.extracted_expiry  && ['Expiry',  doc.extracted_expiry],
+        doc.extracted_address && ['Address', doc.extracted_address],
+        doc.share_code        && ['Share code', doc.share_code],
+      ].filter(Boolean);
+
+      extractedHtml = `
+        <div style="margin-top:8px;padding:8px 10px;background:${mismatch?'rgba(229,62,62,0.05)':'var(--off)'};border:1px solid ${mismatch?'rgba(229,62,62,0.2)':'var(--border)'};border-radius:6px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:5px">✦ AI Extracted</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px 16px">
+            ${fields.map(([l,v])=>`<span style="font-size:11px"><span style="color:var(--muted)">${l}:</span> <strong>${v}</strong></span>`).join('')}
           </div>
-          ${up
-            ? `<div style="font-size:11px;color:var(--muted)">📎 ${doc.doc_label||doc.file_name||'File'} · ${uploadedDate}</div>`
-            : `<div style="font-size:11px;color:var(--red)">Not uploaded</div>`}
+          ${mismatch ? `<div style="margin-top:6px;font-size:11px;font-weight:600;color:var(--red)">⚠ Name mismatch — extracted "<em>${doc.extracted_name}</em>" vs tenant record "${t.name}"</div>` : ''}
+          <div style="margin-top:8px;display:flex;align-items:center;gap:8px">
+            ${verified
+              ? `<span style="font-size:11px;font-weight:700;color:var(--green-dark);background:var(--green-bg);padding:2px 9px;border-radius:100px">✓ Verified</span>`
+              : `<button class="btn btn-sm" style="font-size:11px;padding:3px 10px;background:var(--green-bg);color:var(--green-dark);border-color:rgba(0,200,150,0.3)" onclick="verifyTenantDoc('${doc.id}','${tid}')">✓ Mark as verified</button>
+                 <span style="font-size:11px;color:var(--muted)">Not yet verified</span>`}
+          </div>
+        </div>`;
+    } else if (up && !doc.extracted_name) {
+      extractedHtml = `<div style="margin-top:6px;font-size:11px;color:var(--muted)">⏳ Scanning… refresh in a moment</div>`;
+    }
+
+    return `
+      <div style="padding:12px 14px;border:1px solid ${up?(doc.name_mismatch?'rgba(229,62,62,0.3)':doc.verified?'rgba(0,200,150,0.3)':'var(--border)'):'rgba(229,62,62,0.2)'};border-radius:8px;margin-bottom:8px;background:${up?'var(--white)':'rgba(229,62,62,0.02)'}">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="font-size:20px;width:32px;text-align:center;flex-shrink:0">${s.icon}</div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span style="font-size:13px;font-weight:600">${s.label}</span>
+              ${s.mandatory
+                ? `<span style="font-size:10px;font-weight:700;color:var(--red);background:var(--red-bg);padding:1px 6px;border-radius:100px">Required</span>`
+                : `<span style="font-size:10px;color:var(--muted);background:var(--off);padding:1px 6px;border-radius:100px">Optional</span>`}
+              ${up && doc.verified ? `<span style="font-size:10px;font-weight:700;color:var(--green-dark);background:var(--green-bg);padding:1px 6px;border-radius:100px">✓ Verified</span>` : ''}
+              ${up && doc.name_mismatch ? `<span style="font-size:10px;font-weight:700;color:var(--red);background:var(--red-bg);padding:1px 6px;border-radius:100px">⚠ Mismatch</span>` : ''}
+            </div>
+            ${up
+              ? `<div style="font-size:11px;color:var(--muted);margin-top:2px">📎 ${doc.doc_label||doc.file_name||'File'} · ${uploadedDate}</div>`
+              : `<div style="font-size:11px;color:var(--red);margin-top:2px">Not uploaded</div>`}
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            ${up
+              ? `<a href="${url}" target="_blank" class="btn btn-sm">View</a>
+                 <button class="btn btn-sm" style="color:var(--red);border-color:rgba(229,62,62,0.3)" onclick="deleteTenantDoc('${doc.id}','${tid}')">✕</button>`
+              : `<label class="btn btn-sm btn-navy" style="cursor:pointer;margin:0">
+                   Upload
+                   <input type="file" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onchange="uploadTenantDoc('${tid}','${s.slot}',this)">
+                 </label>`}
+          </div>
         </div>
-        <div style="display:flex;gap:6px;flex-shrink:0">
-          ${up
-            ? `<a href="${url}" target="_blank" class="btn btn-sm">View</a>
-               <button class="btn btn-sm" style="color:var(--red);border-color:rgba(229,62,62,0.3)" onclick="deleteTenantDoc('${doc.id}','${tid}')">✕</button>`
-            : `<label class="btn btn-sm btn-navy" style="cursor:pointer;margin:0">
-                 Upload
-                 <input type="file" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onchange="uploadTenantDoc('${tid}','${s.slot}',this)">
-               </label>`}
-        </div>
+        ${extractedHtml}
       </div>`;
   }).join('');
 
@@ -4869,7 +4906,90 @@ async function uploadTenantDoc(tid, slot, input) {
     if (data) D.tenantDocs.push(data);
   }
 
-  toast('✓ Document uploaded');
+  // Get saved doc ID for scan
+  const savedDoc = D.tenantDocs.find(d => String(d.tenant_id) === String(tid) && d.slot === slot);
+  toast('✓ Uploaded — scanning document…');
+  nav('tenant-detail', tid);
+
+  // Trigger AI scan in background
+  if (savedDoc?.id) scanTenantDoc(savedDoc.id, tid, slot, file, t?.name || '');
+}
+
+async function scanTenantDoc(docId, tid, slot, file, tenantName) {
+  const EDGE = 'https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor';
+
+  // Slot-specific extraction prompts
+  const prompts = {
+    passport:      'This is a passport or photo ID document. Extract: full_name, doc_number (passport/ID number), expiry (YYYY-MM-DD or null), nationality, date_of_birth (YYYY-MM-DD or null). Return JSON only.',
+    right_to_rent: 'This is a UK Right to Rent document. Extract: full_name, doc_type (Passport/BRP/Share Code/eVisa), doc_number or share_code, expiry (YYYY-MM-DD or null), nationality. Return JSON only.',
+    address_1:     'This is an address proof document (utility bill, bank statement, etc). Extract: full_name, address (full address as string), doc_type (e.g. Utility Bill, Bank Statement), doc_date (YYYY-MM-DD or null). Return JSON only.',
+    address_2:     'This is an address proof document (utility bill, bank statement, etc). Extract: full_name, address (full address as string), doc_type (e.g. Utility Bill, Bank Statement), doc_date (YYYY-MM-DD or null). Return JSON only.',
+    reference:     'This is a tenant reference or credit check report. Extract: applicant_name, outcome (Pass/Fail/Conditional/Unknown), referee_name, referee_company, reference_date (YYYY-MM-DD or null). Return JSON only.',
+    guarantor:     'This is a guarantor document or ID. Extract: full_name, address (full address as string), doc_type, expiry (YYYY-MM-DD or null). Return JSON only.',
+  };
+
+  const prompt = prompts[slot] || 'Extract key information from this document. Return JSON only with relevant fields.';
+
+  try {
+    // Read file as base64
+    const b64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.onerror = () => rej(new Error('Read failed'));
+      r.readAsDataURL(file);
+    });
+
+    const isImg = file.type.startsWith('image/');
+    const msgContent = isImg
+      ? [{ type:'image', source:{ type:'base64', media_type:file.type, data:b64 } }, { type:'text', text:prompt }]
+      : [{ type:'document', source:{ type:'base64', media_type:'application/pdf', data:b64 } }, { type:'text', text:prompt }];
+
+    const res  = await fetch(EDGE, { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ model:'claude-sonnet-4-5', max_tokens:400, messages:[{ role:'user', content:msgContent }] }) });
+    const data = await res.json();
+    const raw  = (data.content?.[0]?.text || '{}').replace(/```json|```/g,'').trim();
+    const ext  = JSON.parse(raw);
+
+    // Map extracted fields to table columns
+    const extracted_name    = ext.full_name || ext.applicant_name || null;
+    const extracted_address = ext.address   || null;
+    const extracted_expiry  = ext.expiry    || ext.reference_date || ext.doc_date || null;
+    const extracted_doc_num = ext.doc_number|| ext.doc_type || ext.referee_company || null;
+    const share_code        = ext.share_code|| null;
+    const share_code_expiry = (slot === 'right_to_rent' && ext.expiry) ? ext.expiry : null;
+
+    // Name mismatch check — normalise to lowercase, trim
+    const nameMismatch = extracted_name
+      ? extracted_name.trim().toLowerCase() !== tenantName.trim().toLowerCase()
+      : false;
+
+    const updates = {
+      extracted_name,
+      extracted_doc_number: extracted_doc_num,
+      extracted_expiry,
+      extracted_address,
+      share_code,
+      share_code_expiry,
+      name_mismatch: nameMismatch,
+      verified: false,
+    };
+
+    await sb.from('tenant_documents').update(updates).eq('id', docId);
+    D.tenantDocs = D.tenantDocs.map(d => String(d.id) === String(docId) ? { ...d, ...updates } : d);
+
+    toast(nameMismatch ? '⚠ Scan done — name mismatch detected' : '✦ Document scanned successfully');
+    nav('tenant-detail', tid);
+
+  } catch(e) {
+    console.warn('KYC scan failed:', e);
+    toast('⚠ Could not scan — document saved, fill details manually');
+  }
+}
+
+async function verifyTenantDoc(docId, tid) {
+  await sb.from('tenant_documents').update({ verified: true }).eq('id', docId);
+  D.tenantDocs = D.tenantDocs.map(d => String(d.id) === String(docId) ? { ...d, verified: true } : d);
+  toast('✓ Document verified');
   nav('tenant-detail', tid);
 }
 
