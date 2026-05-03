@@ -42,11 +42,6 @@ html,body{height:100%;font-family:var(--font);color:var(--txt);background:var(--
 .sb-badge{font-size:10px;font-weight:700;background:var(--red);color:#fff;padding:1px 6px;border-radius:100px;min-width:18px;text-align:center}
 .sb-divider{height:1px;background:rgba(255,255,255,0.07);margin:8px 14px}
 .sb-section{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,0.22);padding:10px 18px 4px}
-.sb-group-hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 16px 4px;cursor:pointer;user-select:none}
-.sb-group-hdr span:first-child{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,0.22)}
-.sb-chev{font-size:10px;color:rgba(255,255,255,0.2);transition:transform .2s}
-.sb-chev.closed{transform:rotate(-90deg)}
-.sb-group-body{overflow:hidden;transition:max-height .25s ease}
 .sb-item[data-page="assistant"]{color:rgba(0,200,150,0.75)}
 .sb-item[data-page="assistant"]:hover{color:var(--green);background:rgba(0,200,150,0.1)}
 .sb-item[data-page="assistant"].active{color:var(--green)}
@@ -83,7 +78,6 @@ html,body{height:100%;font-family:var(--font);color:var(--txt);background:var(--
 .mc-icon{width:30px;height:30px;border-radius:7px;background:var(--off);display:flex;align-items:center;justify-content:center;font-size:14px}
 .mc-val{font-size:26px;font-weight:600;color:var(--txt);line-height:1}
 .mc-sub{font-size:11px;color:var(--muted);margin-top:3px}
-.mc-trend{font-size:11px;font-weight:600;margin-top:5px;line-height:1}
 .g2{display:grid;grid-template-columns:1fr 320px;gap:18px;align-items:start}
 .panel{background:var(--white);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px}
 .panel:last-child{margin-bottom:0}
@@ -356,82 +350,53 @@ tr:hover td{background:rgba(246,248,251,.8)}
   </div>
 
   <nav class="sb-nav" id="main-nav">
+    <div class="sb-section">Main</div>
 
     <button class="sb-item active" data-page="dashboard">
       <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>
       <span class="sb-label">Dashboard</span>
     </button>
 
-    <!-- My Properties group -->
-    <div class="sb-group-hdr" onclick="toggleSbGroup('properties')">
-      <span>My Properties</span><span class="sb-chev" id="sbchev-properties">▾</span>
-    </div>
-    <div class="sb-group-body" id="sbgb-properties">
-      <button class="sb-item" data-page="properties">
-        <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 14V7L8 2l6 5v7"/><path d="M6 14v-4h4v4"/></svg>
-        <span class="sb-label">Properties</span>
-        <span id="nav-badge-properties" class="sb-badge" style="display:none"></span>
-      </button>
-      <button class="sb-item" data-page="tenants">
-        <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5"/></svg>
-        <span class="sb-label">Tenants</span>
-      </button>
-      <button class="sb-item" data-page="contractors">
-        <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.5 2.5a3 3 0 00-4 4L2 11a1.5 1.5 0 002 2l4.5-4.5a3 3 0 004-4l-2 2-1.5-1.5 2-2z"/></svg>
-        <span class="sb-label">Contractors</span>
-      </button>
-    </div>
+    <button class="sb-item" data-page="properties">
+      <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 14V7L8 2l6 5v7"/><path d="M6 14v-4h4v4"/></svg>
+      <span class="sb-label">Properties</span>
+      <span id="nav-badge-properties" class="sb-badge" style="display:none"></span>
+    </button>
 
-    <!-- Compliance group -->
-    <div class="sb-group-hdr" onclick="toggleSbGroup('compliance')">
-      <span>Compliance</span><span class="sb-chev" id="sbchev-compliance">▾</span>
-    </div>
-    <div class="sb-group-body" id="sbgb-compliance">
-      <button class="sb-item" data-page="compliance">
-        <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5L2 4v4c0 3.5 2.5 6 6 7 3.5-1 6-3.5 6-7V4L8 1.5z"/><path d="M5.5 8l2 2 3-3"/></svg>
-        <span class="sb-label">Compliance</span>
-        <span id="nav-badge-compliance" class="sb-badge" style="display:none"></span>
-      </button>
-    </div>
+    <button class="sb-item" data-page="compliance">
+      <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5L2 4v4c0 3.5 2.5 6 6 7 3.5-1 6-3.5 6-7V4L8 1.5z"/><path d="M5.5 8l2 2 3-3"/></svg>
+      <span class="sb-label">Compliance</span>
+      <span id="nav-badge-compliance" class="sb-badge" style="display:none"></span>
+    </button>
 
-    <!-- Maintenance standalone -->
     <button class="sb-item" data-page="maintenance">
       <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.5 2.5a3 3 0 00-4 4L2 11a1.5 1.5 0 002 2l4.5-4.5a3 3 0 004-4l-2 2-1.5-1.5 2-2z"/></svg>
       <span class="sb-label">Maintenance</span>
       <span id="nav-badge-maintenance" class="sb-badge" style="display:none"></span>
     </button>
 
-    <!-- Finance & Tax group -->
-    <div class="sb-group-hdr" onclick="toggleSbGroup('finance')">
-      <span>Finance &amp; Tax</span><span class="sb-chev" id="sbchev-finance">▾</span>
-    </div>
-    <div class="sb-group-body" id="sbgb-finance">
-      <button class="sb-item" data-page="financials">
-        <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12V4l4 3 3-4 3 3 2-2v8H2z"/></svg>
-        <span class="sb-label">Finance</span>
-      </button>
-      <button class="sb-item" data-page="mtd">
-        <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="3" width="13" height="10" rx="1.5"/><path d="M5 7h6M5 9.5h4"/><path d="M11.5 1.5v3M4.5 1.5v3"/></svg>
-        <span class="sb-label">MTD Tax</span>
-      </button>
-    </div>
+    <button class="sb-item" data-page="financials">
+      <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12V4l4 3 3-4 3 3 2-2v8H2z"/></svg>
+      <span class="sb-label">Finance</span>
+    </button>
 
-    <!-- Documents group -->
-    <div class="sb-group-hdr" onclick="toggleSbGroup('docs')">
-      <span>Documents</span><span class="sb-chev" id="sbchev-docs">▾</span>
-    </div>
-    <div class="sb-group-body" id="sbgb-docs">
-      <button class="sb-item" data-page="templates">
-        <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="1" width="9" height="12" rx="1.5"/><path d="M5 4h5M5 7h5M5 10h3"/><path d="M11 9l3 3-1.5 1.5L9 10.5"/></svg>
-        <span class="sb-label">Templates</span>
-      </button>
-      <button class="sb-item" data-page="doclibrary">
-        <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2h7l3 3v9H3z"/><path d="M10 2v3h3"/><path d="M6 7h5M6 9.5h5M6 12h3"/></svg>
-        <span class="sb-label">Document Library</span>
-      </button>
-    </div>
+    <button class="sb-item" data-page="mtd">
+      <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="3" width="13" height="10" rx="1.5"/><path d="M5 7h6M5 9.5h4"/><path d="M11.5 1.5v3M4.5 1.5v3"/></svg>
+      <span class="sb-label">MTD Tax</span>
+    </button>
+
+    <button class="sb-item" data-page="templates">
+      <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="1" width="9" height="12" rx="1.5"/><path d="M5 4h5M5 7h5M5 10h3"/><path d="M11 9l3 3-1.5 1.5L9 10.5"/></svg>
+      <span class="sb-label">Documents</span>
+    </button>
+
+    <button class="sb-item" data-page="contractors">
+      <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.5 2.5a3 3 0 00-4 4L2 11a1.5 1.5 0 002 2l4.5-4.5a3 3 0 004-4l-2 2-1.5-1.5 2-2z"/></svg>
+      <span class="sb-label">Contractors</span>
+    </button>
 
     <div class="sb-divider"></div>
+    <div class="sb-section">AI</div>
 
     <button class="sb-item" data-page="assistant">
       <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5c3.5 0 6 2 6 4.5 0 1.5-1 2.8-2.5 3.5L13 12l-3-1.5c-.6.1-1.3.2-2 .2-3.5 0-6-2-6-4.5S4.5 1.5 8 1.5z"/><path d="M5.5 6h5M5.5 8.5h3"/></svg>
@@ -478,7 +443,6 @@ tr:hover td{background:rgba(246,248,251,.8)}
 
 <!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 // ══════════════════════════════════════════════════════════════
 // RENTSAFE AI — CODE MAP (auto-generated, update each session)
@@ -619,7 +583,7 @@ let currentUser = null;
 // ── DATA STORE ──
 const D = {
   properties: [], tenants: [], certs: [], maintenance: [], rent: [], insurance: [],
-  emailLog: [], customTemplates: [], contractors: [], jobAssignments: [], tenantDocs: [],
+  emailLog: [], customTemplates: [], contractors: [], jobAssignments: [],
   chat: [{role:'ai', text:'Hello! I\'m your AI compliance assistant. Ask me anything about UK landlord law — Section 8, Renters Rights Act, Awaab\'s Law, deposits, or anything else.'}]
 };
 
@@ -740,7 +704,7 @@ async function logout() {
 
 // ── LOAD DATA ──
 async function loadData() {
-  const [p, t, c, m, r, i, el, ct, con, ja, td] = await Promise.all([
+  const [p, t, c, m, r, i, el, ct, con, ja] = await Promise.all([
     sb.from('properties').select('*').order('created_at', {ascending: false}),
     sb.from('tenants').select('*'),
     sb.from('certificates').select('*'),
@@ -751,7 +715,6 @@ async function loadData() {
     sb.from('custom_templates').select('*').order('created_at', {ascending: false}),
     sb.from('contractors').select('*').order('name', {ascending: true}),
     sb.from('job_assignments').select('*, tenant_maintenance(prop_id, category, submitted_at)'),
-    sb.from('tenant_documents').select('*').order('uploaded_at', {ascending: false}),
   ]);
 
   if (p.data?.length) {
@@ -792,7 +755,6 @@ async function loadData() {
   if (ct.data?.length) D.customTemplates = ct.data;
   if (con.data?.length) D.contractors = con.data;
   if (ja.data?.length) D.jobAssignments = ja.data;
-  if (td.data?.length) D.tenantDocs = td.data;
   await checkComplianceReminders();
 }
 
@@ -824,7 +786,6 @@ async function initApp() {
 
   try { await loadData(); } catch(e) { console.error('loadData error:', e); }
   updateNavBadges();
-  initSbGroups();
   try {
     nav('dashboard');
   } catch(err) {
@@ -3170,7 +3131,6 @@ function pgDashboard(){
     <button class="btn" onclick="moIssue()">Report issue</button>
   </div></div>
   <div class="content">
-    <div id="setup-banner-slot"></div>
     <div class="ph"><h1>Dashboard</h1><p>${acts.length} urgent, ${acts.filter(a=>a.b==='amber').length} due soon</p></div>
 
     ${(function(){
@@ -3211,63 +3171,10 @@ function pgDashboard(){
     })()}
 
     <div class="metrics">
-      ${(function(){
-        // ── Trend & colour computations ──
-        const _propCount = D.properties.length;
-        const _propColor = _propCount > 0 ? 'var(--green-dark)' : 'var(--muted)';
-
-        const _active = D.tenants.filter(t=>t.status==='Active').length;
-        const _vacancies = _propCount - _active;
-        const _occ = _propCount > 0 ? Math.round((_active/_propCount)*100) : 0;
-        const _tenantColor = _propCount===0 ? 'var(--muted)' : _vacancies===0 ? 'var(--green-dark)' : _occ>=50 ? 'var(--amber)' : 'var(--red)';
-        const _tenantTrend = _propCount===0 ? '' : _vacancies===0
-          ? `<span style="color:var(--green-dark)">↑ Full occupancy</span>`
-          : `<span style="color:var(--amber)">↓ ${_vacancies} vacant</span>`;
-
-        const _lateRent = D.rent.filter(r=>r.status==='Late').length;
-        const _dueRent  = D.rent.filter(r=>r.status==='Due').length;
-        const _rentColor = _lateRent>0 ? 'var(--red)' : tot>0 ? 'var(--green-dark)' : 'var(--muted)';
-        const _rentTrend = _lateRent>0
-          ? `<span style="color:var(--red)">↓ ${_lateRent} late</span>`
-          : _dueRent>0
-            ? `<span style="color:var(--amber)">— ${_dueRent} due</span>`
-            : _active>0 ? `<span style="color:var(--green-dark)">↑ All paid</span>` : '';
-
-        const _awaabOpen   = D.maintenance.filter(m=>m.awaab&&m.status!=='Resolved').length;
-        const _urgentOpen  = D.maintenance.filter(m=>m.priority==='Urgent'&&m.status!=='Resolved').length;
-        const _issueColor  = (_awaabOpen>0||_urgentOpen>0) ? 'var(--red)' : open>3 ? 'var(--red)' : open>0 ? 'var(--amber)' : 'var(--green-dark)';
-        const _issueTrend  = _awaabOpen>0
-          ? `<span style="color:var(--red)">↑ ${_awaabOpen} Awaab</span>`
-          : _urgentOpen>0
-            ? `<span style="color:var(--red)">↑ ${_urgentOpen} urgent</span>`
-            : open>0 ? `<span style="color:var(--amber)">— ${open} open</span>`
-                     : `<span style="color:var(--green-dark)">↑ All clear</span>`;
-
-        return `
-        <div class="mc" style="cursor:pointer" onclick="nav('properties')" title="View all properties">
-          <div class="mc-top"><span class="mc-label">Properties</span><div class="mc-icon">🏠</div></div>
-          <div class="mc-val" style="color:${_propColor}">${_propCount}</div>
-          <div class="mc-sub">Active</div>
-        </div>
-        <div class="mc" style="cursor:pointer" onclick="nav('tenants')" title="View all tenants">
-          <div class="mc-top"><span class="mc-label">Active tenants</span><div class="mc-icon">👤</div></div>
-          <div class="mc-val" style="color:${_tenantColor}">${_active}</div>
-          ${_tenantTrend?`<div class="mc-trend">${_tenantTrend}</div>`:''}
-          <div class="mc-sub">All active</div>
-        </div>
-        <div class="mc" style="cursor:pointer" onclick="nav('rent')" title="View rent records">
-          <div class="mc-top"><span class="mc-label">Monthly rent</span><div class="mc-icon">💷</div></div>
-          <div class="mc-val" style="color:${_rentColor}">£${tot.toLocaleString()}</div>
-          ${_rentTrend?`<div class="mc-trend">${_rentTrend}</div>`:''}
-          <div class="mc-sub">Total portfolio</div>
-        </div>
-        <div class="mc" style="cursor:pointer" onclick="nav('maintenance')" title="View maintenance">
-          <div class="mc-top"><span class="mc-label">Open issues</span><div class="mc-icon">🔧</div></div>
-          <div class="mc-val" style="color:${_issueColor}">${open}</div>
-          <div class="mc-trend">${_issueTrend}</div>
-          <div class="mc-sub">${_awaabOpen} Awaab flagged</div>
-        </div>`;
-      })()}
+      <div class="mc" style="cursor:pointer" onclick="nav('properties')" title="View all properties"><div class="mc-top"><span class="mc-label">Properties</span><div class="mc-icon">🏠</div></div><div class="mc-val">${D.properties.length}</div><div class="mc-sub">Active</div></div>
+      <div class="mc" style="cursor:pointer" onclick="nav('tenants')" title="View all tenants"><div class="mc-top"><span class="mc-label">Active tenants</span><div class="mc-icon">👤</div></div><div class="mc-val">${D.tenants.filter(t=>t.status==='Active').length}</div><div class="mc-sub">All active</div></div>
+      <div class="mc" style="cursor:pointer" onclick="nav('rent')" title="View rent records"><div class="mc-top"><span class="mc-label">Monthly rent</span><div class="mc-icon">💷</div></div><div class="mc-val">£${tot.toLocaleString()}</div><div class="mc-sub">Total portfolio</div></div>
+      <div class="mc" style="cursor:pointer" onclick="nav('maintenance')" title="View maintenance"><div class="mc-top"><span class="mc-label">Open issues</span><div class="mc-icon">🔧</div></div><div class="mc-val">${open}</div><div class="mc-sub">${D.maintenance.filter(m=>m.awaab&&m.status!=='Resolved').length} Awaab flagged</div></div>
     </div>
     <div class="g2">
       <div class="panel">
@@ -3283,99 +3190,30 @@ function pgDashboard(){
 }
 
 // ── PAGE: PROPERTIES ──
-function pgToggleGrp(id){
-  var b=document.getElementById('pg-body-'+id);
-  var a=document.getElementById('pg-arr-'+id);
-  if(!b)return;
-  var open=b.style.display!=='none';
-  b.style.display=open?'none':'block';
-  if(a)a.style.transform=open?'rotate(-90deg)':'rotate(0deg)';
-}
 function pgProperties(){
-  const allProps=D.properties;
-  const q=(_propSearch||'').toLowerCase().trim();
-  const filtered=q?allProps.filter(p=>{
-    const t=D.tenants.find(x=>String(x.prop_id)===String(p.id)&&x.status==='Active');
-    return (p.address||'').toLowerCase().includes(q)||(p.city||'').toLowerCase().includes(q)||(p.postcode||'').toLowerCase().includes(q)||(t&&(t.name||'').toLowerCase().includes(q));
-  }):allProps;
-  const totalRent=allProps.reduce((s,p)=>s+(p.rent||0),0);
-  const occupied=allProps.filter(p=>D.tenants.some(t=>String(t.prop_id)===String(p.id)&&t.status==='Active')).length;
-  const occupancyPct=allProps.length?Math.round(occupied/allProps.length*100):0;
-  const occColor=occupancyPct===100?'#00C896':occupancyPct>=50?'#D97706':'#E53E3E';
-  const attention=[],active=[],archived=[];
-  filtered.forEach(p=>{
-    if(p.status==='Archived'){archived.push(p);return;}
-    const hasTenant=D.tenants.some(t=>String(t.prop_id)===String(p.id)&&t.status==='Active');
-    const rag=calcRAG(p.id);
-    if(!hasTenant||rag.rag==='red')attention.push(p); else active.push(p);
-  });
-  function propRow(p){
-    const t=D.tenants.find(x=>String(x.prop_id)===String(p.id)&&x.status==='Active');
-    const rag=calcRAG(p.id);
-    const ragCol=rag.rag==='green'?'#00C896':rag.rag==='amber'?'#D97706':'#E53E3E';
-    const openIssues=D.maintenance.filter(m=>String(m.prop_id)===String(p.id)&&m.status!=='Resolved').length;
-    const awaab=D.maintenance.some(m=>String(m.prop_id)===String(p.id)&&m.awaab&&m.status!=='Resolved');
-    return '<div style="display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s" onclick="nav(\'prop-detail\',\''+p.id+'\')" onmouseenter="this.style.background=\'var(--off)\'" onmouseleave="this.style.background=\'transparent\'">'
-      +'<div style="width:9px;height:9px;border-radius:50%;background:'+ragCol+';flex-shrink:0" title="'+rag.label+'"></div>'
-      +'<div style="flex:2;min-width:0">'
-        +'<div style="font-size:13px;font-weight:600;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+p.address+'</div>'
-        +'<div style="font-size:11px;color:var(--muted)">'+(p.city||'')+(p.postcode?'· '+p.postcode:'')+'</div>'
-      +'</div>'
-      +'<div style="flex:1.5;min-width:0">'
-        +(t?'<div style="font-size:12px;font-weight:500;color:var(--txt)">'+t.name+'</div><div style="font-size:11px;color:var(--muted)">Active tenant</div>'
-           :'<span style="font-size:11px;font-weight:600;color:#E53E3E;background:rgba(229,62,62,0.08);padding:2px 8px;border-radius:100px">Vacant</span>')
-      +'</div>'
-      +'<div style="flex:1;text-align:right;font-size:13px;font-weight:600;color:var(--green-dark)">'+(p.rent?'£'+(p.rent).toLocaleString()+'/mo':'&#8212;')+'</div>'
-      +'<div style="flex:1;display:flex;gap:5px;flex-wrap:wrap;justify-content:center">'
-        +(p.beds?'<span style="font-size:10px;color:var(--muted);background:var(--off);border:1px solid var(--border);padding:1px 7px;border-radius:100px">'+p.beds+' bed</span>':'')
-        +(p.type?'<span style="font-size:10px;color:var(--muted);background:var(--off);border:1px solid var(--border);padding:1px 7px;border-radius:100px">'+p.type+'</span>':'')
-      +'</div>'
-      +'<div style="flex:0.7;text-align:center">'
-        +(openIssues>0?'<span style="font-size:11px;font-weight:600;color:'+(awaab?'#E53E3E':'#D97706')+'">'+(awaab?'⚠ ':'')+openIssues+' issue'+(openIssues!==1?'s':'')+' open</span>'
-                     :'<span style="font-size:11px;color:var(--muted)">&#8212;</span>')
-      +'</div>'
-      +'<div style="display:flex;gap:6px;flex-shrink:0" onclick="event.stopPropagation()">'
-        +'<button class="btn btn-sm" style="background:var(--green);color:var(--navy);border-color:var(--green);font-weight:600;font-size:11px" onclick="moPropertySetup(\''+p.id+'\')">🚀 Setup</button>'
-        +'<button class="btn btn-sm" style="font-size:13px;padding:4px 10px" onclick="nav(\'prop-detail\',\''+p.id+'\')">&#8250;</button>'
-      +'</div>'
-    +'</div>';
-  }
-  function groupBlock(id,icon,label,items,defaultOpen){
-    if(!items.length)return '';
-    return '<div class="panel" style="margin-bottom:12px;overflow:hidden">'
-      +'<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer;background:var(--off);user-select:none" data-gid="'+id+'" onclick="pgToggleGrp(this.dataset.gid)">'
-      +'<div style="display:flex;align-items:center;gap:10px">'
-        +'<span style="font-size:14px">'+icon+'</span>'
-        +'<span style="font-size:13px;font-weight:700;color:var(--txt)">'+label+'</span>'
-        +'<span style="font-size:11px;font-weight:700;background:var(--navy);color:#fff;padding:1px 8px;border-radius:100px">'+items.length+'</span>'
-      +'</div>'
-      +'<span id="pg-arr-'+id+'" style="color:var(--muted);font-size:12px;transition:transform .2s;transform:'+(defaultOpen?'rotate(0deg)':'rotate(-90deg)')+'">&#9662;</span>'
-      +'</div>'
-      +'<div id="pg-body-'+id+'" style="display:'+(defaultOpen?'block':'none')+'">'+items.map(propRow).join('')+'</div>'
-    +'</div>';
-  }
-  if(!allProps.length)return '<div class="topbar"><span class="tb-title">Properties</span><div class="tb-right"><button class="btn btn-navy" onclick="moAddProp()">+ Add property</button></div></div><div class="content"><div class="empty"><div class="empty-ic">🏠</div><div class="empty-t">No properties yet</div><div class="empty-s">Add your first property to get started</div><div style="margin-top:16px"><button class="btn btn-navy" onclick="moAddProp()">+ Add property</button></div></div></div>';
-  const noResults=filtered.length===0&&q;
-  const searchBar='<div style="position:relative">'
-    +'<input id="prop-search" type="text" placeholder="Search address, tenant…" value="'+(_propSearch||'').replace(/"/g,'&quot;')+'" oninput="_propSearch=this.value;nav(\'properties\')" style="padding:7px 12px 7px 32px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:var(--font);color:var(--txt);background:var(--white);width:220px;outline:none" onfocus="this.style.borderColor=\'var(--navy)\'" onblur="this.style.borderColor=\'var(--border)\'">'
-    +'<span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;pointer-events:none">🔍</span>'
-    +(q?'<button onclick="_propSearch=\'\';nav(\'properties\')" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px;padding:0">✕</button>':'')
-  +'</div>';
-  return '<div class="topbar"><span class="tb-title">Properties</span><div class="tb-right"><button class="btn btn-navy" onclick="moAddProp()">+ Add property</button></div></div>'
-  +'<div class="content">'
-  +'<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px">'
-    +'<div>'
-      +'<h1 style="font-size:20px;font-weight:700;color:var(--navy);margin:0 0 4px">Properties</h1>'
-      +'<p style="font-size:12px;color:var(--muted);margin:0">'+allProps.length+' propert'+(allProps.length!==1?'ies':'y')+' · <span style="color:'+occColor+';font-weight:600">'+occupancyPct+'% occupied</span> · <span style="color:var(--green-dark);font-weight:600">£'+totalRent.toLocaleString()+'/mo</span></p>'
-    +'</div>'
-    +searchBar
-  +'</div>'
-  +(noResults
-    ?'<div class="empty"><div class="empty-ic">🔍</div><div class="empty-t">No results for &ldquo;'+q+'&rdquo;</div><div class="empty-s">Try a different address, city or tenant name</div></div>'
-    :groupBlock('attention','⚠️','Needs attention',attention,true)+groupBlock('active','✅','Active',active,true)+groupBlock('archived','📦','Archived',archived,false))
-  +'</div>';
-}
+  return`<div class="topbar"><span class="tb-title">Properties</span><div class="tb-right"><button class="btn btn-navy" onclick="moAddProp()">+ Add property</button></div></div>
 
+  <div class="content">
+    <div class="ph"><h1>Properties</h1><p>Manage your portfolio</p></div>
+    ${D.properties.length?`<div class="prop-grid">${D.properties.map(p=>{const t=D.tenants.find(x=>String(x.prop_id)===String(p.id));return`<div class="pc" style="cursor:pointer" onclick="nav('prop-detail','${p.id}')">
+        <div class="pc-head">
+          <div><div class="pc-addr">${p.address}</div><div class="pc-city">${p.city}, ${p.postcode}</div><div style="font-size:12px;color:var(--muted);margin-top:3px">${t?t.name:'No tenant'}</div></div>
+          <button style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px" onclick="event.stopPropagation()">⋯</button>
+        </div>
+        <div class="pc-info">
+          ${t?B('Active'):B('Vacant')}
+          ${p.beds?`<span class="pc-tag">${p.beds} bed</span>`:''}
+          ${p.type?`<span class="pc-tag">${p.type}</span>`:''}
+          ${t?`<span style="font-size:13px;font-weight:600;color:var(--txt);margin-left:auto">£${(p.rent||0).toLocaleString()}/mo</span>`:''}
+        </div>
+        <div class="pc-foot">
+          <button class="btn btn-sm" style="flex:1;background:var(--green);color:var(--navy);border-color:var(--green);font-weight:600" onclick="event.stopPropagation();moPropertySetup('${p.id}')">🚀 Setup</button>
+          <button class="btn btn-sm" style="flex:1" onclick="event.stopPropagation();nav('compliance')">Compliance</button>
+          <button class="btn btn-sm" style="flex:1" onclick="event.stopPropagation();nav('maintenance')">Maintenance</button>
+        </div>
+      </div>`}).join('')}</div>`:'<div class="empty"><div class="empty-ic">🏠</div><div class="empty-t">No properties yet</div><div class="empty-s">Click + Add property to get started</div></div>'}
+  </div>`;
+}
 
 // ── PAGE: PROPERTY DETAIL ──
 
@@ -3825,77 +3663,6 @@ function pdTabContent(pid, tab) {
     const rag = calcRAG(pid);
     const ragCol = rag.rag==='red'?'#E53E3E':rag.rag==='amber'?'#D97706':'#00C896';
     const ragBg = rag.rag==='red'?'#fff5f5':rag.rag==='amber'?'#fffbeb':'#f0fdf9';
-    const _cgToday = new Date(); _cgToday.setHours(0,0,0,0);
-
-    const _cgGetSt = label => {
-      const lo = label.toLowerCase();
-      const cert = pc.find(c => {
-        const t = (c.type||'').toLowerCase();
-        if (lo.includes('gas safety')) return t.includes('gas');
-        if (lo.includes('eicr')||lo.includes('electrical installation')) return t.includes('eicr')||t.includes('electrical installation');
-        if (lo.includes('epc')||lo.includes('energy performance')) return t.includes('epc')||t.includes('energy performance');
-        if (lo.includes('how to rent')) return t.includes('how to rent');
-        if (lo.includes('deposit protection')) return t.includes('deposit');
-        if (lo.includes('written statement')) return t.includes('written statement')||t.includes('tenancy agreement');
-        if (lo.includes('right to rent')) return t.includes('right to rent');
-        if (lo.includes('smoke alarm')) return t.includes('smoke alarm');
-        if (lo.includes('co alarm')) return t.includes('co alarm');
-        if (lo.includes('legionella')) return t.includes('legionella');
-        if (lo.includes('fire risk')) return t.includes('fire risk');
-        if (lo.includes('asbestos')) return t.includes('asbestos');
-        if (lo.includes('pat testing')) return t.includes('pat');
-        if (lo.includes('hmo licence')) return t.includes('hmo');
-        if (lo.includes('selective licence')) return t.includes('selective');
-        if (lo.includes('planning permission')) return t.includes('planning')||t.includes('article 4');
-        if (lo.includes('inventory')) return t.includes('inventory');
-        if (lo.includes('buildings insurance')) return t.includes('buildings insurance');
-        if (lo.includes('contents insurance')) return t.includes('contents insurance');
-        if (lo.includes('rent guarantee')) return t.includes('rent guarantee');
-        if (lo.includes('section 48')) return t.includes('section 48')||t.includes('s48');
-        return t.includes(lo.substring(0,8));
-      });
-      if (!cert) return { lbl:'MISSING', bg:'#E4EAF1', col:'#7A8FA6', bdr:'transparent', days:null, overdue:true };
-      if (cert.expiry) {
-        const days = Math.round((new Date(cert.expiry)-_cgToday)/864e5);
-        if (days < 0)   return { lbl:'EXPIRED',      bg:'rgba(229,62,62,0.1)',   col:'#E53E3E', bdr:'rgba(229,62,62,0.25)',  days, overdue:true  };
-        if (days <= 14) return { lbl:'URGENT',        bg:'rgba(217,119,6,0.1)',   col:'#D97706', bdr:'rgba(217,119,6,0.25)',  days, overdue:false };
-        if (days <= 60) return { lbl:'EXPIRING SOON', bg:'rgba(59,111,232,0.08)', col:'#3B6FE8', bdr:'rgba(59,111,232,0.2)', days, overdue:false };
-        return               { lbl:'VALID',           bg:'rgba(0,200,150,0.08)',  col:'#00A87A', bdr:'rgba(0,200,150,0.2)',  days, overdue:false };
-      }
-      return { lbl:'NO DATE SET', bg:'rgba(229,62,62,0.07)', col:'#E53E3E', bdr:'rgba(229,62,62,0.2)', days:null, overdue:true };
-    };
-
-    const _cgGroup = (gid, icon, title, types, addBtn) => {
-      const items = types.map(label => ({ label, st: _cgGetSt(label) }));
-      items.sort((a,b) => (b.st.overdue?1:0)-(a.st.overdue?1:0));
-      const overdueCount = items.filter(i=>i.st.overdue).length;
-      const rows = items.map(({label,st}) => {
-        const dayStr = st.days!==null ? (st.days<0?`${Math.abs(st.days)}d overdue`:`${st.days}d left`) : '';
-        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 11px;background:${st.bg};border:1px solid ${st.bdr};border-radius:7px;gap:8px">
-          <span style="font-size:12px;font-weight:500;color:var(--txt);flex:1;min-width:0">${label}</span>
-          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-            ${st.overdue?`<span style="font-size:10px;font-weight:700;color:#fff;background:#E53E3E;padding:2px 7px;border-radius:100px">Action required</span>`:''}
-            ${dayStr?`<span style="font-size:10px;color:${st.col}">${dayStr}</span>`:''}
-            <span style="font-size:10px;font-weight:700;color:${st.col};letter-spacing:.3px;white-space:nowrap">${st.lbl}</span>
-          </div>
-        </div>`;
-      }).join('');
-      const hdrBadge = overdueCount ? `<span style="font-size:10px;font-weight:700;color:#fff;background:#E53E3E;padding:2px 7px;border-radius:100px;margin-left:8px">${overdueCount} overdue</span>` : '';
-      return `<div class="panel" style="margin-bottom:16px">
-        <div class="ph2" style="cursor:pointer;user-select:none" onclick="(function(el){var b=document.getElementById('cg-${gid}');var open=b.style.display!=='none';b.style.display=open?'none':'block';el.querySelector('.cg-chev').textContent=open?'▸':'▾';})(this)">
-          <div style="display:flex;align-items:center;gap:4px"><h2>${icon} ${title}</h2>${hdrBadge}</div>
-          <div style="display:flex;align-items:center;gap:8px">${addBtn||''}<span class="cg-chev" style="font-size:13px;color:var(--muted)">▾</span></div>
-        </div>
-        <div id="cg-${gid}">
-          <div style="padding:12px 18px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">${rows}</div></div>
-        </div>
-      </div>`;
-    };
-
-    const _GD = ['Gas Safety Certificate','EICR (Electrical Installation)','EPC (Energy Performance)','Smoke Alarm Test Record','CO Alarm Check Record','Legionella Risk Assessment','Fire Risk Assessment','Asbestos Survey','PAT Testing Certificate','HMO Licence','Selective Licence','Planning Permission / Article 4','Buildings Insurance Schedule','Contents Insurance Schedule','Rent Guarantee Insurance'];
-    const _GN = ['Deposit Protection Certificate','Right to Rent Record','Section 48 Notice (Landlord Address)'];
-    const _GS = ['How to Rent Guide','Written Statement of Terms','Inventory / Schedule of Condition'];
-
     return `
       <div style="background:${ragBg};border:1px solid ${ragCol};border-radius:10px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:14px">
         <div style="font-size:26px">${rag.rag==='red'?'⚠️':rag.rag==='amber'?'⚡':'✅'}</div>
@@ -3909,9 +3676,26 @@ function pdTabContent(pid, tab) {
         </div>
       </div>
 
-      ${_cgGroup(`${pid}-docs`,'📄','Documents & Certificates',_GD,`<button class="btn btn-sm btn-navy" onclick="event.stopPropagation();moCert('${pid}')">+ Add certificate</button>`)}
-      ${_cgGroup(`${pid}-notices`,'📋','Tenancy Notices',_GN,'')}
-      ${_cgGroup(`${pid}-starter`,'🚀','Starter Kit',_GS,'')}
+      <div class="panel" style="margin-bottom:16px">
+        <div class="ph2"><div><h2>📄 Documents & certificates</h2></div><button class="btn btn-sm btn-navy" onclick="moCert('${pid}')">+ Add certificate</button></div>
+        ${pc.length
+          ? `<div class="tw"><table><thead><tr><th>Document</th><th>Status</th><th>Expiry</th><th>Engineer</th><th>Served</th><th>File</th></tr></thead>
+              <tbody>${pc.map(c=>`<tr>
+                <td class="td-bold">${c.type}</td>
+                <td>${B(c.status)}</td>
+                <td>${FMT(c.expiry)}</td>
+                <td style="font-size:12px;color:var(--muted)">${c.engineer||'—'}</td>
+                <td>${c.served?`<button onclick="markServed(${c.id})" style="background:var(--green-bg);border:1px solid var(--green);color:var(--green-dark);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font)">✓ Served</button>`:`<button onclick="markServed(${c.id})" style="background:var(--off);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;font-family:var(--font)">Mark served</button>`}</td>
+                <td>${(c.file||c.has_file)?'<span class="badge b-green">✓</span>':`<label style="cursor:pointer;font-size:11px;font-weight:600;color:var(--blue);padding:3px 8px;border:1px solid var(--blue);border-radius:6px;background:var(--blue-bg)">Upload<input type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="uploadScanCert(${c.id},this)"></label>`}</td>
+              </tr>`).join('')}</tbody>
+            </table></div>`
+          : `<div style="padding:14px 18px;font-size:13px;color:var(--muted)">No certificates yet — <a href="#" onclick="moCert('${pid}')" style="color:var(--navy);font-weight:500">add one</a></div>`}
+      </div>
+
+      <div class="panel" style="margin-bottom:16px">
+        <div class="ph2"><div><h2>📊 Certificate status</h2><p>All 6 required certificates at a glance</p></div></div>
+        <div style="padding:12px 18px">${buildCertStatusGrid(pid)}</div>
+      </div>
 
       <div class="panel">
         <div class="ph2"><div><h2>🔍 Inspections</h2></div><button class="btn btn-sm" onclick="moInspection('${pid}')">+ Log inspection</button></div>
@@ -4170,112 +3954,21 @@ function pgCompliance(){
     <div style="font-size:12px;color:var(--muted)">No certificates expiring in the next 60 days</div>
   </div>`;
 
-  // Property breakdown — 3 collapsible groups per property
-  const _pgGD = ['Gas Safety Certificate','EICR (Electrical Installation)','EPC (Energy Performance)','Smoke Alarm Test Record','CO Alarm Check Record','Legionella Risk Assessment','Fire Risk Assessment','Asbestos Survey','PAT Testing Certificate','HMO Licence','Selective Licence','Planning Permission / Article 4','Buildings Insurance Schedule','Contents Insurance Schedule','Rent Guarantee Insurance'];
-  const _pgGN = ['RRA Information Sheet 2026','Deposit Protection Certificate','Prescribed Information (Deposit)','Right to Rent Record','Section 48 Notice (Landlord Address)','Section 13 Rent Increase Notice','Pet Policy / Addendum'];
-  const _pgGS = ['How to Rent Guide','Written Statement of Terms','Inventory / Schedule of Condition'];
-
-  const _pgGetSt = (pc, label) => {
-    const lo = label.toLowerCase();
-    const cert = pc.find(c => {
-      const t = (c.type||'').toLowerCase();
-      if (lo.includes('gas safety')) return t.includes('gas');
-      if (lo.includes('eicr')||lo.includes('electrical installation')) return t.includes('eicr')||t.includes('electrical installation');
-      if (lo.includes('epc')||lo.includes('energy performance')) return t.includes('epc')||t.includes('energy performance');
-      if (lo.includes('how to rent')) return t.includes('how to rent');
-      if (lo.includes('deposit protection')) return t.includes('deposit');
-      if (lo.includes('written statement')) return t.includes('written statement')||t.includes('tenancy agreement');
-      if (lo.includes('right to rent')) return t.includes('right to rent');
-      if (lo.includes('smoke alarm')) return t.includes('smoke alarm');
-      if (lo.includes('co alarm')) return t.includes('co alarm');
-      if (lo.includes('legionella')) return t.includes('legionella');
-      if (lo.includes('fire risk')) return t.includes('fire risk');
-      if (lo.includes('asbestos')) return t.includes('asbestos');
-      if (lo.includes('pat testing')) return t.includes('pat');
-      if (lo.includes('hmo licence')) return t.includes('hmo');
-      if (lo.includes('selective licence')) return t.includes('selective');
-      if (lo.includes('planning permission')) return t.includes('planning')||t.includes('article 4');
-      if (lo.includes('inventory')) return t.includes('inventory');
-      if (lo.includes('buildings insurance')) return t.includes('buildings insurance');
-      if (lo.includes('contents insurance')) return t.includes('contents insurance');
-      if (lo.includes('rent guarantee')) return t.includes('rent guarantee');
-      if (lo.includes('section 48')) return t.includes('section 48')||t.includes('s48');
-      return t.includes(lo.substring(0,8));
-    });
-    if (!cert) return { lbl:'MISSING', bg:'#E4EAF1', col:'#7A8FA6', bdr:'transparent', days:null, overdue:true };
-    if (cert.expiry) {
-      const days = Math.round((new Date(cert.expiry)-today)/864e5);
-      if (days < 0)   return { lbl:'EXPIRED',      bg:'rgba(229,62,62,0.1)',   col:'#E53E3E', bdr:'rgba(229,62,62,0.25)',  days, overdue:true  };
-      if (days <= 14) return { lbl:'URGENT',        bg:'rgba(217,119,6,0.1)',   col:'#D97706', bdr:'rgba(217,119,6,0.25)',  days, overdue:false };
-      if (days <= 60) return { lbl:'EXPIRING SOON', bg:'rgba(59,111,232,0.08)', col:'#3B6FE8', bdr:'rgba(59,111,232,0.2)', days, overdue:false };
-      return               { lbl:'VALID',           bg:'rgba(0,200,150,0.08)',  col:'#00A87A', bdr:'rgba(0,200,150,0.2)',  days, overdue:false };
-    }
-    return { lbl:'NO DATE SET', bg:'rgba(229,62,62,0.07)', col:'#E53E3E', bdr:'rgba(229,62,62,0.2)', days:null, overdue:true };
-  };
-
-  const _pgGroup = (gid, pc, icon, title, types, addBtn, expanded=false) => {
-    const items = types.map(label => ({ label, st: _pgGetSt(pc, label) }));
-    items.sort((a,b) => (b.st.overdue?1:0)-(a.st.overdue?1:0));
-    const overdueCount = items.filter(i=>i.st.overdue).length;
-    const rows = items.map(({label,st}) => {
-      const dayStr = st.days!==null ? (st.days<0?`${Math.abs(st.days)}d overdue`:`${st.days}d left`) : '';
-      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 11px;background:${st.bg};border:1px solid ${st.bdr};border-radius:7px;gap:8px">
-        <span style="font-size:12px;font-weight:500;color:var(--txt);flex:1;min-width:0">${label}</span>
-        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-          ${st.overdue?`<span style="font-size:10px;font-weight:700;color:#fff;background:#E53E3E;padding:2px 7px;border-radius:100px">Action required</span>`:''}
-          ${dayStr?`<span style="font-size:10px;color:${st.col}">${dayStr}</span>`:''}
-          <span style="font-size:10px;font-weight:700;color:${st.col};letter-spacing:.3px;white-space:nowrap">${st.lbl}</span>
+  // Property cert grid cards
+  const propCards = D.properties.map(p => `
+    <div class="panel" style="margin-bottom:12px">
+      <div class="ph2" style="cursor:pointer" onclick="nav('prop-detail','${p.id}');setTimeout(function(){pdSetTab('${p.id}','compliance')},100)">
+        <div>
+          <h2 style="margin:0;font-size:14px">${p.address}, ${p.city}</h2>
+          <p style="margin:2px 0 0;font-size:11px">Click to manage certificates</p>
         </div>
-      </div>`;
-    }).join('');
-    const hdrBadge = overdueCount
-      ? `<span style="font-size:10px;font-weight:700;color:#fff;background:#E53E3E;padding:2px 7px;border-radius:100px;margin-left:8px">${overdueCount} overdue</span>`
-      : `<span style="font-size:10px;font-weight:700;color:#fff;background:#00A87A;padding:2px 7px;border-radius:100px;margin-left:8px">All good</span>`;
-    return `<div class="panel" style="margin-bottom:8px">
-      <div class="ph2" style="cursor:pointer;user-select:none" onclick="(function(el){var b=document.getElementById('cg-${gid}');var open=b.style.display!=='none';b.style.display=open?'none':'block';el.querySelector('.cg-chev').textContent=open?'▸':'▾';})(this)">
-        <div style="display:flex;align-items:center;gap:4px"><h2>${icon} ${title}</h2>${hdrBadge}</div>
-        <div style="display:flex;align-items:center;gap:8px">${addBtn||''}<span class="cg-chev" style="font-size:13px;color:var(--muted)">${expanded?'▾':'▸'}</span></div>
-      </div>
-      <div id="cg-${gid}" style="${expanded?'':'display:none'}">
-        <div style="padding:12px 18px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">${rows}</div></div>
-      </div>
-    </div>`;
-  };
-
-  // Step 1 — property overview cards
-  const propOverview = D.properties.map(p => {
-    const pc = CF(p.id);
-    const allItems = [..._pgGD,..._pgGN,..._pgGS].map(label => _pgGetSt(pc, label));
-    const totalItems = allItems.length;
-    const overdueItems = allItems.filter(i=>i.overdue).length;
-    const pScore = totalItems ? Math.round(((totalItems-overdueItems)/totalItems)*100) : 0;
-    const pCol = pScore>=80?'#00C896':pScore>=50?'#D97706':'#E53E3E';
-    const pr=22,pcx=28,pcy=28,pCirc=2*Math.PI*pr;
-    const pDash=(pCirc-(pScore/100)*pCirc).toFixed(2);
-    const miniGauge=`<svg width="56" height="56" viewBox="0 0 56 56"><circle cx="${pcx}" cy="${pcy}" r="${pr}" fill="none" stroke="rgba(0,0,0,0.07)" stroke-width="5"/><circle cx="${pcx}" cy="${pcy}" r="${pr}" fill="none" stroke="${pCol}" stroke-width="5" stroke-dasharray="${pCirc.toFixed(2)}" stroke-dashoffset="${pDash}" stroke-linecap="round" transform="rotate(-90 ${pcx} ${pcy})"/><text x="${pcx}" y="${pcy+4}" text-anchor="middle" fill="${pCol}" font-size="10" font-weight="700" font-family="DM Sans,sans-serif">${pScore}%</text></svg>`;
-    return `<div class="panel" style="cursor:pointer;margin-bottom:10px;transition:box-shadow .15s" onclick="window._compPropId='${p.id}';nav('compliance')" onmouseenter="this.style.boxShadow='0 2px 12px rgba(0,0,0,0.08)'" onmouseleave="this.style.boxShadow=''">
-      <div style="padding:14px 18px;display:flex;align-items:center;gap:14px">
-        ${miniGauge}
-        <div style="flex:1">
-          <div style="font-size:14px;font-weight:700;color:var(--txt)">${p.address}${p.city?', '+p.city:''}</div>
-          <div style="font-size:12px;margin-top:3px;color:${overdueItems?'var(--red)':'var(--green-dark)'}">${overdueItems?overdueItems+' item'+(overdueItems!==1?'s':'')+' need attention':'All items compliant'}</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="btn btn-sm" onclick="event.stopPropagation();moCert('${p.id}')">+ Add cert</button>
+          <span style="color:var(--muted);font-size:18px;line-height:1">→</span>
         </div>
-        <span style="font-size:18px;color:var(--muted)">›</span>
       </div>
-    </div>`;
-  }).join('');
-
-  // Step 2 — detail view for selected property
-  const _selPid = window._compPropId || null;
-  const _selProp = _selPid ? P(_selPid) : null;
-  const _selPc = _selProp ? CF(_selPid) : [];
-  const propDetail = _selProp ? `
-    <button class="btn btn-sm" onclick="window._compPropId=null;nav('compliance')" style="margin-bottom:16px">← All properties</button>
-    <div style="font-size:16px;font-weight:700;color:var(--txt);margin-bottom:16px">${_selProp.address}${_selProp.city?', '+_selProp.city:''}</div>
-    ${_pgGroup('det-'+_selPid+'-docs',_selPc,'📄','Documents & Certificates',_pgGD,`<button class="btn btn-sm btn-navy" onclick="event.stopPropagation();moCert('${_selPid}')">+ Add</button>`,true)}
-    ${_pgGroup('det-'+_selPid+'-notices',_selPc,'📋','Tenancy Notices',_pgGN,'',true)}
-    ${_pgGroup('det-'+_selPid+'-starter',_selPc,'🚀','Starter Kit',_pgGS,'',true)}
-  ` : '';
+      <div style="padding:12px 18px">${buildCertStatusGrid(p.id)}</div>
+    </div>`).join('');
 
   return `<div class="topbar"><span class="tb-title">Compliance</span><div class="tb-right">
     <button class="btn btn-navy" onclick="moBulkScan()">✦ Bulk scan</button>
@@ -4330,13 +4023,10 @@ function pgCompliance(){
       ${actionHtml}
     </div>
 
-    <!-- Property breakdown drill-down -->
+    <!-- Property breakdown cert grid -->
     ${D.properties.length ? `<div>
-      <div style="margin-bottom:14px">
-        <h2 style="font-size:15px;font-weight:700;margin:0">Property breakdown</h2>
-        <p style="font-size:12px;color:var(--muted);margin:3px 0 0">${_selProp?(_selProp.address+(_selProp.city?', '+_selProp.city:'')):'Select a property to view details'}</p>
-      </div>
-      ${_selProp ? propDetail : propOverview}
+      <div style="margin-bottom:14px"><h2 style="font-size:15px;font-weight:700;margin:0">Property breakdown</h2><p style="font-size:12px;color:var(--muted);margin:3px 0 0">Certificate status across all properties</p></div>
+      ${propCards}
     </div>` : ''}
 
     `}
@@ -4778,605 +4468,17 @@ function pgTenants(){
     <div class="ph"><h1>Tenants</h1><p>${D.tenants.filter(t=>t.status==='Active').length} active tenant${D.tenants.filter(t=>t.status==='Active').length!==1?'s':''} · Click any row to view details</p></div>
     ${D.tenants.filter(t=>t.status==='Active').length?`<div class="panel"><div class="tw"><table>
       <thead><tr><th>Name</th><th>Property</th><th>Email</th><th>Start</th><th>End</th><th>Deposit</th><th>Status</th></tr></thead>
-      <tbody>${D.tenants.map(t=>{const p=P(t.prop_id)||{address:'—'};return`<tr style="cursor:pointer" onclick="nav('tenant-detail','${t.id}')">
+      <tbody>${D.tenants.map(t=>{const p=P(t.prop_id)||{address:'—'};return`<tr style="cursor:pointer" onclick="moTenantDetail('${t.id}')">
         <td><div style="display:flex;align-items:center;gap:10px"><div class="t-av">${INI(t.name)}</div><div><div class="td-bold">${t.name}</div><div style="font-size:11px;color:var(--muted)">${t.phone||'—'}</div></div></div></td>
         <td>${p.address}</td><td style="font-size:12px;color:var(--muted)">${t.email||'—'}</td>
         <td>${FMS(t.start||t.start_date)}</td><td>${FMS(t.end||t.end_date)}</td>
         <td>${t.scheme?B('Protected'):'<span style="color:var(--muted);font-size:12px">Not set</span>'}</td><td>${B(t.status)}</td>
       </tr>`}).join('')}</tbody>
-    </table></div></div>`:'<div class="empty"><div class="empty-ic">👤</div><div class="empty-t">No tenants yet</div><div class="empty-s">Add your first tenant to get started</div><div style="margin-top:16px"><button class="btn btn-navy" onclick="moTenant()">+ Add tenant</button></div></div>'}
+    </table></div></div>`:'<div class="empty"><div class="empty-ic">👤</div><div class="empty-t">No tenants yet</div><div class="empty-s">Click + Add tenant to get started</div></div>'}
   </div>`;
 }
 
-// ── PAGE: TENANT DETAIL ──
-function pgTenantDetail(tid) {
-  const t = D.tenants.find(x => String(x.id) === String(tid));
-  if (!t) return pgTenants();
-  const p = P(t.prop_id) || { address: '—', city: '' };
-  const docs = D.tenantDocs.filter(d => String(d.tenant_id) === String(tid));
-
-  const KYC_SLOTS = [
-    { slot: 'passport',      icon: '🪪', label: 'Passport / Photo ID',   mandatory: true  },
-    { slot: 'right_to_rent', icon: '✅', label: 'Right to Rent',          mandatory: true  },
-    { slot: 'address_1',     icon: '📬', label: 'Address Proof 1',        mandatory: true  },
-    { slot: 'address_2',     icon: '📬', label: 'Address Proof 2',        mandatory: true  },
-    { slot: 'reference',     icon: '📋', label: 'Reference Check',        mandatory: true  },
-    { slot: 'guarantor',     icon: '🤝', label: 'Guarantor Check',        mandatory: false },
-    { slot: 'other',         icon: '📎', label: 'Other Document',          mandatory: false },
-  ];
-
-  const SUPABASE_URL = 'https://mahtcfukgzbonwibtsxz.supabase.co';
-  const getDocUrl = d => d?.file_name ? `${SUPABASE_URL}/storage/v1/object/public/tenant-documents/${d.file_name}` : '#';
-
-  const mandatorySlots = KYC_SLOTS.filter(s => s.mandatory);
-  const uploadedCount  = mandatorySlots.filter(s => docs.some(d => d.slot === s.slot)).length;
-  const total          = mandatorySlots.length;
-  const missing        = mandatorySlots.filter(s => !docs.some(d => d.slot === s.slot));
-  const allDone        = uploadedCount === total;
-
-  // ── Sticky summary card ──
-  const stickyCard = `
-    <div style="position:sticky;top:0;z-index:50;background:var(--white);border:1px solid ${allDone?'rgba(0,200,150,0.3)':'rgba(229,62,62,0.25)'};border-radius:10px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;box-shadow:0 2px 10px rgba(0,0,0,0.07)">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <div style="font-size:14px;font-weight:700">🗂 KYC Documents</div>
-        <span style="font-size:12px;font-weight:700;padding:3px 11px;border-radius:100px;background:${allDone?'var(--green-bg)':'rgba(229,62,62,0.08)'};color:${allDone?'var(--green-dark)':'var(--red)'}">
-          ${uploadedCount} of ${total} uploaded
-        </span>
-        ${missing.map(s=>`<span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:100px;background:rgba(229,62,62,0.08);color:var(--red);border:1px solid rgba(229,62,62,0.18)">${s.label}</span>`).join('')}
-      </div>
-      <button class="btn btn-sm btn-navy" onclick="document.getElementById('kyc-docs-section').scrollIntoView({behavior:'smooth'})">
-        ${allDone ? '✓ All uploaded' : 'Upload documents ↓'}
-      </button>
-    </div>`;
-
-  // ── Tenancy info ──
-  const infoFields = [
-    ['Property',      `${p.address}, ${p.city}`],
-    ['Start',         FMS(t.start_date)],
-    ['End',           t.end_date ? FMS(t.end_date) : 'Periodic (APT)'],
-    ['Rent',          t.rent ? `£${t.rent.toLocaleString()}` : '—'],
-    ['Deposit',       t.deposit ? `£${t.deposit.toLocaleString()}` : '—'],
-    ['Scheme',        t.scheme || 'Not set'],
-    ['Scheme ref',    t.scheme_ref || '—'],
-    ['Rent due',      t.rent_day ? `${t.rent_day}${['','st','nd','rd'][t.rent_day]||'th'} of month` : '—'],
-  ];
-  const tenancyCard = `
-    <div class="panel" style="margin-bottom:16px">
-      <div class="ph2">
-        <div><h2>Tenancy Details</h2><p>${p.address}</p></div>
-        <div style="display:flex;gap:6px">
-          <button class="btn btn-sm" onclick="moTenantDetail('${t.id}')">✎ Edit</button>
-          <button class="btn btn-sm btn-navy" onclick="moSection8('${t.prop_id}')">⚖️ Section 8</button>
-        </div>
-      </div>
-      <div style="padding:14px 18px">
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">
-          ${infoFields.map(([l,v])=>`<div class="det-f"><label>${l}</label><span>${v}</span></div>`).join('')}
-        </div>
-      </div>
-    </div>`;
-
-  // ── KYC document rows ──
-  const kycRows = KYC_SLOTS.map(s => {
-    const doc = docs.find(d => d.slot === s.slot);
-    const up  = !!doc;
-    const url = up ? getDocUrl(doc) : '#';
-    const uploadedDate = up && doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '';
-
-    // Build extracted info block
-    let extractedHtml = '';
-    if (up && doc.extracted_name) {
-      const mismatch = doc.name_mismatch;
-      const verified = doc.verified;
-      const fields = [
-        doc.extracted_name    && ['Name',    doc.extracted_name],
-        doc.extracted_doc_number && ['Ref',  doc.extracted_doc_number],
-        doc.extracted_expiry  && ['Expiry',  doc.extracted_expiry],
-        doc.extracted_address && ['Address', doc.extracted_address],
-        doc.share_code        && ['Share code', doc.share_code],
-      ].filter(Boolean);
-
-      extractedHtml = `
-        <div style="margin-top:8px;padding:8px 10px;background:${mismatch?'rgba(229,62,62,0.05)':'var(--off)'};border:1px solid ${mismatch?'rgba(229,62,62,0.2)':'var(--border)'};border-radius:6px">
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:5px">✦ AI Extracted</div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px 16px">
-            ${fields.map(([l,v])=>`<span style="font-size:11px"><span style="color:var(--muted)">${l}:</span> <strong>${v}</strong></span>`).join('')}
-          </div>
-          ${mismatch ? `<div style="margin-top:6px;font-size:11px;font-weight:600;color:var(--red)">⚠ Name mismatch — extracted "<em>${doc.extracted_name}</em>" vs tenant record "${t.name}"</div>` : ''}
-          <div style="margin-top:8px;display:flex;align-items:center;gap:8px">
-            ${verified
-              ? `<span style="font-size:11px;font-weight:700;color:var(--green-dark);background:var(--green-bg);padding:2px 9px;border-radius:100px">✓ Verified</span>`
-              : `<button class="btn btn-sm" style="font-size:11px;padding:3px 10px;background:var(--green-bg);color:var(--green-dark);border-color:rgba(0,200,150,0.3)" onclick="verifyTenantDoc('${doc.id}','${tid}')">✓ Mark as verified</button>
-                 <span style="font-size:11px;color:var(--muted)">Not yet verified</span>`}
-          </div>
-        </div>`;
-    } else if (up && !doc.extracted_name) {
-      extractedHtml = `<div style="margin-top:6px;font-size:11px;color:var(--muted)">⏳ Scanning… refresh in a moment</div>`;
-    }
-
-    return `
-      <div style="padding:12px 14px;border:1px solid ${up?(doc.name_mismatch?'rgba(229,62,62,0.3)':doc.verified?'rgba(0,200,150,0.3)':'var(--border)'):'rgba(229,62,62,0.2)'};border-radius:8px;margin-bottom:8px;background:${up?'var(--white)':'rgba(229,62,62,0.02)'}">
-        <div style="display:flex;align-items:center;gap:12px">
-          <div style="font-size:20px;width:32px;text-align:center;flex-shrink:0">${s.icon}</div>
-          <div style="flex:1;min-width:0">
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-              <span style="font-size:13px;font-weight:600">${s.label}</span>
-              ${s.mandatory
-                ? `<span style="font-size:10px;font-weight:700;color:var(--red);background:var(--red-bg);padding:1px 6px;border-radius:100px">Required</span>`
-                : `<span style="font-size:10px;color:var(--muted);background:var(--off);padding:1px 6px;border-radius:100px">Optional</span>`}
-              ${up && doc.verified ? `<span style="font-size:10px;font-weight:700;color:var(--green-dark);background:var(--green-bg);padding:1px 6px;border-radius:100px">✓ Verified</span>` : ''}
-              ${up && doc.name_mismatch ? `<span style="font-size:10px;font-weight:700;color:var(--red);background:var(--red-bg);padding:1px 6px;border-radius:100px">⚠ Mismatch</span>` : ''}
-            </div>
-            ${up
-              ? `<div style="font-size:11px;color:var(--muted);margin-top:2px">📎 ${doc.doc_label||doc.file_name||'File'} · ${uploadedDate}</div>`
-              : `<div style="font-size:11px;color:var(--red);margin-top:2px">Not uploaded</div>`}
-          </div>
-          <div style="display:flex;gap:6px;flex-shrink:0">
-            ${up
-              ? `<a href="${url}" target="_blank" class="btn btn-sm">View</a>
-                 <button class="btn btn-sm" style="color:var(--red);border-color:rgba(229,62,62,0.3)" onclick="deleteTenantDoc('${doc.id}','${tid}')">✕</button>`
-              : `<label class="btn btn-sm btn-navy" style="cursor:pointer;margin:0">
-                   Upload
-                   <input type="file" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onchange="uploadTenantDoc('${tid}','${s.slot}',this)">
-                 </label>`}
-          </div>
-        </div>
-        ${extractedHtml}
-      </div>`;
-  }).join('');
-
-  // ── Journey Cards ──
-  const propLog    = D.emailLog.filter(e => String(e.prop_id) === String(t.prop_id));
-  const tenantLog2 = D.emailLog.filter(e => String(e.tenant_id) === String(tid));
-  const propCerts  = D.certs.filter(c => String(c.prop_id) === String(t.prop_id));
-
-  const day1Items = [
-    { icon:'📋', label:'RRA Sheet sent',
-      done: propLog.some(e=>e.template_id==='rra_info_sheet')||tenantLog2.some(e=>e.template_id==='rra_info_sheet'),
-      action:`moRRASheet()`, btnLabel:'Send RRA' },
-    { icon:'📦', label:'Welcome Kit sent',
-      done: propLog.some(e=>e.template_id==='welcome_kit')||tenantLog2.some(e=>e.template_id==='welcome_kit'),
-      action:`moWelcomeKit('${t.prop_id}')`, btnLabel:'Send Kit' },
-    { icon:'🔥', label:'Gas Safety Certificate served',
-      done: propCerts.some(c=>c.type&&c.type.toLowerCase().includes('gas')),
-      action:`moBulkScan('${t.prop_id}')`, btnLabel:'Upload GSC' },
-    { icon:'⚡', label:'EICR served to tenant',
-      done: propCerts.some(c=>c.type&&(c.type.toLowerCase().includes('eicr')||c.type.toLowerCase().includes('electrical'))),
-      action:`moBulkScan('${t.prop_id}')`, btnLabel:'Upload EICR' },
-    { icon:'🏷', label:'EPC served to tenant',
-      done: propCerts.some(c=>c.type&&(c.type.toLowerCase().includes('epc')||c.type.toLowerCase().includes('energy'))),
-      action:`moBulkScan('${t.prop_id}')`, btnLabel:'Upload EPC' },
-    { icon:'🔗', label:'Portal invite sent',
-      done: !!(t.invite_used||propLog.some(e=>e.template_id?.includes('portal')||e.template_id?.includes('invite'))||tenantLog2.some(e=>e.template_id?.includes('portal')||e.template_id?.includes('invite'))),
-      action:`sendPortalInvite('${t.id}')`, btnLabel:'Send Invite' },
-  ];
-
-  const day30Due = t.start_date ? new Date(new Date(t.start_date).getTime()+30*864e5).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '—';
-  const day30Items = [
-    { icon:'✍️', label:'Tenancy agreement signed',
-      done: propLog.some(e=>e.template_id?.includes('esign')||e.template_id?.includes('sign'))||tenantLog2.some(e=>e.template_id?.includes('esign')||e.template_id?.includes('sign')),
-      action:`moEsign('${t.prop_id}','${t.id}')`, btnLabel:'Send for signing' },
-    { icon:'🏦', label:'Deposit prescribed info served',
-      done: propLog.some(e=>e.template_id==='prescribed'||e.template_id?.includes('prescribed'))||tenantLog2.some(e=>e.template_id?.includes('prescribed')),
-      action:`moCommunicationsHub('${tid}')`, btnLabel:'Send now' },
-    { icon:'💰', label:'Deposit scheme protected',
-      done: !!(t.scheme&&t.scheme_ref),
-      action:`moTenantDetail('${t.id}')`, btnLabel:'Add scheme ref' },
-    { icon:'🔔', label:'Smoke & CO alarm tested',
-      done: propLog.some(e=>(e.subject||'').toLowerCase().includes('smoke')||(e.template_id||'').toLowerCase().includes('smoke')),
-      action:`moCommunicationsHub('${tid}')`, btnLabel:'Log test' },
-  ];
-
-  const mkJourneyRow = item => {
-    const col = item.done ? 'var(--green-dark)' : 'var(--muted)';
-    const bg  = item.done ? 'var(--green-bg)'   : 'var(--off)';
-    return `
-      <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">
-        <span style="width:22px;height:22px;border-radius:50%;background:${bg};color:${col};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">${item.done?'✓':'○'}</span>
-        <span style="font-size:12px;flex:1;${item.done?'text-decoration:line-through;opacity:0.6':''}">${item.icon} ${item.label}</span>
-        ${!item.done?`<button class="btn btn-sm" style="font-size:11px;padding:2px 9px" onclick="${item.action}">${item.btnLabel}</button>`:''}
-      </div>`;
-  };
-
-  const day1Done  = day1Items.filter(i=>i.done).length;
-  const day30Done = day30Items.filter(i=>i.done).length;
-  const journeyCards = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-      <div class="panel">
-        <div class="ph2" style="padding:12px 16px">
-          <div>
-            <div style="font-size:13px;font-weight:700">🗓 Day 1 Pack</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:2px">Must complete before / on move-in</div>
-          </div>
-          <span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:100px;background:${day1Done===day1Items.length?'var(--green-bg)':'rgba(229,62,62,0.08)'};color:${day1Done===day1Items.length?'var(--green-dark)':'var(--red)'}">${day1Done}/${day1Items.length}</span>
-        </div>
-        <div style="padding:4px 16px 12px">${day1Items.map(mkJourneyRow).join('')}</div>
-      </div>
-      <div class="panel">
-        <div class="ph2" style="padding:12px 16px">
-          <div>
-            <div style="font-size:13px;font-weight:700">📆 Day 30 Pack</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:2px">Due by ${day30Due}</div>
-          </div>
-          <span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:100px;background:${day30Done===day30Items.length?'var(--green-bg)':'rgba(229,62,62,0.08)'};color:${day30Done===day30Items.length?'var(--green-dark)':'var(--red)'}">${day30Done}/${day30Items.length}</span>
-        </div>
-        <div style="padding:4px 16px 12px">${day30Items.map(mkJourneyRow).join('')}</div>
-      </div>
-    </div>`;
-
-  // ── Email log ──
-  const tenantLog = D.emailLog.filter(e => String(e.tenant_id)===String(tid) || String(e.prop_id)===String(t.prop_id)).slice(0,20);
-  const logRows = tenantLog.length
-    ? tenantLog.map(e=>`
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 18px;border-bottom:1px solid var(--border);gap:10px">
-          <div style="min-width:0">
-            <div style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.subject||e.template_id||'Email'}</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:1px">${e.sent_at?new Date(e.sent_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):''}</div>
-          </div>
-          <span style="font-size:11px;padding:2px 8px;border-radius:100px;background:var(--green-bg);color:var(--green-dark);flex-shrink:0">Sent</span>
-        </div>`).join('')
-    : `<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px">No emails sent yet</div>`;
-
-  return `
-    <div class="topbar"><span class="tb-title">Tenants</span><div class="tb-right">
-      <button class="btn btn-sm" onclick="exportEvidenceBundle('${tid}')">📁 Export Bundle</button>
-      <button class="btn btn-sm" onclick="moTenantDetail('${t.id}')">✎ Edit tenant</button>
-    </div></div>
-    <div class="content">
-      <button class="detail-back" onclick="nav('tenants')">
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3L5 8l5 5"/></svg>
-        Back to tenants
-      </button>
-
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-        <div style="display:flex;align-items:center;gap:14px">
-          <div class="t-av" style="width:52px;height:52px;font-size:18px;flex-shrink:0">${INI(t.name)}</div>
-          <div>
-            <h1 style="font-size:21px;font-weight:700;margin-bottom:3px">${t.name}</h1>
-            <p style="font-size:13px;color:var(--muted)">${t.email||'No email'} · ${t.phone||'No phone'}</p>
-          </div>
-        </div>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-          ${B(t.status||'Active')}
-          ${t.is_lead?`<span class="badge b-amber">⭐ Lead</span>`:''}
-        </div>
-      </div>
-
-      ${stickyCard}
-      ${tenancyCard}
-
-      <div id="kyc-docs-section" class="panel" style="margin-bottom:16px">
-        <div class="ph2"><div><h2>🗂 KYC Documents</h2><p>Identity &amp; compliance documents · Stored securely for ${t.name}</p></div></div>
-        <div style="padding:14px 18px">${kycRows}</div>
-      </div>
-
-      ${journeyCards}
-
-      <div class="panel">
-        <div class="ph2"><div><h2>📨 Communications</h2><p>All documents &amp; correspondence sent to this tenant</p></div>
-          <button class="btn btn-sm btn-navy" onclick="moCommunicationsHub('${tid}')">+ Send document</button>
-        </div>
-        <div>${logRows}</div>
-      </div>
-    </div>`;
-}
-
-async function uploadTenantDoc(tid, slot, input) {
-  const file = input.files[0];
-  if (!file) return;
-  const { data: { user } } = await sb.auth.getUser();
-  if (!user) { toast('Not logged in', true); return; }
-
-  // Show spinner on the label
-  const lbl = input.closest('label');
-  if (lbl) { lbl.innerHTML = '<span class="spin"></span>'; lbl.style.pointerEvents = 'none'; }
-
-  const ext   = file.name.split('.').pop();
-  const path  = `${user.id}/${tid}/${slot}_${Date.now()}.${ext}`;
-  const t     = D.tenants.find(x => String(x.id) === String(tid));
-
-  const { error: upErr } = await sb.storage.from('tenant-documents').upload(path, file, { contentType: file.type });
-  if (upErr) { toast('Upload failed — ' + upErr.message, true); nav('tenant-detail', tid); return; }
-
-  const record = {
-    tenant_id:   tid,
-    prop_id:     t?.prop_id || null,
-    user_id:     user.id,
-    slot,
-    doc_type:    slot,
-    doc_label:   file.name,
-    file_name:   path,
-    uploaded_at: new Date().toISOString(),
-  };
-
-  const existing = D.tenantDocs.find(d => String(d.tenant_id) === String(tid) && d.slot === slot);
-  if (existing) {
-    const { data } = await sb.from('tenant_documents').update(record).eq('id', existing.id).select().single();
-    if (data) D.tenantDocs = D.tenantDocs.map(d => d.id === existing.id ? data : d);
-  } else {
-    const { data } = await sb.from('tenant_documents').insert(record).select().single();
-    if (data) D.tenantDocs.push(data);
-  }
-
-  // Get saved doc ID for scan
-  const savedDoc = D.tenantDocs.find(d => String(d.tenant_id) === String(tid) && d.slot === slot);
-  toast('✓ Uploaded — scanning document…');
-  nav('tenant-detail', tid);
-
-  // Trigger AI scan in background
-  if (savedDoc?.id) scanTenantDoc(savedDoc.id, tid, slot, file, t?.name || '');
-}
-
-async function scanTenantDoc(docId, tid, slot, file, tenantName) {
-  const EDGE = 'https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor';
-
-  // Slot-specific extraction prompts
-  const prompts = {
-    passport:      'This is a passport or photo ID document. Extract: full_name, doc_number (passport/ID number), expiry (YYYY-MM-DD or null), nationality, date_of_birth (YYYY-MM-DD or null). Return JSON only.',
-    right_to_rent: 'This is a UK Right to Rent document. Extract: full_name, doc_type (Passport/BRP/Share Code/eVisa), doc_number or share_code, expiry (YYYY-MM-DD or null), nationality. Return JSON only.',
-    address_1:     'This is an address proof document (utility bill, bank statement, etc). Extract: full_name, address (full address as string), doc_type (e.g. Utility Bill, Bank Statement), doc_date (YYYY-MM-DD or null). Return JSON only.',
-    address_2:     'This is an address proof document (utility bill, bank statement, etc). Extract: full_name, address (full address as string), doc_type (e.g. Utility Bill, Bank Statement), doc_date (YYYY-MM-DD or null). Return JSON only.',
-    reference:     'This is a tenant reference or credit check report. Extract: applicant_name, outcome (Pass/Fail/Conditional/Unknown), referee_name, referee_company, reference_date (YYYY-MM-DD or null). Return JSON only.',
-    guarantor:     'This is a guarantor document or ID. Extract: full_name, address (full address as string), doc_type, expiry (YYYY-MM-DD or null). Return JSON only.',
-  };
-
-  const prompt = prompts[slot] || 'Extract key information from this document. Return JSON only with relevant fields.';
-
-  try {
-    // Read file as base64
-    const b64 = await new Promise((res, rej) => {
-      const r = new FileReader();
-      r.onload = () => res(r.result.split(',')[1]);
-      r.onerror = () => rej(new Error('Read failed'));
-      r.readAsDataURL(file);
-    });
-
-    const isImg = file.type.startsWith('image/');
-    const msgContent = isImg
-      ? [{ type:'image', source:{ type:'base64', media_type:file.type, data:b64 } }, { type:'text', text:prompt }]
-      : [{ type:'document', source:{ type:'base64', media_type:'application/pdf', data:b64 } }, { type:'text', text:prompt }];
-
-    const res  = await fetch(EDGE, { method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ model:'claude-sonnet-4-5', max_tokens:400, messages:[{ role:'user', content:msgContent }] }) });
-    const data = await res.json();
-    const raw  = (data.content?.[0]?.text || '{}').replace(/```json|```/g,'').trim();
-    const ext  = JSON.parse(raw);
-
-    // Map extracted fields to table columns
-    const extracted_name    = ext.full_name || ext.applicant_name || null;
-    const extracted_address = ext.address   || null;
-    const extracted_expiry  = ext.expiry    || ext.reference_date || ext.doc_date || null;
-    const extracted_doc_num = ext.doc_number|| ext.doc_type || ext.referee_company || null;
-    const share_code        = ext.share_code|| null;
-    const share_code_expiry = (slot === 'right_to_rent' && ext.expiry) ? ext.expiry : null;
-
-    // Name mismatch check — normalise to lowercase, trim
-    const nameMismatch = extracted_name
-      ? extracted_name.trim().toLowerCase() !== tenantName.trim().toLowerCase()
-      : false;
-
-    const updates = {
-      extracted_name,
-      extracted_doc_number: extracted_doc_num,
-      extracted_expiry,
-      extracted_address,
-      share_code,
-      share_code_expiry,
-      name_mismatch: nameMismatch,
-      verified: false,
-    };
-
-    await sb.from('tenant_documents').update(updates).eq('id', docId);
-    D.tenantDocs = D.tenantDocs.map(d => String(d.id) === String(docId) ? { ...d, ...updates } : d);
-
-    toast(nameMismatch ? '⚠ Scan done — name mismatch detected' : '✦ Document scanned successfully');
-    nav('tenant-detail', tid);
-
-  } catch(e) {
-    console.warn('KYC scan failed:', e);
-    toast('⚠ Could not scan — document saved, fill details manually');
-  }
-}
-
-async function verifyTenantDoc(docId, tid) {
-  await sb.from('tenant_documents').update({ verified: true }).eq('id', docId);
-  D.tenantDocs = D.tenantDocs.map(d => String(d.id) === String(docId) ? { ...d, verified: true } : d);
-  toast('✓ Document verified');
-  nav('tenant-detail', tid);
-}
-
-async function deleteTenantDoc(docId, tid) {
-  if (!confirm('Delete this document? This cannot be undone.')) return;
-  const doc = D.tenantDocs.find(d => String(d.id) === String(docId));
-  if (doc?.file_name) await sb.storage.from('tenant-documents').remove([doc.file_name]);
-  await sb.from('tenant_documents').delete().eq('id', docId);
-  D.tenantDocs = D.tenantDocs.filter(d => String(d.id) !== String(docId));
-  toast('✓ Document removed');
-  nav('tenant-detail', tid);
-}
-
-// ── Communications Hub modal ──
-function moCommunicationsHub(tid) {
-  const t = D.tenants.find(x => String(x.id) === String(tid));
-  if (!t) return;
-  const docs = [
-    { id:'welcome_kit',    label:'Welcome Kit',           action:`moWelcomeKit('${t.prop_id}')` },
-    { id:'rra_info_sheet', label:'RRA Information Sheet', action:`moRRASheet()` },
-    { id:'esign',          label:'Tenancy Agreement (e-sign)', action:`moEsign('${t.prop_id}','${t.id}')` },
-    { id:'section8',       label:'Section 8 Notice',      action:`moSection8('${t.prop_id}')` },
-  ];
-  const logRows = D.emailLog
-    .filter(e => String(e.tenant_id)===String(tid) || String(e.prop_id)===String(t.prop_id))
-    .slice(0,30)
-    .map(e=>`
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);gap:10px">
-        <div style="min-width:0">
-          <div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.subject||e.template_id||'Email'}</div>
-          <div style="font-size:11px;color:var(--muted)">${e.sent_to||''} · ${e.sent_at?new Date(e.sent_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):''}</div>
-        </div>
-        <span style="font-size:10px;padding:2px 7px;border-radius:100px;background:var(--green-bg);color:var(--green-dark);flex-shrink:0">Sent</span>
-      </div>`).join('') || '<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">No emails sent yet</div>';
-
-  openModal(`
-    <div class="ph2" style="padding:16px 18px;border-bottom:1px solid var(--border)">
-      <div><h2 style="font-size:16px">📨 Communications — ${t.name}</h2>
-        <p style="font-size:12px;color:var(--muted)">Send a document or view correspondence history</p></div>
-    </div>
-    <div style="padding:16px 18px">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:10px">Send a document</div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px">
-        ${docs.map(d=>`<button class="btn btn-sm" onclick="closeModal();${d.action}">${d.label}</button>`).join('')}
-      </div>
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:6px">History (${D.emailLog.filter(e=>String(e.tenant_id)===String(tid)||String(e.prop_id)===String(t.prop_id)).length} items)</div>
-      <div style="max-height:300px;overflow-y:auto">${logRows}</div>
-    </div>`);
-}
-
-// ── Evidence Bundle PDF export ──
-async function exportEvidenceBundle(tid) {
-  const t = D.tenants.find(x => String(x.id) === String(tid));
-  if (!t) return;
-  const p = D.properties.find(x => String(x.id) === String(t.prop_id)) || { address:'—', city:'' };
-  const docs   = D.tenantDocs.filter(d => String(d.tenant_id) === String(tid));
-  const comms  = D.emailLog.filter(e => String(e.tenant_id)===String(tid)||String(e.prop_id)===String(t.prop_id));
-  const rents  = D.rent.filter(r => String(r.prop_id)===String(t.prop_id));
-  const maint  = D.maintenance.filter(m => String(m.prop_id)===String(t.prop_id));
-
-  toast('⏳ Generating evidence bundle…');
-
-  try {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
-    const W = doc.internal.pageSize.getWidth();
-    let y = 0;
-
-    const addPage = () => { doc.addPage(); y = 20; };
-    const ln = (text, size=11, bold=false, color=[40,40,40]) => {
-      doc.setFontSize(size); doc.setFont('helvetica', bold?'bold':'normal');
-      doc.setTextColor(...color);
-      const lines = doc.splitTextToSize(String(text||''), W-30);
-      lines.forEach(l => {
-        if (y > 270) addPage();
-        doc.text(l, 15, y); y += size*0.45;
-      });
-      y += 1;
-    };
-    const rule = (col=[200,200,200]) => {
-      if (y > 270) addPage();
-      doc.setDrawColor(...col); doc.setLineWidth(0.3);
-      doc.line(15, y, W-15, y); y += 4;
-    };
-    const sectionHeader = (title) => {
-      if (y > 250) addPage();
-      doc.setFillColor(245, 247, 250);
-      doc.rect(10, y-4, W-20, 10, 'F');
-      ln(title, 13, true, [30,60,120]); y += 3; rule([180,200,230]);
-    };
-
-    // ── COVER ──
-    doc.setFillColor(30, 58, 120);
-    doc.rect(0, 0, W, 55, 'F');
-    doc.setFontSize(22); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
-    doc.text('EVIDENCE BUNDLE', 15, 22);
-    doc.setFontSize(14); doc.setFont('helvetica','normal');
-    doc.text(`${t.name}`, 15, 33);
-    doc.setFontSize(10); doc.setTextColor(200,215,240);
-    doc.text(`${p.address}, ${p.city}`, 15, 42);
-    doc.text(`Generated: ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`, 15, 49);
-    y = 65;
-
-    // Summary box
-    doc.setDrawColor(180,195,230); doc.setLineWidth(0.5);
-    doc.rect(10, y, W-20, 28);
-    doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(60,60,60);
-    const flds = [
-      ['Tenant', t.name], ['Property', `${p.address}, ${p.city}`],
-      ['Tenancy start', t.start_date ? new Date(t.start_date).toLocaleDateString('en-GB') : '—'],
-      ['Rent', t.rent ? `£${t.rent}/mo` : '—'],
-      ['Deposit', t.deposit ? `£${t.deposit}` : '—'],
-      ['Deposit scheme', t.scheme ? `${t.scheme} — ${t.scheme_ref||'ref pending'}` : 'Not set'],
-    ];
-    const colW = (W-20)/2;
-    flds.forEach(([l,v], i) => {
-      const cx = 15 + (i%2)*colW;
-      const cy = y + 7 + Math.floor(i/2)*8;
-      doc.setFont('helvetica','bold'); doc.text(l+':', cx, cy);
-      doc.setFont('helvetica','normal'); doc.text(v||'—', cx+30, cy);
-    });
-    y += 36; rule();
-
-    // ── SECTION 1: KYC ──
-    sectionHeader('SECTION 1 — KYC DOCUMENTS');
-    if (docs.length === 0) { ln('No KYC documents uploaded.', 10, false, [150,150,150]); y += 4; }
-    docs.forEach((d, i) => {
-      ln(`${i+1}. ${d.doc_label || d.slot || 'Document'}`, 11, true);
-      if (d.extracted_name) ln(`   Name: ${d.extracted_name}`, 10);
-      if (d.extracted_doc_number) ln(`   Reference: ${d.extracted_doc_number}`, 10);
-      if (d.extracted_expiry) ln(`   Expiry: ${d.extracted_expiry}`, 10);
-      if (d.share_code) ln(`   Share code: ${d.share_code}`, 10);
-      ln(`   Verified: ${d.verified ? '✓ Yes' : 'Not yet verified'}  |  Uploaded: ${d.uploaded_at ? new Date(d.uploaded_at).toLocaleDateString('en-GB') : '—'}`, 10, false, d.verified?[0,120,80]:[180,0,0]);
-      if (d.name_mismatch) ln(`   ⚠ NAME MISMATCH — extracted "${d.extracted_name}" vs tenant record "${t.name}"`, 10, true, [180,0,0]);
-      rule([220,220,220]); y += 1;
-    });
-
-    // ── SECTION 2: COMPLIANCE TIMELINE ──
-    addPage();
-    sectionHeader('SECTION 2 — COMPLIANCE TIMELINE');
-    if (comms.length === 0) { ln('No communications logged.', 10, false, [150,150,150]); y += 4; }
-    comms.slice(0,40).forEach(e => {
-      const ts = e.sent_at ? new Date(e.sent_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
-      ln(`${ts}  —  ${e.subject||e.template_id||'Email'}  →  ${e.sent_to||'—'}`, 10);
-      rule([230,230,230]); y += 1;
-    });
-
-    // ── SECTION 3: PORTAL ACTIVITY ──
-    sectionHeader('SECTION 3 — PORTAL ACTIVITY');
-    ln(`Portal invite sent: ${t.invite_used ? '✓ Yes' : 'Not sent'}`, 10);
-    ln(`Last login: ${t.last_login ? new Date(t.last_login).toLocaleDateString('en-GB') : '—'}`, 10);
-    y += 4;
-
-    // ── SECTION 4: RENT HISTORY ──
-    sectionHeader('SECTION 4 — RENT PAYMENT HISTORY');
-    if (rents.length === 0) { ln('No rent records found.', 10, false, [150,150,150]); y += 4; }
-    rents.slice(0,50).forEach(r => {
-      const ts = r.due_date ? new Date(r.due_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
-      const statusColor = r.status==='Paid'?[0,120,80]:r.status==='Late'?[180,0,0]:[100,100,100];
-      doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(60,60,60);
-      if (y>270) addPage();
-      doc.text(`${ts}  £${(r.amount||0).toLocaleString()}`, 15, y);
-      doc.setTextColor(...statusColor); doc.setFont('helvetica','bold');
-      doc.text(r.status||'—', W-40, y); doc.setFont('helvetica','normal'); doc.setTextColor(60,60,60);
-      y += 6; rule([230,230,230]); y += 1;
-    });
-
-    // ── SECTION 5: MAINTENANCE ──
-    if (y > 220) addPage();
-    sectionHeader('SECTION 5 — MAINTENANCE LOG');
-    if (maint.length === 0) { ln('No maintenance records found.', 10, false, [150,150,150]); }
-    maint.slice(0,30).forEach(m => {
-      ln(`${m.title||'Job'} — ${m.status||'—'} — ${m.created_at?new Date(m.created_at).toLocaleDateString('en-GB'):''} — £${m.cost||0}`, 10);
-      if (m.description) ln(`   ${m.description}`, 9, false, [100,100,100]);
-      rule([230,230,230]); y += 1;
-    });
-
-    // Footer on all pages
-    const totalPages = doc.getNumberOfPages();
-    for (let pg = 1; pg <= totalPages; pg++) {
-      doc.setPage(pg);
-      doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(150,150,150);
-      doc.text(`RentSafe AI — Evidence Bundle for ${t.name} — Page ${pg} of ${totalPages}`, W/2, 292, { align:'center' });
-    }
-
-    const filename = `evidence_bundle_${(t.name||'tenant').replace(/\s+/g,'_')}_${new Date().toISOString().slice(0,10)}.pdf`;
-    doc.save(filename);
-    toast('✓ Evidence bundle downloaded');
-  } catch(err) {
-    console.error('Bundle error:', err);
-    toast('⚠ Could not generate PDF — check console', true);
-  }
-}
-
-
+// ── PAGE: RENT ──
 function pgRent(){
   const tot=D.properties.reduce((s,p)=>s+(p.rent||0),0);
   const paid=D.rent.filter(r=>r.status==='Paid').reduce((s,r)=>s+(r.amount||0),0);
@@ -5404,7 +4506,6 @@ function pgRent(){
 let _mview = 'kanban';
 let _mfilterProp = '';
 let _mfilterPri = '';
-let _propSearch = '';
 
 function pgMaintenance(){
   const stages=['Reported','Assigned','In Progress','Completed','Closed'];
@@ -5540,7 +4641,7 @@ function pgMaintenance(){
         <button class="btn btn-sm${_mview==='list'?' btn-navy':''}" onclick="_mview='list';nav('maintenance')">☰ List</button>
       </div>
     </div>
-    ${D.maintenance.length===0?`<div class="empty"><div class="empty-ic">🔧</div><div class="empty-t">No maintenance jobs yet</div><div class="empty-s">Report your first issue to get started</div><div style="margin-top:16px"><button class="btn btn-navy" onclick="moIssue()">+ Report issue</button></div></div>`:(_mview==='kanban'?kanbanHtml:groupedList)}
+    ${_mview==='kanban'?kanbanHtml:groupedList}
   </div>`;
 }
 
@@ -6017,12 +5118,11 @@ const PAGES={
   calendar:()=>pgCalendar(),
   reminders:()=>pgReminders(),
   'prop-detail':(id)=>pgPropDetail(id),
-  'tenant-detail':(id)=>pgTenantDetail(id),
   financials:()=>pgFinancials(),
   templates:()=>pgTemplates(),
   contractors:()=>pgContractors(),
   mtd:()=>pgMTD(),
-  doclibrary:()=>pgDocLibrary(),
+  'section13':(pid)=>pgSection13(pid),
 };
 
 // ── FINANCE HELPERS ──
@@ -6110,9 +5210,8 @@ function pgFinancials(){
             <td style="color:var(--muted);font-size:12px">~£${tax}/mo</td>
             <td><button class="btn btn-sm" onclick="moFinancials('${p.id}')">📊 Detail</button></td>
           </tr>`;
-        }).join('')}</tbody>
+        }).join('')}${D.properties.length===0?`<tr><td colspan="9"><div class="empty"><div class="empty-ic">📊</div><div class="empty-t">No properties yet</div></div></td></tr>`:''}</tbody>
       </table></div>
-      ${D.properties.length===0?`<div class="empty"><div class="empty-ic">📊</div><div class="empty-t">No properties yet</div><div class="empty-s">Add a property to see your P&amp;L breakdown</div><div style="margin-top:16px"><button class="btn btn-navy" onclick="moAddProp()">+ Add property</button></div></div>`:''}
     </div>
     <div class="panel" style="background:linear-gradient(135deg,#0B1E3D,#132847);color:#fff;border:none">
       <div style="padding:20px">
@@ -6173,7 +5272,6 @@ function moFinancials(pid){
 
 function exportFinancialsPDF(pid){
   const p=P(pid);
-  if(!p){toast('Property not found',true);return;}
   const ins=D.insurance.filter(ii=>String(ii.prop_id)===String(pid)).reduce((s,ii)=>s+(ii.premium||0)/12,0);
   const mort=p.mortgage_monthly||0;
   const maintTotal=getMaintCostTotal(pid);
@@ -6186,138 +5284,65 @@ function exportFinancialsPDF(pid){
   const taxHigher=Math.max(0,profit)*0.4;
   const date=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
   const months=getMonthlyPL(pid);
-  toast('\u23F3 Generating PDF\u2026');
-  try{
-    const{jsPDF}=window.jspdf;
-    const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
-    const W=doc.internal.pageSize.getWidth();
-    let y=0;
-    const addPage=()=>{doc.addPage();y=20;};
-    const chk=()=>{if(y>272)addPage();};
-    const ln=(text,size=11,bold=false,color=[40,40,40])=>{
-      doc.setFontSize(size);doc.setFont('helvetica',bold?'bold':'normal');
-      doc.setTextColor(...color);
-      const lines=doc.splitTextToSize(String(text||''),W-30);
-      lines.forEach(l=>{chk();doc.text(l,15,y);y+=size*0.45;});
-      y+=1;
-    };
-    const rule=(col=[210,215,225],lw=0.3)=>{chk();doc.setDrawColor(...col);doc.setLineWidth(lw);doc.line(15,y,W-15,y);y+=4;};
-    const row2=(left,right,bold=false,rightCol=[40,40,40])=>{
-      chk();
-      doc.setFontSize(11);doc.setFont('helvetica',bold?'bold':'normal');doc.setTextColor(80,80,80);
-      doc.text(left,15,y);
-      doc.setFont('helvetica',bold?'bold':'normal');doc.setTextColor(...rightCol);
-      doc.text(right,W-15,y,{align:'right'});
-      y+=6;
-    };
-
-    // ── COVER HEADER ──
-    doc.setFillColor(11,30,61);
-    doc.rect(0,0,W,48,'F');
-    doc.setFillColor(0,200,150);
-    doc.rect(0,46,W,3,'F');
-    doc.setFontSize(20);doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);
-    doc.text('RentSafe AI',15,18);
-    doc.setFontSize(11);doc.setFont('helvetica','normal');doc.setTextColor(160,205,190);
-    doc.text('P&L Financial Report — Real Data',15,27);
-    doc.setFontSize(10);doc.setTextColor(180,200,220);
-    doc.text(p.address+(p.city?', '+p.city:''),15,36);
-    doc.text(date,W-15,36,{align:'right'});
-    y=60;
-
-    // ── PROPERTY DETAIL ──
-    ln(p.address,15,true,[11,30,61]);
-    doc.setFontSize(10);doc.setFont('helvetica','normal');doc.setTextColor(100,110,130);
-    doc.text([(p.city||'')+(p.postcode?' '+p.postcode:''),
-              (p.type||'Property')+(p.beds?' · '+p.beds+' bed':'')].filter(Boolean).join(' · '),15,y);
-    y+=8;rule();
-
-    // ── SUMMARY BOXES ──
-    const bW=(W-30)/3;const bH=22;const bY=y;
-    const boxes=[
-      {label:'MONTHLY INCOME',val:'\u00A3'+income.toLocaleString(),bg:[240,253,248],line:[0,160,120],txt:[0,130,90]},
-      {label:'MONTHLY EXPENSES',val:'\u00A3'+Math.round(expenses).toLocaleString(),bg:[255,245,245],line:[220,60,60],txt:[200,40,40]},
-      {label:'NET PROFIT / MO',val:'\u00A3'+Math.round(profit).toLocaleString(),bg:profit>=0?[240,253,248]:[255,245,245],line:profit>=0?[0,160,120]:[220,60,60],txt:profit>=0?[0,130,90]:[200,40,40]},
-    ];
-    boxes.forEach((b,i)=>{
-      const bX=15+i*(bW+5);
-      doc.setFillColor(...b.bg);doc.setDrawColor(...b.line);doc.setLineWidth(0.4);
-      doc.roundedRect(bX,bY,bW,bH,3,3,'FD');
-      doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(...b.txt);
-      doc.text(b.label,bX+bW/2,bY+7,{align:'center'});
-      doc.setFontSize(14);doc.setFont('helvetica','bold');doc.setTextColor(...b.txt);
-      doc.text(b.val,bX+bW/2,bY+17,{align:'center'});
-    });
-    y=bY+bH+8;rule();
-
-    // ── COST BREAKDOWN ──
-    doc.setFontSize(11);doc.setFont('helvetica','bold');doc.setTextColor(11,30,61);
-    doc.text('Monthly Cost Breakdown',15,y);y+=7;
-    row2('Mortgage','\u00A3'+mort.toLocaleString()+'/mo',false,[200,40,40]);
-    row2('Insurance (monthly est.)','\u00A3'+Math.round(ins).toLocaleString()+'/mo',false,[200,120,0]);
-    row2('Maintenance (avg/mo — real jobs)','\u00A3'+Math.round(maintMonthly).toLocaleString()+'/mo',false,[200,120,0]);
-    rule([11,30,61],0.6);
-    row2('Net Profit','\u00A3'+Math.round(profit).toLocaleString()+'/mo',true,profit>=0?[0,130,90]:[200,40,40]);
-    doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(150,150,150);
-    doc.text('Total maintenance spend (all time): \u00A3'+maintTotal.toLocaleString(),15,y);y+=8;
-    rule();
-
-    // ── LAST 6 MONTHS TABLE ──
-    doc.setFontSize(11);doc.setFont('helvetica','bold');doc.setTextColor(11,30,61);
-    doc.text('Last 6 Months — P&L',15,y);y+=5;
-    const cols=[38,28,28,28,28,28];
-    const hdrs=['Month','Rent In','Mortgage','Insurance','Maintenance','Net P&L'];
-    doc.setFillColor(246,248,251);doc.rect(15,y,W-30,7,'F');
-    doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(100,110,130);
-    let cx=15;
-    hdrs.forEach((h,i)=>{doc.text(h,cx+(i>0?cols[i]:0),y+5,{align:i>0?'right':'left'});cx+=cols[i];});
-    y+=9;rule([210,215,225],0.2);
-    months.forEach(mo=>{
-      chk();
-      doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(50,50,50);
-      cx=15;
-      const vals=[
-        mo.label,
-        mo.income?'\u00A3'+mo.income.toLocaleString():'—',
-        '\u00A3'+mo.mortgage.toLocaleString(),
-        '\u00A3'+mo.ins,
-        '\u00A3'+mo.maint,
-        mo.profit===null?'—':'\u00A3'+Math.round(mo.profit).toLocaleString()
-      ];
-      const colors=[[50,50,50],[0,130,90],[200,40,40],[150,90,0],[150,90,0],
-                    mo.profit===null?[150,150,150]:mo.profit>=0?[0,130,90]:[200,40,40]];
-      vals.forEach((v,i)=>{
-        doc.setTextColor(...colors[i]);
-        doc.text(v,i===0?cx:cx+cols[i],y,{align:i>0?'right':'left'});
-        cx+=cols[i];
-      });
-      y+=5.5;rule([230,235,240],0.1);
-    });
-    y+=3;rule();
-
-    // ── TAX ESTIMATES ──
-    doc.setFontSize(11);doc.setFont('helvetica','bold');doc.setTextColor(11,30,61);
-    doc.text('Tax Estimates (UK)',15,y);y+=7;
-    row2('Basic rate (20%)','\u00A3'+Math.round(taxBasic).toLocaleString()+'/mo');
-    row2('Higher rate (40%)','\u00A3'+Math.round(taxHigher).toLocaleString()+'/mo');
-    row2('Annual profit estimate','\u00A3'+Math.round(profit*12).toLocaleString()+'/yr');
-    row2('Gross yield',yld+'%',false,parseFloat(yld)>=5?[0,130,90]:parseFloat(yld)>=3?[180,100,0]:[200,40,40]);
-    y+=2;rule();
-
-    // ── DISCLAIMER ──
-    chk();
-    doc.setFillColor(246,248,251);doc.rect(15,y,W-30,14,'F');
-    doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(130,130,140);
-    doc.text('Maintenance costs derived from real job records. Tax figures are indicative only — consult a qualified accountant.',17,y+5,{maxWidth:W-34});
-    doc.text('Generated by RentSafe AI · '+date+' · Confidential — not financial advice',17,y+11,{maxWidth:W-34});
-    y+=18;
-
-    doc.save('PL_Report_'+p.address.replace(/[^a-zA-Z0-9]/g,'_')+'_'+new Date().toISOString().slice(0,10)+'.pdf');
-    toast('\u2705 PDF downloaded');
-  } catch(err){
-    console.error(err);
-    toast('PDF error: '+err.message,true);
-  }
+  const win=window.open('','_blank');
+  if(!win){toast('Please allow pop-ups to export PDF',true);return;}
+  const monthRows=months.map(mo=>`<tr>
+    <td style="font-weight:500">${mo.label}</td>
+    <td style="color:#009970;font-weight:600">${mo.income?'&#163;'+mo.income.toLocaleString():'&mdash;'}</td>
+    <td style="color:#E53E3E">&#163;${mo.mortgage.toLocaleString()}</td>
+    <td>&#163;${mo.ins}</td>
+    <td>&#163;${mo.maint}</td>
+    <td style="font-weight:600;color:${mo.profit===null?'#999':mo.profit>=0?'#009970':'#E53E3E'}">${mo.profit===null?'&mdash;':'&#163;'+Math.round(mo.profit).toLocaleString()}</td>
+  </tr>`).join('');
+  win.document.write('<!DOCTYPE html><html><head><title>P&L Report &mdash; '+p.address+'<\/title>'
+  +'<style>body{font-family:Georgia,serif;font-size:13px;line-height:1.8;padding:48px;max-width:700px;margin:0 auto;color:#1A2B45}'
+  +'h1{font-size:20px;font-weight:700;color:#0B1E3D;margin-bottom:4px}'
+  +'h2{font-size:14px;font-weight:700;color:#0B1E3D;margin:20px 0 8px;border-bottom:1px solid #E4EAF1;padding-bottom:4px}'
+  +'.header{border-bottom:2px solid #0B1E3D;margin-bottom:28px;padding-bottom:14px;display:flex;justify-content:space-between;align-items:flex-end}'
+  +'.logo{font-size:18px;font-weight:700;color:#0B1E3D}.logo span{color:#00C896}'
+  +'.cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:24px}'
+  +'.card{border-radius:8px;padding:14px;text-align:center}'
+  +'.card.income{background:#f0fdf9;border:1px solid rgba(0,200,150,0.2)}'
+  +'.card.expense{background:#fff5f5;border:1px solid rgba(229,62,62,0.2)}'
+  +'.card.net{background:#f0f4ff;border:1px solid rgba(59,111,232,0.2)}'
+  +'.card-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}'
+  +'.card-val{font-size:22px;font-weight:700}'
+  +'.income .card-label{color:#009970}.income .card-val{color:#009970}'
+  +'.expense .card-label{color:#E53E3E}.expense .card-val{color:#E53E3E}'
+  +'.net .card-label{color:#3B6FE8}.net .card-val{color:'+(profit>=0?'#009970':'#E53E3E')+'}'
+  +'table{width:100%;border-collapse:collapse;margin-bottom:16px}'
+  +'th{text-align:left;padding:7px 10px;font-size:10px;font-weight:700;text-transform:uppercase;color:#7A8FA6;border-bottom:1px solid #E4EAF1;background:#F6F8FB}'
+  +'td{padding:9px 10px;font-size:12px;border-bottom:1px solid #F0F4F8}'
+  +'.row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #E4EAF1;font-size:13px}'
+  +'.total{border-bottom:2px solid #0B1E3D;font-weight:700;font-size:15px;padding:14px 0}'
+  +'.footer{margin-top:32px;padding-top:12px;border-top:1px solid #eee;font-size:10px;color:#999;text-align:center}'
+  +'@media print{body{padding:24px}}<\/style><\/head><body>'
+  +'<div class="header"><div><div class="logo">Rent<span>Safe<\/span> AI<\/div><div style="font-size:11px;color:#999;margin-top:2px">Financial Report &mdash; Real Data<\/div><\/div>'
+  +'<div style="text-align:right;font-size:12px;color:#666">'+p.address+', '+(p.city||'')+'<br>'+date+'<\/div><\/div>'
+  +'<h1>'+p.address+'<\/h1>'
+  +'<p style="color:#666;font-size:12px;margin-bottom:20px">'+(p.city||'')+', '+(p.postcode||'')+' &middot; '+(p.type||'Property')+' &middot; '+(p.beds||'&mdash;')+' bed<\/p>'
+  +'<div class="cards">'
+  +'<div class="card income"><div class="card-label">Monthly Income<\/div><div class="card-val">&#163;'+income.toLocaleString()+'<\/div><\/div>'
+  +'<div class="card expense"><div class="card-label">Monthly Expenses<\/div><div class="card-val">&#163;'+Math.round(expenses).toLocaleString()+'<\/div><\/div>'
+  +'<div class="card net"><div class="card-label">Net Profit\/mo<\/div><div class="card-val">&#163;'+Math.round(profit).toLocaleString()+'<\/div><\/div>'
+  +'<\/div>'
+  +'<h2>Monthly Cost Breakdown<\/h2>'
+  +'<div class="row"><span>&#127982; Mortgage<\/span><span style="font-weight:600;color:#E53E3E">&#163;'+mort.toLocaleString()+'\/mo<\/span><\/div>'
+  +'<div class="row"><span>&#128737; Insurance (monthly)<\/span><span style="font-weight:600;color:#D97706">&#163;'+Math.round(ins).toLocaleString()+'\/mo<\/span><\/div>'
+  +'<div class="row"><span>&#128295; Maintenance (avg\/mo)<\/span><span style="font-weight:600;color:#D97706">&#163;'+Math.round(maintMonthly).toLocaleString()+'\/mo<\/span><\/div>'
+  +'<div class="row total"><span>Net Profit<\/span><span style="color:'+(profit>=0?'#009970':'#E53E3E')+'">&#163;'+Math.round(profit).toLocaleString()+'\/mo<\/span><\/div>'
+  +'<p style="font-size:11px;color:#999;margin-top:4px">Total maintenance spend (all time): &#163;'+maintTotal.toLocaleString()+'<\/p>'
+  +'<h2>Last 6 Months &mdash; P&L<\/h2>'
+  +'<table><thead><tr><th>Month<\/th><th>Rent In<\/th><th>Mortgage<\/th><th>Insurance<\/th><th>Maintenance<\/th><th>Net P&L<\/th><\/tr><\/thead><tbody>'+monthRows+'<\/tbody><\/table>'
+  +'<h2>Tax Estimates (UK)<\/h2>'
+  +'<div class="row"><span>Basic rate (20%)<\/span><span>&#163;'+Math.round(taxBasic).toLocaleString()+'\/mo<\/span><\/div>'
+  +'<div class="row"><span>Higher rate (40%)<\/span><span>&#163;'+Math.round(taxHigher).toLocaleString()+'\/mo<\/span><\/div>'
+  +'<div class="row"><span>Annual profit<\/span><span>&#163;'+Math.round(profit*12).toLocaleString()+'\/yr<\/span><\/div>'
+  +'<div class="row"><span>Gross yield<\/span><span>'+yld+'%<\/span><\/div>'
+  +'<div style="background:#f6f8fb;border-radius:8px;padding:14px;margin-top:20px;font-size:12px;color:#555">Maintenance costs from real job records. Tax estimates are indicative only &mdash; consult a qualified accountant.<\/div>'
+  +'<div class="footer">Generated by RentSafe AI &middot; '+date+' &middot; Confidential &mdash; not financial advice<\/div>'
+  +'<script>window.onload=function(){window.print();}<\/scr'+'ipt><\/body><\/html>');
+  win.document.close();
 }
 
 function exportPortfolioPDF(){
@@ -6388,74 +5413,6 @@ function getMTDProfile() {
 }
 function saveMTDProfile(obj) {
   localStorage.setItem('rsa_mtd_profile', JSON.stringify(obj));
-}
-
-function pgDocLibrary(){
-  const docs = D.certs.filter(c=>c.type&&c.type.startsWith('__DOC__:'));
-  const props = D.properties;
-  const propOpts = props.map(p=>`<option value="${p.id}">${p.address}</option>`).join('');
-  return `<div class="content">
-    <div class="ph"><h1>📁 Document Library</h1><p>Upload and store any landlord document — tenancy agreements, correspondence, licences, anything not in compliance checklists.</p></div>
-    <div class="panel" style="margin-bottom:18px">
-      <div class="ph2"><h2>Upload Document</h2></div>
-      <div style="padding:0 18px 18px;display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end">
-        <div class="fg"><label>Document Name</label><input type="text" id="dl-name" placeholder="e.g. Tenancy Agreement 2024" class="fi"></div>
-        <div class="fg"><label>Property</label><select id="dl-prop" class="fi"><option value="">All properties</option>${propOpts}</select></div>
-        <div class="fg"><label>File</label><input type="file" id="dl-file" accept=".pdf,.doc,.docx,.jpg,.png" class="fi"></div>
-        <button class="btn btn-navy" onclick="dlUpload()">Upload</button>
-      </div>
-    </div>
-    <div class="panel">
-      <div class="ph2"><h2>Stored Documents</h2><span style="font-size:12px;color:var(--muted)">${docs.length} document${docs.length!==1?'s':''}</span></div>
-      <div style="padding:0 18px 18px">
-        ${docs.length===0?`<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px">No documents uploaded yet. Use the form above to add your first document.</div>`
-        :docs.map(d=>{
-          const name=d.type.replace('__DOC__:','');
-          const prop=props.find(p=>String(p.id)===String(d.prop_id));
-          const date=d.expiry?new Date(d.expiry).toLocaleDateString('en-GB'):'—';
-          return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
-            <span style="font-size:20px">📄</span>
-            <div style="flex:1">
-              <div style="font-size:13px;font-weight:600;color:var(--txt)">${name}</div>
-              <div style="font-size:11px;color:var(--muted)">${prop?prop.address:'All properties'} · Uploaded ${date}</div>
-            </div>
-            ${d.engineer?`<a href="${d.engineer}" target="_blank" class="btn btn-sm">Download</a>`:''}
-            <button class="btn btn-sm" style="color:var(--red);border-color:var(--red)" onclick="dlDelete('${d.id}')">Delete</button>
-          </div>`;
-        }).join('')}
-      </div>
-    </div>
-  </div>`;
-}
-
-async function dlUpload(){
-  const name=document.getElementById('dl-name')?.value?.trim();
-  const propId=document.getElementById('dl-prop')?.value||null;
-  const fileEl=document.getElementById('dl-file');
-  const file=fileEl?.files?.[0];
-  if(!name){toast('Please enter a document name',true);return;}
-  if(!file){toast('Please select a file',true);return;}
-  toast('Uploading…');
-  const ext=file.name.split('.').pop();
-  const filename=`docs/${currentUser.id}_${Date.now()}.${ext}`;
-  const{error:upErr}=await sb.storage.from('esign-documents').upload(filename,file,{contentType:file.type});
-  if(upErr){toast('Upload failed: '+upErr.message,true);return;}
-  const{data:urlData}=sb.storage.from('esign-documents').getPublicUrl(filename);
-  const cert={prop_id:propId?parseInt(propId):null,type:'__DOC__:'+name,expiry:new Date().toISOString().split('T')[0],engineer:urlData.publicUrl,status:'Uploaded',has_file:true,served:false,user_id:currentUser.id};
-  const{data,error}=await sb.from('certificates').insert(cert).select().single();
-  if(error){toast('Save failed: '+error.message,true);return;}
-  D.certs.push(data);
-  toast('✓ Document uploaded');
-  nav('doclibrary');
-}
-
-async function dlDelete(id){
-  if(!confirm('Delete this document?'))return;
-  const{error}=await sb.from('certificates').delete().eq('id',id);
-  if(error){toast('Delete failed',true);return;}
-  D.certs=D.certs.filter(c=>c.id!==id);
-  toast('Document deleted');
-  nav('doclibrary');
 }
 
 function pgMTD() {
@@ -6765,126 +5722,13 @@ function mtdExportCSV() {
   toast('✓ CSV exported');
 }
 
-function toggleSbGroup(id){
-  const body=document.getElementById('sbgb-'+id);
-  const chev=document.getElementById('sbchev-'+id);
-  if(!body)return;
-  const open=body.style.maxHeight&&body.style.maxHeight!=='0px';
-  body.style.maxHeight=open?'0px':body.scrollHeight+'px';
-  if(chev)chev.classList.toggle('closed',open);
-}
-function initSbGroups(){
-  ['properties','compliance','finance','docs'].forEach(id=>{
-    const body=document.getElementById('sbgb-'+id);
-    if(body)body.style.maxHeight=body.scrollHeight+'px';
-  });
-}
-
-// ── SETUP BANNER (async inject) ──
-async function loadSetupBanner() {
-  const slot = document.getElementById('setup-banner-slot');
-  if (!slot) return;
-
-  const ITEMS = getPropCheckItems('onboard');
-  const props = D.properties;
-  if (!props.length) return;
-
-  // Fetch all onboarding checklist progress in one query
-  let rows = [];
-  try {
-    const { data } = await sb.from('checklist_progress')
-      .select('prop_id, data')
-      .in('prop_id', props.map(p => String(p.id)))
-      .eq('prefix', 'ob');
-    rows = data || [];
-    // Populate cache so property detail pages don't re-fetch
-    rows.forEach(r => { _checkCache['ob_' + r.prop_id] = r.data || {}; });
-  } catch(e) { return; }
-
-  // Compute incomplete items per property
-  const incomplete = [];
-  props.forEach(p => {
-    const saved = rows.find(r => String(r.prop_id) === String(p.id))?.data || {};
-    ITEMS.forEach(item => {
-      if (!saved[item.id]) incomplete.push({ pid: p.id, addr: p.address, itemId: item.id, label: item.label });
-    });
-  });
-
-  // All done — hide banner
-  if (!incomplete.length) { slot.innerHTML = ''; return; }
-
-  // Dismiss logic — fingerprint of incomplete keys; resets if new ones appear
-  const LS_KEY = 'rsai_setup_banner_v1';
-  const currentKeys = incomplete.map(i => i.pid + ':' + i.itemId).sort().join(',');
-  try {
-    const stored = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
-    if (stored?.dismissed) {
-      const storedKeys = (stored.keys || '').split(',').filter(Boolean);
-      const newItems = incomplete.filter(i => !storedKeys.includes(i.pid + ':' + i.itemId));
-      if (!newItems.length) return; // still dismissed, nothing new
-      // New incompletes appeared — reset dismiss
-      localStorage.removeItem(LS_KEY);
-    }
-  } catch(e) {}
-
-  const dismiss = () => {
-    try { localStorage.setItem(LS_KEY, JSON.stringify({ dismissed: true, keys: currentKeys, ts: Date.now() })); } catch(e) {}
-    const s = document.getElementById('setup-banner-slot');
-    if (s) { s.style.transition = 'opacity .25s'; s.style.opacity = '0'; setTimeout(() => { s.innerHTML = ''; }, 260); }
-  };
-
-  // Group by property for the mini list (max 5 items shown)
-  const byProp = {};
-  incomplete.forEach(i => {
-    if (!byProp[i.pid]) byProp[i.pid] = { addr: i.addr, items: [] };
-    byProp[i.pid].items.push(i);
-  });
-  const totalProps = Object.keys(byProp).length;
-  const MAX_ITEMS = 5;
-  let shownCount = 0;
-  const listHtml = Object.entries(byProp).map(([pid, grp]) => {
-    const rows = grp.items.slice(0, Math.max(1, MAX_ITEMS - shownCount)).map(i => {
-      shownCount++;
-      return `<div style="display:flex;align-items:center;gap:6px;padding:3px 0">
-        <span style="color:var(--amber);font-size:11px">○</span>
-        <a href="#" onclick="event.preventDefault();nav('prop-detail','${pid}');setTimeout(()=>pdSetTab('${pid}','tenant'),80)"
-           style="font-size:12px;color:var(--navy);text-decoration:underline;text-underline-offset:2px;cursor:pointer">${i.label}</a>
-      </div>`;
-    }).join('');
-    const propLabel = totalProps > 1 ? `<div style="font-size:11px;font-weight:600;color:var(--muted);margin:6px 0 2px">${grp.addr}</div>` : '';
-    return propLabel + rows;
-  }).join('');
-
-  const remaining = incomplete.length;
-  const moreCount = remaining - shownCount;
-
-  slot.innerHTML = `
-    <div id="setup-banner" style="background:rgba(217,119,6,0.07);border:1.5px solid rgba(217,119,6,0.35);border-radius:12px;padding:14px 16px;margin-bottom:16px;position:relative">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
-        <div style="flex:1">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-            <span style="font-size:16px">📋</span>
-            <span style="font-size:13px;font-weight:700;color:var(--amber)">Complete your setup — ${remaining} step${remaining!==1?'s':''} remaining</span>
-          </div>
-          <div style="padding-left:4px">
-            ${listHtml}
-            ${moreCount > 0 ? `<div style="font-size:11px;color:var(--muted);margin-top:4px;padding:3px 0">+ ${moreCount} more — <a href="#" onclick="event.preventDefault();nav('properties')" style="color:var(--navy);text-decoration:underline">view all properties</a></div>` : ''}
-          </div>
-        </div>
-        <button onclick="(${dismiss.toString()})()" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;line-height:1;padding:0;flex-shrink:0" title="Dismiss">✕</button>
-      </div>
-    </div>`;
-}
-
 function nav(page, param){
   const pageMap = {
     'prop-detail': 'properties',
-    'tenant-detail': 'tenants',
-    'tenants': 'tenants',
+    'tenants': 'properties',
     'rent': 'financials',
     'insurance': 'financials',
     'calendar': 'dashboard',
-    'doclibrary': 'doclibrary',
   };
   const activeTab = pageMap[page] || page;
   document.querySelectorAll('.sb-item[data-page]').forEach(el=>{
@@ -6898,7 +5742,6 @@ function nav(page, param){
   }
   main.scrollTo(0,0);
   // Async post-render hooks
-  if (page === 'dashboard') { loadSetupBanner(); }
   if (page === 'prop-detail' && param) {
     const activeTab = window._pdTab && window._pdTab[param] || 'tenant';
     if (activeTab === 'tenant') {
@@ -7029,7 +5872,7 @@ function pgTemplates() {
                   </div>
                   <div style="font-size:12px;color:var(--muted);flex:1">${t.desc}</div>
                   <div style="display:flex;gap:6px;margin-top:4px">
-                    ${t.s8 ? `<button class="btn btn-sm btn-navy" onclick="s8LaunchFromTemplates()">⚖️ Open Section 8 Generator</button>` : t.id === 'section13' ? `<button class="btn btn-sm btn-navy" onclick="moSection13()">📈 Open S.13 Generator</button>` : t.ai ? `<button class="btn btn-sm btn-navy" onclick="moGenerate('${t.id}')">✦ Generate with AI</button>` : `<button class="btn btn-sm btn-navy" onclick="moGenerate('${t.id}')">Generate</button>`}
+                    ${t.s8 ? `<button class="btn btn-sm btn-navy" onclick="s8LaunchFromTemplates()">⚖️ Open Section 8 Generator</button>` : t.id === 'section13' ? `<button class="btn btn-sm btn-navy" onclick="nav('section13')">📈 Open S.13 Generator</button>` : t.ai ? `<button class="btn btn-sm btn-navy" onclick="moGenerate('${t.id}')">✦ Generate with AI</button>` : `<button class="btn btn-sm btn-navy" onclick="moGenerate('${t.id}')">Generate</button>`}
                     <button class="btn btn-sm" onclick="moUploadTemplate()">↑ Use my own</button>
                   </div>
                 </div>
@@ -8976,6 +7819,457 @@ async function _sendEsignRequest(pid, tid, mode) {
   _esignDocHtml = null;
   _esignPdfUrl  = null;
   toast(`✓ Signing request sent to ${t.email}`);
+}
+
+// ── PAGE: SECTION 13 RENT INCREASE GENERATOR (Enterprise Full-Page) ──
+function pgSection13(initPid) {
+  const defaultProp = initPid
+    ? D.properties.find(p=>String(p.id)===String(initPid))
+    : (D.properties.find(p=>D.tenants.some(t=>String(t.prop_id)===String(p.id)&&t.status==='Active'))||D.properties[0]);
+  const defaultTenant = defaultProp
+    ? D.tenants.find(t=>String(t.prop_id)===String(defaultProp?.id)&&t.status==='Active')
+    : null;
+  const today = new Date().toISOString().slice(0,10);
+  const landlordName = currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'Landlord';
+
+  function propOpts() {
+    return D.properties.map(p=>`<option value="${p.id}"${String(p.id)===String(defaultProp?.id)?' selected':''}>${p.address}${p.city?', '+p.city:''}</option>`).join('');
+  }
+  function tenOpts(pid, selId) {
+    const ts = D.tenants.filter(t=>String(t.prop_id)===String(pid)&&t.status==='Active');
+    if (!ts.length) return `<option value="">No active tenants</option>`;
+    return ts.map(t=>`<option value="${t.id}"${String(t.id)===String(selId)?' selected':''}>${t.name}</option>`).join('');
+  }
+
+  // Calc min effective date: 2 months + align to rent day
+  const rentDay = parseInt(defaultTenant?.rent_day||1);
+  const d = new Date(today); d.setMonth(d.getMonth()+2);
+  if (d.getDate()>rentDay) d.setMonth(d.getMonth()+1);
+  d.setDate(rentDay);
+  const minEff = d.toISOString().slice(0,10);
+  const dayLabel = rentDay===1?'1st':rentDay===2?'2nd':rentDay===3?'3rd':`${rentDay}th`;
+
+  return `
+<style>
+.s13-wrap{display:grid;grid-template-columns:minmax(0,1fr) 430px;gap:24px;padding:28px 28px 60px;align-items:start}
+@media(max-width:1150px){.s13-wrap{grid-template-columns:1fr}}
+.s13-left{display:flex;flex-direction:column;gap:16px}
+.s13-card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:20px 22px}
+.s13-card-hd{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;display:flex;align-items:center;gap:7px}
+.s13-right{position:sticky;top:16px;display:flex;flex-direction:column;gap:14px}
+.s13-preview-shell{background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.s13-preview-hd{background:linear-gradient(135deg,#0B1E3D 0%,#1a3a6b 100%);padding:14px 18px;display:flex;align-items:center;justify-content:space-between}
+.s13-preview-body{padding:20px;max-height:74vh;overflow-y:auto}
+.s13-doc{font-family:Georgia,serif;font-size:12px;line-height:1.9;color:#1A2B45}
+.s13-info{background:var(--blue-bg);border:1px solid rgba(59,111,232,0.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--blue);display:flex;gap:8px;align-items:flex-start}
+.s13-warn{background:var(--red-bg);border:1px solid rgba(229,62,62,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--red);display:flex;gap:8px;align-items:flex-start}
+.s13-amber{background:var(--amber-bg);border:1px solid rgba(217,119,6,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--amber);display:flex;gap:8px;align-items:flex-start}
+.s13-ok{background:#f0fff8;border:1px solid rgba(0,200,150,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:#00875a;display:flex;gap:8px;align-items:flex-start}
+</style>
+
+<div class="ph" style="padding:22px 28px 0">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <div>
+      <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Legal Notices · Housing Act 1988 s.13</div>
+      <h1 style="font-size:21px;font-weight:700;margin:0 0 3px">Section 13 Rent Increase Generator</h1>
+      <p style="margin:0;font-size:13px;color:var(--muted)">RRA 2025 compliant · Live notice preview · Email directly to tenant</p>
+    </div>
+    <button class="btn" onclick="nav('templates')">← Back to Notices</button>
+  </div>
+</div>
+
+<div class="s13-wrap">
+
+  <!-- ── LEFT: FORM ── -->
+  <div class="s13-left">
+
+    <!-- Property & Tenant -->
+    <div class="s13-card">
+      <div class="s13-card-hd"><span>🏠</span> Property & Tenant</div>
+      <div class="fg-row" style="margin-bottom:14px">
+        <div class="fg" style="flex:1.5">
+          <label>Property <span class="req">*</span></label>
+          <select id="s13p-prop" onchange="s13pPropSwitch(this.value)">
+            ${D.properties.length ? propOpts() : '<option value="">Add a property first</option>'}
+          </select>
+        </div>
+        <div class="fg">
+          <label>Tenant <span class="req">*</span></label>
+          <select id="s13p-tenant" onchange="s13pTenantSwitch(this.value)">
+            ${defaultProp ? tenOpts(defaultProp.id, defaultTenant?.id) : '<option value="">Select property first</option>'}
+          </select>
+        </div>
+      </div>
+      <!-- Tenant info card -->
+      <div id="s13p-teninfo"></div>
+      <!-- Eligibility status -->
+      <div id="s13p-eligibility"></div>
+    </div>
+
+    <!-- Rent Details -->
+    <div class="s13-card">
+      <div class="s13-card-hd"><span>💷</span> Rent Increase</div>
+      <div class="fg-row" style="margin-bottom:0">
+        <div class="fg">
+          <label>Current monthly rent</label>
+          <input type="text" id="s13p-curdisp" value="£${(defaultProp?.rent||0).toLocaleString()}" disabled style="background:var(--off);color:var(--muted)">
+        </div>
+        <div class="fg">
+          <label>New monthly rent (£) <span class="req">*</span></label>
+          <input type="number" id="s13p-newrent" placeholder="e.g. 1350" min="1" style="font-size:15px;font-weight:600" oninput="s13pRender()">
+        </div>
+      </div>
+      <div id="s13p-rentcalc" style="margin-top:10px"></div>
+    </div>
+
+    <!-- Dates -->
+    <div class="s13-card">
+      <div class="s13-card-hd"><span>📅</span> Notice Dates</div>
+      <div class="s13-info" style="margin-bottom:14px">
+        <span>ℹ️</span>
+        <div>Under RRA 2025 you must give <strong>at least 2 clear calendar months' notice</strong>. The effective date must fall on the rent payment day (<strong>${dayLabel} of the month</strong>).</div>
+      </div>
+      <div class="fg-row">
+        <div class="fg">
+          <label>Date of this notice</label>
+          <input type="date" id="s13p-ndate" value="${today}" oninput="s13pCalcMinEff();s13pRender()">
+        </div>
+        <div class="fg">
+          <label>Proposed effective date <span class="req">*</span></label>
+          <input type="date" id="s13p-edate" value="${minEff}" min="${minEff}" oninput="s13pRender()">
+          <div id="s13p-edate-hint" style="font-size:10px;color:var(--muted);margin-top:3px">Minimum 2 months from notice date · falls on rent day (${dayLabel})</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Landlord Details -->
+    <div class="s13-card">
+      <div class="s13-card-hd"><span>👤</span> Landlord Details</div>
+      <div class="fg-row">
+        <div class="fg">
+          <label>Landlord name (as it appears on the notice)</label>
+          <input type="text" id="s13p-lname" value="${landlordName}" placeholder="Full name or company" oninput="s13pRender()">
+        </div>
+        <div class="fg">
+          <label>Landlord address</label>
+          <input type="text" id="s13p-laddr" placeholder="Full UK address including postcode" oninput="s13pRender()">
+        </div>
+      </div>
+    </div>
+
+    <!-- Delivery & Actions -->
+    <div class="s13-card">
+      <div class="s13-card-hd"><span>📬</span> Delivery & Service</div>
+      <div id="s13p-delivery"></div>
+      <div class="s13-amber" style="margin-top:12px">
+        <span>⚠️</span>
+        <div>Email is valid service under RRA 2025. For maximum evidential weight also send by first-class recorded post and retain proof of postage.</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button class="btn btn-navy" id="s13p-send-btn" onclick="s13pSend()" style="flex:1;justify-content:center">📨 Send Notice to Tenant</button>
+        <button class="btn" onclick="s13pPDF()" title="Download / Print PDF" style="padding:7px 14px">⬇️ PDF</button>
+        <button class="btn" onclick="s13pCopy()" title="Copy notice text" style="padding:7px 14px">📋 Copy</button>
+      </div>
+    </div>
+
+  </div><!-- /s13-left -->
+
+  <!-- ── RIGHT: LIVE PREVIEW ── -->
+  <div class="s13-right">
+
+    <div class="s13-preview-shell">
+      <div class="s13-preview-hd">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#fff">Live Notice Preview</div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:1px">Updates as you type</div>
+        </div>
+        <div style="background:rgba(0,200,150,0.15);border:1px solid rgba(0,200,150,0.35);border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;color:#00C896;letter-spacing:.5px">● LIVE</div>
+      </div>
+      <div class="s13-preview-body" id="s13p-preview">
+        <div style="text-align:center;padding:40px 20px;color:var(--muted)">
+          <div style="font-size:32px;margin-bottom:10px">📋</div>
+          <div style="font-size:12px">Complete the form to see<br>your statutory notice here</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tenant rights info panel -->
+    <div class="s13-card" style="padding:16px 18px">
+      <div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:10px">⚖️ Tenant Rights Under RRA 2025</div>
+      <div style="font-size:11px;color:var(--muted);line-height:1.75">
+        <div>• Tenant may <strong>refer to First-tier Tribunal</strong> before effective date</div>
+        <div>• Tribunal sets <strong>open market rent</strong> — may be lower than proposed</div>
+        <div>• Rent cannot increase <strong>more than once every 12 months</strong></div>
+        <div>• Retaliatory eviction for exercising this right is <strong>prohibited</strong></div>
+      </div>
+    </div>
+
+  </div><!-- /s13-right -->
+</div><!-- /s13-wrap -->
+
+<scr\`+\`ipt>
+(function(){
+  window._s13p = {
+    pid: '${defaultProp?.id||''}',
+    tenantId: '${defaultTenant?.id||''}',
+    noticeHtml: ''
+  };
+  setTimeout(function(){
+    s13pTenantSwitch('${defaultTenant?.id||''}');
+    s13pCalcMinEff();
+    s13pRender();
+  }, 60);
+})();
+<\/script>`;
+}
+
+// ── S13P HELPERS ──
+function s13pPropSwitch(pid) {
+  window._s13p = window._s13p || {};
+  window._s13p.pid = pid;
+  const p = P(pid);
+  const ts = D.tenants.filter(t=>String(t.prop_id)===String(pid)&&t.status==='Active');
+  // Rebuild tenant dropdown
+  const sel = document.getElementById('s13p-tenant');
+  if (sel) {
+    sel.innerHTML = ts.length
+      ? ts.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')
+      : '<option value="">No active tenants</option>';
+  }
+  // Update current rent display
+  const curEl = document.getElementById('s13p-curdisp');
+  if (curEl) curEl.value = '£'+(p?.rent||0).toLocaleString();
+  window._s13p.tenantId = ts[0]?.id ? String(ts[0].id) : '';
+  s13pTenantSwitch(window._s13p.tenantId);
+}
+
+function s13pTenantSwitch(tenId) {
+  window._s13p = window._s13p || {};
+  window._s13p.tenantId = String(tenId||'');
+  const t = D.tenants.find(tt=>String(tt.id)===String(tenId));
+  const p = P(window._s13p.pid);
+
+  // Tenant info card
+  const infoEl = document.getElementById('s13p-teninfo');
+  if (infoEl) {
+    if (t && p) {
+      const mo = t.start_date ? Math.floor((new Date()-new Date(t.start_date))/(30.44*864e5)) : 0;
+      infoEl.innerHTML = `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;background:var(--off);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px">
+        <div><div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:2px">Tenant</div><div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.name}</div></div>
+        <div><div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:2px">Current rent</div><div style="font-size:13px;font-weight:700">£${(p.rent||0).toLocaleString()}/mo</div></div>
+        <div><div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:2px">Tenancy start</div><div style="font-size:12px;font-weight:600">${FMS(t.start_date)}</div></div>
+        <div><div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:2px">Months in</div><div style="font-size:13px;font-weight:700">${mo}</div></div>
+      </div>`;
+    } else { infoEl.innerHTML = ''; }
+  }
+
+  // Eligibility
+  const eligEl = document.getElementById('s13p-eligibility');
+  if (eligEl && t) {
+    const mo = t.start_date ? Math.floor((new Date()-new Date(t.start_date))/(30.44*864e5)) : 99;
+    const lastS13 = (D.emailLog||[])
+      .filter(e=>String(e.prop_id)===String(window._s13p.pid)&&e.template_id&&e.template_id.startsWith('section13'))
+      .sort((a,b)=>new Date(b.sent_at)-new Date(a.sent_at))[0];
+    const moSinceS13 = lastS13 ? Math.floor((new Date()-new Date(lastS13.sent_at))/(30.44*864e5)) : 99;
+    if (mo < 12) {
+      eligEl.innerHTML = `<div class="s13-warn" style="margin-bottom:4px"><span>⚠️</span><div><strong>Notice may be invalid</strong> — rent cannot be increased in the first 12 months. Tenancy started ${FMS(t.start_date)} (${mo} months ago). You may still generate for future use.</div></div>`;
+    } else if (moSinceS13 < 12) {
+      eligEl.innerHTML = `<div class="s13-warn" style="margin-bottom:4px"><span>⚠️</span><div><strong>Recent increase on record</strong> — a Section 13 notice was sent ${moSinceS13} months ago. Under RRA 2025 rent can only increase once per 12 months.</div></div>`;
+    } else {
+      eligEl.innerHTML = `<div class="s13-ok" style="margin-bottom:4px"><span>✅</span><div><strong>Eligible for increase</strong> — tenancy is ${mo} months old and no Section 13 issued in the past 12 months.</div></div>`;
+    }
+  } else if (eligEl) { eligEl.innerHTML = ''; }
+
+  // Delivery options
+  const delEl = document.getElementById('s13p-delivery');
+  if (delEl && t) {
+    delEl.innerHTML = `
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px">
+        <input type="checkbox" id="s13p-email-chk" ${t.email?'checked':''} ${!t.email?'disabled':''} style="width:14px;height:14px">
+        <div><div style="font-size:13px;font-weight:500">${t.email?'Email to '+t.email:'No email on file — add in tenant details'}</div></div>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="s13p-audit-chk" checked style="width:14px;height:14px">
+        <div><div style="font-size:13px;font-weight:500">Log to audit trail</div><div style="font-size:11px;color:var(--muted)">Court-admissible timestamped record of service</div></div>
+      </label>`;
+  } else if (delEl) {
+    delEl.innerHTML = `<div style="font-size:13px;color:var(--muted)">Select a tenant above to configure delivery.</div>`;
+  }
+
+  s13pCalcMinEff();
+  s13pRender();
+}
+
+function s13pCalcMinEff() {
+  const tenId = window._s13p?.tenantId;
+  const t = D.tenants.find(tt=>String(tt.id)===String(tenId));
+  const rentDay = parseInt(t?.rent_day||1);
+  const nEl = document.getElementById('s13p-ndate');
+  const eEl = document.getElementById('s13p-edate');
+  const hEl = document.getElementById('s13p-edate-hint');
+  if (!nEl||!eEl) return;
+  const d = new Date(nEl.value||new Date().toISOString().slice(0,10));
+  d.setMonth(d.getMonth()+2);
+  if (d.getDate()>rentDay) d.setMonth(d.getMonth()+1);
+  d.setDate(rentDay);
+  const min = d.toISOString().slice(0,10);
+  eEl.min = min;
+  if (eEl.value < min) eEl.value = min;
+  const lbl = rentDay===1?'1st':rentDay===2?'2nd':rentDay===3?'3rd':`${rentDay}th`;
+  if (hEl) hEl.textContent = `Minimum 2 months from notice · effective on the ${lbl} of the month`;
+}
+
+function s13pRender() {
+  const pid    = window._s13p?.pid;
+  const tenId  = window._s13p?.tenantId;
+  const p      = P(pid);
+  const t      = D.tenants.find(tt=>String(tt.id)===String(tenId));
+  const newR   = parseFloat(document.getElementById('s13p-newrent')?.value||0);
+  const nDate  = document.getElementById('s13p-ndate')?.value || new Date().toISOString().slice(0,10);
+  const eDate  = document.getElementById('s13p-edate')?.value || '';
+  const lName  = document.getElementById('s13p-lname')?.value.trim() || 'Landlord';
+  const lAddr  = document.getElementById('s13p-laddr')?.value.trim() || '';
+  const cur    = p?.rent || 0;
+
+  // Rent calc chips
+  const calcEl = document.getElementById('s13p-rentcalc');
+  if (calcEl && cur > 0 && newR > cur) {
+    const pct = (((newR-cur)/cur)*100).toFixed(1);
+    calcEl.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;background:#f0fff8;border:1px solid rgba(0,200,150,0.2);border-radius:8px;padding:12px;text-align:center">
+      <div><div style="font-size:18px;font-weight:700;color:#00875a">${pct}%</div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:600">Increase</div></div>
+      <div><div style="font-size:18px;font-weight:700">+£${(newR-cur).toFixed(0)}/mo</div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:600">Monthly diff</div></div>
+      <div><div style="font-size:18px;font-weight:700">£${(newR*12).toLocaleString()}/yr</div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:600">New annual</div></div>
+    </div>`;
+  } else if (calcEl) { calcEl.innerHTML=''; }
+
+  // Preview
+  const preEl = document.getElementById('s13p-preview');
+  if (!preEl) return;
+
+  if (!t || !p || !newR || newR<=cur || !eDate) {
+    const miss=[];
+    if (!t) miss.push('tenant');
+    if (!newR||newR<=cur) miss.push('new rent > current');
+    if (!eDate) miss.push('effective date');
+    preEl.innerHTML = `<div style="text-align:center;padding:36px 20px;color:var(--muted)"><div style="font-size:28px;margin-bottom:8px">📋</div><div style="font-size:12px">Fill in: ${miss.join(', ')}</div></div>`;
+    window._s13p.noticeHtml = '';
+    return;
+  }
+
+  const propAddr = [p.address,p.city,p.postcode].filter(Boolean).join(', ');
+  const nFmt = new Date(nDate).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  const eFmt = new Date(eDate).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+
+  const html = `<div class="s13-doc">
+    <div style="text-align:center;margin-bottom:16px;padding-bottom:14px;border-bottom:2px solid #0B1E3D">
+      <div style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:3px">Notice of Rent Increase</div>
+      <div style="font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Section 13 Notice</div>
+      <div style="font-size:10px;color:#777;margin-top:3px">Housing Act 1988, s.13 — as amended by the Renters' Rights Act 2025</div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:14px;font-size:11px">
+      <tr><td style="padding:3px 0;font-weight:600;width:130px;vertical-align:top">To (Tenant):</td><td>${t.name}</td></tr>
+      <tr><td style="padding:3px 0;font-weight:600;vertical-align:top">Property:</td><td>${propAddr}</td></tr>
+      <tr><td style="padding:3px 0;font-weight:600;vertical-align:top">From:</td><td>${lName}${lAddr?`<br><span style="color:#666;font-size:10px">${lAddr}</span>`:''}</td></tr>
+      <tr><td style="padding:3px 0;font-weight:600">Date:</td><td>${nFmt}</td></tr>
+    </table>
+    <hr style="border:none;border-top:1px solid #E4EAF1;margin:12px 0">
+    <p style="margin:0 0 12px;font-size:11px">I give you notice under <strong>Section 13 of the Housing Act 1988</strong> (as amended by the Renters' Rights Act 2025) that I propose to increase the rent payable under your assured periodic tenancy of the above property as follows:</p>
+    <table style="width:100%;border-collapse:collapse;font-size:11px;margin:12px 0;border:1px solid #ddd">
+      <tr style="background:#F6F8FB"><td style="padding:8px 12px;border:1px solid #ddd;font-weight:600;width:55%">Current monthly rent</td><td style="padding:8px 12px;border:1px solid #ddd">£${cur.toLocaleString()} per calendar month</td></tr>
+      <tr><td style="padding:8px 12px;border:1px solid #ddd;font-weight:600">Proposed new monthly rent</td><td style="padding:8px 12px;border:1px solid #ddd;font-weight:700;color:#0B1E3D">£${newR.toLocaleString()} per calendar month</td></tr>
+      <tr style="background:#F6F8FB"><td style="padding:8px 12px;border:1px solid #ddd;font-weight:600">Proposed effective date</td><td style="padding:8px 12px;border:1px solid #ddd;font-weight:700">${eFmt}</td></tr>
+    </table>
+    <p style="font-size:11px;margin:12px 0">The new rent of <strong>£${newR.toLocaleString()} per calendar month</strong> will take effect from <strong>${eFmt}</strong>. Please continue paying the current rent of £${cur.toLocaleString()}/month until that date.</p>
+    <div style="background:#FFF8E7;border:1px solid #F6D860;border-radius:6px;padding:10px 12px;margin:12px 0;font-size:10px;line-height:1.65">
+      <div style="font-weight:700;margin-bottom:4px">⚖️ Your Right to Challenge — First-tier Tribunal (Property Chamber)</div>
+      <div style="color:#5C4A00">If you believe the proposed rent exceeds the open market rent for this property, you have the right to refer this notice to the <strong>First-tier Tribunal (Property Chamber)</strong> before <strong>${eFmt}</strong>. The Tribunal will determine the open market rent, which may be lower than proposed. You will not face any detriment for exercising this right.</div>
+    </div>
+    <div style="margin-top:22px;padding-top:12px;border-top:1px solid #E4EAF1;font-size:11px">
+      <div style="margin-bottom:26px">Signed: <span style="border-bottom:1px solid #aaa;display:inline-block;width:160px">&nbsp;</span></div>
+      <div>Name: <strong>${lName}</strong> &nbsp;&nbsp; Date: ${nFmt}</div>
+    </div>
+  </div>`;
+
+  window._s13p.noticeHtml = html;
+  preEl.innerHTML = html;
+}
+
+function s13pPDF() {
+  const html = window._s13p?.noticeHtml;
+  if (!html) { toast('Complete the form first', true); return; }
+  const w = window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>Section 13 Notice</title><style>body{font-family:Georgia,serif;font-size:13px;line-height:1.8;color:#1A2B45;max-width:700px;margin:40px auto;padding:20px}.s13-doc{}</style></head><body>${html}<br><br><button onclick="window.print()" style="padding:9px 22px;background:#0B1E3D;color:#fff;border:none;border-radius:7px;font-size:13px;cursor:pointer;font-family:sans-serif">🖨️ Print / Save as PDF</button></body></html>`);
+  w.document.close();
+}
+
+function s13pCopy() {
+  const html = window._s13p?.noticeHtml;
+  if (!html) { toast('Complete the form first', true); return; }
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  navigator.clipboard.writeText(tmp.innerText||tmp.textContent||'')
+    .then(()=>toast('Notice text copied to clipboard'))
+    .catch(()=>toast('Copy failed', true));
+}
+
+async function s13pSend() {
+  const btn = document.getElementById('s13p-send-btn');
+  const pid   = window._s13p?.pid;
+  const tenId = window._s13p?.tenantId;
+  const p = P(pid);
+  const t = D.tenants.find(tt=>String(tt.id)===String(tenId));
+  const newR  = parseFloat(document.getElementById('s13p-newrent')?.value||0);
+  const eDate = document.getElementById('s13p-edate')?.value||'';
+  const lName = document.getElementById('s13p-lname')?.value.trim()||'Landlord';
+
+  if (!t)              { toast('Select a tenant', true); return; }
+  if (!newR||(p&&newR<=(p.rent||0))) { toast('New rent must exceed current rent', true); return; }
+  if (!eDate)          { toast('Set an effective date', true); return; }
+  if (!window._s13p?.noticeHtml) { toast('Preview not ready', true); return; }
+
+  if (btn) { btn.disabled=true; btn.innerHTML='<span class="spin"></span> Sending…'; }
+
+  const sendEmail = document.getElementById('s13p-email-chk')?.checked;
+  const doAudit   = document.getElementById('s13p-audit-chk')?.checked ?? true;
+  const cur       = p?.rent||0;
+  const propAddr  = [p?.address,p?.city,p?.postcode].filter(Boolean).join(', ');
+  const eFmt      = new Date(eDate).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+
+  try {
+    if (sendEmail && t?.email) {
+      const emailBody = `<div style="font-family:sans-serif;max-width:620px;margin:0 auto">
+        <div style="background:#0B1E3D;padding:18px 24px;border-radius:10px 10px 0 0">
+          <div style="font-size:17px;font-weight:700;color:#fff">Rent<span style="color:#00C896">Safe AI</span></div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:2px">Section 13 Rent Increase Notice</div>
+        </div>
+        <div style="background:#fff;border:1px solid #E4EAF1;border-top:none;border-radius:0 0 10px 10px;padding:24px">
+          <p style="font-size:13px;color:#7A8FA6;margin:0 0 12px">Dear ${t.name},</p>
+          <p style="font-size:13px;margin:0 0 16px">Please find your formal Section 13 rent increase notice for <strong>${propAddr}</strong>.</p>
+          <div style="background:#F6F8FB;border-radius:8px;padding:14px;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center">
+            <div><div style="font-size:10px;color:#7A8FA6;font-weight:600;text-transform:uppercase;margin-bottom:2px">Current rent</div><div style="font-size:15px;font-weight:700">£${cur.toLocaleString()}/mo</div></div>
+            <div><div style="font-size:10px;color:#7A8FA6;font-weight:600;text-transform:uppercase;margin-bottom:2px">New rent</div><div style="font-size:15px;font-weight:700;color:#0B1E3D">£${newR.toLocaleString()}/mo</div></div>
+            <div><div style="font-size:10px;color:#7A8FA6;font-weight:600;text-transform:uppercase;margin-bottom:2px">Effective</div><div style="font-size:13px;font-weight:700">${eFmt}</div></div>
+          </div>
+          ${window._s13p.noticeHtml}
+        </div>
+      </div>`;
+      await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ type:'send_email', to: t.email, subject:`Section 13 Notice — Rent Increase at ${propAddr}`, html: emailBody })
+      });
+    }
+    if (doAudit) {
+      await SB.from('email_log').insert({ prop_id:pid, tenant_id:tenId, template_id:'section13', subject:'Section 13 Rent Increase Notice', sent_at: new Date().toISOString() });
+      await SB.from('audit_log').insert({ prop_id:pid, tenant_id:tenId, action:'section13_notice_sent', detail:`S.13 notice: £${cur}→£${newR}/mo, effective ${eDate}`, created_at: new Date().toISOString() });
+      await loadData();
+    }
+    toast(`✓ Section 13 notice ${sendEmail&&t?.email?'sent to '+t.email:'saved to audit trail'}`);
+    if (btn) { btn.disabled=false; btn.innerHTML='📨 Send Notice to Tenant'; }
+  } catch(e) {
+    console.error(e);
+    toast('Send failed — check console', true);
+    if (btn) { btn.disabled=false; btn.innerHTML='📨 Send Notice to Tenant'; }
+  }
 }
 
 // ── SECTION 13 RENT INCREASE NOTICE GENERATOR ──
