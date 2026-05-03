@@ -477,6 +477,7 @@ tr:hover td{background:rgba(246,248,251,.8)}
 
 <!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 // ══════════════════════════════════════════════════════════════
 // RENTSAFE AI — CODE MAP (auto-generated, update each session)
@@ -4677,6 +4678,7 @@ function pgTenantDetail(tid) {
     { slot: 'address_2',     icon: '📬', label: 'Address Proof 2',        mandatory: true  },
     { slot: 'reference',     icon: '📋', label: 'Reference Check',        mandatory: true  },
     { slot: 'guarantor',     icon: '🤝', label: 'Guarantor Check',        mandatory: false },
+    { slot: 'other',         icon: '📎', label: 'Other Document',          mandatory: false },
   ];
 
   const SUPABASE_URL = 'https://mahtcfukgzbonwibtsxz.supabase.co';
@@ -4799,15 +4801,83 @@ function pgTenantDetail(tid) {
       </div>`;
   }).join('');
 
-  // ── Actions ──
-  const actionRow = `
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      ${t.email?`<a href="mailto:${t.email}" class="btn btn-sm">✉ Email</a>`:''}
-      ${t.phone?`<a href="tel:${t.phone}" class="btn btn-sm">📞 Call</a>`:''}
-      <button class="btn btn-sm" onclick="moEsign('${t.prop_id}','${t.id}')">✍️ Send for Signing</button>
-      ${t.email?`<button class="btn btn-sm" id="invite-btn-${t.id}" onclick="sendPortalInvite('${t.id}')">🔗 ${t.invite_used?'Resend invite':'Send portal invite'}</button>`:''}
-      <button class="btn btn-sm" onclick="moWelcomeKit('${t.prop_id}')">📦 Welcome kit</button>
-      <button class="btn btn-sm" onclick="moRRASheet()">📋 RRA Sheet</button>
+  // ── Journey Cards ──
+  const propLog    = D.emailLog.filter(e => String(e.prop_id) === String(t.prop_id));
+  const tenantLog2 = D.emailLog.filter(e => String(e.tenant_id) === String(tid));
+  const propCerts  = D.certs.filter(c => String(c.prop_id) === String(t.prop_id));
+
+  const day1Items = [
+    { icon:'📋', label:'RRA Sheet sent',
+      done: propLog.some(e=>e.template_id==='rra_info_sheet')||tenantLog2.some(e=>e.template_id==='rra_info_sheet'),
+      action:`moRRASheet()`, btnLabel:'Send RRA' },
+    { icon:'📦', label:'Welcome Kit sent',
+      done: propLog.some(e=>e.template_id==='welcome_kit')||tenantLog2.some(e=>e.template_id==='welcome_kit'),
+      action:`moWelcomeKit('${t.prop_id}')`, btnLabel:'Send Kit' },
+    { icon:'🔥', label:'Gas Safety Certificate served',
+      done: propCerts.some(c=>c.type&&c.type.toLowerCase().includes('gas')),
+      action:`moBulkScan('${t.prop_id}')`, btnLabel:'Upload GSC' },
+    { icon:'⚡', label:'EICR served to tenant',
+      done: propCerts.some(c=>c.type&&(c.type.toLowerCase().includes('eicr')||c.type.toLowerCase().includes('electrical'))),
+      action:`moBulkScan('${t.prop_id}')`, btnLabel:'Upload EICR' },
+    { icon:'🏷', label:'EPC served to tenant',
+      done: propCerts.some(c=>c.type&&(c.type.toLowerCase().includes('epc')||c.type.toLowerCase().includes('energy'))),
+      action:`moBulkScan('${t.prop_id}')`, btnLabel:'Upload EPC' },
+    { icon:'🔗', label:'Portal invite sent',
+      done: !!(t.invite_used||propLog.some(e=>e.template_id?.includes('portal')||e.template_id?.includes('invite'))||tenantLog2.some(e=>e.template_id?.includes('portal')||e.template_id?.includes('invite'))),
+      action:`sendPortalInvite('${t.id}')`, btnLabel:'Send Invite' },
+  ];
+
+  const day30Due = t.start_date ? new Date(new Date(t.start_date).getTime()+30*864e5).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '—';
+  const day30Items = [
+    { icon:'✍️', label:'Tenancy agreement signed',
+      done: propLog.some(e=>e.template_id?.includes('esign')||e.template_id?.includes('sign'))||tenantLog2.some(e=>e.template_id?.includes('esign')||e.template_id?.includes('sign')),
+      action:`moEsign('${t.prop_id}','${t.id}')`, btnLabel:'Send for signing' },
+    { icon:'🏦', label:'Deposit prescribed info served',
+      done: propLog.some(e=>e.template_id==='prescribed'||e.template_id?.includes('prescribed'))||tenantLog2.some(e=>e.template_id?.includes('prescribed')),
+      action:`moCommunicationsHub('${tid}')`, btnLabel:'Send now' },
+    { icon:'💰', label:'Deposit scheme protected',
+      done: !!(t.scheme&&t.scheme_ref),
+      action:`moTenantDetail('${t.id}')`, btnLabel:'Add scheme ref' },
+    { icon:'🔔', label:'Smoke & CO alarm tested',
+      done: propLog.some(e=>(e.subject||'').toLowerCase().includes('smoke')||(e.template_id||'').toLowerCase().includes('smoke')),
+      action:`moCommunicationsHub('${tid}')`, btnLabel:'Log test' },
+  ];
+
+  const mkJourneyRow = item => {
+    const col = item.done ? 'var(--green-dark)' : 'var(--muted)';
+    const bg  = item.done ? 'var(--green-bg)'   : 'var(--off)';
+    return `
+      <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">
+        <span style="width:22px;height:22px;border-radius:50%;background:${bg};color:${col};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">${item.done?'✓':'○'}</span>
+        <span style="font-size:12px;flex:1;${item.done?'text-decoration:line-through;opacity:0.6':''}">${item.icon} ${item.label}</span>
+        ${!item.done?`<button class="btn btn-sm" style="font-size:11px;padding:2px 9px" onclick="${item.action}">${item.btnLabel}</button>`:''}
+      </div>`;
+  };
+
+  const day1Done  = day1Items.filter(i=>i.done).length;
+  const day30Done = day30Items.filter(i=>i.done).length;
+  const journeyCards = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div class="panel">
+        <div class="ph2" style="padding:12px 16px">
+          <div>
+            <div style="font-size:13px;font-weight:700">🗓 Day 1 Pack</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">Must complete before / on move-in</div>
+          </div>
+          <span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:100px;background:${day1Done===day1Items.length?'var(--green-bg)':'rgba(229,62,62,0.08)'};color:${day1Done===day1Items.length?'var(--green-dark)':'var(--red)'}">${day1Done}/${day1Items.length}</span>
+        </div>
+        <div style="padding:4px 16px 12px">${day1Items.map(mkJourneyRow).join('')}</div>
+      </div>
+      <div class="panel">
+        <div class="ph2" style="padding:12px 16px">
+          <div>
+            <div style="font-size:13px;font-weight:700">📆 Day 30 Pack</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">Due by ${day30Due}</div>
+          </div>
+          <span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:100px;background:${day30Done===day30Items.length?'var(--green-bg)':'rgba(229,62,62,0.08)'};color:${day30Done===day30Items.length?'var(--green-dark)':'var(--red)'}">${day30Done}/${day30Items.length}</span>
+        </div>
+        <div style="padding:4px 16px 12px">${day30Items.map(mkJourneyRow).join('')}</div>
+      </div>
     </div>`;
 
   // ── Email log ──
@@ -4825,6 +4895,7 @@ function pgTenantDetail(tid) {
 
   return `
     <div class="topbar"><span class="tb-title">Tenants</span><div class="tb-right">
+      <button class="btn btn-sm" onclick="exportEvidenceBundle('${tid}')">📁 Export Bundle</button>
       <button class="btn btn-sm" onclick="moTenantDetail('${t.id}')">✎ Edit tenant</button>
     </div></div>
     <div class="content">
@@ -4855,14 +4926,11 @@ function pgTenantDetail(tid) {
         <div style="padding:14px 18px">${kycRows}</div>
       </div>
 
-      <div class="panel" style="margin-bottom:16px">
-        <div class="ph2"><div><h2>⚡ Quick actions</h2></div></div>
-        <div style="padding:14px 18px">${actionRow}</div>
-      </div>
+      ${journeyCards}
 
       <div class="panel">
-        <div class="ph2"><div><h2>✉ Email log</h2><p>Documents sent to this tenant</p></div>
-          <button class="btn btn-sm" onclick="nav('templates')">+ Send document</button>
+        <div class="ph2"><div><h2>📨 Communications</h2><p>All documents &amp; correspondence sent to this tenant</p></div>
+          <button class="btn btn-sm btn-navy" onclick="moCommunicationsHub('${tid}')">+ Send document</button>
         </div>
         <div>${logRows}</div>
       </div>
@@ -5003,7 +5071,188 @@ async function deleteTenantDoc(docId, tid) {
   nav('tenant-detail', tid);
 }
 
-// ── PAGE: RENT ──
+// ── Communications Hub modal ──
+function moCommunicationsHub(tid) {
+  const t = D.tenants.find(x => String(x.id) === String(tid));
+  if (!t) return;
+  const docs = [
+    { id:'welcome_kit',    label:'Welcome Kit',           action:`moWelcomeKit('${t.prop_id}')` },
+    { id:'rra_info_sheet', label:'RRA Information Sheet', action:`moRRASheet()` },
+    { id:'esign',          label:'Tenancy Agreement (e-sign)', action:`moEsign('${t.prop_id}','${t.id}')` },
+    { id:'section8',       label:'Section 8 Notice',      action:`moSection8('${t.prop_id}')` },
+  ];
+  const logRows = D.emailLog
+    .filter(e => String(e.tenant_id)===String(tid) || String(e.prop_id)===String(t.prop_id))
+    .slice(0,30)
+    .map(e=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);gap:10px">
+        <div style="min-width:0">
+          <div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.subject||e.template_id||'Email'}</div>
+          <div style="font-size:11px;color:var(--muted)">${e.sent_to||''} · ${e.sent_at?new Date(e.sent_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):''}</div>
+        </div>
+        <span style="font-size:10px;padding:2px 7px;border-radius:100px;background:var(--green-bg);color:var(--green-dark);flex-shrink:0">Sent</span>
+      </div>`).join('') || '<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">No emails sent yet</div>';
+
+  openModal(`
+    <div class="ph2" style="padding:16px 18px;border-bottom:1px solid var(--border)">
+      <div><h2 style="font-size:16px">📨 Communications — ${t.name}</h2>
+        <p style="font-size:12px;color:var(--muted)">Send a document or view correspondence history</p></div>
+    </div>
+    <div style="padding:16px 18px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:10px">Send a document</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px">
+        ${docs.map(d=>`<button class="btn btn-sm" onclick="closeModal();${d.action}">${d.label}</button>`).join('')}
+      </div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:6px">History (${D.emailLog.filter(e=>String(e.tenant_id)===String(tid)||String(e.prop_id)===String(t.prop_id)).length} items)</div>
+      <div style="max-height:300px;overflow-y:auto">${logRows}</div>
+    </div>`);
+}
+
+// ── Evidence Bundle PDF export ──
+async function exportEvidenceBundle(tid) {
+  const t = D.tenants.find(x => String(x.id) === String(tid));
+  if (!t) return;
+  const p = D.properties.find(x => String(x.id) === String(t.prop_id)) || { address:'—', city:'' };
+  const docs   = D.tenantDocs.filter(d => String(d.tenant_id) === String(tid));
+  const comms  = D.emailLog.filter(e => String(e.tenant_id)===String(tid)||String(e.prop_id)===String(t.prop_id));
+  const rents  = D.rent.filter(r => String(r.prop_id)===String(t.prop_id));
+  const maint  = D.maintenance.filter(m => String(m.prop_id)===String(t.prop_id));
+
+  toast('⏳ Generating evidence bundle…');
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+    const W = doc.internal.pageSize.getWidth();
+    let y = 0;
+
+    const addPage = () => { doc.addPage(); y = 20; };
+    const ln = (text, size=11, bold=false, color=[40,40,40]) => {
+      doc.setFontSize(size); doc.setFont('helvetica', bold?'bold':'normal');
+      doc.setTextColor(...color);
+      const lines = doc.splitTextToSize(String(text||''), W-30);
+      lines.forEach(l => {
+        if (y > 270) addPage();
+        doc.text(l, 15, y); y += size*0.45;
+      });
+      y += 1;
+    };
+    const rule = (col=[200,200,200]) => {
+      if (y > 270) addPage();
+      doc.setDrawColor(...col); doc.setLineWidth(0.3);
+      doc.line(15, y, W-15, y); y += 4;
+    };
+    const sectionHeader = (title) => {
+      if (y > 250) addPage();
+      doc.setFillColor(245, 247, 250);
+      doc.rect(10, y-4, W-20, 10, 'F');
+      ln(title, 13, true, [30,60,120]); y += 3; rule([180,200,230]);
+    };
+
+    // ── COVER ──
+    doc.setFillColor(30, 58, 120);
+    doc.rect(0, 0, W, 55, 'F');
+    doc.setFontSize(22); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
+    doc.text('EVIDENCE BUNDLE', 15, 22);
+    doc.setFontSize(14); doc.setFont('helvetica','normal');
+    doc.text(`${t.name}`, 15, 33);
+    doc.setFontSize(10); doc.setTextColor(200,215,240);
+    doc.text(`${p.address}, ${p.city}`, 15, 42);
+    doc.text(`Generated: ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`, 15, 49);
+    y = 65;
+
+    // Summary box
+    doc.setDrawColor(180,195,230); doc.setLineWidth(0.5);
+    doc.rect(10, y, W-20, 28);
+    doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(60,60,60);
+    const flds = [
+      ['Tenant', t.name], ['Property', `${p.address}, ${p.city}`],
+      ['Tenancy start', t.start_date ? new Date(t.start_date).toLocaleDateString('en-GB') : '—'],
+      ['Rent', t.rent ? `£${t.rent}/mo` : '—'],
+      ['Deposit', t.deposit ? `£${t.deposit}` : '—'],
+      ['Deposit scheme', t.scheme ? `${t.scheme} — ${t.scheme_ref||'ref pending'}` : 'Not set'],
+    ];
+    const colW = (W-20)/2;
+    flds.forEach(([l,v], i) => {
+      const cx = 15 + (i%2)*colW;
+      const cy = y + 7 + Math.floor(i/2)*8;
+      doc.setFont('helvetica','bold'); doc.text(l+':', cx, cy);
+      doc.setFont('helvetica','normal'); doc.text(v||'—', cx+30, cy);
+    });
+    y += 36; rule();
+
+    // ── SECTION 1: KYC ──
+    sectionHeader('SECTION 1 — KYC DOCUMENTS');
+    if (docs.length === 0) { ln('No KYC documents uploaded.', 10, false, [150,150,150]); y += 4; }
+    docs.forEach((d, i) => {
+      ln(`${i+1}. ${d.doc_label || d.slot || 'Document'}`, 11, true);
+      if (d.extracted_name) ln(`   Name: ${d.extracted_name}`, 10);
+      if (d.extracted_doc_number) ln(`   Reference: ${d.extracted_doc_number}`, 10);
+      if (d.extracted_expiry) ln(`   Expiry: ${d.extracted_expiry}`, 10);
+      if (d.share_code) ln(`   Share code: ${d.share_code}`, 10);
+      ln(`   Verified: ${d.verified ? '✓ Yes' : 'Not yet verified'}  |  Uploaded: ${d.uploaded_at ? new Date(d.uploaded_at).toLocaleDateString('en-GB') : '—'}`, 10, false, d.verified?[0,120,80]:[180,0,0]);
+      if (d.name_mismatch) ln(`   ⚠ NAME MISMATCH — extracted "${d.extracted_name}" vs tenant record "${t.name}"`, 10, true, [180,0,0]);
+      rule([220,220,220]); y += 1;
+    });
+
+    // ── SECTION 2: COMPLIANCE TIMELINE ──
+    addPage();
+    sectionHeader('SECTION 2 — COMPLIANCE TIMELINE');
+    if (comms.length === 0) { ln('No communications logged.', 10, false, [150,150,150]); y += 4; }
+    comms.slice(0,40).forEach(e => {
+      const ts = e.sent_at ? new Date(e.sent_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
+      ln(`${ts}  —  ${e.subject||e.template_id||'Email'}  →  ${e.sent_to||'—'}`, 10);
+      rule([230,230,230]); y += 1;
+    });
+
+    // ── SECTION 3: PORTAL ACTIVITY ──
+    sectionHeader('SECTION 3 — PORTAL ACTIVITY');
+    ln(`Portal invite sent: ${t.invite_used ? '✓ Yes' : 'Not sent'}`, 10);
+    ln(`Last login: ${t.last_login ? new Date(t.last_login).toLocaleDateString('en-GB') : '—'}`, 10);
+    y += 4;
+
+    // ── SECTION 4: RENT HISTORY ──
+    sectionHeader('SECTION 4 — RENT PAYMENT HISTORY');
+    if (rents.length === 0) { ln('No rent records found.', 10, false, [150,150,150]); y += 4; }
+    rents.slice(0,50).forEach(r => {
+      const ts = r.due_date ? new Date(r.due_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
+      const statusColor = r.status==='Paid'?[0,120,80]:r.status==='Late'?[180,0,0]:[100,100,100];
+      doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(60,60,60);
+      if (y>270) addPage();
+      doc.text(`${ts}  £${(r.amount||0).toLocaleString()}`, 15, y);
+      doc.setTextColor(...statusColor); doc.setFont('helvetica','bold');
+      doc.text(r.status||'—', W-40, y); doc.setFont('helvetica','normal'); doc.setTextColor(60,60,60);
+      y += 6; rule([230,230,230]); y += 1;
+    });
+
+    // ── SECTION 5: MAINTENANCE ──
+    if (y > 220) addPage();
+    sectionHeader('SECTION 5 — MAINTENANCE LOG');
+    if (maint.length === 0) { ln('No maintenance records found.', 10, false, [150,150,150]); }
+    maint.slice(0,30).forEach(m => {
+      ln(`${m.title||'Job'} — ${m.status||'—'} — ${m.created_at?new Date(m.created_at).toLocaleDateString('en-GB'):''} — £${m.cost||0}`, 10);
+      if (m.description) ln(`   ${m.description}`, 9, false, [100,100,100]);
+      rule([230,230,230]); y += 1;
+    });
+
+    // Footer on all pages
+    const totalPages = doc.getNumberOfPages();
+    for (let pg = 1; pg <= totalPages; pg++) {
+      doc.setPage(pg);
+      doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(150,150,150);
+      doc.text(`RentSafe AI — Evidence Bundle for ${t.name} — Page ${pg} of ${totalPages}`, W/2, 292, { align:'center' });
+    }
+
+    const filename = `evidence_bundle_${(t.name||'tenant').replace(/\s+/g,'_')}_${new Date().toISOString().slice(0,10)}.pdf`;
+    doc.save(filename);
+    toast('✓ Evidence bundle downloaded');
+  } catch(err) {
+    console.error('Bundle error:', err);
+    toast('⚠ Could not generate PDF — check console', true);
+  }
+}
+
+
 function pgRent(){
   const tot=D.properties.reduce((s,p)=>s+(p.rent||0),0);
   const paid=D.rent.filter(r=>r.status==='Paid').reduce((s,r)=>s+(r.amount||0),0);
