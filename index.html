@@ -338,25 +338,137 @@
   .section-header.centered { text-align: center; }
   .section-header.centered .section-sub { margin: 0 auto; }
 
-  /* ── VIDEO ── */
+  /* ── DEMO MOCKUP ── */
   #demo { background: var(--bg-dark); }
-  .video-wrap {
-    max-width: 720px; margin: 0 auto;
+  .mockup-wrap {
+    max-width: 900px; margin: 0 auto;
     border-radius: 16px;
     overflow: hidden;
     box-shadow: var(--shadow-lg);
     border: 1px solid var(--border);
+    background: var(--white);
   }
-  .video-responsive {
-    position: relative;
-    padding-bottom: 56.25%;
-    height: 0; overflow: hidden;
+  .mockup-bar {
+    background: var(--navy);
+    padding: 14px 20px;
+    display: flex; align-items: center; gap: 12px;
   }
-  .video-responsive iframe {
-    position: absolute; top: 0; left: 0;
-    width: 100%; height: 100%;
-    border: none;
+  .mockup-dots { display: flex; gap: 6px; }
+  .mockup-dots span { width: 10px; height: 10px; border-radius: 50%; }
+  .mockup-url {
+    flex: 1; background: rgba(255,255,255,0.1);
+    border-radius: 6px; padding: 5px 14px;
+    font-size: 0.75rem; color: rgba(255,255,255,0.5);
+    font-family: monospace;
   }
+  .mockup-body {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    min-height: 460px;
+  }
+  .mockup-sidebar {
+    background: var(--navy-dark);
+    padding: 20px 0;
+  }
+  .mock-nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 11px 20px;
+    font-size: 0.8rem; font-weight: 500;
+    color: rgba(255,255,255,0.5);
+    cursor: default;
+    transition: all 0.3s;
+  }
+  .mock-nav-item.active {
+    background: rgba(59,130,246,0.15);
+    color: var(--white);
+    border-right: 3px solid var(--blue);
+  }
+  .mock-nav-item .icon { font-size: 1rem; }
+  .mockup-main { padding: 24px; overflow: hidden; }
+  .mock-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 20px;
+  }
+  .mock-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem; font-weight: 700;
+    color: var(--navy);
+  }
+  .mock-badge {
+    background: #DCFCE7; color: var(--success);
+    font-size: 0.72rem; font-weight: 700;
+    padding: 4px 10px; border-radius: 100px;
+  }
+  .mock-cards {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 12px; margin-bottom: 20px;
+  }
+  .mock-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+  }
+  .mock-card-label {
+    font-size: 0.7rem; font-weight: 600;
+    color: var(--text-muted); text-transform: uppercase;
+    letter-spacing: 0.05em; margin-bottom: 6px;
+  }
+  .mock-card-val {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem; font-weight: 700;
+    color: var(--navy); line-height: 1;
+  }
+  .mock-card-sub { font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; }
+  .mock-rows { display: flex; flex-direction: column; gap: 8px; }
+  .mock-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    background: var(--bg); border-radius: 8px;
+    border: 1px solid var(--border);
+    font-size: 0.8rem;
+    opacity: 0; transform: translateX(12px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+  .mock-row.show { opacity: 1; transform: translateX(0); }
+  .mock-row-icon { font-size: 1rem; flex-shrink: 0; }
+  .mock-row-text { flex: 1; font-weight: 500; color: var(--text); }
+  .mock-row-date { font-size: 0.72rem; color: var(--text-muted); }
+  .mock-row-status {
+    font-size: 0.7rem; font-weight: 700;
+    padding: 3px 8px; border-radius: 100px;
+  }
+  .status-ok { background: #DCFCE7; color: var(--success); }
+  .status-warn { background: #FEF3C7; color: #B45309; }
+  .status-due { background: #FEE2E2; color: #DC2626; }
+  /* Animated score ring in mockup */
+  .mock-score-wrap {
+    display: flex; align-items: center; gap: 20px;
+    background: var(--bg); border-radius: 10px;
+    padding: 14px 18px; margin-bottom: 14px;
+    border: 1px solid var(--border);
+  }
+  .mock-ring { position: relative; width: 64px; height: 64px; flex-shrink: 0; }
+  .mock-ring svg { transform: rotate(-90deg); }
+  .mock-ring .r-track { fill: none; stroke: #EFF3F9; stroke-width: 7; }
+  .mock-ring .r-fill {
+    fill: none; stroke: var(--success); stroke-width: 7;
+    stroke-linecap: round;
+    stroke-dasharray: 163;
+    stroke-dashoffset: 163;
+    transition: stroke-dashoffset 1.8s ease 0.4s;
+  }
+  .mock-ring.animate .r-fill { stroke-dashoffset: 16; }
+  .mock-ring-num {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem; font-weight: 700; color: var(--navy);
+  }
+  .mock-score-info h4 {
+    font-size: 0.875rem; font-weight: 700; color: var(--navy); margin-bottom: 4px;
+  }
+  .mock-score-info p { font-size: 0.78rem; color: var(--text-muted); }
 
   /* ── FEATURES ── */
   #features { background: var(--white); }
@@ -408,213 +520,170 @@
     line-height: 1.65;
   }
 
-  /* ── PRICING ── */
-  #pricing { background: var(--bg-dark); }
+  /* ── PRICING (dark) ── */
+  #pricing {
+    background: #0D1626;
+  }
+  #pricing .section-tag { color: var(--blue-light); }
+  #pricing .section-heading { color: var(--white); }
+  #pricing .section-sub { color: rgba(255,255,255,0.55); }
+
   .founding-banner {
-    background: linear-gradient(135deg, var(--navy), var(--navy-light));
+    background: rgba(212,168,83,0.1);
+    border: 1px solid rgba(212,168,83,0.25);
     border-radius: 12px;
-    padding: 20px 28px;
-    margin-bottom: 48px;
-    display: flex; align-items: center; gap: 16px;
+    padding: 18px 24px;
+    margin-bottom: 40px;
+    display: flex; align-items: center; gap: 14px;
     color: var(--white);
   }
-  .founding-icon { font-size: 1.8rem; flex-shrink: 0; }
-  .founding-text h4 {
-    font-size: 1rem; font-weight: 700;
-    margin-bottom: 4px;
-  }
-  .founding-text p {
-    font-size: 0.85rem;
-    color: rgba(255,255,255,0.75);
-  }
-  .founding-count {
-    margin-left: auto; flex-shrink: 0;
-    text-align: center;
-  }
+  .founding-icon { font-size: 1.6rem; flex-shrink: 0; }
+  .founding-text h4 { font-size: 0.9rem; font-weight: 700; margin-bottom: 3px; color: var(--gold); }
+  .founding-text p { font-size: 0.82rem; color: rgba(255,255,255,0.55); }
+  .founding-count { margin-left: auto; flex-shrink: 0; text-align: center; }
   .founding-count .num {
     font-family: 'Playfair Display', serif;
-    font-size: 2rem; font-weight: 700;
-    color: var(--gold);
-    line-height: 1;
+    font-size: 1.8rem; font-weight: 700; color: var(--gold); line-height: 1;
   }
   .founding-count .label {
-    font-size: 0.7rem; font-weight: 600;
-    color: rgba(255,255,255,0.6);
+    font-size: 0.68rem; font-weight: 600;
+    color: rgba(255,255,255,0.4);
     text-transform: uppercase; letter-spacing: 0.05em;
   }
 
   .pricing-toggle {
     display: flex; align-items: center; justify-content: center; gap: 14px;
-    margin-bottom: 48px;
+    margin-bottom: 40px;
   }
-  .toggle-label {
-    font-size: 0.875rem; font-weight: 600;
-    color: var(--text-muted);
-    cursor: pointer;
-  }
-  .toggle-label.active { color: var(--navy); }
+  .toggle-label { font-size: 0.875rem; font-weight: 600; color: rgba(255,255,255,0.4); cursor: pointer; }
+  .toggle-label.active { color: var(--white); }
   .toggle-switch {
-    width: 52px; height: 28px;
-    background: var(--navy);
-    border-radius: 100px;
-    position: relative; cursor: pointer;
-    transition: background 0.2s;
+    width: 52px; height: 28px; background: var(--blue);
+    border-radius: 100px; position: relative; cursor: pointer; transition: background 0.2s;
   }
   .toggle-switch::after {
-    content: '';
-    position: absolute;
-    width: 20px; height: 20px;
-    background: var(--white);
-    border-radius: 50%;
-    top: 4px; left: 4px;
-    transition: transform 0.2s;
+    content: ''; position: absolute;
+    width: 20px; height: 20px; background: var(--white);
+    border-radius: 50%; top: 4px; left: 4px; transition: transform 0.2s;
   }
   .toggle-switch.annual::after { transform: translateX(24px); }
   .annual-badge {
-    background: #DCFCE7;
-    color: var(--success);
+    background: rgba(5,150,105,0.2); color: #34D399;
     font-size: 0.72rem; font-weight: 700;
     padding: 3px 8px; border-radius: 100px;
-    letter-spacing: 0.02em;
   }
 
   .pricing-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
     margin-bottom: 20px;
+    align-items: stretch;
   }
+
+  /* base card */
   .pricing-card {
-    background: var(--white);
-    border: 1.5px solid var(--border);
+    background: #131F35;
+    border: 1px solid rgba(255,255,255,0.08);
     border-radius: 14px;
-    padding: 28px 24px;
+    padding: 28px 22px;
     position: relative;
     transition: all 0.25s ease;
+    display: flex; flex-direction: column;
   }
   .pricing-card:hover {
-    box-shadow: var(--shadow);
-    transform: translateY(-2px);
+    border-color: rgba(255,255,255,0.18);
+    transform: translateY(-3px);
   }
+
+  /* popular highlight */
   .pricing-card.popular {
+    background: #1a2a4a;
     border-color: var(--blue);
-    box-shadow: 0 0 0 4px rgba(59,130,246,0.1), var(--shadow);
+    box-shadow: 0 0 0 1px var(--blue), 0 20px 60px rgba(59,130,246,0.15);
   }
   .popular-badge {
     position: absolute; top: -13px; left: 50%;
     transform: translateX(-50%);
-    background: var(--blue);
-    color: var(--white);
-    font-size: 0.7rem; font-weight: 700;
+    background: var(--blue); color: var(--white);
+    font-size: 0.68rem; font-weight: 700;
     padding: 4px 14px; border-radius: 100px;
     letter-spacing: 0.05em; text-transform: uppercase;
     white-space: nowrap;
   }
+
+  /* HMO card */
+  .pricing-card.hmo-plan {
+    background: #0D1626;
+    border: 1px dashed rgba(255,255,255,0.15);
+    opacity: 0.7;
+  }
+
   .plan-name {
-    font-size: 0.75rem; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.08em;
-    color: var(--blue);
-    margin-bottom: 8px;
-  }
-  .plan-props {
-    font-size: 0.82rem;
-    color: var(--text-muted);
-    margin-bottom: 20px;
-  }
-  .plan-price {
+    font-size: 0.72rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.4);
     margin-bottom: 6px;
   }
+  .plan-props {
+    font-size: 0.8rem; color: rgba(255,255,255,0.4);
+    margin-bottom: 20px; min-height: 20px;
+  }
+  .plan-price { margin-bottom: 22px; }
   .plan-price .founding {
-    font-size: 0.72rem; font-weight: 600;
-    color: var(--gold);
+    font-size: 0.68rem; font-weight: 600; color: var(--gold);
     text-transform: uppercase; letter-spacing: 0.05em;
-    display: block; margin-bottom: 4px;
+    display: block; margin-bottom: 6px;
   }
   .plan-price .amount {
     font-family: 'Playfair Display', serif;
-    font-size: 2.2rem; font-weight: 700;
-    color: var(--navy);
-    line-height: 1;
+    font-size: 3rem; font-weight: 700; color: var(--white); line-height: 1;
   }
-  .plan-price .period {
-    font-size: 0.82rem;
-    color: var(--text-muted);
-  }
+  .plan-price .period { font-size: 0.85rem; color: rgba(255,255,255,0.45); }
   .plan-price .standard {
-    font-size: 0.78rem;
-    color: var(--slate-light);
-    text-decoration: line-through;
-    margin-top: 4px;
-    display: block;
+    font-size: 0.75rem; color: rgba(255,255,255,0.25);
+    text-decoration: line-through; margin-top: 6px; display: block;
   }
-  .plan-divider {
-    height: 1px;
-    background: var(--border);
-    margin: 20px 0;
-  }
-  .plan-features { list-style: none; display: flex; flex-direction: column; gap: 10px; }
-  .plan-features li {
-    display: flex; align-items: flex-start; gap: 8px;
-    font-size: 0.83rem; color: var(--text-muted);
-  }
-  .plan-features li .check {
-    color: var(--success); font-size: 0.9rem;
-    flex-shrink: 0; margin-top: 1px;
-  }
+
   .plan-btn {
-    display: block;
-    width: 100%;
-    text-align: center;
-    margin-top: 24px;
-    padding: 12px;
-    border-radius: 8px;
+    display: block; width: 100%; text-align: center;
+    padding: 13px; border-radius: 8px;
     font-size: 0.875rem; font-weight: 600;
-    text-decoration: none;
-    transition: all 0.2s;
+    text-decoration: none; border: none; cursor: pointer;
+    transition: all 0.2s; margin-bottom: 24px;
   }
-  .plan-btn-primary {
-    background: var(--navy);
+  .plan-btn-primary { background: var(--blue); color: var(--white); }
+  .plan-btn-primary:hover { background: #2563EB; transform: translateY(-1px); }
+  .plan-btn-outline {
+    background: transparent;
+    border: 1.5px solid rgba(255,255,255,0.2);
     color: var(--white);
   }
-  .plan-btn-primary:hover { background: var(--navy-light); }
-  .plan-btn-outline {
-    border: 1.5px solid var(--border);
-    color: var(--navy);
+  .plan-btn-outline:hover { border-color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.05); }
+  .plan-btn-coming {
+    background: transparent;
+    border: 1.5px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.3);
+    cursor: default;
   }
-  .plan-btn-outline:hover { border-color: var(--navy); background: var(--bg); }
 
-  .hmo-card {
-    background: var(--white);
-    border: 1.5px dashed var(--border);
-    border-radius: 14px;
-    padding: 24px 28px;
-    display: flex; align-items: center; gap: 20px;
+  .plan-divider { height: 1px; background: rgba(255,255,255,0.07); margin-bottom: 20px; }
+
+  .plan-features { list-style: none; display: flex; flex-direction: column; gap: 11px; flex: 1; }
+  .plan-features li {
+    display: flex; align-items: flex-start; gap: 9px;
+    font-size: 0.82rem; color: rgba(255,255,255,0.6);
+    line-height: 1.4;
   }
-  .hmo-icon { font-size: 2rem; flex-shrink: 0; }
-  .hmo-text h4 {
-    font-size: 1rem; font-weight: 700;
-    color: var(--navy); margin-bottom: 4px;
-  }
-  .hmo-text p {
-    font-size: 0.85rem; color: var(--text-muted);
-  }
-  .hmo-badge {
-    margin-left: auto; flex-shrink: 0;
-    background: #FEF3C7;
-    color: #B45309;
-    font-size: 0.75rem; font-weight: 700;
-    padding: 6px 14px; border-radius: 100px;
-    letter-spacing: 0.03em;
-    white-space: nowrap;
-  }
+  .plan-features li .check { color: var(--blue-light); flex-shrink: 0; margin-top: 1px; }
+  .plan-features li.gold { color: var(--gold); }
+  .plan-features li.gold .check { color: var(--gold); }
 
   .pricing-note {
-    text-align: center;
-    margin-top: 28px;
-    font-size: 0.82rem;
-    color: var(--text-muted);
+    text-align: center; margin-top: 24px;
+    font-size: 0.8rem; color: rgba(255,255,255,0.3);
   }
-  .pricing-note a { color: var(--blue); text-decoration: none; font-weight: 500; }
+  .pricing-note strong { color: rgba(255,255,255,0.5); }
 
   /* ── REFERRAL ── */
   #referral { background: var(--navy); }
@@ -864,22 +933,102 @@
   </div>
 </div>
 
-<!-- DEMO VIDEO -->
+<!-- DEMO MOCKUP -->
 <section id="demo">
   <div class="section-inner">
     <div class="section-header centered fade-in">
       <div class="section-tag">See it in action</div>
-      <h2 class="section-heading">From signup to compliant in 10 minutes</h2>
-      <p class="section-sub">Watch a full walkthrough of the platform — property setup, compliance scoring, document generation, and tenant portal.</p>
+      <h2 class="section-heading">Your compliance dashboard,<br>at a glance</h2>
+      <p class="section-sub">Every property, certificate, and deadline in one place. Know your compliance status the moment you log in.</p>
     </div>
-    <div class="video-wrap fade-in" style="transition-delay:0.15s">
-      <div class="video-responsive">
-        <iframe
-          src="https://www.youtube.com/embed/lkKGQVHrXzE?start=327"
-          title="RentSafeAI Platform Demo"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowfullscreen>
-        </iframe>
+    <div class="mockup-wrap fade-in" style="transition-delay:0.15s" id="mockup">
+      <!-- Browser chrome -->
+      <div class="mockup-bar">
+        <div class="mockup-dots">
+          <span style="background:#FF5F57"></span>
+          <span style="background:#FEBC2E"></span>
+          <span style="background:#28C840"></span>
+        </div>
+        <div class="mockup-url">rentsafeai.co.uk/landlord</div>
+      </div>
+      <!-- App layout -->
+      <div class="mockup-body">
+        <!-- Sidebar -->
+        <div class="mockup-sidebar">
+          <div class="mock-nav-item active"><span class="icon">🏠</span> Dashboard</div>
+          <div class="mock-nav-item"><span class="icon">🏘️</span> Properties</div>
+          <div class="mock-nav-item"><span class="icon">👤</span> Tenants</div>
+          <div class="mock-nav-item"><span class="icon">📄</span> Documents</div>
+          <div class="mock-nav-item"><span class="icon">🔧</span> Maintenance</div>
+          <div class="mock-nav-item"><span class="icon">📅</span> Calendar</div>
+          <div class="mock-nav-item"><span class="icon">🤖</span> AI Assistant</div>
+        </div>
+        <!-- Main content -->
+        <div class="mockup-main">
+          <div class="mock-header">
+            <div class="mock-title">Good morning, Saby 👋</div>
+            <div class="mock-badge">✓ 3 of 3 properties compliant</div>
+          </div>
+          <!-- Score ring -->
+          <div class="mock-score-wrap">
+            <div class="mock-ring" id="mock-ring">
+              <svg viewBox="0 0 64 64" width="64" height="64">
+                <circle class="r-track" cx="32" cy="32" r="26"/>
+                <circle class="r-fill" cx="32" cy="32" r="26"/>
+              </svg>
+              <div class="mock-ring-num">90</div>
+            </div>
+            <div class="mock-score-info">
+              <h4>Portfolio Compliance Score</h4>
+              <p>1 action needed — smoke alarm check due at 14 Rowan Close</p>
+            </div>
+          </div>
+          <!-- Metric cards -->
+          <div class="mock-cards">
+            <div class="mock-card">
+              <div class="mock-card-label">Properties</div>
+              <div class="mock-card-val">3</div>
+              <div class="mock-card-sub">All active</div>
+            </div>
+            <div class="mock-card">
+              <div class="mock-card-label">Certs Expiring</div>
+              <div class="mock-card-val" style="color:#D97706">1</div>
+              <div class="mock-card-sub">Next 30 days</div>
+            </div>
+            <div class="mock-card">
+              <div class="mock-card-label">Open Repairs</div>
+              <div class="mock-card-val">2</div>
+              <div class="mock-card-sub">In progress</div>
+            </div>
+          </div>
+          <!-- Compliance rows -->
+          <div class="mock-rows">
+            <div class="mock-row" data-delay="0">
+              <span class="mock-row-icon">🔥</span>
+              <span class="mock-row-text">Smoke Alarm Check — 14 Rowan Close</span>
+              <span class="mock-row-date">Due 10 Jun</span>
+              <span class="mock-row-status status-warn">Due Soon</span>
+            </div>
+            <div class="mock-row" data-delay="150">
+              <span class="mock-row-icon">⛽</span>
+              <span class="mock-row-text">Gas Safety Certificate — 7 Maple Ave</span>
+              <span class="mock-row-date">Valid to Dec 2025</span>
+              <span class="mock-row-status status-ok">Valid</span>
+            </div>
+            <div class="mock-row" data-delay="300">
+              <span class="mock-row-icon">📄</span>
+              <span class="mock-row-text">Tenancy Agreement — 22 Birch Lane</span>
+              <span class="mock-row-date">Signed 1 Apr</span>
+              <span class="mock-row-status status-ok">Complete</span>
+            </div>
+            <div class="mock-row" data-delay="450">
+              <span class="mock-row-icon">🏠</span>
+              <span class="mock-row-text">How to Rent Guide — 22 Birch Lane</span>
+              <span class="mock-row-date">Sent 1 Apr</span>
+              <span class="mock-row-status status-ok">Sent</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -972,104 +1121,123 @@
     </div>
 
     <div class="pricing-grid fade-in">
+
       <!-- Starter -->
       <div class="pricing-card">
         <div class="plan-name">Starter</div>
-        <div class="plan-props">1 property</div>
+        <div class="plan-props">For landlords with 1 property</div>
         <div class="plan-price">
           <span class="founding">🏅 Founding price</span>
-          <span class="amount" id="starter-price">£4.99</span>
-          <span class="period">/mo</span>
+          <span class="amount" id="starter-price">£4.99</span><span class="period">/mo</span>
           <span class="standard" id="starter-standard">Standard: £7.99/mo</span>
         </div>
+        <a href="landlord.html" class="plan-btn plan-btn-outline">Start free trial</a>
         <div class="plan-divider"></div>
         <ul class="plan-features">
           <li><span class="check">✓</span> 1 property</li>
-          <li><span class="check">✓</span> Full compliance dashboard</li>
+          <li><span class="check">✓</span> Compliance dashboard</li>
           <li><span class="check">✓</span> All 17 legal documents</li>
           <li><span class="check">✓</span> Mandatory starter kit</li>
-          <li><span class="check">✓</span> Certificate alerts</li>
+          <li><span class="check">✓</span> Certificate expiry alerts</li>
           <li><span class="check">✓</span> Tenant portal</li>
+          <li><span class="check">✓</span> S.13 &amp; S.8 notice generator</li>
+          <li><span class="check">✓</span> E-signatures</li>
+          <li class="gold"><span class="check">✓</span> Founding member badge</li>
         </ul>
-        <a href="landlord.html" class="plan-btn plan-btn-outline">Start Free</a>
       </div>
 
-      <!-- Landlord -->
+      <!-- Landlord (popular) -->
       <div class="pricing-card popular">
         <div class="popular-badge">Most Popular</div>
         <div class="plan-name">Landlord</div>
-        <div class="plan-props">2–5 properties</div>
+        <div class="plan-props">For landlords with up to 5 properties</div>
         <div class="plan-price">
           <span class="founding">🏅 Founding price</span>
-          <span class="amount" id="landlord-price">£6.99</span>
-          <span class="period">/mo</span>
+          <span class="amount" id="landlord-price">£6.99</span><span class="period">/mo</span>
           <span class="standard" id="landlord-standard">Standard: £12.99/mo</span>
         </div>
+        <a href="landlord.html" class="plan-btn plan-btn-primary">Start free trial</a>
         <div class="plan-divider"></div>
         <ul class="plan-features">
           <li><span class="check">✓</span> Up to 5 properties</li>
           <li><span class="check">✓</span> Everything in Starter</li>
-          <li><span class="check">✓</span> E-signatures</li>
           <li><span class="check">✓</span> AI compliance assistant</li>
           <li><span class="check">✓</span> Maintenance tracking</li>
+          <li><span class="check">✓</span> Awaab's Law timers</li>
           <li><span class="check">✓</span> Contractor book</li>
+          <li><span class="check">✓</span> Compliance calendar</li>
+          <li><span class="check">✓</span> Rent tracking &amp; reminders</li>
+          <li class="gold"><span class="check">✓</span> Founding member badge</li>
         </ul>
-        <a href="landlord.html" class="plan-btn plan-btn-primary">Start Free</a>
       </div>
 
       <!-- Portfolio -->
       <div class="pricing-card">
         <div class="plan-name">Portfolio</div>
-        <div class="plan-props">6–15 properties</div>
+        <div class="plan-props">For landlords with up to 15 properties</div>
         <div class="plan-price">
           <span class="founding">🏅 Founding price</span>
-          <span class="amount" id="portfolio-price">£11.99</span>
-          <span class="period">/mo</span>
+          <span class="amount" id="portfolio-price">£11.99</span><span class="period">/mo</span>
           <span class="standard" id="portfolio-standard">Standard: £23.99/mo</span>
         </div>
+        <a href="landlord.html" class="plan-btn plan-btn-outline">Start free trial</a>
         <div class="plan-divider"></div>
         <ul class="plan-features">
           <li><span class="check">✓</span> Up to 15 properties</li>
           <li><span class="check">✓</span> Everything in Landlord</li>
           <li><span class="check">✓</span> Bulk document generation</li>
           <li><span class="check">✓</span> Portfolio health overview</li>
-          <li><span class="check">✓</span> Priority email support</li>
           <li><span class="check">✓</span> Compliance audit log</li>
+          <li><span class="check">✓</span> Deposit protection alerts</li>
+          <li><span class="check">✓</span> Priority email support</li>
+          <li><span class="check">✓</span> Insurance tracking</li>
+          <li class="gold"><span class="check">✓</span> Founding member badge</li>
         </ul>
-        <a href="landlord.html" class="plan-btn plan-btn-outline">Start Free</a>
       </div>
 
       <!-- Pro -->
       <div class="pricing-card">
         <div class="plan-name">Pro</div>
-        <div class="plan-props">16+ properties</div>
+        <div class="plan-props">For portfolios of 16+ properties</div>
         <div class="plan-price">
           <span class="founding">🏅 Founding price</span>
-          <span class="amount" id="pro-price">£17.99</span>
-          <span class="period">/mo</span>
+          <span class="amount" id="pro-price">£17.99</span><span class="period">/mo</span>
           <span class="standard" id="pro-standard">Standard: £34.99/mo</span>
         </div>
+        <a href="landlord.html" class="plan-btn plan-btn-outline">Start free trial</a>
         <div class="plan-divider"></div>
         <ul class="plan-features">
           <li><span class="check">✓</span> Unlimited properties</li>
           <li><span class="check">✓</span> Everything in Portfolio</li>
-          <li><span class="check">✓</span> API access (coming soon)</li>
-          <li><span class="check">✓</span> Dedicated onboarding</li>
           <li><span class="check">✓</span> Custom document templates</li>
+          <li><span class="check">✓</span> Dedicated onboarding</li>
           <li><span class="check">✓</span> Phone support</li>
+          <li><span class="check">✓</span> Multi-user access</li>
+          <li><span class="check">✓</span> Letting agent portal</li>
+          <li class="gold"><span class="check">✓</span> Founding member badge</li>
         </ul>
-        <a href="landlord.html" class="plan-btn plan-btn-outline">Start Free</a>
       </div>
-    </div>
 
-    <!-- HMO Coming Soon -->
-    <div class="hmo-card fade-in" style="margin-top:20px">
-      <div class="hmo-icon">🏘️</div>
-      <div class="hmo-text">
-        <h4>HMO Licence Management</h4>
-        <p>Full HMO compliance module coming soon — room-by-room management, licence tracking, shared facilities logs, and council inspection prep.</p>
+      <!-- HMO Coming Soon -->
+      <div class="pricing-card hmo-plan">
+        <div class="plan-name">HMO</div>
+        <div class="plan-props">HMO licence management</div>
+        <div class="plan-price">
+          <span class="founding" style="opacity:0.4">Coming soon</span>
+          <span class="amount" style="opacity:0.3">—</span>
+        </div>
+        <a class="plan-btn plan-btn-coming">Coming Soon</a>
+        <div class="plan-divider"></div>
+        <ul class="plan-features">
+          <li><span class="check" style="opacity:0.3">✓</span> HMO licence tracking</li>
+          <li><span class="check" style="opacity:0.3">✓</span> Room-by-room compliance</li>
+          <li><span class="check" style="opacity:0.3">✓</span> Shared facilities logs</li>
+          <li><span class="check" style="opacity:0.3">✓</span> Fire safety management</li>
+          <li><span class="check" style="opacity:0.3">✓</span> Council inspection prep</li>
+          <li><span class="check" style="opacity:0.3">✓</span> Multi-tenant management</li>
+        </ul>
       </div>
-      <div class="hmo-badge">Coming Soon</div>
+
     </div>
 
     <p class="pricing-note fade-in">All plans include a <strong>30-day free trial</strong> · No card required · Cancel anytime · Annual billing saves 2 months</p>
@@ -1168,7 +1336,23 @@
   }, { threshold: 0.1 });
   faders.forEach(f => observer.observe(f));
 
-  // Trigger hero immediately
+  // Mockup animations — trigger when mockup scrolls into view
+  const mockup = document.getElementById('mockup');
+  const mockupObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        // Animate score ring
+        document.getElementById('mock-ring')?.classList.add('animate');
+        // Stagger compliance rows
+        document.querySelectorAll('.mock-row').forEach(row => {
+          const delay = parseInt(row.dataset.delay || 0);
+          setTimeout(() => row.classList.add('show'), delay + 300);
+        });
+        mockupObserver.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.3 });
+  if (mockup) mockupObserver.observe(mockup);
   document.querySelectorAll('.hero .fade-in').forEach(el => {
     setTimeout(() => el.classList.add('visible'), 100);
   });
