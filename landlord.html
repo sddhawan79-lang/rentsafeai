@@ -4358,6 +4358,7 @@ const REMINDER_TYPES = [
   { id:'s13',       icon:'📈', label:'S.13 eligibility',          desc:'12-month anniversary — rent increase now possible', milestones:[0],      unit:'unlocked', action:'nav(\'tenants\')', mandatory:false },
   { id:'rra',       icon:'⚠️', label:'RRA sheet deadline',        desc:'31 May 2026 — send to all existing tenants',     milestones:[30,14,7],  unit:'days',    action:'moRRASheet()',      mandatory:true  },
   { id:'compliance_digest', icon:'📊', label:'Compliance score digest', desc:'Weekly email with your portfolio health score and action items', milestones:[7], unit:'days', action:'nav(\'compliance\')', mandatory:false },
+  { id:'inspection', icon:'🔍', label:'Inspection due',             desc:'Scheduled property inspection approaching',       milestones:[7,1],    unit:'days', action:'nav(\'inspections\')', mandatory:false },
 ];
 
 function getReminderPrefs() {
@@ -4666,6 +4667,22 @@ async function checkAllReminders() {
       `📊 Weekly compliance digest — Portfolio score: ${portfolioScore}/100`,
       html, 'REMINDER_COMPLIANCE_DIGEST', 'portfolio', `digest_${today.toISOString().slice(0,10)}`
     );
+  }
+
+  // ── 12. Inspection due ──
+  if (isReminderEnabled('inspection')) {
+    for (const prop of D.properties) {
+      const inspections = prop.inspections || [];
+      const nextInsp = inspections.map(i=>i.next_inspection).filter(Boolean).sort().reverse()[0];
+      if (!nextInsp) continue;
+      const d = Math.round((new Date(nextInsp)-today)/864e5);
+      for (const ms of [7,1]) {
+        if (d < ms-TOL || d > ms+TOL) continue;
+        if (await alreadySent('REMINDER_INSPECTION', prop.id, `insp_${ms}d`)) continue;
+        const html = emailWrap(`🔍 Inspection due in ${d} day${d!==1?'s':''} — ${prop.address}`,`Property inspection reminder`,`<p style="font-size:13px">A property inspection is due in <strong>${d} day${d!==1?'s':''}</strong> at <strong>${prop.address}${prop.city?', '+prop.city:''}</strong>.</p><p style="font-size:13px;margin-top:10px;color:#7A8FA6">Log in to confirm the inspection or reschedule if needed.</p>`);
+        await sendReminder(`🔍 Inspection due in ${d}d — ${prop.address}`, html, 'REMINDER_INSPECTION', prop.id, `insp_${ms}d`);
+      }
+    }
   }
 }
 
@@ -5381,7 +5398,7 @@ function pgRent(){
   const tot=D.properties.reduce((s,p)=>s+(p.rent||0),0);
   const paid=D.rent.filter(r=>r.status==='Paid').reduce((s,r)=>s+(r.amount||0),0);
   const due=D.rent.filter(r=>r.status==='Due').reduce((s,r)=>s+(r.amount||0),0);
-  return`<div class="topbar"><span class="tb-title">Rent</span><div class="tb-right"><button class="btn btn-navy" onclick="alert('Record payment — coming next')">+ Record payment</button></div></div>
+  return`<div class="topbar"><span class="tb-title">Rent</span><div class="tb-right"><button class="btn btn-navy" onclick="moAddPayment()">+ Record payment</button></div></div>
   <div class="content">
     <div class="ph"><h1>Rent</h1><p>Track payments across your portfolio</p></div>
     <div class="metrics metrics-3">
@@ -5390,14 +5407,198 @@ function pgRent(){
       <div class="mc"><div class="mc-top"><span class="mc-label">Late payments</span></div><div class="mc-val" style="color:var(--red)">${D.rent.filter(r=>r.status==='Late').length}</div></div>
     </div>
     ${D.rent.length?`<div class="panel"><div class="tw"><table>
-      <thead><tr><th>Property</th><th>Month</th><th>Amount</th><th>Due</th><th>Paid</th><th>Status</th></tr></thead>
+      <thead><tr><th>Property</th><th>Month</th><th>Amount</th><th>Due</th><th>Paid</th><th>Status</th><th></th></tr></thead>
       <tbody>${D.rent.map(r=>{const p=P(r.prop_id)||{address:'—',city:''};return`<tr>
         <td class="td-bold">${p.address}</td><td>${r.month}</td>
         <td>£${(r.amount||0).toLocaleString()}</td><td>${FMS(r.due||r.due_date)}</td>
         <td>${r.paid||r.paid_date?FMS(r.paid||r.paid_date):'—'}</td><td>${B(r.status)}</td>
+        <td><button onclick="moAddPayment('${r.prop_id}',${r.id})" style="font-size:11px;padding:3px 8px;border-radius:5px;border:1px solid var(--border);background:none;cursor:pointer;font-family:var(--font)">Edit</button></td>
       </tr>`}).join('')}</tbody>
     </table></div></div>`:'<div class="empty"><div class="empty-ic">💷</div><div class="empty-t">No rent records yet</div></div>'}
   </div>`;
+}
+
+function moAddPayment(prefPropId, editId) {
+  const rec = editId ? D.rent.find(r=>String(r.id)===String(editId)) : null;
+  const propOpts = D.properties.map(p=>`<option value="${p.id}"${String(p.id)===(rec?String(rec.prop_id):String(prefPropId||''))?' selected':''}>${p.address}${p.city?', '+p.city:''}</option>`).join('');
+  const today = new Date().toISOString().slice(0,10);
+  const thisMonth = new Date().toISOString().slice(0,7);
+  const tenantEmail = () => { const pid = rec?.prop_id||prefPropId; const t = D.tenants.find(t=>String(t.prop_id)===String(pid)&&t.status==='Active'); return t?.email||''; };
+  openMo(rec?'Edit Payment':'Record Rent Payment', rec?'Update payment record':'Log a received payment', `
+    <div class="fg"><label>Property <span class="req">*</span></label><select id="pay-prop">${propOpts}</select></div>
+    <div class="fg-row">
+      <div class="fg"><label>Month <span class="req">*</span></label><input type="month" id="pay-month" value="${rec?.month||thisMonth}"></div>
+      <div class="fg"><label>Amount (£) <span class="req">*</span></label><input type="number" id="pay-amount" value="${rec?.amount||''}" placeholder="e.g. 1200" min="0"></div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Due date</label><input type="date" id="pay-due" value="${rec?.due||rec?.due_date||''}"></div>
+      <div class="fg"><label>Paid date</label><input type="date" id="pay-paid" value="${rec?.paid||rec?.paid_date||today}"></div>
+    </div>
+    <div class="fg"><label>Status</label>
+      <select id="pay-status">
+        ${['Paid','Due','Late','Partial'].map(s=>`<option${(rec?.status||'Paid')===s?' selected':''}>${s}</option>`).join('')}
+      </select>
+    </div>
+    <div class="fg"><label>Notes (optional)</label><input type="text" id="pay-notes" value="${rec?.notes||''}" placeholder="e.g. Paid via bank transfer"></div>
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:4px">
+      <input type="checkbox" id="pay-receipt" ${tenantEmail()?'checked':''} ${!tenantEmail()?'disabled':''} style="width:13px;height:13px">
+      <div style="font-size:12px">${tenantEmail()?'Email receipt to <strong>'+tenantEmail()+'</strong>':'No tenant email on file'}</div>
+    </label>
+    ${rec?`<button onclick="deletePayment(${rec.id})" style="background:none;border:none;color:var(--red);font-size:12px;cursor:pointer;padding:4px 0;font-family:var(--font)">🗑 Delete this record</button>`:''}
+  `, `
+    <button onclick="closeMo()" style="background:none;border:none;font-family:var(--font);font-size:13px;color:var(--muted);cursor:pointer">Cancel</button>
+    <button class="btn btn-navy" onclick="savePayment(${editId||'null'})">💾 Save payment</button>
+  `);
+}
+
+async function savePayment(editId) {
+  const prop_id = parseInt(document.getElementById('pay-prop')?.value);
+  const month   = document.getElementById('pay-month')?.value;
+  const amount  = parseFloat(document.getElementById('pay-amount')?.value)||0;
+  const due     = document.getElementById('pay-due')?.value||null;
+  const paid    = document.getElementById('pay-paid')?.value||null;
+  const status  = document.getElementById('pay-status')?.value||'Paid';
+  const notes   = document.getElementById('pay-notes')?.value.trim()||null;
+  const sendReceipt = document.getElementById('pay-receipt')?.checked;
+  if (!prop_id||!month||!amount) { toast('Property, month and amount required',true); return; }
+  const payload = {prop_id, month, amount, due_date:due, paid_date:paid, status, notes};
+  if (editId) {
+    const {error} = await sb.from('rent_payments').update(payload).eq('id',editId);
+    if (error) { toast('Save failed',true); return; }
+    const idx = D.rent.findIndex(r=>String(r.id)===String(editId));
+    if (idx>-1) D.rent[idx]={...D.rent[idx],...payload};
+  } else {
+    const {data,error} = await sb.from('rent_payments').insert({...payload,user_id:currentUser.id}).select().single();
+    if (error||!data) { toast('Save failed',true); return; }
+    D.rent.unshift(data);
+  }
+  if (sendReceipt && status==='Paid') {
+    const p = P(prop_id);
+    const tenant = D.tenants.find(t=>String(t.prop_id)===String(prop_id)&&t.status==='Active');
+    if (tenant?.email && p) {
+      const paidStr = paid ? new Date(paid).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) : 'N/A';
+      const html = emailWrap(`💷 Rent receipt — ${p.address}`,`Payment confirmed for ${month}`,`
+        <p style="font-size:13px">Dear ${tenant.name},</p>
+        <p style="font-size:13px;margin-top:10px">This is to confirm receipt of your rent payment for <strong>${p.address}${p.city?', '+p.city:''}</strong>.</p>
+        <div style="background:#f0fdf9;border:1px solid #00C896;border-radius:8px;padding:16px;margin:16px 0;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center">
+          <div><div style="font-size:9px;color:#7A8FA6;font-weight:700;text-transform:uppercase;margin-bottom:3px">Amount</div><div style="font-size:15px;font-weight:700;color:#00A87A">£${amount.toLocaleString()}</div></div>
+          <div><div style="font-size:9px;color:#7A8FA6;font-weight:700;text-transform:uppercase;margin-bottom:3px">Month</div><div style="font-size:13px;font-weight:600">${month}</div></div>
+          <div><div style="font-size:9px;color:#7A8FA6;font-weight:700;text-transform:uppercase;margin-bottom:3px">Received</div><div style="font-size:13px;font-weight:600">${paidStr}</div></div>
+        </div>
+        <p style="font-size:12px;color:#7A8FA6">Please keep this email as your receipt. Thank you.</p>`);
+      await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({type:'send_email',to:tenant.email,subject:`Rent receipt — ${month} — ${p.address}`,html})
+      }).catch(()=>{});
+      await logAudit('RENT_RECEIPT_SENT','rent_payments',editId||'new',`Receipt sent to ${tenant.email} for ${month}`);
+    }
+  }
+  closeMo(); toast('✓ Payment saved'); nav('rent');
+}
+
+async function deletePayment(id) {
+  if (!confirm('Delete this payment record?')) return;
+  const {error} = await sb.from('rent_payments').delete().eq('id',id);
+  if (error) { toast('Delete failed',true); return; }
+  D.rent = D.rent.filter(r=>String(r.id)!==String(id));
+  closeMo(); toast('Payment deleted'); nav('rent');
+}
+
+// ── PAGE: INSPECTIONS ──
+function pgInspections() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const allInspections = D.properties.flatMap(p=>(p.inspections||[]).map(i=>({...i,prop_id:p.id,propAddr:p.address+(p.city?', '+p.city:'')})));
+  const overdue  = D.properties.filter(p=>{ const ni=(p.inspections||[]).map(i=>i.next_inspection).filter(Boolean).sort().reverse()[0]; return ni&&new Date(ni)<today; }).length;
+  const dueSoon  = D.properties.filter(p=>{ const ni=(p.inspections||[]).map(i=>i.next_inspection).filter(Boolean).sort().reverse()[0]; if(!ni) return false; const d=Math.round((new Date(ni)-today)/864e5); return d>=0&&d<=30; }).length;
+  const summary = [
+    {label:'Total inspections',val:allInspections.length,icon:'🔍',col:'var(--txt)'},
+    {label:'Due in 30 days',val:dueSoon,icon:'📅',col:'var(--amber)'},
+    {label:'Overdue',val:overdue,icon:'⚠️',col:'var(--red)'},
+    {label:'Properties covered',val:D.properties.filter(p=>(p.inspections||[]).length>0).length,icon:'✅',col:'var(--green-dark)'},
+  ].map(c=>`<div class="mc"><div class="mc-top"><span class="mc-label">${c.label}</span><div class="mc-icon">${c.icon}</div></div><div class="mc-val" style="color:${c.col}">${c.val}</div></div>`).join('');
+  const cards = D.properties.map(p=>{
+    const inspList = (p.inspections||[]).slice().sort((a,b)=>new Date(b.date)-new Date(a.date));
+    const last = inspList[0];
+    const nextDates = inspList.map(i=>i.next_inspection).filter(Boolean).sort().reverse();
+    const next = nextDates[0];
+    const dNext = next ? Math.round((new Date(next)-today)/864e5) : null;
+    const nextCol = dNext===null?'var(--muted)':dNext<0?'var(--red)':dNext<=30?'var(--amber)':'var(--green-dark)';
+    const nextLabel = dNext===null?'Not scheduled':dNext<0?`Overdue by ${Math.abs(dNext)}d`:dNext===0?'Due today':`In ${dNext} days`;
+    const OUTCOME_COL = {Pass:'var(--green-dark)',Advisory:'var(--amber)',Fail:'var(--red)'};
+    const rows = inspList.length ? inspList.slice(0,5).map(i=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div>
+            <div style="font-size:12px;font-weight:600">${FMS(i.date)} · <span style="color:var(--muted)">${i.type||'Routine'}</span></div>
+            <div style="font-size:11px;color:var(--muted)">${i.inspector?'Inspector: '+i.inspector:''} ${i.notes?'· '+i.notes.slice(0,50)+(i.notes.length>50?'…':''):''}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${i.outcome?`<span style="font-size:11px;font-weight:600;color:${OUTCOME_COL[i.outcome]||'var(--muted)'}">${i.outcome}</span>`:''}
+        </div>
+      </div>`).join('') : `<div style="font-size:12px;color:var(--muted);padding:10px 0">No inspections logged yet</div>`;
+    return `<div class="panel" style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:10px;margin-bottom:8px;border-bottom:2px solid var(--border)">
+        <span style="font-weight:600;font-size:13px">🏡 ${p.address}${p.city?', '+p.city:''}</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:11px;font-weight:600;color:${nextCol}">Next: ${nextLabel}</span>
+          <button onclick="moAddInspection(null,'${p.id}')" style="font-size:11px;padding:4px 10px;border-radius:5px;border:1px solid var(--blue);background:var(--blue-bg);cursor:pointer;color:var(--blue);font-family:var(--font);font-weight:600">+ Log inspection</button>
+        </div>
+      </div>
+      ${rows}
+    </div>`;
+  }).join('');
+  return`<div class="topbar"><span class="tb-title">Inspections</span></div>
+  <div class="content">
+    <div class="ph"><h1>Inspections</h1><p>Track property inspections across your portfolio</p></div>
+    <div class="mc-row" style="margin-bottom:20px">${summary}</div>
+    ${D.properties.length?cards:'<div class="empty"><div class="empty-ic">🔍</div><div class="empty-t">Add a property first</div></div>'}
+  </div>`;
+}
+
+function moAddInspection(inspIdx, prefPropId) {
+  const propOpts = D.properties.map(p=>`<option value="${p.id}"${String(p.id)===String(prefPropId||'')?' selected':''}>${p.address}${p.city?', '+p.city:''}</option>`).join('');
+  const today = new Date().toISOString().slice(0,10);
+  openMo('Log Inspection','Record a property inspection',`
+    <div class="fg"><label>Property <span class="req">*</span></label><select id="insp-prop">${propOpts}</select></div>
+    <div class="fg-row">
+      <div class="fg"><label>Date <span class="req">*</span></label><input type="date" id="insp-date" value="${today}"></div>
+      <div class="fg"><label>Type</label>
+        <select id="insp-type"><option>Routine</option><option>Check-in</option><option>Check-out</option><option>Emergency</option><option>Annual</option></select>
+      </div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Inspector</label><input type="text" id="insp-who" placeholder="e.g. Landlord, agent name"></div>
+      <div class="fg"><label>Outcome</label>
+        <select id="insp-outcome"><option value="">Not assessed</option><option>Pass</option><option>Advisory</option><option>Fail</option></select>
+      </div>
+    </div>
+    <div class="fg"><label>Notes / findings</label><textarea id="insp-notes" placeholder="Describe condition, issues noted…" style="min-height:70px"></textarea></div>
+    <div class="fg"><label>Next inspection date</label><input type="date" id="insp-next" placeholder="Schedule the next one"></div>
+  `,`
+    <button onclick="closeMo()" style="background:none;border:none;font-family:var(--font);font-size:13px;color:var(--muted);cursor:pointer">Cancel</button>
+    <button class="btn btn-navy" onclick="saveInspection('${prefPropId||''}')">💾 Save inspection</button>
+  `);
+}
+
+async function saveInspection(pid) {
+  const propId = document.getElementById('insp-prop')?.value || pid;
+  const date      = document.getElementById('insp-date')?.value;
+  const type      = document.getElementById('insp-type')?.value;
+  const inspector = document.getElementById('insp-who')?.value.trim()||'';
+  const outcome   = document.getElementById('insp-outcome')?.value||'';
+  const notes     = document.getElementById('insp-notes')?.value.trim()||'';
+  const nextDate  = document.getElementById('insp-next')?.value||null;
+  if (!date) { toast('Date is required',true); return; }
+  const p = P(propId);
+  if (!p) { toast('Property not found',true); return; }
+  const inspections = [...(p.inspections||[]), {date,type,inspector,outcome,notes,next_inspection:nextDate}];
+  const {error} = await sb.from('properties').update({inspections}).eq('id',propId);
+  if (error) { toast('Save failed: '+error.message,true); return; }
+  p.inspections = inspections;
+  await logAudit('ADD_INSPECTION','properties',propId,`${type} inspection on ${date}${outcome?' — '+outcome:''}`);
+  closeMo(); toast('✓ Inspection logged');
+  nav('inspections');
 }
 
 // ── PAGE: MAINTENANCE ──
@@ -6114,6 +6315,7 @@ const PAGES={
   compliance:()=>pgCompliance(),
   maintenance:()=>pgMaintenance(),
   insurance:()=>pgInsurance(),
+  inspections:()=>pgInspections(),
   assistant:()=>pgAssistant(),
   calendar:()=>pgCalendar(),
   reminders:()=>pgReminders(),
