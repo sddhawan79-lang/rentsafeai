@@ -1,187 +1,459 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-GB">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Terms of Service — Rent Safe AI</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --navy:#0B1E3D;--green:#00C896;--green-dark:#009970;
-  --white:#fff;--off:#F6F8FB;--border:#E4EAF1;
-  --txt:#1A2B45;--muted:#7A8FA6;
-  --font:'DM Sans',system-ui,sans-serif;
-  --disp:'DM Serif Display',Georgia,serif;
-}
-html,body{font-family:var(--font);color:var(--txt);background:var(--white);line-height:1.7;-webkit-font-smoothing:antialiased}
-nav{background:var(--navy);padding:0 40px;height:60px;display:flex;align-items:center;justify-content:space-between}
-.nav-logo{font-family:var(--disp);font-size:18px;color:#fff;text-decoration:none}
-.nav-logo span{color:var(--green)}
-.nav-links{display:flex;gap:20px;align-items:center}
-.nav-links a{font-size:13px;color:rgba(255,255,255,0.6);text-decoration:none;transition:color .15s}
-.nav-links a:hover{color:#fff}
-.nav-links .btn{background:var(--green);color:var(--navy);padding:7px 16px;border-radius:7px;font-weight:600;font-size:13px}
-.hero{background:var(--off);border-bottom:1px solid var(--border);padding:48px 40px}
-.hero-inner{max-width:760px;margin:0 auto}
-.hero-label{font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--green-dark);margin-bottom:10px}
-.hero h1{font-family:var(--disp);font-size:36px;color:var(--navy);margin-bottom:10px}
-.hero p{font-size:15px;color:var(--muted)}
-.content{max-width:760px;margin:0 auto;padding:48px 40px}
-h2{font-family:var(--disp);font-size:22px;color:var(--navy);margin:36px 0 12px;font-weight:400}
-h3{font-size:16px;font-weight:600;color:var(--navy);margin:24px 0 8px}
-p{font-size:15px;color:#3D5166;margin-bottom:14px;line-height:1.75}
-ul{margin:0 0 14px 20px}
-ul li{font-size:15px;color:#3D5166;margin-bottom:6px;line-height:1.7}
-.highlight-box{background:var(--off);border:1px solid var(--border);border-left:3px solid var(--green);border-radius:8px;padding:16px 20px;margin:20px 0}
-.highlight-box p{margin:0;font-size:14px}
-.warning-box{background:#FFF7ED;border:1px solid #FDE68A;border-left:3px solid #F59E0B;border-radius:8px;padding:16px 20px;margin:20px 0}
-.warning-box p{margin:0;font-size:14px;color:#92400E}
-.contact-box{background:var(--navy);border-radius:12px;padding:28px;margin:36px 0;color:#fff}
-.contact-box h3{color:#fff;margin-top:0}
-.contact-box p{color:rgba(255,255,255,0.65)}
-.contact-box a{color:var(--green)}
-footer{background:var(--navy);padding:32px 40px;text-align:center}
-footer p{font-size:13px;color:rgba(255,255,255,0.35)}
-footer a{color:rgba(255,255,255,0.5);text-decoration:none;margin:0 12px}
-footer a:hover{color:#fff}
-@media(max-width:600px){
-  nav{padding:0 20px}
-  .hero{padding:32px 20px}
-  .content{padding:32px 20px}
-}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Terms &amp; Conditions — RentSafe AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy:  #0f2744;
+      --teal:  #1a6b6b;
+      --amber: #c8832a;
+      --cream: #faf7f2;
+      --sand:  #e8e0d2;
+      --slate: #4a5568;
+      --muted: #718096;
+      --rule:  #ddd5c8;
+      --white: #ffffff;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'DM Sans', sans-serif; font-size: 15px; line-height: 1.75; color: #2d3748; background: var(--cream); }
+    header { background: var(--navy); color: var(--white); padding: 28px 40px; display: flex; align-items: center; justify-content: space-between; gap: 24px; border-bottom: 3px solid var(--amber); }
+    .logo { font-family: 'DM Sans', sans-serif; font-size: 22px; font-weight: 600; letter-spacing: -0.02em; color: var(--white); text-decoration: none; }
+    .logo span { color: var(--amber); }
+    header p { font-size: 12px; color: rgba(255,255,255,0.55); text-align: right; line-height: 1.5; }
+    .page-wrap { max-width: 820px; margin: 0 auto; padding: 56px 40px 80px; }
+    .doc-title { border-bottom: 2px solid var(--navy); padding-bottom: 28px; margin-bottom: 36px; }
+    .doc-title h1 { font-family: 'Lora', Georgia, serif; font-size: 32px; font-weight: 600; color: var(--navy); letter-spacing: -0.01em; line-height: 1.25; margin-bottom: 10px; }
+    .doc-meta { display: flex; flex-wrap: wrap; gap: 20px; font-size: 13px; color: var(--muted); }
+    .doc-meta span { display: flex; align-items: center; gap: 6px; }
+    .doc-meta strong { color: var(--slate); }
+    .notice { background: #fff8ec; border-left: 4px solid var(--amber); border-radius: 4px; padding: 16px 20px; margin-bottom: 40px; font-size: 13.5px; color: #5a3d10; line-height: 1.6; }
+    .notice strong { font-weight: 600; }
+    .toc { background: var(--white); border: 1px solid var(--rule); border-radius: 8px; padding: 24px 28px; margin-bottom: 48px; }
+    .toc h2 { font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }
+    .toc ol { list-style: decimal; padding-left: 20px; columns: 2; column-gap: 32px; }
+    .toc li { margin-bottom: 6px; break-inside: avoid; }
+    .toc a { font-size: 13.5px; color: var(--teal); text-decoration: none; font-weight: 500; }
+    .toc a:hover { text-decoration: underline; }
+    section { margin-bottom: 44px; }
+    section + section { border-top: 1px solid var(--rule); padding-top: 40px; }
+    h2.section-title { font-family: 'Lora', Georgia, serif; font-size: 20px; font-weight: 600; color: var(--navy); margin-bottom: 20px; display: flex; align-items: baseline; gap: 10px; }
+    h2.section-title .num { font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: var(--amber); text-transform: uppercase; min-width: 28px; }
+    h3 { font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; color: var(--navy); margin: 22px 0 10px; text-transform: uppercase; letter-spacing: 0.04em; }
+    p { margin-bottom: 14px; }
+    p:last-child { margin-bottom: 0; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 7px; }
+    dl { margin-bottom: 14px; }
+    dt { font-weight: 600; color: var(--navy); margin-top: 12px; }
+    dd { padding-left: 16px; color: var(--slate); font-size: 14px; }
+    .pricing-table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin: 20px 0; border-radius: 8px; overflow: hidden; border: 1px solid var(--rule); }
+    .pricing-table thead tr { background: var(--navy); color: var(--white); }
+    .pricing-table th, .pricing-table td { padding: 11px 14px; text-align: left; }
+    .pricing-table tbody tr:nth-child(even) { background: var(--white); }
+    .pricing-table tbody tr:nth-child(odd) { background: var(--cream); }
+    .pricing-table tbody tr:hover { background: #edf4f4; }
+    .founders-badge { display: inline-block; background: var(--amber); color: var(--white); font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; margin-left: 5px; vertical-align: middle; }
+    .highlight { background: #eaf3f3; border-left: 3px solid var(--teal); border-radius: 4px; padding: 14px 18px; margin: 16px 0; font-size: 14px; color: var(--navy); }
+    .founders-box { background: #fff8ec; border: 1px solid var(--amber); border-left: 4px solid var(--amber); border-radius: 6px; padding: 16px 20px; margin: 20px 0 18px; font-size: 14px; color: #5a3d10; }
+    .liability-box { background: var(--navy); color: var(--white); border-radius: 8px; padding: 22px 26px; margin: 20px 0; }
+    .liability-box h3 { color: var(--amber); margin-top: 0; font-size: 12px; letter-spacing: 0.1em; }
+    .liability-box p, .liability-box li { font-size: 14px; color: rgba(255,255,255,0.85); }
+    .liability-box ul { margin-bottom: 0; }
+    footer { background: var(--navy); color: rgba(255,255,255,0.5); text-align: center; font-size: 12px; padding: 28px 40px; line-height: 1.7; }
+    footer a { color: rgba(255,255,255,0.7); }
+    @media print { header, footer { background: #fff; color: #000; border: none; } .toc { display: none; } body { font-size: 11pt; } h2.section-title { font-size: 14pt; } }
+    @media (max-width: 640px) { .page-wrap { padding: 32px 20px 60px; } header { padding: 20px; flex-direction: column; align-items: flex-start; } header p { text-align: left; } .toc ol { columns: 1; } h2.section-title { font-size: 18px; } .pricing-table th, .pricing-table td { padding: 9px 10px; font-size: 12px; } }
+  </style>
 </head>
 <body>
 
-<nav>
-  <a href="index.html" class="nav-logo"><span>Rent</span>Safe AI</a>
-  <div class="nav-links">
-    <a href="index.html">Home</a>
-    <a href="privacy.html">Privacy</a>
-    <a href="login.html" class="btn">Log in</a>
-  </div>
-</nav>
+<header>
+  <a class="logo" href="https://rentsafeai.co.uk">RentSafe<span>AI</span></a>
+  <p>A trading name of Beacons Residentials Ltd<br>Company No. 10990778 · England &amp; Wales</p>
+</header>
 
-<div class="hero">
-  <div class="hero-inner">
-    <div class="hero-label">Legal</div>
-    <h1>Terms of Service</h1>
-    <p>Last updated: 7 April 2026 · Effective date: 7 April 2026</p>
-  </div>
-</div>
+<div class="page-wrap">
 
-<div class="content">
-
-  <div class="highlight-box">
-    <p><strong>Plain English summary:</strong> By using Rent Safe AI you agree to these terms. We provide a compliance tool to help landlords — we are not a law firm and nothing on this platform is legal advice. You are responsible for your own legal compliance as a landlord.</p>
+  <div class="doc-title">
+    <h1>Terms &amp; Conditions of Service</h1>
+    <div class="doc-meta">
+      <span><strong>Version:</strong> 1.1</span>
+      <span><strong>Effective date:</strong> 31 May 2026</span>
+      <span><strong>Last updated:</strong> May 2026</span>
+    </div>
   </div>
 
-  <h2>1. About Rent Safe AI</h2>
-  <p>Rent Safe AI ("the platform", "we", "us") is a property compliance software service operated by <strong>Saurabh Dhawan</strong>, United Kingdom. The platform helps UK landlords track compliance certificates, manage maintenance, communicate with tenants, and generate tenancy documents.</p>
-  <p>By accessing or using Rent Safe AI you agree to be bound by these Terms of Service. If you do not agree, do not use the platform.</p>
-
-  <h2>2. Not legal advice</h2>
-  <div class="warning-box">
-    <p><strong>Important:</strong> Rent Safe AI is a compliance management tool, not a law firm. Nothing on this platform constitutes legal advice. The AI assistant provides general guidance only. Always consult a qualified solicitor for legal proceedings, eviction notices, or disputes.</p>
+  <div class="notice">
+    <strong>Please read these Terms carefully before using RentSafe AI.</strong> By creating an account or using the Service, you confirm that you have read, understood, and agree to be bound by these Terms. If you do not agree, you must not use the Service. These Terms constitute a legally binding agreement between you and Beacons Residentials Ltd.
   </div>
-  <p>While we work hard to keep our compliance information up to date with UK law including the Renters Rights Act, we cannot guarantee that all information is accurate, complete, or current. You remain solely responsible for your legal compliance as a landlord.</p>
 
-  <h2>3. Your account</h2>
-  <p>To use the platform you must create an account. You are responsible for:</p>
-  <ul>
-    <li>Keeping your login credentials secure and confidential</li>
-    <li>All activity that occurs under your account</li>
-    <li>Notifying us immediately of any unauthorised access</li>
-    <li>Ensuring the information you provide is accurate and up to date</li>
-  </ul>
-  <p>You must be at least 18 years old to create an account. You must be acting as a landlord or property manager in the United Kingdom.</p>
-
-  <h2>4. Acceptable use</h2>
-  <p>You agree not to use Rent Safe AI to:</p>
-  <ul>
-    <li>Violate any UK law or regulation</li>
-    <li>Harass, threaten, or discriminate against tenants</li>
-    <li>Store false or misleading information</li>
-    <li>Attempt to gain unauthorised access to other accounts or systems</li>
-    <li>Use the platform for any purpose other than legitimate property management</li>
-    <li>Reverse engineer, copy, or redistribute any part of the platform</li>
-  </ul>
-  <p>We reserve the right to suspend or terminate accounts that violate these terms without notice.</p>
-
-  <h2>5. Tenant data and your responsibilities</h2>
-  <p>When you add tenant information to the platform, you are the data controller for that tenant's personal data. You are responsible for:</p>
-  <ul>
-    <li>Having a lawful basis for processing tenant data</li>
-    <li>Informing tenants that their data is being processed</li>
-    <li>Complying with UK GDPR in your handling of tenant data</li>
-    <li>Obtaining proper consent where required</li>
-    <li>Responding to tenant data requests</li>
-  </ul>
-  <p>Rent Safe AI acts as a data processor on your behalf. See our <a href="privacy.html">Privacy Policy</a> for full details.</p>
-
-  <h2>6. Document generation</h2>
-  <p>Rent Safe AI provides document templates including Section 8 notices, Section 13 notices, and tenancy agreements. These templates are provided as a starting point only.</p>
-  <ul>
-    <li>You are responsible for ensuring documents are correct and legally valid before serving them</li>
-    <li>We do not guarantee that generated documents will be accepted by courts or tribunals</li>
-    <li>Always have legally important documents reviewed by a qualified solicitor before use</li>
-    <li>We are not liable for any loss arising from reliance on generated documents</li>
-  </ul>
-
-  <h2>7. Service availability</h2>
-  <p>We aim to keep Rent Safe AI available at all times but we do not guarantee uninterrupted access. We may need to take the platform offline for maintenance, updates, or in response to security issues. We will give reasonable notice where possible.</p>
-  <p>We are not liable for any loss caused by platform downtime or unavailability.</p>
-
-  <h2>8. Intellectual property</h2>
-  <p>All content, design, code, and materials on Rent Safe AI are owned by or licensed to Saurabh Dhawan. You may not copy, reproduce, or distribute any part of the platform without our written permission.</p>
-  <p>You retain ownership of the data you upload to the platform. By uploading data you grant us a limited licence to store and process it solely for the purpose of providing the service.</p>
-
-  <h2>9. Limitation of liability</h2>
-  <p>To the maximum extent permitted by UK law, Rent Safe AI and Saurabh Dhawan shall not be liable for:</p>
-  <ul>
-    <li>Any indirect, consequential, or incidental loss</li>
-    <li>Loss of data, revenue, or business opportunity</li>
-        <li>Any loss arising from your reliance on AI-generated compliance advice</li>
-    <li>Any loss arising from third-party services we use to operate the platform</li>
-    <li>Fines or penalties imposed on you as a landlord by any authority</li>
-  </ul>
-  <p>Our total liability to you in any circumstances shall not exceed the amount you have paid us in the 12 months preceding the claim.</p>
-
-  <h2>10. Cancellation and termination</h2>
-  <p>You may cancel your account at any time by contacting us at <a href="mailto:hello@rentsafeai.co.uk">hello@rentsafeai.co.uk</a>. Upon cancellation:</p>
-  <ul>
-    <li>You will retain access until the end of your current billing period</li>
-    <li>Your data will be retained for 30 days then permanently deleted unless you request earlier deletion</li>
-    <li>We may retain certain data where required by law</li>
-  </ul>
-  <p>We may terminate your account if you breach these terms, with or without notice depending on the severity of the breach.</p>
-
-  <h2>11. Changes to these terms</h2>
-  <p>We may update these Terms of Service from time to time as the platform develops. We will notify you of significant changes by email at least 14 days before they take effect. Continued use of the platform after changes take effect constitutes acceptance of the new terms.</p>
-
-  <h2>12. Governing law</h2>
-  <p>These Terms of Service are governed by the laws of England and Wales. Any disputes shall be subject to the exclusive jurisdiction of the courts of England and Wales.</p>
-
-  <div class="contact-box">
-    <h3>Questions about these terms?</h3>
-    <p>If you have any questions about these Terms of Service, please contact us:</p>
-    <p>📧 <a href="mailto:hello@rentsafeai.co.uk">hello@rentsafeai.co.uk</a></p>
-    <p>We aim to respond within 5 working days.</p>
+  <div class="toc">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#s1">Definitions &amp; Interpretation</a></li>
+      <li><a href="#s2">About Us</a></li>
+      <li><a href="#s3">The Service</a></li>
+      <li><a href="#s4">Eligibility &amp; Account Registration</a></li>
+      <li><a href="#s5">Subscription Plans &amp; Pricing</a></li>
+      <li><a href="#s6">Free Trial</a></li>
+      <li><a href="#s7">Payment &amp; Billing</a></li>
+      <li><a href="#s8">Cancellation &amp; Termination</a></li>
+      <li><a href="#s9">Acceptable Use</a></li>
+      <li><a href="#s10">AI-Generated Content</a></li>
+      <li><a href="#s11">Intellectual Property</a></li>
+      <li><a href="#s12">Data Protection</a></li>
+      <li><a href="#s13">Confidentiality</a></li>
+      <li><a href="#s14">Warranties &amp; Disclaimers</a></li>
+      <li><a href="#s15">Limitation of Liability</a></li>
+      <li><a href="#s16">Indemnity</a></li>
+      <li><a href="#s17">Third-Party Services</a></li>
+      <li><a href="#s18">Changes to the Service &amp; Terms</a></li>
+      <li><a href="#s19">General</a></li>
+      <li><a href="#s20">Governing Law &amp; Jurisdiction</a></li>
+    </ol>
   </div>
+
+  <!-- 1 -->
+  <section id="s1">
+    <h2 class="section-title"><span class="num">1</span>Definitions &amp; Interpretation</h2>
+    <p>In these Terms, the following words and expressions shall have the meanings set out below:</p>
+    <dl>
+      <dt>"Agreement"</dt>
+      <dd>means these Terms &amp; Conditions together with our Privacy Policy, AI Disclaimer, and Cookie Notice, all of which form the entire agreement between you and us.</dd>
+      <dt>"Authorised User"</dt>
+      <dd>means any individual who accesses or uses the Service under your account with your permission.</dd>
+      <dt>"Beacons Residentials Ltd" / "we" / "us" / "our"</dt>
+      <dd>means Beacons Residentials Ltd, a company incorporated in England and Wales (Company No. 10990778), trading as RentSafe AI, with registered office at 115 Canterbury Road, Harrow, HA1 4AP.</dd>
+      <dt>"Content"</dt>
+      <dd>means any documents, text, data, files, reports, AI-generated outputs, templates, or other materials generated by or through the Service.</dd>
+      <dt>"Customer Data"</dt>
+      <dd>means any data, including personal data of tenants and third parties, that you upload, submit, or transmit to the Service.</dd>
+      <dt>"Fees"</dt>
+      <dd>means the subscription fees payable by you in accordance with clause 5.</dd>
+      <dt>"Founders Price"</dt>
+      <dd>means the discounted subscription rate offered to eligible early adopters who subscribe during the Founders Pricing Period, as set out in clause 5.5.</dd>
+      <dt>"Founders Pricing Period"</dt>
+      <dd>means the period during which Founders Pricing is made available, as determined by us at our sole discretion and notified on the pricing page of the Service.</dd>
+      <dt>"Service"</dt>
+      <dd>means the RentSafe AI software-as-a-service platform accessible at rentsafeai.co.uk, including all features, tools, AI-assisted outputs, document generators, compliance trackers, and associated functionality, as updated from time to time.</dd>
+      <dt>"Subscription Plan"</dt>
+      <dd>means the tier of Service you have selected (Starter, Landlord, or Portfolio), as described in clause 5.</dd>
+      <dt>"Subscription Term"</dt>
+      <dd>means the monthly or annual billing period commencing on your subscription start date and renewing automatically in accordance with clause 7.</dd>
+      <dt>"User" / "you" / "your"</dt>
+      <dd>means the individual or entity that has registered for an account and is subscribing to the Service.</dd>
+    </dl>
+    <p>References to "clauses" are to clauses of these Terms. Headings are for convenience only and shall not affect interpretation. Words in the singular include the plural and vice versa.</p>
+  </section>
+
+  <!-- 2 -->
+  <section id="s2">
+    <h2 class="section-title"><span class="num">2</span>About Us</h2>
+    <p>RentSafe AI is operated by Beacons Residentials Ltd, a company registered in England and Wales (Company No. 10990778). Our registered office is at 115 Canterbury Road, Harrow, HA1 4AP. We are registered with the Information Commissioner's Office (ICO) for data protection purposes (ICO Registration No. <strong>[PENDING — TO BE INSERTED UPON REGISTRATION]</strong>).</p>
+    <p>You may contact us at: <strong>support@rentsafeai.co.uk</strong></p>
+  </section>
+
+  <!-- 3 -->
+  <section id="s3">
+    <h2 class="section-title"><span class="num">3</span>The Service</h2>
+    <h3>3.1 Description</h3>
+    <p>RentSafe AI is a UK landlord compliance software-as-a-service platform designed to assist private residential landlords with compliance obligations under applicable housing legislation, including the Renters' Rights Act 2024 and associated regulations. The Service provides tools including, without limitation: compliance health tracking, document generation, Section 8 notice drafting, maintenance management, onboarding workflows, AI-assisted analysis, and related features.</p>
+    <h3>3.2 Nature of the Service</h3>
+    <p>The Service is a <strong>compliance aid only</strong>. It is not legal advice and does not constitute legal, financial, tax, or professional advice of any kind. You remain solely responsible for ensuring your compliance with all applicable laws and regulations. Please refer to our <a href="ai-disclaimer.html">AI Disclaimer</a> for further information regarding AI-generated outputs.</p>
+    <h3>3.3 Business Use Only</h3>
+    <p>The Service is intended exclusively for use by individuals and entities acting in a business or professional capacity as private residential landlords or property managers in the United Kingdom. By registering for an account, you confirm that you are acting in such a capacity and not as a consumer for the purposes of the Consumer Rights Act 2015.</p>
+    <h3>3.4 Availability</h3>
+    <p>We will use commercially reasonable endeavours to make the Service available 24 hours a day, 7 days a week. However, we do not guarantee uninterrupted or error-free access. We reserve the right to carry out scheduled or emergency maintenance which may result in temporary unavailability, and we will endeavour to provide reasonable advance notice of scheduled downtime where practicable.</p>
+  </section>
+
+  <!-- 4 -->
+  <section id="s4">
+    <h2 class="section-title"><span class="num">4</span>Eligibility &amp; Account Registration</h2>
+    <h3>4.1 Eligibility</h3>
+    <p>To use the Service you must: (a) be at least 18 years of age; (b) have legal capacity to enter into a binding contract; (c) be resident or registered in the United Kingdom; and (d) not be prohibited from accessing the Service under applicable law.</p>
+    <h3>4.2 Account Registration</h3>
+    <p>You must create an account to access the Service. You agree to provide accurate, current, and complete information during registration and to keep your account details updated. You are responsible for maintaining the confidentiality of your login credentials and for all activity that occurs under your account.</p>
+    <h3>4.3 Account Security</h3>
+    <p>You must notify us immediately at support@rentsafeai.co.uk if you suspect any unauthorised access to or use of your account. We will not be liable for any loss or damage arising from your failure to maintain the security of your credentials.</p>
+    <h3>4.4 One Account Per User</h3>
+    <p>Each account is for a single User. Sharing account credentials with third parties (other than Authorised Users within the same landlord business) is prohibited. Sharing credentials between unrelated landlords to circumvent Subscription Plan limits is a material breach of these Terms.</p>
+  </section>
+
+  <!-- 5 -->
+  <section id="s5">
+    <h2 class="section-title"><span class="num">5</span>Subscription Plans &amp; Pricing</h2>
+    <h3>5.1 Available Plans</h3>
+    <p>The Service is offered on the following Subscription Plans. Where a Founders Price applies to your account, it is shown alongside the standard price. All fees are inclusive of UK VAT at the prevailing rate where applicable.</p>
+    <table class="pricing-table">
+      <thead>
+        <tr>
+          <th>Plan</th>
+          <th>Founders Price/mo <span class="founders-badge">Early Access</span></th>
+          <th>Standard Price/mo</th>
+          <th>Annual (standard, 2 months free)</th>
+          <th>Properties</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Starter</strong></td>
+          <td>£4.99</td>
+          <td>£7.99</td>
+          <td>£79.90/yr</td>
+          <td>Up to 2</td>
+        </tr>
+        <tr>
+          <td><strong>Landlord</strong></td>
+          <td>£9.99</td>
+          <td>£15.99</td>
+          <td>£159.90/yr</td>
+          <td>Up to 10</td>
+        </tr>
+        <tr>
+          <td><strong>Portfolio</strong></td>
+          <td>£24.99</td>
+          <td>£39.99</td>
+          <td>£399.90/yr</td>
+          <td>Unlimited</td>
+        </tr>
+      </tbody>
+    </table>
+    <h3>5.2 Annual Billing Discount</h3>
+    <p>Users who elect annual billing will receive the equivalent of <strong>two months free</strong>, calculated against the standard monthly price (saving approximately 16.7% compared to paying monthly at the standard rate). Annual fees are billed in advance as a single annual payment. The annual discount applies to the standard price only; Founders Pricing is available on monthly billing only (see clause 5.5(e)).</p>
+    <h3>5.3 Price Changes</h3>
+    <p>We reserve the right to change our standard Fees at any time. We will provide at least <strong>30 days' written notice</strong> of any price increase to your registered email address before the change takes effect. If you do not accept the new pricing, you may cancel your subscription in accordance with clause 8 before the change takes effect. Your continued use of the Service after the effective date of a price change constitutes your acceptance of the new pricing. Price changes to standard Fees do not affect active Founders Price accounts, except as provided in clause 5.5(f).</p>
+    <h3>5.4 VAT</h3>
+    <p>All Fees are stated inclusive of UK Value Added Tax (VAT) at the prevailing rate, where applicable. If our VAT registration status changes, we will notify you accordingly.</p>
+    <h3>5.5 Founders Pricing — Terms &amp; Conditions</h3>
+    <div class="founders-box">
+      <strong>Founders Pricing is a permanent discounted rate for eligible early subscribers. Please read the conditions below carefully — they define precisely when the Founders Price is maintained and when it is forfeited.</strong>
+    </div>
+    <p><strong>(a) Eligibility.</strong> Founders Pricing is available only to subscribers who create an account and subscribe to a paid Subscription Plan during the Founders Pricing Period. We reserve the right to close the Founders Pricing Period at any time without prior notice.</p>
+    <p><strong>(b) Locked to account.</strong> The Founders Price is locked permanently to the individual account holder's account for the Subscription Plan tier active at the time of subscription. It is personal to you and may not be transferred, assigned, gifted, or sold to any other person or entity under any circumstances.</p>
+    <p><strong>(c) Locked to plan tier.</strong> The Founders Price applies only to the specific Subscription Plan tier to which you subscribed during the Founders Pricing Period. If you upgrade to a higher tier at any time, the Founders Price for your original tier is permanently forfeited and your new plan will be billed at the then-current standard rate for that tier. Downgrading and subsequently upgrading will not restore Founders Pricing to any tier.</p>
+    <p><strong>(d) Continuity required.</strong> Founders Pricing is maintained only where your subscription remains continuously active and payments are made on time. If your subscription lapses for any reason — including but not limited to voluntary cancellation, payment failure resulting in account suspension beyond any cure period, or account closure — and you subsequently re-subscribe, the Founders Price will not be reinstated and you will be charged at the then-current standard rate.</p>
+    <p><strong>(e) Monthly billing only.</strong> Founders Pricing applies to monthly billing only. If you elect to switch to annual billing, your annual fee will be calculated at the standard annual rate (standard monthly price multiplied by ten months). If you subsequently revert to monthly billing while your subscription has remained continuously active, the Founders monthly price will be restored.</p>
+    <p><strong>(f) Carve-outs.</strong> Notwithstanding the foregoing, we reserve the right to modify or withdraw Founders Pricing in the following limited circumstances: (i) a sale, merger, acquisition, or change of control of Beacons Residentials Ltd; (ii) a cessation or fundamental restructuring of the Service; or (iii) where we are required to do so by applicable law or regulation. In any such event we will provide at least <strong>60 days'</strong> written notice to affected Founders Price subscribers before any change takes effect.</p>
+    <p><strong>(g) No proprietary right.</strong> Founders Pricing confers no proprietary, transferable, or assignable right of any kind. It is a contractual pricing benefit personal to the account holder and does not constitute property for the purposes of any applicable law.</p>
+  </section>
+
+  <!-- 6 -->
+  <section id="s6">
+    <h2 class="section-title"><span class="num">6</span>Free Trial</h2>
+    <h3>6.1 Trial Period</h3>
+    <p>New subscribers are entitled to a <strong>one (1) month free trial</strong> on monthly plans, or a <strong>two (2) month free trial</strong> on annual plans (together, the "Trial Period"). The Trial Period commences on the date you complete registration and select a Subscription Plan.</p>
+    <h3>6.2 Credit Card Requirement</h3>
+    <p>To begin your Trial Period, valid payment details must be provided at the point of registration. You will <strong>not</strong> be charged during the Trial Period. At the end of your Trial Period, your subscription will automatically renew and you will be charged the applicable Fee unless you cancel before the Trial Period expires.</p>
+    <h3>6.3 Trial Limitations</h3>
+    <p>Free trials are available to new customers only. We reserve the right to verify eligibility and to withdraw or modify the trial offer at any time. Only one free trial is available per person, business, email address, or payment method.</p>
+    <div class="highlight">
+      <strong>Important:</strong> You will receive a reminder email at least 7 days before your Trial Period ends. To avoid being charged, you must cancel before the trial expiry date in accordance with clause 8.
+    </div>
+  </section>
+
+  <!-- 7 -->
+  <section id="s7">
+    <h2 class="section-title"><span class="num">7</span>Payment &amp; Billing</h2>
+    <h3>7.1 Billing Cycle</h3>
+    <p>Fees are payable in advance. Monthly subscriptions are billed on the same date each month. Annual subscriptions are billed annually on the anniversary of the subscription start date. Billing is processed by our third-party payment processor.</p>
+    <h3>7.2 Automatic Renewal</h3>
+    <p>Your subscription will <strong>automatically renew</strong> at the end of each Subscription Term unless you cancel in accordance with clause 8. By subscribing, you authorise us (or our payment processor) to charge the applicable Fees to your payment method at the start of each renewal period.</p>
+    <h3>7.3 Failed Payments</h3>
+    <p>If a payment fails, we will notify you and attempt to re-process the payment. If payment remains outstanding after 7 days of notification, we reserve the right to suspend or restrict your access to the Service until payment is received. Outstanding Fees will remain due and may be subject to statutory interest under the Late Payment of Commercial Debts (Interest) Act 1998.</p>
+    <h3>7.4 Refunds</h3>
+    <p>All Fees are non-refundable except: (a) where required by applicable law; (b) where we have committed a material breach of these Terms; or (c) at our sole discretion in exceptional circumstances. No refunds are provided for partial months of service or for unused features.</p>
+    <h3>7.5 Disputes</h3>
+    <p>If you believe you have been incorrectly charged, you must notify us within 30 days of the disputed charge to support@rentsafeai.co.uk. We will investigate and respond within 10 business days.</p>
+  </section>
+
+  <!-- 8 -->
+  <section id="s8">
+    <h2 class="section-title"><span class="num">8</span>Cancellation &amp; Termination</h2>
+    <h3>8.1 Cancellation by You — Monthly Plans</h3>
+    <p>You may cancel a monthly subscription at any time by logging into your account settings and selecting "Cancel Subscription", or by contacting us at support@rentsafeai.co.uk. Cancellation takes effect at the end of the current billing period. You will retain access to the Service until that date and will not be charged for subsequent periods.</p>
+    <h3>8.2 Cancellation by You — Annual Plans</h3>
+    <p>Annual subscriptions may be cancelled at any time. Cancellation takes effect at the end of the current annual term. We do not provide pro-rata refunds for the unused portion of an annual subscription except where required by law or at our sole discretion.</p>
+    <h3>8.3 Termination by Us</h3>
+    <p>We may terminate or suspend your account immediately, without notice, if: (a) you breach any material term of this Agreement; (b) you use the Service in a manner that causes or is likely to cause harm to us, other users, or third parties; (c) you fail to pay Fees when due; (d) we are required to do so by law or court order; or (e) we cease to provide the Service.</p>
+    <h3>8.4 Effect of Termination</h3>
+    <p>On termination of your account for any reason: (a) your right to access and use the Service will cease immediately; (b) all outstanding Fees will become immediately due and payable; (c) you may request a data export of your Customer Data within 30 days of termination, after which we may delete your data in accordance with our data retention policy; and (d) clauses that by their nature should survive termination shall do so, including clauses 10, 11, 14, 15, 16, and 20.</p>
+  </section>
+
+  <!-- 9 -->
+  <section id="s9">
+    <h2 class="section-title"><span class="num">9</span>Acceptable Use</h2>
+    <h3>9.1 Permitted Use</h3>
+    <p>You may use the Service solely for lawful purposes in connection with the management of residential rental properties in the United Kingdom, in accordance with these Terms.</p>
+    <h3>9.2 Prohibited Activities</h3>
+    <p>You must not use the Service to:</p>
+    <ul>
+      <li>Upload, store, or transmit any data that is unlawful, defamatory, fraudulent, or that infringes the rights of any third party;</li>
+      <li>Upload or process personal data in violation of the UK GDPR, the Data Protection Act 2018, or any other applicable data protection legislation;</li>
+      <li>Use the AI features to generate content intended to harass, discriminate against, or mislead tenants or other parties;</li>
+      <li>Circumvent or attempt to circumvent any security features, access controls, or property limits applicable to your Subscription Plan;</li>
+      <li>Reverse-engineer, decompile, disassemble, or otherwise attempt to derive source code from the Service;</li>
+      <li>Resell, sublicense, or otherwise commercially exploit the Service or any Content generated by it without our prior written consent;</li>
+      <li>Introduce viruses, malware, or other malicious code into the Service;</li>
+      <li>Use automated tools, bots, or scrapers to access the Service in an unauthorised manner;</li>
+      <li>Use the Service in a manner that imposes a disproportionate load on our infrastructure;</li>
+      <li>Misrepresent AI-generated outputs as independently verified legal advice to tenants or third parties.</li>
+    </ul>
+    <h3>9.3 Compliance with Law</h3>
+    <p>You are solely responsible for ensuring that your use of the Service, and all actions taken based on Service outputs, comply with all applicable laws and regulations, including landlord-tenant legislation, housing standards, deposit protection rules, data protection law, and anti-discrimination legislation.</p>
+    <h3>9.4 Monitoring</h3>
+    <p>We reserve the right (but are not obligated) to monitor use of the Service to detect and investigate suspected breaches of this clause 9. We may report suspected unlawful activity to appropriate authorities.</p>
+  </section>
+
+  <!-- 10 -->
+  <section id="s10">
+    <h2 class="section-title"><span class="num">10</span>AI-Generated Content</h2>
+    <p>The Service incorporates artificial intelligence features that generate documents, analysis, recommendations, and other Content. You acknowledge and agree that:</p>
+    <ul>
+      <li>AI-generated Content is provided <strong>for informational and compliance-assistance purposes only</strong> and does not constitute legal, financial, or professional advice;</li>
+      <li>All AI-generated Content should be reviewed and verified by you (and, where appropriate, a qualified solicitor) before being acted upon or served on any third party;</li>
+      <li>We make no warranty as to the accuracy, completeness, or legal sufficiency of AI-generated outputs;</li>
+      <li>You remain solely responsible for any decisions, actions, or notices issued on the basis of AI-generated Content.</li>
+    </ul>
+    <p>Please read our <a href="ai-disclaimer.html">AI Disclaimer</a> in full before relying on any AI-generated output. The AI Disclaimer forms part of this Agreement.</p>
+  </section>
+
+  <!-- 11 -->
+  <section id="s11">
+    <h2 class="section-title"><span class="num">11</span>Intellectual Property</h2>
+    <h3>11.1 Our IP</h3>
+    <p>The Service, its software, design, source code, databases, algorithms, trademarks, logos, and all Content generated by us (excluding Customer Data) are and remain the exclusive intellectual property of Beacons Residentials Ltd or its licensors. Nothing in this Agreement transfers any intellectual property rights to you.</p>
+    <h3>11.2 Licence to Use</h3>
+    <p>We grant you a limited, non-exclusive, non-transferable, revocable licence to access and use the Service during the Subscription Term solely for the purposes set out in clause 3 and in accordance with these Terms. This licence is personal to you and may not be sublicensed or transferred.</p>
+    <h3>11.3 Your Customer Data</h3>
+    <p>You retain all rights in your Customer Data. By using the Service, you grant us a limited licence to process your Customer Data solely to provide and operate the Service, in accordance with our Privacy Policy and any applicable Data Processing Agreement.</p>
+    <h3>11.4 Feedback</h3>
+    <p>If you provide feedback, suggestions, or ideas regarding the Service, you grant us a perpetual, royalty-free, irrevocable licence to use such feedback for any purpose without compensation to you.</p>
+  </section>
+
+  <!-- 12 -->
+  <section id="s12">
+    <h2 class="section-title"><span class="num">12</span>Data Protection</h2>
+    <p>We take data protection seriously. Our <a href="privacy.html">Privacy Policy</a> sets out how we collect, use, store, and share personal data in connection with the Service. The Privacy Policy forms part of this Agreement and you should read it in full.</p>
+    <p>Where you upload personal data about tenants or third parties to the Service, you act as the data controller and we act as your data processor. We will process such data only on your documented instructions and in accordance with applicable data protection law, including UK GDPR and the Data Protection Act 2018. Our processing activities and your data subject rights are described in our Privacy Policy.</p>
+    <p>You warrant that: (a) you have a lawful basis for processing all personal data you upload to the Service; (b) you have provided appropriate privacy notices to data subjects; and (c) your use of the Service will not cause us to breach applicable data protection law.</p>
+  </section>
+
+  <!-- 13 -->
+  <section id="s13">
+    <h2 class="section-title"><span class="num">13</span>Confidentiality</h2>
+    <p>Each party agrees to keep confidential all non-public information disclosed by the other party in connection with this Agreement that is designated as confidential or that reasonably should be understood to be confidential. Neither party will use such information for any purpose other than to exercise its rights or perform its obligations under this Agreement. This clause does not apply to information that: (a) is or becomes publicly known through no fault of the receiving party; (b) was rightfully known before disclosure; (c) is independently developed; or (d) is required to be disclosed by law.</p>
+  </section>
+
+  <!-- 14 -->
+  <section id="s14">
+    <h2 class="section-title"><span class="num">14</span>Warranties &amp; Disclaimers</h2>
+    <h3>14.1 Your Warranties</h3>
+    <p>You warrant and represent that: (a) you have the authority to enter into this Agreement; (b) your use of the Service will comply with all applicable laws; (c) your Customer Data does not infringe any third-party rights; and (d) you will not use the Service for any unlawful purpose.</p>
+    <h3>14.2 Our Warranties</h3>
+    <p>We warrant that we will provide the Service with reasonable skill and care, and that we will use commercially reasonable measures to maintain the security and integrity of the Service.</p>
+    <h3>14.3 Disclaimers</h3>
+    <p>Save as expressly set out in clause 14.2, the Service is provided <strong>"as is"</strong> and <strong>"as available"</strong>. To the fullest extent permitted by applicable law, we expressly disclaim all other warranties, conditions, or representations, whether express, implied, or statutory, including but not limited to: (a) implied warranties of merchantability, fitness for a particular purpose, or non-infringement; (b) warranties that the Service will be uninterrupted, error-free, or free from viruses; (c) any warranty that AI-generated Content is legally accurate, complete, or up-to-date; and (d) any warranty that use of the Service will result in compliance with applicable law.</p>
+    <h3>14.4 Legislation Changes</h3>
+    <p>Housing legislation in the United Kingdom is subject to change. We will use reasonable endeavours to update Service features to reflect material legislative changes, but we do not warrant that the Service will at all times reflect the current state of the law. You are responsible for keeping abreast of changes to applicable legislation.</p>
+  </section>
+
+  <!-- 15 — UPDATED: added 15.5, 15.6, 15.7 -->
+  <section id="s15">
+    <h2 class="section-title"><span class="num">15</span>Limitation of Liability</h2>
+    <div class="liability-box">
+      <h3>⚖ Summary of Liability Limits</h3>
+      <p>Please read this clause carefully. It limits our financial liability to you.</p>
+      <ul>
+        <li>Our aggregate liability is capped at 12 months' Fees or £500, whichever is greater.</li>
+        <li>We are never liable for consequential or indirect losses.</li>
+        <li>All claims must be brought within 12 months of the date you became aware of the issue.</li>
+        <li>No cap applies to death/personal injury, fraud, or GDPR breaches.</li>
+      </ul>
+    </div>
+
+    <h3>15.1 Consequential Loss Exclusion</h3>
+    <p>To the fullest extent permitted by law, we shall not be liable (whether in contract, tort including negligence, breach of statutory duty, or otherwise) for any: (a) loss of profits; (b) loss of revenue or income; (c) loss of rental income or rent arrears; (d) loss of business or contracts; (e) loss of anticipated savings; (f) legal costs or professional fees incurred as a result of reliance on Service outputs; (g) regulatory fines, penalties, or enforcement action; (h) tenancy disputes, eviction proceedings, or possession claims; (i) loss of data (except as provided in clause 15.3); or (j) any indirect, special, or consequential loss of any kind, whether or not we were advised of the possibility of such losses.</p>
+
+    <h3>15.2 Aggregate Cap</h3>
+    <p>Subject to clause 15.3, our aggregate total liability to you (whether in contract, tort, or otherwise) in respect of all claims arising out of or in connection with this Agreement during any twelve-month period shall not exceed the greater of: (a) the total Fees actually paid by you to us in the twelve months immediately preceding the event giving rise to the claim; or (b) <strong>five hundred pounds (£500)</strong>.</p>
+
+    <h3>15.3 Uncapped Liabilities</h3>
+    <p>Nothing in these Terms shall limit or exclude our liability for: (a) death or personal injury caused by our negligence; (b) fraud or fraudulent misrepresentation; (c) any breach of our obligations under UK GDPR and the Data Protection Act 2018, which shall be subject to applicable statutory limits; or (d) any other liability which cannot be lawfully excluded or limited under applicable law.</p>
+
+    <h3>15.4 Reasonableness</h3>
+    <p>You acknowledge that the limitations of liability in this clause 15 are reasonable having regard to: the nature of the Service as a compliance aid (not a substitute for legal advice); the pricing of the Service; the inherent limitations of AI-generated content; and the availability to you of professional indemnity insurance in connection with your property letting activities.</p>
+
+    <h3>15.5 Time Bar on Claims</h3>
+    <p>Notwithstanding any statutory limitation period that might otherwise apply, any claim or cause of action arising out of or in connection with this Agreement (whether in contract, tort, or otherwise) must be brought within <strong>twelve (12) months</strong> of the date on which you became aware, or reasonably ought to have become aware, of the facts giving rise to the claim. Any claim not brought within this period shall be absolutely time-barred and you shall be deemed to have irrevocably waived all rights in respect of it. This clause does not apply to the uncapped liabilities set out in clause 15.3.</p>
+
+    <h3>15.6 Duty to Mitigate</h3>
+    <p>You have a duty to take all reasonable steps to mitigate any loss, damage, or liability you suffer or incur in connection with this Agreement or your use of the Service. We shall not be liable for any loss, damage, or liability to the extent that it could have been avoided or reduced by you taking such reasonable steps. This includes, without limitation, seeking independent legal or professional advice before acting on AI-generated outputs, and implementing alternative compliance measures where you are aware of a potential issue with the Service.</p>
+
+    <h3>15.7 No Reliance on Service Outputs</h3>
+    <p>You acknowledge that: (a) you have not entered into this Agreement in reliance on any representation, warranty, or statement made by us (or on our behalf) that is not expressly set out in this Agreement; (b) the Service is a compliance aid and tool, not a substitute for independent legal, professional, or regulatory advice; (c) you will not rely solely on AI-generated Content, compliance scores, reminders, or document outputs as definitive statements of your legal position or obligations; and (d) no output of the Service constitutes legal advice or creates a solicitor-client or advisory relationship of any kind between you and us. Your sole and exclusive remedy for any deficiency in the Service is as expressly set out in this Agreement.</p>
+  </section>
+
+  <!-- 16 -->
+  <section id="s16">
+    <h2 class="section-title"><span class="num">16</span>Indemnity</h2>
+    <p>You agree to indemnify, defend, and hold harmless Beacons Residentials Ltd and its directors, officers, employees, and agents from and against all claims, losses, damages, liabilities, costs, and expenses (including reasonable legal fees) arising out of or relating to: (a) your use of the Service in breach of these Terms; (b) your Customer Data, including any claim that it infringes a third party's rights or violates data protection law; (c) your failure to comply with applicable landlord-tenant legislation; or (d) any claim by a tenant or third party arising from your reliance on AI-generated Content without independent verification.</p>
+  </section>
+
+  <!-- 17 -->
+  <section id="s17">
+    <h2 class="section-title"><span class="num">17</span>Third-Party Services</h2>
+    <p>The Service integrates with or relies on third-party services including, without limitation: Supabase (database and authentication infrastructure); Anthropic (AI processing via the Claude API); and Resend (transactional email delivery). Use of these third-party services is subject to their respective terms of service and privacy policies. We are not responsible for the performance, availability, or data handling practices of third-party providers, except as required by applicable data protection law in respect of our obligations as a data processor or sub-processor.</p>
+    <p>The Service may contain links to third-party websites. We are not responsible for the content or practices of such websites.</p>
+  </section>
+
+  <!-- 18 -->
+  <section id="s18">
+    <h2 class="section-title"><span class="num">18</span>Changes to the Service &amp; Terms</h2>
+    <h3>18.1 Changes to the Service</h3>
+    <p>We reserve the right to modify, update, or discontinue features of the Service at any time. We will endeavour to provide reasonable notice of material changes. Where a change materially reduces the functionality of the Service, you may cancel your subscription in accordance with clause 8 within 30 days of notification without further obligation.</p>
+    <h3>18.2 Changes to These Terms</h3>
+    <p>We may update these Terms from time to time. We will notify you of material changes by email to your registered address at least <strong>14 days</strong> before the changes take effect. Your continued use of the Service after the effective date of updated Terms constitutes your acceptance. If you do not accept the changes, you must cancel your subscription before the effective date.</p>
+  </section>
+
+  <!-- 19 -->
+  <section id="s19">
+    <h2 class="section-title"><span class="num">19</span>General</h2>
+    <h3>19.1 Entire Agreement</h3>
+    <p>This Agreement (comprising these Terms, the Privacy Policy, the AI Disclaimer, and the Cookie Notice) constitutes the entire agreement between the parties relating to the Service and supersedes all prior agreements, representations, or understandings.</p>
+    <h3>19.2 Severability</h3>
+    <p>If any provision of this Agreement is held invalid, illegal, or unenforceable, the remaining provisions shall continue in full force and effect.</p>
+    <h3>19.3 Waiver</h3>
+    <p>Failure to enforce any provision of this Agreement shall not constitute a waiver of that provision.</p>
+    <h3>19.4 Assignment</h3>
+    <p>You may not assign or transfer any of your rights or obligations under this Agreement without our prior written consent. We may assign this Agreement to any successor entity or in connection with a merger, acquisition, or sale of assets.</p>
+    <h3>19.5 Force Majeure</h3>
+    <p>Neither party shall be in breach of this Agreement or liable for delays or failures in performance resulting from circumstances beyond its reasonable control, including but not limited to acts of God, natural disasters, cyberattacks on our infrastructure providers, or failures of third-party service providers.</p>
+    <h3>19.6 No Partnership</h3>
+    <p>Nothing in this Agreement creates a partnership, joint venture, agency, or employment relationship between the parties.</p>
+    <h3>19.7 Notices</h3>
+    <p>Notices under this Agreement should be sent to us at support@rentsafeai.co.uk. We will send notices to your registered email address. Notices are deemed received on the next business day following transmission.</p>
+  </section>
+
+  <!-- 20 -->
+  <section id="s20">
+    <h2 class="section-title"><span class="num">20</span>Governing Law &amp; Jurisdiction</h2>
+    <p>This Agreement and any dispute or claim arising out of or in connection with it (including non-contractual disputes or claims) shall be governed by and construed in accordance with the <strong>law of England and Wales</strong>.</p>
+    <p>The parties irrevocably agree that the courts of England and Wales shall have exclusive jurisdiction to settle any dispute or claim arising out of or in connection with this Agreement.</p>
+    <p>If you are a small business and wish to resolve a dispute with us informally before commencing legal proceedings, you may contact us at support@rentsafeai.co.uk. We are committed to attempting to resolve disputes fairly and efficiently.</p>
+  </section>
 
 </div>
 
 <footer>
-  <p>
-    <a href="index.html">Home</a>
-    <a href="privacy.html">Privacy</a>
-    <a href="terms.html">Terms</a>
-    <a href="mailto:hello@rentsafeai.co.uk">Contact</a>
-  </p>
-  <p style="margin-top:12px">© 2026 Rent Safe AI · Operated by Saurabh Dhawan · United Kingdom</p>
+  <p>RentSafe AI is a trading name of <strong>Beacons Residentials Ltd</strong> · Registered in England and Wales · Company No. 10990778<br>
+  Registered Office: 115 Canterbury Road, Harrow, HA1 4AP · support@rentsafeai.co.uk</p>
+  <p style="margin-top:8px">© 2026 Beacons Residentials Ltd. All rights reserved. · <a href="privacy.html">Privacy Policy</a> · <a href="ai-disclaimer.html">AI Disclaimer</a> · <a href="cookies.html">Cookie Notice</a></p>
 </footer>
 
 </body>

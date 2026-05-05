@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RentSafeAI — RRA-Ready in 10 Minutes</title>
+<meta name="description" content="The UK's first compliance platform built ground-up for the Renters' Rights Act 2025. Protect your properties, stay compliant, and manage everything in one place.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy: #1B2F5E;
+    --navy-dark: #111E3F;
+    --navy-light: #2A4480;
+    --blue: #3B82F6;
+    --blue-light: #60A5FA;
+    --slate: #64748B;
+    --slate-light: #94A3B8;
+    --bg: #F8FAFC;
+    --bg-dark: #EFF3F9;
+    --white: #FFFFFF;
+    --text: #0F1F3D;
+    --text-muted: #5A6A8A;
+    --border: #D1DCF0;
+    --gold: #D4A853;
+    --success: #059669;
+    --radius: 12px;
+    --shadow: 0 4px 24px rgba(27,47,94,0.10);
+    --shadow-lg: 0 12px 48px rgba(27,47,94,0.16);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    height: 68px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .nav-logo {
+    display: flex; align-items: center; gap: 10px;
+    text-decoration: none;
+  }
+  .nav-logo-mark {
+    width: 36px; height: 36px;
+    background: var(--navy);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .nav-logo-mark svg { width: 20px; height: 20px; }
+  .nav-logo-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--navy);
+  }
+  .nav-logo-text span { color: var(--blue); }
+  .nav-cta {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .nav-link {
+    font-size: 0.875rem; font-weight: 500;
+    color: var(--text-muted); text-decoration: none;
+    transition: color 0.2s;
+  }
+  .nav-link:hover { color: var(--navy); }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 22px;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem; font-weight: 600;
+    text-decoration: none; border: none; cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .btn-primary {
+    background: var(--navy);
+    color: var(--white);
+    box-shadow: 0 2px 12px rgba(27,47,94,0.25);
+  }
+  .btn-primary:hover {
+    background: var(--navy-light);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(27,47,94,0.35);
+  }
+  .btn-outline {
+    background: transparent;
+    color: var(--navy);
+    border: 1.5px solid var(--navy);
+  }
+  .btn-outline:hover {
+    background: var(--navy);
+    color: var(--white);
+  }
+  .btn-lg {
+    padding: 14px 32px;
+    font-size: 1rem;
+    border-radius: 10px;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    padding: 140px 2rem 100px;
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: center;
+  }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #EFF6FF;
+    border: 1px solid #BFDBFE;
+    color: var(--blue);
+    font-size: 0.8rem; font-weight: 600;
+    padding: 6px 14px; border-radius: 100px;
+    margin-bottom: 24px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+  .hero-badge .dot {
+    width: 7px; height: 7px;
+    background: var(--blue);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.4rem, 4vw, 3.5rem);
+    font-weight: 800;
+    line-height: 1.15;
+    color: var(--navy);
+    margin-bottom: 20px;
+  }
+  .hero h1 em {
+    font-style: normal;
+    color: var(--blue);
+    position: relative;
+  }
+  .hero h1 em::after {
+    content: '';
+    position: absolute;
+    bottom: 2px; left: 0; right: 0;
+    height: 3px;
+    background: var(--blue);
+    border-radius: 2px;
+    opacity: 0.3;
+  }
+  .hero-sub {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    margin-bottom: 36px;
+    max-width: 480px;
+    line-height: 1.7;
+  }
+  .hero-actions {
+    display: flex; align-items: center; gap: 14px;
+    flex-wrap: wrap;
+  }
+  .hero-note {
+    font-size: 0.78rem;
+    color: var(--slate-light);
+    margin-top: 14px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .hero-note svg { flex-shrink: 0; }
+
+  .hero-visual {
+    position: relative;
+  }
+  .hero-card {
+    background: var(--white);
+    border-radius: 16px;
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .hero-card-header {
+    background: var(--navy);
+    padding: 16px 20px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .hero-card-dots { display: flex; gap: 6px; }
+  .hero-card-dots span {
+    width: 10px; height: 10px; border-radius: 50%;
+  }
+  .d1 { background: #FF5F57; }
+  .d2 { background: #FEBC2E; }
+  .d3 { background: #28C840; }
+  .hero-card-title {
+    color: rgba(255,255,255,0.7);
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-left: 6px;
+  }
+  .hero-card-body { padding: 24px; }
+  .compliance-score {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .score-ring {
+    width: 100px; height: 100px;
+    margin: 0 auto 12px;
+    position: relative;
+  }
+  .score-ring svg { transform: rotate(-90deg); }
+  .score-ring .track { fill: none; stroke: #EFF3F9; stroke-width: 8; }
+  .score-ring .fill {
+    fill: none; stroke: var(--success); stroke-width: 8;
+    stroke-linecap: round;
+    stroke-dasharray: 251;
+    stroke-dashoffset: 25;
+    transition: stroke-dashoffset 1s ease;
+  }
+  .score-num {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem; font-weight: 700;
+    color: var(--navy);
+  }
+  .score-label {
+    font-size: 0.78rem; font-weight: 600;
+    color: var(--success);
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .compliance-items { display: flex; flex-direction: column; gap: 10px; }
+  .ci {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: var(--bg);
+    font-size: 0.82rem;
+    font-weight: 500;
+  }
+  .ci.ok { border-left: 3px solid var(--success); }
+  .ci.warn { border-left: 3px solid #F59E0B; }
+  .ci-icon { font-size: 1rem; }
+  .ci-text { flex: 1; color: var(--text); }
+  .ci-status {
+    font-size: 0.72rem; font-weight: 600;
+    padding: 2px 8px; border-radius: 100px;
+  }
+  .ci.ok .ci-status { background: #DCFCE7; color: var(--success); }
+  .ci.warn .ci-status { background: #FEF3C7; color: #B45309; }
+
+  .hero-float {
+    position: absolute;
+    background: var(--white);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    padding: 10px 14px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+    animation: float 3s ease-in-out infinite;
+  }
+  .hero-float.f1 {
+    top: -18px; right: -18px;
+    animation-delay: 0s;
+    color: var(--success);
+  }
+  .hero-float.f2 {
+    bottom: 30px; left: -20px;
+    animation-delay: 1.5s;
+    color: var(--navy);
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+
+  /* ── TRUST BAR ── */
+  .trust-bar {
+    background: var(--navy);
+    padding: 20px 2rem;
+  }
+  .trust-inner {
+    max-width: 1200px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: center;
+    gap: 40px; flex-wrap: wrap;
+  }
+  .trust-item {
+    display: flex; align-items: center; gap: 10px;
+    color: rgba(255,255,255,0.75);
+    font-size: 0.85rem; font-weight: 500;
+  }
+  .trust-item svg { color: var(--blue-light); flex-shrink: 0; }
+  .trust-divider {
+    width: 1px; height: 24px;
+    background: rgba(255,255,255,0.15);
+  }
+
+  /* ── SECTION BASE ── */
+  section { padding: 90px 2rem; }
+  .section-inner { max-width: 1200px; margin: 0 auto; }
+  .section-tag {
+    font-size: 0.75rem; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--blue);
+    margin-bottom: 12px;
+  }
+  .section-heading {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.8rem, 3vw, 2.6rem);
+    font-weight: 800;
+    color: var(--navy);
+    margin-bottom: 16px;
+    line-height: 1.2;
+  }
+  .section-sub {
+    font-size: 1.05rem;
+    color: var(--text-muted);
+    max-width: 560px;
+    line-height: 1.7;
+  }
+  .section-header { margin-bottom: 56px; }
+  .section-header.centered { text-align: center; }
+  .section-header.centered .section-sub { margin: 0 auto; }
+
+  /* ── VIDEO ── */
+  #demo { background: var(--bg-dark); }
+  .video-wrap {
+    max-width: 720px; margin: 0 auto;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border);
+  }
+  .video-responsive {
+    position: relative;
+    padding-bottom: 56.25%;
+    height: 0; overflow: hidden;
+  }
+  .video-responsive iframe {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    border: none;
+  }
+
+  /* ── FEATURES ── */
+  #features { background: var(--white); }
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+  }
+  .feature-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .feature-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--blue), var(--navy));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s ease;
+  }
+  .feature-card:hover { 
+    box-shadow: var(--shadow);
+    transform: translateY(-3px);
+    border-color: #BFDBFE;
+  }
+  .feature-card:hover::before { transform: scaleX(1); }
+  .feature-icon {
+    width: 48px; height: 48px;
+    background: #EFF6FF;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 18px;
+    font-size: 1.4rem;
+  }
+  .feature-card h3 {
+    font-size: 1rem; font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 8px;
+  }
+  .feature-card p {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    line-height: 1.65;
+  }
+
+  /* ── PRICING ── */
+  #pricing { background: var(--bg-dark); }
+  .founding-banner {
+    background: linear-gradient(135deg, var(--navy), var(--navy-light));
+    border-radius: 12px;
+    padding: 20px 28px;
+    margin-bottom: 48px;
+    display: flex; align-items: center; gap: 16px;
+    color: var(--white);
+  }
+  .founding-icon { font-size: 1.8rem; flex-shrink: 0; }
+  .founding-text h4 {
+    font-size: 1rem; font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .founding-text p {
+    font-size: 0.85rem;
+    color: rgba(255,255,255,0.75);
+  }
+  .founding-count {
+    margin-left: auto; flex-shrink: 0;
+    text-align: center;
+  }
+  .founding-count .num {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem; font-weight: 700;
+    color: var(--gold);
+    line-height: 1;
+  }
+  .founding-count .label {
+    font-size: 0.7rem; font-weight: 600;
+    color: rgba(255,255,255,0.6);
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+
+  .pricing-toggle {
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+    margin-bottom: 48px;
+  }
+  .toggle-label {
+    font-size: 0.875rem; font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+  .toggle-label.active { color: var(--navy); }
+  .toggle-switch {
+    width: 52px; height: 28px;
+    background: var(--navy);
+    border-radius: 100px;
+    position: relative; cursor: pointer;
+    transition: background 0.2s;
+  }
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    width: 20px; height: 20px;
+    background: var(--white);
+    border-radius: 50%;
+    top: 4px; left: 4px;
+    transition: transform 0.2s;
+  }
+  .toggle-switch.annual::after { transform: translateX(24px); }
+  .annual-badge {
+    background: #DCFCE7;
+    color: var(--success);
+    font-size: 0.72rem; font-weight: 700;
+    padding: 3px 8px; border-radius: 100px;
+    letter-spacing: 0.02em;
+  }
+
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+  .pricing-card {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 28px 24px;
+    position: relative;
+    transition: all 0.25s ease;
+  }
+  .pricing-card:hover {
+    box-shadow: var(--shadow);
+    transform: translateY(-2px);
+  }
+  .pricing-card.popular {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 4px rgba(59,130,246,0.1), var(--shadow);
+  }
+  .popular-badge {
+    position: absolute; top: -13px; left: 50%;
+    transform: translateX(-50%);
+    background: var(--blue);
+    color: var(--white);
+    font-size: 0.7rem; font-weight: 700;
+    padding: 4px 14px; border-radius: 100px;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .plan-name {
+    font-size: 0.75rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--blue);
+    margin-bottom: 8px;
+  }
+  .plan-props {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+  }
+  .plan-price {
+    margin-bottom: 6px;
+  }
+  .plan-price .founding {
+    font-size: 0.72rem; font-weight: 600;
+    color: var(--gold);
+    text-transform: uppercase; letter-spacing: 0.05em;
+    display: block; margin-bottom: 4px;
+  }
+  .plan-price .amount {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.2rem; font-weight: 700;
+    color: var(--navy);
+    line-height: 1;
+  }
+  .plan-price .period {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+  .plan-price .standard {
+    font-size: 0.78rem;
+    color: var(--slate-light);
+    text-decoration: line-through;
+    margin-top: 4px;
+    display: block;
+  }
+  .plan-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 20px 0;
+  }
+  .plan-features { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .plan-features li {
+    display: flex; align-items: flex-start; gap: 8px;
+    font-size: 0.83rem; color: var(--text-muted);
+  }
+  .plan-features li .check {
+    color: var(--success); font-size: 0.9rem;
+    flex-shrink: 0; margin-top: 1px;
+  }
+  .plan-btn {
+    display: block;
+    width: 100%;
+    text-align: center;
+    margin-top: 24px;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 0.875rem; font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+  .plan-btn-primary {
+    background: var(--navy);
+    color: var(--white);
+  }
+  .plan-btn-primary:hover { background: var(--navy-light); }
+  .plan-btn-outline {
+    border: 1.5px solid var(--border);
+    color: var(--navy);
+  }
+  .plan-btn-outline:hover { border-color: var(--navy); background: var(--bg); }
+
+  .hmo-card {
+    background: var(--white);
+    border: 1.5px dashed var(--border);
+    border-radius: 14px;
+    padding: 24px 28px;
+    display: flex; align-items: center; gap: 20px;
+  }
+  .hmo-icon { font-size: 2rem; flex-shrink: 0; }
+  .hmo-text h4 {
+    font-size: 1rem; font-weight: 700;
+    color: var(--navy); margin-bottom: 4px;
+  }
+  .hmo-text p {
+    font-size: 0.85rem; color: var(--text-muted);
+  }
+  .hmo-badge {
+    margin-left: auto; flex-shrink: 0;
+    background: #FEF3C7;
+    color: #B45309;
+    font-size: 0.75rem; font-weight: 700;
+    padding: 6px 14px; border-radius: 100px;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+
+  .pricing-note {
+    text-align: center;
+    margin-top: 28px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+  .pricing-note a { color: var(--blue); text-decoration: none; font-weight: 500; }
+
+  /* ── REFERRAL ── */
+  #referral { background: var(--navy); }
+  .referral-inner {
+    max-width: 800px; margin: 0 auto;
+    text-align: center;
+  }
+  .referral-inner .section-tag { color: var(--blue-light); }
+  .referral-inner .section-heading { color: var(--white); }
+  .referral-inner .section-sub { color: rgba(255,255,255,0.65); margin: 0 auto 40px; }
+  .referral-cards {
+    display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px;
+    align-items: center; margin-bottom: 40px;
+  }
+  .ref-card {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+  }
+  .ref-card .icon { font-size: 2rem; margin-bottom: 10px; }
+  .ref-card h4 {
+    font-size: 0.875rem; font-weight: 700;
+    color: var(--white); margin-bottom: 6px;
+  }
+  .ref-card p {
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.55);
+  }
+  .ref-arrow {
+    font-size: 1.5rem;
+    color: rgba(255,255,255,0.25);
+  }
+  .ref-reward {
+    background: rgba(212,168,83,0.12);
+    border: 1px solid rgba(212,168,83,0.25);
+    border-radius: 10px;
+    padding: 16px 24px;
+    display: inline-flex; align-items: center; gap: 10px;
+    font-size: 0.9rem; font-weight: 600;
+    color: var(--gold);
+    margin-bottom: 32px;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    background: var(--navy-dark);
+    padding: 48px 2rem 32px;
+    color: rgba(255,255,255,0.5);
+  }
+  .footer-inner {
+    max-width: 1200px; margin: 0 auto;
+    display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 40px; margin-bottom: 40px;
+  }
+  .footer-brand .nav-logo-text { color: var(--white); }
+  .footer-brand p {
+    font-size: 0.82rem; line-height: 1.7;
+    margin-top: 14px; max-width: 260px;
+  }
+  .footer-col h5 {
+    font-size: 0.78rem; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 16px;
+  }
+  .footer-col a {
+    display: block;
+    font-size: 0.85rem;
+    color: rgba(255,255,255,0.55);
+    text-decoration: none;
+    margin-bottom: 10px;
+    transition: color 0.2s;
+  }
+  .footer-col a:hover { color: var(--white); }
+  .footer-bottom {
+    border-top: 1px solid rgba(255,255,255,0.07);
+    padding-top: 24px;
+    display: flex; justify-content: space-between;
+    align-items: center; flex-wrap: wrap; gap: 10px;
+  }
+  .footer-bottom p { font-size: 0.8rem; }
+  .footer-badges { display: flex; gap: 10px; }
+  .footer-badge {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.5);
+    font-size: 0.72rem; font-weight: 600;
+    padding: 4px 10px; border-radius: 6px;
+    letter-spacing: 0.03em;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: 1fr; gap: 40px; padding: 120px 1.5rem 70px; }
+    .hero-visual { order: -1; }
+    .hero-float.f2 { display: none; }
+    .features-grid { grid-template-columns: 1fr 1fr; }
+    .pricing-grid { grid-template-columns: 1fr 1fr; }
+    .footer-inner { grid-template-columns: 1fr 1fr; }
+    .referral-cards { grid-template-columns: 1fr; }
+    .ref-arrow { transform: rotate(90deg); }
+  }
+  @media (max-width: 600px) {
+    .features-grid { grid-template-columns: 1fr; }
+    .pricing-grid { grid-template-columns: 1fr; }
+    .footer-inner { grid-template-columns: 1fr; }
+    nav .nav-link { display: none; }
+    .founding-count { display: none; }
+    .trust-inner { gap: 20px; }
+    .trust-divider { display: none; }
+    .hmo-card { flex-direction: column; text-align: center; }
+    .hmo-badge { margin: 0 auto; }
+  }
+
+  /* ── FADE IN ── */
+  .fade-in {
+    opacity: 0; transform: translateY(24px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .fade-in.visible { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">
+    <div class="nav-logo-mark">
+      <svg viewBox="0 0 20 20" fill="none">
+        <path d="M10 2L3 6v8l7 4 7-4V6L10 2z" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
+        <path d="M10 2v16M3 6l7 4 7-4" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <span class="nav-logo-text">RentSafe<span>AI</span></span>
+  </a>
+  <nav class="nav-cta">
+    <a href="#features" class="nav-link">Features</a>
+    <a href="#pricing" class="nav-link">Pricing</a>
+    <a href="#demo" class="nav-link">Demo</a>
+    <a href="landlord.html" class="btn btn-primary">Start Free</a>
+  </nav>
+</nav>
+
+<!-- HERO -->
+<section style="padding:0; background: var(--white);">
+  <div class="hero">
+    <div class="hero-content fade-in">
+      <div class="hero-badge">
+        <span class="dot"></span>
+        Renters' Rights Act 2025 — Now in force
+      </div>
+      <h1>
+        Get <em>RRA-ready</em><br>
+        in 10 minutes.
+      </h1>
+      <p class="hero-sub">
+        The UK's first compliance platform built ground-up for the Renters' Rights Act. Stop guessing, stop scrambling — manage every property, document, and deadline in one place.
+      </p>
+      <div class="hero-actions">
+        <a href="landlord.html" class="btn btn-primary btn-lg">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          Start Free — No Card Needed
+        </a>
+        <a href="#demo" class="btn btn-outline btn-lg">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+          Watch Demo
+        </a>
+      </div>
+      <p class="hero-note">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Free for 30 days · First 100 users get founding price locked forever
+      </p>
+    </div>
+    <div class="hero-visual fade-in" style="transition-delay:0.2s">
+      <div class="hero-float f1">✅ Section 21 abolished — compliant</div>
+      <div class="hero-card">
+        <div class="hero-card-header">
+          <div class="hero-card-dots">
+            <span class="d1"></span><span class="d2"></span><span class="d3"></span>
+          </div>
+          <span class="hero-card-title">Compliance Dashboard · 14 Rowan Close</span>
+        </div>
+        <div class="hero-card-body">
+          <div class="compliance-score">
+            <div class="score-ring">
+              <svg viewBox="0 0 100 100" width="100" height="100">
+                <circle class="track" cx="50" cy="50" r="40"/>
+                <circle class="fill" cx="50" cy="50" r="40"/>
+              </svg>
+              <div class="score-num">90</div>
+            </div>
+            <div class="score-label">✓ Compliant</div>
+          </div>
+          <div class="compliance-items">
+            <div class="ci ok">
+              <span class="ci-icon">📄</span>
+              <span class="ci-text">Gas Safety Certificate</span>
+              <span class="ci-status">Valid</span>
+            </div>
+            <div class="ci ok">
+              <span class="ci-icon">⚡</span>
+              <span class="ci-text">EICR Report</span>
+              <span class="ci-status">Valid</span>
+            </div>
+            <div class="ci ok">
+              <span class="ci-icon">🏠</span>
+              <span class="ci-text">How to Rent Guide</span>
+              <span class="ci-status">Sent</span>
+            </div>
+            <div class="ci warn">
+              <span class="ci-icon">🔥</span>
+              <span class="ci-text">Smoke Alarm Check</span>
+              <span class="ci-status">Due Soon</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="hero-float f2">📬 Welcome kit sent to tenant</div>
+    </div>
+  </div>
+</section>
+
+<!-- TRUST BAR -->
+<div class="trust-bar">
+  <div class="trust-inner">
+    <div class="trust-item">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Built for the Renters' Rights Act 2025
+    </div>
+    <div class="trust-divider"></div>
+    <div class="trust-item">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+      All 17 legal documents included
+    </div>
+    <div class="trust-divider"></div>
+    <div class="trust-item">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Compliance deadlines auto-tracked
+    </div>
+    <div class="trust-divider"></div>
+    <div class="trust-item">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Supabase encrypted · UK data
+    </div>
+  </div>
+</div>
+
+<!-- DEMO VIDEO -->
+<section id="demo">
+  <div class="section-inner">
+    <div class="section-header centered fade-in">
+      <div class="section-tag">See it in action</div>
+      <h2 class="section-heading">From signup to compliant in 10 minutes</h2>
+      <p class="section-sub">Watch a full walkthrough of the platform — property setup, compliance scoring, document generation, and tenant portal.</p>
+    </div>
+    <div class="video-wrap fade-in" style="transition-delay:0.15s">
+      <div class="video-responsive">
+        <iframe
+          src="https://www.youtube.com/embed/lkKGQVHrXzE?start=327"
+          title="RentSafeAI Platform Demo"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen>
+        </iframe>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="section-inner">
+    <div class="section-header fade-in">
+      <div class="section-tag">Everything you need</div>
+      <h2 class="section-heading">Built for private landlords,<br>not letting agents</h2>
+      <p class="section-sub">Every feature is designed around the reality of managing 1–15 properties yourself — without a compliance team behind you.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card fade-in" style="transition-delay:0.05s">
+        <div class="feature-icon">🛡️</div>
+        <h3>RRA 2025 Compliance Score</h3>
+        <p>Real-time compliance health score per property. Know exactly what's missing before a tenant complaint or council inspection.</p>
+      </div>
+      <div class="feature-card fade-in" style="transition-delay:0.1s">
+        <div class="feature-icon">📄</div>
+        <h3>17 Legal Documents</h3>
+        <p>Auto-generated tenancy agreements, Section 8 notices, deposit protection letters, and every mandatory document — in seconds.</p>
+      </div>
+      <div class="feature-card fade-in" style="transition-delay:0.15s">
+        <div class="feature-icon">📦</div>
+        <h3>Mandatory Starter Kit</h3>
+        <p>Day-1 documents auto-compiled for every new tenancy: How to Rent guide, EPC, gas cert, deposit info, and more.</p>
+      </div>
+      <div class="feature-card fade-in" style="transition-delay:0.2s">
+        <div class="feature-icon">🔔</div>
+        <h3>Certificate Expiry Alerts</h3>
+        <p>Gas safety, EICR, EPC — get ahead of renewals with automated reminders before certificates expire.</p>
+      </div>
+      <div class="feature-card fade-in" style="transition-delay:0.25s">
+        <div class="feature-icon">🔧</div>
+        <h3>Maintenance & Awaab's Law</h3>
+        <p>Log, track, and resolve repairs with built-in Awaab's Law timers. Evidence every action with timestamps.</p>
+      </div>
+      <div class="feature-card fade-in" style="transition-delay:0.3s">
+        <div class="feature-icon">🏠</div>
+        <h3>Tenant Portal</h3>
+        <p>Give tenants their own secure portal to access documents, report issues, and sign agreements electronically.</p>
+      </div>
+      <div class="feature-card fade-in" style="transition-delay:0.35s">
+        <div class="feature-icon">✍️</div>
+        <h3>E-Signatures</h3>
+        <p>Sign tenancy agreements and notices digitally. No printing, no posting, no chasing.</p>
+      </div>
+      <div class="feature-card fade-in" style="transition-delay:0.4s">
+        <div class="feature-icon">🤖</div>
+        <h3>AI Compliance Assistant</h3>
+        <p>Ask anything about the Renters' Rights Act, Section 8 grounds, or deposit rules. Get instant, accurate answers.</p>
+      </div>
+      <div class="feature-card fade-in" style="transition-delay:0.45s">
+        <div class="feature-icon">📅</div>
+        <h3>Smart Compliance Calendar</h3>
+        <p>One view of every deadline, inspection, renewal, and check across all your properties. Never miss a date.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="section-inner">
+    <div class="section-header centered fade-in">
+      <div class="section-tag">Pricing</div>
+      <h2 class="section-heading">Simple pricing. No surprises.</h2>
+      <p class="section-sub">Start free for 30 days. First 100 landlords get founding prices locked for life.</p>
+    </div>
+
+    <div class="founding-banner fade-in">
+      <div class="founding-icon">🏅</div>
+      <div class="founding-text">
+        <h4>Founding Member Offer — Limited to 100 Landlords</h4>
+        <p>Sign up today and lock in your founding price forever. Free for the first 30 days — no card required.</p>
+      </div>
+      <div class="founding-count">
+        <div class="num">100</div>
+        <div class="label">Spots Left</div>
+      </div>
+    </div>
+
+    <div class="pricing-toggle fade-in">
+      <span class="toggle-label active" id="monthly-label">Monthly</span>
+      <div class="toggle-switch" id="billing-toggle" onclick="toggleBilling()"></div>
+      <span class="toggle-label" id="annual-label">Annual</span>
+      <span class="annual-badge">Save 2 months</span>
+    </div>
+
+    <div class="pricing-grid fade-in">
+      <!-- Starter -->
+      <div class="pricing-card">
+        <div class="plan-name">Starter</div>
+        <div class="plan-props">1 property</div>
+        <div class="plan-price">
+          <span class="founding">🏅 Founding price</span>
+          <span class="amount" id="starter-price">£4.99</span>
+          <span class="period">/mo</span>
+          <span class="standard" id="starter-standard">Standard: £7.99/mo</span>
+        </div>
+        <div class="plan-divider"></div>
+        <ul class="plan-features">
+          <li><span class="check">✓</span> 1 property</li>
+          <li><span class="check">✓</span> Full compliance dashboard</li>
+          <li><span class="check">✓</span> All 17 legal documents</li>
+          <li><span class="check">✓</span> Mandatory starter kit</li>
+          <li><span class="check">✓</span> Certificate alerts</li>
+          <li><span class="check">✓</span> Tenant portal</li>
+        </ul>
+        <a href="landlord.html" class="plan-btn plan-btn-outline">Start Free</a>
+      </div>
+
+      <!-- Landlord -->
+      <div class="pricing-card popular">
+        <div class="popular-badge">Most Popular</div>
+        <div class="plan-name">Landlord</div>
+        <div class="plan-props">2–5 properties</div>
+        <div class="plan-price">
+          <span class="founding">🏅 Founding price</span>
+          <span class="amount" id="landlord-price">£6.99</span>
+          <span class="period">/mo</span>
+          <span class="standard" id="landlord-standard">Standard: £12.99/mo</span>
+        </div>
+        <div class="plan-divider"></div>
+        <ul class="plan-features">
+          <li><span class="check">✓</span> Up to 5 properties</li>
+          <li><span class="check">✓</span> Everything in Starter</li>
+          <li><span class="check">✓</span> E-signatures</li>
+          <li><span class="check">✓</span> AI compliance assistant</li>
+          <li><span class="check">✓</span> Maintenance tracking</li>
+          <li><span class="check">✓</span> Contractor book</li>
+        </ul>
+        <a href="landlord.html" class="plan-btn plan-btn-primary">Start Free</a>
+      </div>
+
+      <!-- Portfolio -->
+      <div class="pricing-card">
+        <div class="plan-name">Portfolio</div>
+        <div class="plan-props">6–15 properties</div>
+        <div class="plan-price">
+          <span class="founding">🏅 Founding price</span>
+          <span class="amount" id="portfolio-price">£11.99</span>
+          <span class="period">/mo</span>
+          <span class="standard" id="portfolio-standard">Standard: £23.99/mo</span>
+        </div>
+        <div class="plan-divider"></div>
+        <ul class="plan-features">
+          <li><span class="check">✓</span> Up to 15 properties</li>
+          <li><span class="check">✓</span> Everything in Landlord</li>
+          <li><span class="check">✓</span> Bulk document generation</li>
+          <li><span class="check">✓</span> Portfolio health overview</li>
+          <li><span class="check">✓</span> Priority email support</li>
+          <li><span class="check">✓</span> Compliance audit log</li>
+        </ul>
+        <a href="landlord.html" class="plan-btn plan-btn-outline">Start Free</a>
+      </div>
+
+      <!-- Pro -->
+      <div class="pricing-card">
+        <div class="plan-name">Pro</div>
+        <div class="plan-props">16+ properties</div>
+        <div class="plan-price">
+          <span class="founding">🏅 Founding price</span>
+          <span class="amount" id="pro-price">£17.99</span>
+          <span class="period">/mo</span>
+          <span class="standard" id="pro-standard">Standard: £34.99/mo</span>
+        </div>
+        <div class="plan-divider"></div>
+        <ul class="plan-features">
+          <li><span class="check">✓</span> Unlimited properties</li>
+          <li><span class="check">✓</span> Everything in Portfolio</li>
+          <li><span class="check">✓</span> API access (coming soon)</li>
+          <li><span class="check">✓</span> Dedicated onboarding</li>
+          <li><span class="check">✓</span> Custom document templates</li>
+          <li><span class="check">✓</span> Phone support</li>
+        </ul>
+        <a href="landlord.html" class="plan-btn plan-btn-outline">Start Free</a>
+      </div>
+    </div>
+
+    <!-- HMO Coming Soon -->
+    <div class="hmo-card fade-in" style="margin-top:20px">
+      <div class="hmo-icon">🏘️</div>
+      <div class="hmo-text">
+        <h4>HMO Licence Management</h4>
+        <p>Full HMO compliance module coming soon — room-by-room management, licence tracking, shared facilities logs, and council inspection prep.</p>
+      </div>
+      <div class="hmo-badge">Coming Soon</div>
+    </div>
+
+    <p class="pricing-note fade-in">All plans include a <strong>30-day free trial</strong> · No card required · Cancel anytime · Annual billing saves 2 months</p>
+  </div>
+</section>
+
+<!-- REFERRAL -->
+<section id="referral">
+  <div class="section-inner">
+    <div class="referral-inner fade-in">
+      <div class="section-tag">Refer a landlord</div>
+      <h2 class="section-heading">Share RentSafeAI.<br>Both of you get 3 months free.</h2>
+      <p class="section-sub">Know another landlord scrambling for RRA compliance? Send them your referral link — they get 3 months free, you get 3 months free. No catch.</p>
+
+      <div class="referral-cards">
+        <div class="ref-card">
+          <div class="icon">🔗</div>
+          <h4>Share your link</h4>
+          <p>Get your unique referral link from your dashboard</p>
+        </div>
+        <div class="ref-arrow">→</div>
+        <div class="ref-card">
+          <div class="icon">🏠</div>
+          <h4>They sign up</h4>
+          <p>Your friend starts their free trial via your link</p>
+        </div>
+      </div>
+
+      <div class="ref-reward">
+        🎁 You both get 3 months free — automatically applied
+      </div>
+
+      <a href="landlord.html" class="btn btn-outline btn-lg" style="border-color:rgba(255,255,255,0.3); color:white;">
+        Get Your Referral Link
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <a href="#" class="nav-logo">
+        <div class="nav-logo-mark">
+          <svg viewBox="0 0 20 20" fill="none">
+            <path d="M10 2L3 6v8l7 4 7-4V6L10 2z" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
+            <path d="M10 2v16M3 6l7 4 7-4" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <span class="nav-logo-text">RentSafe<span>AI</span></span>
+      </a>
+      <p>The UK's first compliance platform built ground-up for the Renters' Rights Act 2025. Protect your properties, stay compliant.</p>
+    </div>
+    <div class="footer-col">
+      <h5>Product</h5>
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#demo">Demo</a>
+      <a href="landlord.html">Sign In</a>
+    </div>
+    <div class="footer-col">
+      <h5>Legal</h5>
+      <a href="#">Privacy Policy</a>
+      <a href="#">Terms of Service</a>
+      <a href="#">Cookie Policy</a>
+      <a href="#">GDPR</a>
+    </div>
+    <div class="footer-col">
+      <h5>Contact</h5>
+      <a href="mailto:hello@rentsafeai.co.uk">hello@rentsafeai.co.uk</a>
+      <a href="#">Founder Story</a>
+      <a href="#">Referral Programme</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2025 RentSafeAI. All rights reserved. Built for UK private landlords.</p>
+    <div class="footer-badges">
+      <span class="footer-badge">RRA 2025</span>
+      <span class="footer-badge">UK Data</span>
+      <span class="footer-badge">SSL Secured</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Fade in on scroll
+  const faders = document.querySelectorAll('.fade-in');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1 });
+  faders.forEach(f => observer.observe(f));
+
+  // Trigger hero immediately
+  document.querySelectorAll('.hero .fade-in').forEach(el => {
+    setTimeout(() => el.classList.add('visible'), 100);
+  });
+
+  // Annual/monthly toggle
+  const prices = {
+    starter:   { founding: { m: '£4.99',  a: '£3.99' }, standard: { m: '£7.99',  a: '£6.66' } },
+    landlord:  { founding: { m: '£6.99',  a: '£5.83' }, standard: { m: '£12.99', a: '£10.83' } },
+    portfolio: { founding: { m: '£11.99', a: '£9.99' }, standard: { m: '£23.99', a: '£19.99' } },
+    pro:       { founding: { m: '£17.99', a: '£14.99'}, standard: { m: '£34.99', a: '£29.16' } },
+  };
+
+  let isAnnual = false;
+  function toggleBilling() {
+    isAnnual = !isAnnual;
+    const toggle = document.getElementById('billing-toggle');
+    const mLabel = document.getElementById('monthly-label');
+    const aLabel = document.getElementById('annual-label');
+    toggle.classList.toggle('annual', isAnnual);
+    mLabel.classList.toggle('active', !isAnnual);
+    aLabel.classList.toggle('active', isAnnual);
+    const period = isAnnual ? 'a' : 'm';
+    const periodLabel = isAnnual ? '/mo (billed annually)' : '/mo';
+    for (const [plan, data] of Object.entries(prices)) {
+      const priceEl = document.getElementById(`${plan}-price`);
+      const stdEl = document.getElementById(`${plan}-standard`);
+      const periodEl = priceEl?.nextElementSibling;
+      if (priceEl) priceEl.textContent = data.founding[period];
+      if (periodEl) periodEl.textContent = periodLabel;
+      if (stdEl) stdEl.textContent = `Standard: ${data.standard[period]}`;
+    }
+  }
+</script>
+</body>
+</html>
