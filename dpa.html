@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Data Processing Agreement — RentSafe AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy:  #0f2744; --teal: #1a6b6b; --amber: #c8832a; --cream: #faf7f2;
+      --slate: #4a5568; --muted: #718096; --rule: #ddd5c8; --white: #ffffff;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'DM Sans', sans-serif; font-size: 15px; line-height: 1.75; color: #2d3748; background: var(--cream); }
+    header { background: var(--navy); color: var(--white); padding: 28px 40px; display: flex; align-items: center; justify-content: space-between; gap: 24px; border-bottom: 3px solid var(--amber); }
+    .logo { font-family: 'DM Sans', sans-serif; font-size: 22px; font-weight: 600; letter-spacing: -0.02em; color: var(--white); text-decoration: none; }
+    .logo span { color: var(--amber); }
+    header p { font-size: 12px; color: rgba(255,255,255,0.55); text-align: right; line-height: 1.5; }
+    .page-wrap { max-width: 820px; margin: 0 auto; padding: 56px 40px 80px; }
+    .doc-title { border-bottom: 2px solid var(--navy); padding-bottom: 28px; margin-bottom: 36px; }
+    .doc-title h1 { font-family: 'Lora', Georgia, serif; font-size: 32px; font-weight: 600; color: var(--navy); letter-spacing: -0.01em; line-height: 1.25; margin-bottom: 10px; }
+    .doc-meta { display: flex; flex-wrap: wrap; gap: 20px; font-size: 13px; color: var(--muted); }
+    .doc-meta span { display: flex; align-items: center; gap: 6px; }
+    .doc-meta strong { color: var(--slate); }
+    .notice { background: #fff8ec; border-left: 4px solid var(--amber); border-radius: 4px; padding: 16px 20px; margin-bottom: 40px; font-size: 13.5px; color: #5a3d10; line-height: 1.6; }
+    .notice strong { font-weight: 600; }
+    .toc { background: var(--white); border: 1px solid var(--rule); border-radius: 8px; padding: 24px 28px; margin-bottom: 48px; }
+    .toc h2 { font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }
+    .toc ol { list-style: decimal; padding-left: 20px; columns: 2; column-gap: 32px; }
+    .toc li { margin-bottom: 6px; break-inside: avoid; }
+    .toc a { font-size: 13.5px; color: var(--teal); text-decoration: none; font-weight: 500; }
+    .toc a:hover { text-decoration: underline; }
+    section { margin-bottom: 44px; }
+    section + section { border-top: 1px solid var(--rule); padding-top: 40px; }
+    h2.section-title { font-family: 'Lora', Georgia, serif; font-size: 20px; font-weight: 600; color: var(--navy); margin-bottom: 20px; display: flex; align-items: baseline; gap: 10px; }
+    h2.section-title .num { font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: var(--amber); text-transform: uppercase; min-width: 28px; }
+    h3 { font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; color: var(--navy); margin: 22px 0 10px; text-transform: uppercase; letter-spacing: 0.04em; }
+    p { margin-bottom: 14px; }
+    p:last-child { margin-bottom: 0; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 7px; }
+    dl { margin-bottom: 14px; }
+    dt { font-weight: 600; color: var(--navy); margin-top: 12px; }
+    dd { padding-left: 16px; color: var(--slate); font-size: 14px; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin: 20px 0; border-radius: 8px; overflow: hidden; border: 1px solid var(--rule); }
+    .data-table thead tr { background: var(--navy); color: var(--white); }
+    .data-table th, .data-table td { padding: 11px 14px; text-align: left; vertical-align: top; }
+    .data-table tbody tr:nth-child(even) { background: var(--white); }
+    .data-table tbody tr:nth-child(odd) { background: var(--cream); }
+    .highlight { background: #eaf3f3; border-left: 3px solid var(--teal); border-radius: 4px; padding: 14px 18px; margin: 16px 0; font-size: 14px; color: var(--navy); }
+    .warning-box { background: #fff8ec; border-left: 4px solid var(--amber); border-radius: 4px; padding: 16px 20px; margin: 16px 0; font-size: 14px; color: #5a3d10; }
+    .warning-box strong { font-weight: 700; }
+    .liability-box { background: var(--navy); color: var(--white); border-radius: 8px; padding: 22px 26px; margin: 20px 0; }
+    .liability-box h3 { color: var(--amber); margin-top: 0; font-size: 12px; letter-spacing: 0.1em; }
+    .liability-box p, .liability-box li { font-size: 14px; color: rgba(255,255,255,0.85); }
+    .liability-box ul { margin-bottom: 0; }
+    .schedule { background: var(--white); border: 1px solid var(--rule); border-radius: 8px; padding: 28px 32px; margin: 28px 0; }
+    .schedule-title { font-family: 'Lora', Georgia, serif; font-size: 18px; font-weight: 600; color: var(--navy); border-bottom: 2px solid var(--teal); padding-bottom: 12px; margin-bottom: 20px; }
+    footer { background: var(--navy); color: rgba(255,255,255,0.5); text-align: center; font-size: 12px; padding: 28px 40px; line-height: 1.7; }
+    footer a { color: rgba(255,255,255,0.7); }
+    @media print { header, footer { background: #fff; color: #000; border: none; } .toc { display: none; } body { font-size: 11pt; } }
+    @media (max-width: 640px) { .page-wrap { padding: 32px 20px 60px; } header { padding: 20px; flex-direction: column; align-items: flex-start; } header p { text-align: left; } .toc ol { columns: 1; } .data-table th, .data-table td { padding: 9px 10px; font-size: 12px; } }
+  </style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="https://rentsafeai.co.uk">RentSafe<span>AI</span></a>
+  <p>A trading name of Beacons Residentials Ltd<br>Company No. 10990778 · England &amp; Wales</p>
+</header>
+
+<div class="page-wrap">
+
+  <div class="doc-title">
+    <h1>Data Processing Agreement</h1>
+    <div class="doc-meta">
+      <span><strong>Version:</strong> 1.0</span>
+      <span><strong>Effective date:</strong> 31 May 2026</span>
+      <span><strong>Last updated:</strong> May 2026</span>
+    </div>
+  </div>
+
+  <div class="notice">
+    <strong>This Data Processing Agreement ("DPA") is incorporated into and forms part of the Terms &amp; Conditions between you (the Controller) and Beacons Residentials Ltd (the Processor).</strong> By creating an account and using the Service, you agree to the terms of this DPA without further signature. This DPA governs all processing of personal data relating to tenants and third parties that you upload to the RentSafe AI platform.
+  </div>
+
+  <div class="toc">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#d1">Definitions</a></li>
+      <li><a href="#d2">Relationship of the Parties</a></li>
+      <li><a href="#d3">Subject Matter &amp; Duration</a></li>
+      <li><a href="#d4">Nature &amp; Purpose of Processing</a></li>
+      <li><a href="#d5">Controller's Obligations &amp; Warranties</a></li>
+      <li><a href="#d6">Processor's Obligations</a></li>
+      <li><a href="#d7">Processing Instructions</a></li>
+      <li><a href="#d8">AI Processing</a></li>
+      <li><a href="#d9">Confidentiality</a></li>
+      <li><a href="#d10">Security</a></li>
+      <li><a href="#d11">Sub-Processors</a></li>
+      <li><a href="#d12">International Transfers</a></li>
+      <li><a href="#d13">Data Subject Rights</a></li>
+      <li><a href="#d14">Personal Data Breaches</a></li>
+      <li><a href="#d15">Data Protection Impact Assessments</a></li>
+      <li><a href="#d16">Deletion &amp; Return of Data</a></li>
+      <li><a href="#d17">Audit Rights</a></li>
+      <li><a href="#d18">Liability &amp; Indemnity</a></li>
+      <li><a href="#d19">Term &amp; Termination</a></li>
+      <li><a href="#d20">General</a></li>
+      <li><a href="#d21">Schedule 1 — Processing Details</a></li>
+      <li><a href="#d22">Schedule 2 — Approved Sub-Processors</a></li>
+      <li><a href="#d23">Schedule 3 — Security Measures</a></li>
+    </ol>
+  </div>
+
+  <!-- 1 -->
+  <section id="d1">
+    <h2 class="section-title"><span class="num">1</span>Definitions</h2>
+    <p>In this DPA, the following terms have the meanings set out below. Capitalised terms not defined here have the meanings given in the Terms &amp; Conditions.</p>
+    <dl>
+      <dt>"Controller"</dt>
+      <dd>means you, the subscriber, acting as data controller in respect of Personal Data relating to your tenants and third parties that you upload to the Service.</dd>
+      <dt>"Data Protection Legislation"</dt>
+      <dd>means the UK General Data Protection Regulation (UK GDPR) as retained in UK law by the European Union (Withdrawal) Act 2018, the Data Protection Act 2018, and any applicable subordinate legislation or ICO guidance, as amended from time to time.</dd>
+      <dt>"Data Subject"</dt>
+      <dd>means an identified or identifiable living individual to whom Personal Data relates, including tenants, prospective tenants, guarantors, and occupants.</dd>
+      <dt>"Personal Data"</dt>
+      <dd>means any information relating to a Data Subject that you upload, enter, or submit to the Service, as further described in Schedule 1.</dd>
+      <dt>"Personal Data Breach"</dt>
+      <dd>means a breach of security leading to the accidental or unlawful destruction, loss, alteration, unauthorised disclosure of, or access to, Personal Data processed by the Processor.</dd>
+      <dt>"Processor"</dt>
+      <dd>means Beacons Residentials Ltd (trading as RentSafe AI, Company No. 10990778), acting as data processor in respect of Personal Data processed on your behalf.</dd>
+      <dt>"Processing"</dt>
+      <dd>has the meaning given in UK GDPR and includes any operation performed on Personal Data, whether or not by automated means.</dd>
+      <dt>"Sub-Processor"</dt>
+      <dd>means any third party engaged by the Processor to process Personal Data on behalf of the Controller, as listed in Schedule 2.</dd>
+      <dt>"Supervisory Authority"</dt>
+      <dd>means the Information Commissioner's Office (ICO).</dd>
+    </dl>
+  </section>
+
+  <!-- 2 -->
+  <section id="d2">
+    <h2 class="section-title"><span class="num">2</span>Relationship of the Parties</h2>
+    <p>The parties acknowledge and agree that for the purposes of Data Protection Legislation:</p>
+    <ul>
+      <li>The <strong>Controller</strong> solely determines the purposes and means of processing Personal Data uploaded to the Service relating to tenants and third parties, and bears sole responsibility for compliance with Data Protection Legislation in that capacity;</li>
+      <li>The <strong>Processor</strong> processes such Personal Data only on behalf of the Controller, only for the purpose of providing the Service, and only in accordance with this DPA and the Controller's documented instructions;</li>
+      <li>The Processor does <strong>not</strong> determine the purposes of processing, does not process Personal Data for its own independent commercial purposes, and does not sell, rent, or otherwise commercially exploit Personal Data;</li>
+      <li>Each party is independently responsible for its own compliance with Data Protection Legislation in its respective capacity.</li>
+    </ul>
+    <div class="warning-box">
+      <strong>Critical point:</strong> The Controller is the data controller for all tenant and third-party personal data uploaded to the Service. The Processor's role is purely administrative — processing data on the Controller's instructions to provide organisational tools. The Processor is not a co-controller and bears no responsibility for the lawfulness of the Controller's data processing decisions.
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section id="d3">
+    <h2 class="section-title"><span class="num">3</span>Subject Matter &amp; Duration</h2>
+    <p><strong>Subject matter:</strong> The Processor shall process Personal Data on behalf of the Controller for the purpose of providing the RentSafe AI platform — an AI-assisted landlord compliance tool — including document storage and management, AI data extraction and analysis, compliance tracking, reminder generation, and related features as described in the Terms &amp; Conditions.</p>
+    <p><strong>Duration:</strong> This DPA shall remain in force for as long as the Controller uses the Service and the Processor processes Personal Data on the Controller's behalf. It shall terminate automatically upon closure of the Controller's account, subject to the data deletion provisions in clause 16.</p>
+  </section>
+
+  <!-- 4 -->
+  <section id="d4">
+    <h2 class="section-title"><span class="num">4</span>Nature &amp; Purpose of Processing</h2>
+    <p>The Processor carries out the following processing activities on behalf of the Controller:</p>
+    <ul>
+      <li>Storing and organising documents uploaded by the Controller (tenancy agreements, certificates, identification documents, and similar);</li>
+      <li>Extracting structured data from documents using AI processing;</li>
+      <li>Storing and displaying property, tenancy, and compliance information entered by the Controller;</li>
+      <li>Generating compliance reminders, alerts, and deadline notifications based on data entered by the Controller;</li>
+      <li>Producing AI-generated summaries, compliance assessments, and document drafts based on Controller-provided data;</li>
+      <li>Transmitting transactional emails to addresses specified by the Controller;</li>
+      <li>Providing secure storage and access to uploaded documents.</li>
+    </ul>
+    <div class="highlight">
+      <strong>Important limitation:</strong> All processing is purely administrative and organisational in nature. The Processor does not make legal decisions, does not determine compliance outcomes, and does not take autonomous action on the Controller's behalf. No automated decision-making within the meaning of Article 22 UK GDPR is performed.
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section id="d5">
+    <h2 class="section-title"><span class="num">5</span>Controller's Obligations &amp; Warranties</h2>
+    <p>The Controller represents, warrants, and undertakes on a continuing basis that:</p>
+    <ul>
+      <li>It has and shall maintain a valid and lawful basis under UK GDPR Article 6 (and Article 9 where applicable) for each category of Personal Data it uploads to the Service;</li>
+      <li>It has provided, and shall continue to provide, all required privacy notices to Data Subjects under Articles 13 and 14 UK GDPR, including notice that their data will be processed using AI-assisted tools and stored with third-party cloud providers;</li>
+      <li>It shall not upload Personal Data that is excessive, irrelevant, or not necessary for legitimate property management purposes;</li>
+      <li>It is solely responsible for the accuracy, quality, and legality of all Personal Data it uploads to the Service;</li>
+      <li>Where it uploads special category personal data (Article 9 UK GDPR), it has identified a valid Article 9 condition and implemented appropriate additional safeguards;</li>
+      <li>It will comply with all applicable Data Protection Legislation in its capacity as data controller;</li>
+      <li>It will not instruct the Processor to process Personal Data in a manner that would cause the Processor to breach Data Protection Legislation;</li>
+      <li>It shall ensure all individuals authorised to use the Service on its behalf are subject to appropriate confidentiality obligations;</li>
+      <li>It is solely responsible for all decisions made using the Service and for verifying the accuracy of all outputs before relying on them.</li>
+    </ul>
+    <div class="liability-box">
+      <h3>⚖ Sole Controller Responsibility</h3>
+      <p>The Controller is solely responsible for: the lawfulness of all Personal Data uploaded; compliance with UK GDPR in its controller capacity; providing privacy notices to tenants; responding to Data Subject rights requests; and all decisions taken on the basis of Service outputs. The Processor accepts no liability for the Controller's failure to fulfil any of these obligations.</p>
+    </div>
+  </section>
+
+  <!-- 6 -->
+  <section id="d6">
+    <h2 class="section-title"><span class="num">6</span>Processor's Obligations</h2>
+    <p>The Processor shall, in relation to Personal Data processed on behalf of the Controller:</p>
+    <ul>
+      <li>Process Personal Data only on the documented instructions of the Controller as set out in clause 7 and Schedule 1, unless required to do so by applicable law;</li>
+      <li>Implement and maintain appropriate technical and organisational security measures as described in Schedule 3;</li>
+      <li>Ensure all persons authorised to process Personal Data are subject to binding confidentiality obligations;</li>
+      <li>Not sell, rent, commercially exploit, or process Personal Data for any purpose other than providing the Service;</li>
+      <li>Not engage Sub-Processors except as provided in clause 11;</li>
+      <li>Assist the Controller in meeting its obligations under Data Protection Legislation as set out in clauses 13, 14, and 15;</li>
+      <li>Delete or return Personal Data upon termination as set out in clause 16;</li>
+      <li>Make available such information as is reasonably necessary to demonstrate compliance with this DPA, subject to clause 17.</li>
+    </ul>
+  </section>
+
+  <!-- 7 -->
+  <section id="d7">
+    <h2 class="section-title"><span class="num">7</span>Processing Instructions</h2>
+    <p>The Controller's instructions to the Processor are to process Personal Data to the extent necessary to provide the Service as described in the Terms &amp; Conditions and Schedule 1. These instructions constitute the Controller's complete and authoritative instructions as at the effective date of this DPA.</p>
+    <p>The Controller may issue further instructions by written notice to support@rentsafeai.co.uk. The Processor shall promptly notify the Controller if any instruction would, in its reasonable opinion, cause the Processor to breach Data Protection Legislation, and may decline to act on such instruction without liability.</p>
+    <p>Where the Processor is required by applicable law to process Personal Data other than in accordance with the Controller's instructions, it shall notify the Controller before doing so unless prohibited by law.</p>
+  </section>
+
+  <!-- 8 -->
+  <section id="d8">
+    <h2 class="section-title"><span class="num">8</span>AI Processing</h2>
+    <p>The Controller expressly acknowledges and accepts the following in relation to AI processing features of the Service:</p>
+    <ul>
+      <li>The Service uses AI systems (including the Anthropic Claude API) to extract, analyse, and process Personal Data contained in documents submitted by the Controller. This processing is carried out on the Controller's instructions solely to provide the Service;</li>
+      <li>AI outputs — including extracted data, summaries, compliance assessments, and drafted documents — <strong>may be inaccurate, incomplete, or misinterpreted</strong>. The Processor does not guarantee the accuracy, completeness, or legal sufficiency of any AI output;</li>
+      <li>The Processor does not verify the legal validity, authenticity, or regulatory compliance of any document submitted for AI processing;</li>
+      <li>All AI outputs are provided for <strong>organisational and informational purposes only</strong>. They do not constitute legal advice and do not determine any legal right or obligation;</li>
+      <li>The Controller must review and verify all AI-generated outputs before relying on them or acting upon them. The Controller is solely responsible for all decisions made on the basis of AI outputs;</li>
+      <li>No automated decision-making producing legal or similarly significant effects within the meaning of Article 22 UK GDPR is performed by the Service;</li>
+      <li>Where Personal Data is submitted to AI processing, it is transmitted to Anthropic PBC in the United States — see clause 12 for transfer safeguards;</li>
+      <li>The Controller should avoid submitting special category personal data or unnecessary personal data to AI processing features.</li>
+    </ul>
+    <div class="warning-box">
+      <strong>AI liability:</strong> The Processor accepts no liability for loss, damage, or regulatory consequence arising from the Controller's reliance on AI-generated outputs without independent verification. See also clause 18 and the AI Disclaimer at <a href="ai-disclaimer.html">ai-disclaimer.html</a>.
+    </div>
+  </section>
+
+  <!-- 9 -->
+  <section id="d9">
+    <h2 class="section-title"><span class="num">9</span>Confidentiality</h2>
+    <p>The Processor shall ensure that all employees, contractors, and agents with access to Personal Data processed under this DPA are subject to binding confidentiality obligations, whether by contract or statutory duty. Access to Personal Data shall be restricted on a strict need-to-know basis.</p>
+    <p>The Processor shall not disclose Personal Data to any third party except: (a) to authorised Sub-Processors in accordance with clause 11; (b) where required by applicable law or court order; or (c) with the Controller's prior written consent. Confidentiality obligations survive termination of this DPA.</p>
+  </section>
+
+  <!-- 10 -->
+  <section id="d10">
+    <h2 class="section-title"><span class="num">10</span>Security</h2>
+    <p>Taking into account the state of the art, implementation costs, and the nature, scope, context, and purposes of processing, the Processor shall implement appropriate technical and organisational measures to ensure a level of security appropriate to the risk, including the measures set out in Schedule 3.</p>
+    <p>The Controller acknowledges that no security measures are infallible and that the Processor cannot guarantee absolute security. The Processor is not liable for security incidents arising from: (a) the Controller's failure to maintain secure login credentials; (b) the Controller's own systems or devices; or (c) circumstances outside the Processor's reasonable control.</p>
+    <p>The Processor shall regularly review its security measures and shall notify the Controller of any material change that adversely affects the protection of Personal Data.</p>
+  </section>
+
+  <!-- 11 -->
+  <section id="d11">
+    <h2 class="section-title"><span class="num">11</span>Sub-Processors</h2>
+    <h3>11.1 Authorised Sub-Processors</h3>
+    <p>The Controller hereby grants general authorisation for the Processor to engage the Sub-Processors listed in Schedule 2. The Controller acknowledges that the Service cannot be provided without these Sub-Processors and that their use is a condition of this Agreement.</p>
+    <h3>11.2 New Sub-Processors</h3>
+    <p>The Processor shall give at least <strong>14 days' written notice</strong> before engaging any new Sub-Processor. If the Controller objects on reasonable data protection grounds within that period, the Processor shall use reasonable endeavours to address the objection. If unresolved, the Controller may terminate the Agreement without penalty for the unexpired term.</p>
+    <h3>11.3 Sub-Processor Obligations</h3>
+    <p>The Processor shall impose on each Sub-Processor data protection obligations equivalent to those in this DPA by written contract. The Processor remains fully liable to the Controller for each Sub-Processor's performance of those obligations.</p>
+  </section>
+
+  <!-- 12 -->
+  <section id="d12">
+    <h2 class="section-title"><span class="num">12</span>International Transfers</h2>
+    <p>The Processor shall not transfer Personal Data outside the United Kingdom except as described in Schedule 2 and on the basis of the following transfer mechanisms:</p>
+    <ul>
+      <li><strong>Anthropic PBC (US):</strong> International Data Transfer Agreement (IDTA) approved by the ICO, or Standard Contractual Clauses with UK Addendum;</li>
+      <li><strong>Resend Inc. (US):</strong> International Data Transfer Agreement (IDTA) approved by the ICO, or Standard Contractual Clauses with UK Addendum;</li>
+      <li><strong>Supabase Inc.:</strong> Primary data stored on AWS eu-west-2 (London) — no international transfer involved.</li>
+    </ul>
+    <p>The Processor shall not make any other international transfer of Personal Data without the Controller's prior written consent and implementation of an appropriate transfer mechanism under UK GDPR Article 46.</p>
+  </section>
+
+  <!-- 13 -->
+  <section id="d13">
+    <h2 class="section-title"><span class="num">13</span>Data Subject Rights</h2>
+    <p>The Processor shall assist the Controller, by appropriate technical and organisational means, to fulfil the Controller's obligations to respond to Data Subject rights requests under Chapter III UK GDPR (access, rectification, erasure, restriction, portability, and objection), insofar as reasonably practicable given the nature of the processing.</p>
+    <p>Where a Data Subject contacts the Processor directly regarding Personal Data processed on the Controller's behalf, the Processor shall: (a) notify the Controller within 5 business days; (b) not respond to the Data Subject without the Controller's prior written consent; and (c) provide reasonable cooperation to assist the Controller in responding within the statutory timeframe.</p>
+    <p>The Controller is <strong>solely responsible</strong> for responding to all Data Subject rights requests in respect of Personal Data for which it is the controller. The Processor accepts no liability for the Controller's failure to do so.</p>
+  </section>
+
+  <!-- 14 -->
+  <section id="d14">
+    <h2 class="section-title"><span class="num">14</span>Personal Data Breaches</h2>
+    <p>The Processor shall notify the Controller <strong>without undue delay, and in any event within 48 hours</strong> of becoming aware of a Personal Data Breach affecting Personal Data processed on behalf of the Controller. Notification shall be sent to the Controller's registered email address and shall include, to the extent then known:</p>
+    <ul>
+      <li>Nature of the breach and categories of Personal Data affected;</li>
+      <li>Approximate number of Data Subjects and records affected;</li>
+      <li>Likely consequences of the breach;</li>
+      <li>Measures taken or proposed to address and mitigate the breach.</li>
+    </ul>
+    <p>Where full information is not available at the time of initial notification, it shall be provided in phases without undue further delay.</p>
+    <p>The <strong>Controller is solely responsible</strong> for assessing whether notification to the ICO (within 72 hours under Article 33 UK GDPR) and/or to affected Data Subjects (under Article 34) is required, and for making any such notifications. The Processor shall provide reasonable assistance in this regard. The Processor's 48-hour notification is designed to give the Controller sufficient time to meet its own Article 33 obligation.</p>
+  </section>
+
+  <!-- 15 -->
+  <section id="d15">
+    <h2 class="section-title"><span class="num">15</span>Data Protection Impact Assessments</h2>
+    <p>Where the Controller is required to carry out a Data Protection Impact Assessment (DPIA) under Article 35 UK GDPR in relation to processing involving Personal Data processed by the Processor, the Processor shall provide such reasonable assistance as the Controller may request, taking into account the nature of the processing and information available to the Processor.</p>
+    <p>The Controller is solely responsible for determining whether a DPIA is required and for conducting, documenting, and where applicable submitting any such assessment to the ICO.</p>
+  </section>
+
+  <!-- 16 -->
+  <section id="d16">
+    <h2 class="section-title"><span class="num">16</span>Deletion &amp; Return of Data</h2>
+    <p>Upon termination or expiry of the Agreement, or upon written request at any time, the Processor shall — at the Controller's election within <strong>30 days of termination</strong>:</p>
+    <ul>
+      <li>Return a complete copy of all Personal Data in a structured, machine-readable format (CSV or equivalent); or</li>
+      <li>Securely delete and destroy all Personal Data, including all copies held by Sub-Processors, and confirm deletion in writing.</li>
+    </ul>
+    <p>If no election is made within 30 days of termination, the Processor may proceed to securely delete all Personal Data. Notwithstanding the foregoing, the Processor may retain Personal Data to the extent required by applicable law (including for statutory accounting purposes) and shall notify the Controller of any such retention and its legal basis. Any retained data remains subject to the confidentiality obligations of this DPA.</p>
+  </section>
+
+  <!-- 17 -->
+  <section id="d17">
+    <h2 class="section-title"><span class="num">17</span>Audit Rights</h2>
+    <p>Upon reasonable written notice of at least <strong>30 days</strong> (except following a confirmed Personal Data Breach), the Processor shall make available such information as is reasonably necessary to demonstrate compliance with this DPA and shall allow for and contribute to audits conducted by the Controller or its appointed auditor.</p>
+    <p>Audits shall be: limited to once per calendar year in normal circumstances; conducted during normal business hours with minimum operational disruption; carried out at the Controller's cost. The Processor may satisfy this obligation by providing third-party audit reports, security certifications, or written responses to reasonable security questionnaires in lieu of on-site inspection.</p>
+  </section>
+
+  <!-- 18 -->
+  <section id="d18">
+    <h2 class="section-title"><span class="num">18</span>Liability &amp; Indemnity</h2>
+    <div class="liability-box">
+      <h3>⚖ Key Liability Protections</h3>
+      <p>This clause, together with clause 15 of the Terms &amp; Conditions, contains the maximum liability protections available to the Processor. Read carefully.</p>
+    </div>
+
+    <h3>18.1 Allocation of Liability</h3>
+    <p>Each party shall be liable to the other and to Data Subjects only for damage caused by processing that is attributable to that party's breach of this DPA or Data Protection Legislation. As between the parties:</p>
+    <ul>
+      <li>The <strong>Controller</strong> is solely liable for: the lawfulness of all Personal Data uploaded; its compliance with Data Protection Legislation as controller; its failure to obtain a valid lawful basis; its failure to provide adequate privacy notices; its failure to respond to Data Subject rights requests; and all decisions made using Service outputs;</li>
+      <li>The <strong>Processor</strong> is liable only for damage directly caused by its processing where it has failed to comply with obligations under Data Protection Legislation specifically directed to processors, or where it has acted outside or contrary to the Controller's lawful instructions.</li>
+    </ul>
+
+    <h3>18.2 No Processor Liability for Controller Acts</h3>
+    <p>To the fullest extent permitted by law, the Processor accepts no liability whatsoever for:</p>
+    <ul>
+      <li>Any regulatory investigation, fine, or enforcement action arising from the Controller's conduct as data controller;</li>
+      <li>Any claim by a Data Subject arising from the Controller's failure to comply with its obligations under Data Protection Legislation;</li>
+      <li>Any loss or damage arising from the Controller's reliance on AI-generated outputs without independent verification;</li>
+      <li>Any processing of Personal Data the Controller carries out outside the Service or following export from the Service;</li>
+      <li>The accuracy, completeness, or legal sufficiency of data or documents uploaded by the Controller;</li>
+      <li>The Controller's failure to maintain secure credentials or to prevent unauthorised access to its account.</li>
+    </ul>
+
+    <h3>18.3 Controller Indemnity</h3>
+    <p>The Controller shall indemnify, defend, and hold harmless the Processor and its directors, officers, employees, and agents from and against all claims, losses, damages, liabilities, regulatory fines, costs, and expenses (including reasonable legal fees) arising out of or in connection with:</p>
+    <ul>
+      <li>The Controller's processing of Personal Data in breach of Data Protection Legislation or this DPA;</li>
+      <li>The Controller's failure to obtain a lawful basis for any Personal Data uploaded to the Service;</li>
+      <li>The Controller's failure to provide adequate privacy notices to Data Subjects;</li>
+      <li>Any claim by a Data Subject arising from the Controller's conduct as data controller;</li>
+      <li>The Controller's reliance on AI-generated outputs without independent verification;</li>
+      <li>Any regulatory fine or enforcement action brought against the Processor as a consequence of the Controller's acts or omissions as data controller.</li>
+    </ul>
+
+    <h3>18.4 Cap on Processor Liability</h3>
+    <p>Subject to clause 18.5, the Processor's aggregate liability under or in connection with this DPA shall not exceed the greater of: (a) the total Fees paid by the Controller in the 12 months preceding the event giving rise to the claim; or (b) five hundred pounds (£500). This cap applies in addition to and consistently with clause 15.2 of the Terms &amp; Conditions.</p>
+
+    <h3>18.5 Uncapped Liabilities</h3>
+    <p>Nothing in this DPA limits either party's liability for: (a) death or personal injury caused by negligence; (b) fraud or fraudulent misrepresentation; (c) any statutory liability under Data Protection Legislation that cannot be excluded or limited; or (d) any other liability that cannot be lawfully excluded.</p>
+  </section>
+
+  <!-- 19 -->
+  <section id="d19">
+    <h2 class="section-title"><span class="num">19</span>Term &amp; Termination</h2>
+    <p>This DPA shall take effect on the date the Controller first uses the Service and shall continue in force until the Agreement is terminated or the Processor ceases to process Personal Data on behalf of the Controller, whichever is earlier.</p>
+    <p>Termination of the Agreement automatically terminates this DPA subject to the survival of: clause 9 (Confidentiality); clause 16 (Deletion); clause 18 (Liability &amp; Indemnity); and clause 20 (General).</p>
+  </section>
+
+  <!-- 20 -->
+  <section id="d20">
+    <h2 class="section-title"><span class="num">20</span>General</h2>
+    <p><strong>Entire agreement.</strong> This DPA, together with the Terms &amp; Conditions, Privacy Policy, and AI Disclaimer, constitutes the entire agreement between the parties relating to the processing of Personal Data and supersedes all prior arrangements.</p>
+    <p><strong>Precedence.</strong> In the event of conflict between this DPA and the Terms &amp; Conditions on data protection matters, this DPA shall prevail. On all other matters, the Terms &amp; Conditions shall prevail.</p>
+    <p><strong>Severability.</strong> If any provision of this DPA is held invalid or unenforceable, the remaining provisions continue in full force.</p>
+    <p><strong>Governing law.</strong> This DPA is governed by the law of England and Wales. Any dispute arising from or in connection with this DPA shall be subject to the exclusive jurisdiction of the courts of England and Wales.</p>
+    <p><strong>Updates.</strong> The Processor may update this DPA from time to time to reflect changes in Data Protection Legislation or processing activities. Material updates will be notified to the Controller by email at least 14 days before taking effect.</p>
+  </section>
+
+  <!-- SCHEDULE 1 -->
+  <section id="d21">
+    <div class="schedule">
+      <div class="schedule-title">Schedule 1 — Processing Details</div>
+      <table class="data-table">
+        <thead>
+          <tr><th>Item</th><th>Detail</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Subject matter</strong></td>
+            <td>Processing of tenant and third-party personal data to provide AI-assisted landlord compliance tools</td>
+          </tr>
+          <tr>
+            <td><strong>Duration</strong></td>
+            <td>For the term of the Controller's subscription, plus any retention period required by law</td>
+          </tr>
+          <tr>
+            <td><strong>Nature of processing</strong></td>
+            <td>Storage, organisation, AI extraction and analysis, reminder generation, document drafting, email transmission</td>
+          </tr>
+          <tr>
+            <td><strong>Purpose</strong></td>
+            <td>To provide the RentSafe AI landlord compliance platform as described in the Terms &amp; Conditions</td>
+          </tr>
+          <tr>
+            <td><strong>Types of personal data</strong></td>
+            <td>Tenant names, contact details, addresses; tenancy agreement terms; identification document details (if uploaded); financial data (rent, deposits); maintenance records; compliance certificate details; any other personal data contained in documents uploaded by the Controller</td>
+          </tr>
+          <tr>
+            <td><strong>Special category data</strong></td>
+            <td>May include copies of identification documents. Controller is solely responsible for ensuring a valid Article 9 condition applies to any special category data uploaded.</td>
+          </tr>
+          <tr>
+            <td><strong>Categories of data subjects</strong></td>
+            <td>Tenants; prospective tenants; guarantors; occupants; third parties named in uploaded documents</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- SCHEDULE 2 -->
+  <section id="d22">
+    <div class="schedule">
+      <div class="schedule-title">Schedule 2 — Approved Sub-Processors</div>
+      <table class="data-table">
+        <thead>
+          <tr><th>Sub-Processor</th><th>Purpose</th><th>Location</th><th>Transfer Mechanism</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Supabase Inc.</strong></td>
+            <td>Database hosting, authentication, and document storage</td>
+            <td>EU — AWS eu-west-2 (London)</td>
+            <td>No international transfer — EU/UK hosting. Supabase DPA in place.</td>
+          </tr>
+          <tr>
+            <td><strong>Anthropic PBC</strong></td>
+            <td>AI processing via the Claude API — document analysis, data extraction, content generation</td>
+            <td>United States</td>
+            <td>IDTA (ICO-approved) or SCCs with UK Addendum</td>
+          </tr>
+          <tr>
+            <td><strong>Resend Inc.</strong></td>
+            <td>Transactional email delivery</td>
+            <td>United States</td>
+            <td>IDTA (ICO-approved) or SCCs with UK Addendum</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- SCHEDULE 3 -->
+  <section id="d23">
+    <div class="schedule">
+      <div class="schedule-title">Schedule 3 — Security Measures</div>
+      <p style="margin-bottom:16px;">The Processor implements the following technical and organisational security measures:</p>
+      <h3>Technical Measures</h3>
+      <ul>
+        <li><strong>Encryption in transit:</strong> All data transmitted between users and the Service is encrypted using TLS 1.2 or higher (HTTPS);</li>
+        <li><strong>Encryption at rest:</strong> All data stored in the Supabase database is encrypted at rest using AES-256;</li>
+        <li><strong>Document storage:</strong> Uploaded documents are stored in private, access-controlled Supabase Storage buckets — not publicly accessible;</li>
+        <li><strong>Authentication:</strong> User access is controlled via Supabase Auth with hashed password storage; session tokens are used for authenticated access;</li>
+        <li><strong>Access controls:</strong> Database access is restricted using Row-Level Security (RLS) policies ensuring users can only access their own data;</li>
+        <li><strong>API security:</strong> All AI API calls are routed through a secure server-side edge function — API keys are never exposed client-side.</li>
+      </ul>
+      <h3>Organisational Measures</h3>
+      <ul>
+        <li>Access to production systems is restricted on a strict need-to-know basis;</li>
+        <li>Sub-processors are required to maintain equivalent security standards under written contract;</li>
+        <li>Security measures are reviewed periodically and updated in response to identified risks;</li>
+        <li>Personal Data Breaches are subject to the notification obligations in clause 14 of this DPA.</li>
+      </ul>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <p>RentSafe AI is a trading name of <strong>Beacons Residentials Ltd</strong> · Registered in England and Wales · Company No. 10990778<br>
+  Registered Office: 115 Canterbury Road, Harrow, HA1 4AP · support@rentsafeai.co.uk</p>
+  <p style="margin-top:8px">© 2026 Beacons Residentials Ltd. All rights reserved. · <a href="terms.html">Terms &amp; Conditions</a> · <a href="privacy.html">Privacy Policy</a> · <a href="ai-disclaimer.html">AI Disclaimer</a> · <a href="cookies.html">Cookie Notice</a></p>
+</footer>
+
+</body>
+</html>
