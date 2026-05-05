@@ -3532,25 +3532,100 @@ async function initPropChecklist(prefix, pid, mode) {
 }
 
 // ── PROPERTY RENT PANEL ──
-function propRentHtml(pid){
-  var pr=D.rent.filter(function(r){return String(r.prop_id)===String(pid);});
-  if(!pr.length) return '<div style="color:var(--muted);font-size:13px;padding:4px 0">No rent records yet</div>';
-  var paid=pr.filter(function(r){return r.status==='Paid';}).reduce(function(s,r){return s+(r.amount||0);},0);
-  var due=pr.filter(function(r){return r.status==='Due'||r.status==='Late';}).reduce(function(s,r){return s+(r.amount||0);},0);
-  var html='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">'
-    +'<div style="background:var(--green-bg);border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--muted)">Collected</div><div style="font-size:16px;font-weight:600;color:var(--green-dark)">£'+paid.toLocaleString()+'</div></div>'
-    +'<div style="background:var(--amber-bg);border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--muted)">Outstanding</div><div style="font-size:16px;font-weight:600;color:var(--amber)">£'+due.toLocaleString()+'</div></div>'
-    +'<div style="background:var(--off);border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--muted)">Records</div><div style="font-size:16px;font-weight:600">'+pr.length+'</div></div>'
-    +'</div>';
-  html+='<div class="tw"><table><thead><tr><th>Month</th><th>Amount</th><th>Due</th><th>Paid</th><th>Status</th></tr></thead><tbody>';
-  pr.slice(0,6).forEach(function(r){
-    html+='<tr><td style="font-size:12px">'+r.month+'</td><td>£'+(r.amount||0).toLocaleString()+'</td>'
-      +'<td>'+FMS(r.due||r.due_date)+'</td>'
-      +'<td>'+(r.paid||r.paid_date?FMS(r.paid||r.paid_date):'—')+'</td>'
-      +'<td>'+B(r.status)+'</td></tr>';
+// ── AUTO RENT SCHEDULE — merges virtual rows with real D.rent records ──
+function buildRentSchedule(pid) {
+  const p = P(pid);
+  const t = D.tenants.find(x => String(x.prop_id) === String(pid) && x.status === 'Active');
+  if (!t || !t.rent_day) return D.rent.filter(r => String(r.prop_id) === String(pid));
+  const today = new Date(); today.setHours(0,0,0,0);
+  const rentAmt = t.rent || (p && p.rent) || 0;
+  const day = t.rent_day;
+  // Start from tenancy start or 12 months ago, whichever is later
+  let startMo = t.start_date ? new Date(t.start_date) : new Date(today.getFullYear(), today.getMonth() - 11, 1);
+  startMo = new Date(startMo.getFullYear(), startMo.getMonth(), 1);
+  const limitMo = new Date(today.getFullYear(), today.getMonth() + 2, 1);
+  const rows = [];
+  let cur = new Date(startMo.getFullYear(), startMo.getMonth(), day);
+  if (cur < startMo) cur = new Date(startMo.getFullYear(), startMo.getMonth() + 1, day);
+  while (cur < limitMo) {
+    const monthLabel = cur.toLocaleString('en-GB', {month: 'long', year: 'numeric'});
+    const dueDateStr = cur.toISOString().slice(0, 10);
+    const existing = D.rent.find(r =>
+      String(r.prop_id) === String(pid) &&
+      (r.month === monthLabel || (r.due_date && r.due_date.slice(0,7) === dueDateStr.slice(0,7)))
+    );
+    let status;
+    if (existing) {
+      status = existing.status;
+    } else if (cur <= today) {
+      status = 'Due';
+    } else {
+      status = 'Scheduled';
+    }
+    rows.push({
+      id: existing ? existing.id : null,
+      month: monthLabel,
+      due_date: dueDateStr,
+      amount: existing ? (existing.amount || rentAmt) : rentAmt,
+      status,
+      paid_date: existing ? (existing.paid || existing.paid_date) : null,
+    });
+    cur = new Date(cur.getFullYear(), cur.getMonth() + 1, day);
+  }
+  return rows.reverse();
+}
+
+async function markRentReceived(pid, monthLabel, dueDateStr, amount) {
+  const today = new Date().toISOString().slice(0, 10);
+  const existing = D.rent.find(r =>
+    String(r.prop_id) === String(pid) &&
+    (r.month === monthLabel || (r.due_date && r.due_date.slice(0,7) === dueDateStr.slice(0,7)))
+  );
+  if (existing) {
+    const {error} = await sb.from('rent_payments').update({status:'Paid', paid_date:today}).eq('id', existing.id);
+    if (error) { toast('Error saving — ' + error.message, true); return; }
+    existing.status = 'Paid'; existing.paid_date = today; existing.paid = today;
+  } else {
+    const payload = {
+      prop_id: pid, user_id: currentUser.id,
+      month: monthLabel, due_date: dueDateStr,
+      amount: amount, status: 'Paid', paid_date: today
+    };
+    const {data, error} = await sb.from('rent_payments').insert(payload).select().single();
+    if (error) { toast('Error saving — ' + error.message, true); return; }
+    D.rent.unshift(data);
+  }
+  toast('✓ Rent marked as received for ' + monthLabel);
+  pdSetTab(pid, 'financials');
+}
+
+function propRentHtml(pid) {
+  const rows = buildRentSchedule(pid);
+  if (!rows.length) return '<div style="color:var(--muted);font-size:13px;padding:4px 0">No tenancy with a rent day set — add tenant details first.</div>';
+  const paid = rows.filter(r => r.status === 'Paid').reduce((s, r) => s + (r.amount || 0), 0);
+  const outstanding = rows.filter(r => r.status === 'Due').reduce((s, r) => s + (r.amount || 0), 0);
+  const paidCount = rows.filter(r => r.status === 'Paid').length;
+  let html = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
+    <div style="background:var(--green-bg);border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--muted)">Collected</div><div style="font-size:16px;font-weight:600;color:var(--green-dark)">£${paid.toLocaleString()}</div><div style="font-size:10px;color:var(--muted)">${paidCount} payment${paidCount!==1?'s':''}</div></div>
+    <div style="background:var(--amber-bg);border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--muted)">Outstanding</div><div style="font-size:16px;font-weight:600;color:var(--amber)">£${outstanding.toLocaleString()}</div></div>
+    <div style="background:var(--off);border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--muted)">Schedule</div><div style="font-size:16px;font-weight:600">${rows.length} months</div></div>
+  </div>`;
+  html += '<div class="tw"><table><thead><tr><th>Month</th><th>Amount</th><th>Due date</th><th>Paid</th><th>Status</th><th></th></tr></thead><tbody>';
+  rows.forEach(r => {
+    const actionBtn = (r.status === 'Due' || r.status === 'Late')
+      ? `<button onclick="markRentReceived('${pid}','${r.month}','${r.due_date}',${r.amount})" style="font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid var(--green-dark);background:var(--green-bg);color:var(--green-dark);cursor:pointer;font-family:var(--font);font-weight:600">✓ Mark received</button>`
+      : r.status === 'Paid' ? `<span style="font-size:11px;color:var(--green-dark)">✓</span>`
+      : `<span style="font-size:11px;color:var(--muted)">Upcoming</span>`;
+    html += `<tr>
+      <td style="font-size:12px;font-weight:500">${r.month}</td>
+      <td>£${(r.amount||0).toLocaleString()}</td>
+      <td>${FMS(r.due_date)}</td>
+      <td>${r.paid_date ? FMS(r.paid_date) : '—'}</td>
+      <td>${B(r.status === 'Scheduled' ? 'Due' : r.status)}</td>
+      <td style="text-align:right">${actionBtn}</td>
+    </tr>`;
   });
-  html+='</tbody></table></div>';
-  if(pr.length>6) html+='<div style="font-size:11px;color:var(--muted);padding:8px 0">Showing 6 of '+pr.length+' records</div>';
+  html += '</tbody></table></div>';
   return html;
 }
 
@@ -6296,11 +6371,21 @@ function showCalDay(yr,mo,d){
   title.textContent=dateStr;
   const col=e=>e.urg==='red'?'var(--red)':e.urg==='amber'?'var(--amber)':'var(--blue)';
   const bg=e=>e.urg==='red'?'var(--red-bg)':e.urg==='amber'?'var(--amber-bg)':'var(--blue-bg)';
-  body.innerHTML=dayEvs.map(e=>`<div class="ai-row">
-    <div style="font-size:18px;min-width:36px;text-align:center">${e.icon}</div>
-    <div class="ai-body"><div class="ai-title">${e.label}</div><div class="ai-sub">${e.sub}</div></div>
-    <span style="font-size:11px;font-weight:600;color:${col(e)};background:${bg(e)};padding:2px 8px;border-radius:100px">${calDayLabel(e.days)}</span>
-  </div>`).join('');
+  body.innerHTML=dayEvs.map(e=>{
+    const isPastRent = e.type==='rent' && e.days<=0;
+    const alreadyPaid = e.type==='rent' && D.rent.some(r=>
+      String(r.prop_id)===String(e.pid) && r.status==='Paid' &&
+      r.due_date && r.due_date.slice(0,7)===e.date.slice(0,7)
+    );
+    const rentBtn = isPastRent && !alreadyPaid
+      ? `<button onclick="markRentReceived('${e.pid}','${new Date(e.date).toLocaleString('en-GB',{month:'long',year:'numeric'})}','${e.date}',${parseInt((e.sub||'0').replace(/[^0-9]/g,''))||0})" style="font-size:11px;padding:4px 11px;border-radius:6px;border:1px solid var(--green-dark);background:var(--green-bg);color:var(--green-dark);cursor:pointer;font-family:var(--font);font-weight:600;margin-top:4px">✓ Mark received</button>`
+      : alreadyPaid ? `<span style="font-size:11px;color:var(--green-dark);font-weight:600">✓ Paid</span>` : '';
+    return `<div class="ai-row" style="flex-wrap:wrap">
+      <div style="font-size:18px;min-width:36px;text-align:center">${e.icon}</div>
+      <div class="ai-body"><div class="ai-title">${e.label}</div><div class="ai-sub">${e.sub}</div>${rentBtn}</div>
+      <span style="font-size:11px;font-weight:600;color:${col(e)};background:${bg(e)};padding:2px 8px;border-radius:100px;align-self:flex-start">${calDayLabel(e.days)}</span>
+    </div>`;
+  }).join('');
   panel.style.display='block';
 }
 
