@@ -1,199 +1,470 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-GB">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Privacy Policy — Rent Safe AI</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --navy:#0B1E3D;--green:#00C896;--green-dark:#009970;
-  --white:#fff;--off:#F6F8FB;--border:#E4EAF1;
-  --txt:#1A2B45;--muted:#7A8FA6;
-  --font:'DM Sans',system-ui,sans-serif;
-  --disp:'DM Serif Display',Georgia,serif;
-}
-html,body{font-family:var(--font);color:var(--txt);background:var(--white);line-height:1.7;-webkit-font-smoothing:antialiased}
-nav{background:var(--navy);padding:0 40px;height:60px;display:flex;align-items:center;justify-content:space-between}
-.nav-logo{font-family:var(--disp);font-size:18px;color:#fff;text-decoration:none}
-.nav-logo span{color:var(--green)}
-.nav-links{display:flex;gap:20px;align-items:center}
-.nav-links a{font-size:13px;color:rgba(255,255,255,0.6);text-decoration:none;transition:color .15s}
-.nav-links a:hover{color:#fff}
-.nav-links .btn{background:var(--green);color:var(--navy);padding:7px 16px;border-radius:7px;font-weight:600;font-size:13px}
-.hero{background:var(--off);border-bottom:1px solid var(--border);padding:48px 40px}
-.hero-inner{max-width:760px;margin:0 auto}
-.hero-label{font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--green-dark);margin-bottom:10px}
-.hero h1{font-family:var(--disp);font-size:36px;color:var(--navy);margin-bottom:10px}
-.hero p{font-size:15px;color:var(--muted)}
-.content{max-width:760px;margin:0 auto;padding:48px 40px}
-h2{font-family:var(--disp);font-size:22px;color:var(--navy);margin:36px 0 12px;font-weight:400}
-h3{font-size:16px;font-weight:600;color:var(--navy);margin:24px 0 8px}
-p{font-size:15px;color:#3D5166;margin-bottom:14px;line-height:1.75}
-ul{margin:0 0 14px 20px}
-ul li{font-size:15px;color:#3D5166;margin-bottom:6px;line-height:1.7}
-.highlight-box{background:var(--off);border:1px solid var(--border);border-left:3px solid var(--green);border-radius:8px;padding:16px 20px;margin:20px 0}
-.highlight-box p{margin:0;font-size:14px}
-table{width:100%;border-collapse:collapse;margin:16px 0 24px;font-size:14px}
-th{text-align:left;padding:10px 14px;background:var(--off);border:1px solid var(--border);font-weight:600;color:var(--navy)}
-td{padding:10px 14px;border:1px solid var(--border);color:#3D5166;vertical-align:top}
-.contact-box{background:var(--navy);border-radius:12px;padding:28px;margin:36px 0;color:#fff}
-.contact-box h3{color:#fff;margin-top:0}
-.contact-box p{color:rgba(255,255,255,0.65)}
-.contact-box a{color:var(--green)}
-footer{background:var(--navy);padding:32px 40px;text-align:center}
-footer p{font-size:13px;color:rgba(255,255,255,0.35)}
-footer a{color:rgba(255,255,255,0.5);text-decoration:none;margin:0 12px}
-footer a:hover{color:#fff}
-@media(max-width:600px){
-  nav{padding:0 20px}
-  .hero{padding:32px 20px}
-  .content{padding:32px 20px}
-}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — RentSafe AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy:  #0f2744; --teal: #1a6b6b; --amber: #c8832a; --cream: #faf7f2;
+      --slate: #4a5568; --muted: #718096; --rule: #ddd5c8; --white: #ffffff;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'DM Sans', sans-serif; font-size: 15px; line-height: 1.75; color: #2d3748; background: var(--cream); }
+    header { background: var(--navy); color: var(--white); padding: 28px 40px; display: flex; align-items: center; justify-content: space-between; gap: 24px; border-bottom: 3px solid var(--amber); }
+    .logo { font-family: 'DM Sans', sans-serif; font-size: 22px; font-weight: 600; letter-spacing: -0.02em; color: var(--white); text-decoration: none; }
+    .logo span { color: var(--amber); }
+    header p { font-size: 12px; color: rgba(255,255,255,0.55); text-align: right; line-height: 1.5; }
+    .page-wrap { max-width: 820px; margin: 0 auto; padding: 56px 40px 80px; }
+    .doc-title { border-bottom: 2px solid var(--navy); padding-bottom: 28px; margin-bottom: 36px; }
+    .doc-title h1 { font-family: 'Lora', Georgia, serif; font-size: 32px; font-weight: 600; color: var(--navy); letter-spacing: -0.01em; line-height: 1.25; margin-bottom: 10px; }
+    .doc-meta { display: flex; flex-wrap: wrap; gap: 20px; font-size: 13px; color: var(--muted); }
+    .doc-meta span { display: flex; align-items: center; gap: 6px; }
+    .doc-meta strong { color: var(--slate); }
+    .notice { background: #fff8ec; border-left: 4px solid var(--amber); border-radius: 4px; padding: 16px 20px; margin-bottom: 40px; font-size: 13.5px; color: #5a3d10; line-height: 1.6; }
+    .notice strong { font-weight: 600; }
+    .toc { background: var(--white); border: 1px solid var(--rule); border-radius: 8px; padding: 24px 28px; margin-bottom: 48px; }
+    .toc h2 { font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }
+    .toc ol { list-style: decimal; padding-left: 20px; columns: 2; column-gap: 32px; }
+    .toc li { margin-bottom: 6px; break-inside: avoid; }
+    .toc a { font-size: 13.5px; color: var(--teal); text-decoration: none; font-weight: 500; }
+    .toc a:hover { text-decoration: underline; }
+    section { margin-bottom: 44px; }
+    section + section { border-top: 1px solid var(--rule); padding-top: 40px; }
+    h2.section-title { font-family: 'Lora', Georgia, serif; font-size: 20px; font-weight: 600; color: var(--navy); margin-bottom: 20px; display: flex; align-items: baseline; gap: 10px; }
+    h2.section-title .num { font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: var(--amber); text-transform: uppercase; min-width: 28px; }
+    h3 { font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; color: var(--navy); margin: 22px 0 10px; text-transform: uppercase; letter-spacing: 0.04em; }
+    p { margin-bottom: 14px; }
+    p:last-child { margin-bottom: 0; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 7px; }
+    dl { margin-bottom: 14px; }
+    dt { font-weight: 600; color: var(--navy); margin-top: 12px; }
+    dd { padding-left: 16px; color: var(--slate); font-size: 14px; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin: 20px 0; border-radius: 8px; overflow: hidden; border: 1px solid var(--rule); }
+    .data-table thead tr { background: var(--navy); color: var(--white); }
+    .data-table th, .data-table td { padding: 11px 14px; text-align: left; vertical-align: top; }
+    .data-table tbody tr:nth-child(even) { background: var(--white); }
+    .data-table tbody tr:nth-child(odd) { background: var(--cream); }
+    .highlight { background: #eaf3f3; border-left: 3px solid var(--teal); border-radius: 4px; padding: 14px 18px; margin: 16px 0; font-size: 14px; color: var(--navy); }
+    .warning-box { background: #fff8ec; border-left: 4px solid var(--amber); border-radius: 4px; padding: 16px 20px; margin: 16px 0; font-size: 14px; color: #5a3d10; }
+    .liability-box { background: var(--navy); color: var(--white); border-radius: 8px; padding: 22px 26px; margin: 20px 0; }
+    .liability-box h3 { color: var(--amber); margin-top: 0; font-size: 12px; letter-spacing: 0.1em; }
+    .liability-box p, .liability-box li { font-size: 14px; color: rgba(255,255,255,0.85); }
+    .liability-box ul { margin-bottom: 0; }
+    footer { background: var(--navy); color: rgba(255,255,255,0.5); text-align: center; font-size: 12px; padding: 28px 40px; line-height: 1.7; }
+    footer a { color: rgba(255,255,255,0.7); }
+    @media print { header, footer { background: #fff; color: #000; border: none; } .toc { display: none; } body { font-size: 11pt; } }
+    @media (max-width: 640px) { .page-wrap { padding: 32px 20px 60px; } header { padding: 20px; flex-direction: column; align-items: flex-start; } header p { text-align: left; } .toc ol { columns: 1; } .data-table th, .data-table td { padding: 9px 10px; font-size: 12px; } }
+  </style>
 </head>
 <body>
 
-<nav>
-  <a href="index.html" class="nav-logo"><span>Rent</span>Safe AI</a>
-  <div class="nav-links">
-    <a href="index.html">Home</a>
-    <a href="terms.html">Terms</a>
-    <a href="login.html" class="btn">Log in</a>
-  </div>
-</nav>
+<header>
+  <a class="logo" href="https://rentsafeai.co.uk">RentSafe<span>AI</span></a>
+  <p>A trading name of Beacons Residentials Ltd<br>Company No. 10990778 · England &amp; Wales</p>
+</header>
 
-<div class="hero">
-  <div class="hero-inner">
-    <div class="hero-label">Legal</div>
+<div class="page-wrap">
+
+  <div class="doc-title">
     <h1>Privacy Policy</h1>
-    <p>Last updated: 7 April 2026 · Effective date: 7 April 2026</p>
-  </div>
-</div>
-
-<div class="content">
-
-  <div class="highlight-box">
-    <p><strong>Summary:</strong> Rent Safe AI collects only the data needed to provide the service. We do not sell your data. We do not share it with third parties except where necessary to operate the platform. You have full rights over your data under UK GDPR.</p>
+    <div class="doc-meta">
+      <span><strong>Version:</strong> 1.0</span>
+      <span><strong>Effective date:</strong> 31 May 2026</span>
+      <span><strong>Last updated:</strong> May 2026</span>
+    </div>
   </div>
 
-  <h2>1. Who we are</h2>
-  <p>Rent Safe AI is a UK-based property compliance platform operated by <strong>Saurabh Dhawan</strong> ("we", "us", "our"). We are the data controller for personal data collected through this website and platform.</p>
-  <p><strong>Contact:</strong> <a href="mailto:hello@rentsafeai.co.uk">hello@rentsafeai.co.uk</a></p>
-  <p>We are registered in the United Kingdom. If you have any questions about how we handle your data, please contact us at the email above.</p>
-
-  <h2>2. What data we collect</h2>
-  <p>We collect the following categories of personal data:</p>
-
-  <h3>From landlords (account holders)</h3>
-  <ul>
-    <li>Name and email address (account registration)</li>
-    <li>Property addresses and details</li>
-    <li>Tenancy information including tenant names, emails, and contact details</li>
-    <li>Compliance documents (certificates, inspection reports)</li>
-    <li>Maintenance records and correspondence</li>
-    <li>Financial information (rent amounts, deposit details — no payment card data)</li>
-    <li>Login credentials (stored securely, never in plain text)</li>
-  </ul>
-
-  <h3>From tenants (portal users)</h3>
-  <ul>
-    <li>Name and email address</li>
-    <li>Maintenance reports and photos submitted via the tenant portal</li>
-    <li>Messages sent to landlords through the platform</li>
-  </ul>
-
-  <h3>From website visitors</h3>
-  <ul>
-    <li>Email address (if you submit the waitlist or contact form)</li>
-    <li>Basic usage data (pages visited, browser type) — only if analytics are enabled</li>
-  </ul>
-
-  <h2>3. How we use your data</h2>
-  <table>
-    <thead><tr><th>Purpose</th><th>Legal basis (UK GDPR)</th></tr></thead>
-    <tbody>
-      <tr><td>Providing the platform and its features</td><td>Contract performance</td></tr>
-      <tr><td>Sending compliance alerts and reminders</td><td>Contract performance / Legitimate interests</td></tr>
-      <tr><td>Responding to support requests</td><td>Legitimate interests</td></tr>
-      <tr><td>Sending product updates (with consent)</td><td>Consent</td></tr>
-      <tr><td>Legal compliance and dispute resolution</td><td>Legal obligation / Legitimate interests</td></tr>
-      <tr><td>Improving the platform</td><td>Legitimate interests</td></tr>
-    </tbody>
-  </table>
-
-  <h2>4. Data sharing</h2>
-  <p>We do not sell your personal data. We share data only in the following limited circumstances:</p>
-  <ul>
-    <li><strong>Service providers:</strong> We use trusted third-party services to operate the platform (email delivery, database hosting). These providers process data only on our instructions.</li>
-    <li><strong>Legal requirements:</strong> We may disclose data if required by law, court order, or to protect our legal rights.</li>
-    <li><strong>Business transfer:</strong> If Rent Safe AI is acquired or merges with another company, your data may be transferred as part of that transaction. We will notify you in advance.</li>
-  </ul>
-  <p>We do not share tenant data with any third party without the explicit instruction of the landlord account holder, except where required by law.</p>
-
-  <h2>5. Data retention</h2>
-  <p>We retain your data for as long as your account is active or as needed to provide services. Specifically:</p>
-  <ul>
-    <li><strong>Account data:</strong> Retained for the duration of your account plus 2 years after closure</li>
-    <li><strong>Compliance documents and audit logs:</strong> Retained for 6 years (in line with UK landlord legal requirements)</li>
-    <li><strong>Waitlist emails:</strong> Retained until you unsubscribe or request deletion</li>
-    <li><strong>Maintenance records:</strong> Retained for 6 years from the date of the issue</li>
-  </ul>
-
-  <h2>6. Your rights under UK GDPR</h2>
-  <p>You have the following rights regarding your personal data:</p>
-  <ul>
-    <li><strong>Right of access</strong> — request a copy of the data we hold about you</li>
-    <li><strong>Right to rectification</strong> — ask us to correct inaccurate data</li>
-    <li><strong>Right to erasure</strong> — ask us to delete your data ("right to be forgotten")</li>
-    <li><strong>Right to restriction</strong> — ask us to limit how we use your data</li>
-    <li><strong>Right to data portability</strong> — receive your data in a machine-readable format</li>
-    <li><strong>Right to object</strong> — object to processing based on legitimate interests</li>
-    <li><strong>Right to withdraw consent</strong> — where processing is based on consent, you can withdraw at any time</li>
-  </ul>
-  <p>To exercise any of these rights, contact us at <a href="mailto:hello@rentsafeai.co.uk">hello@rentsafeai.co.uk</a>. We will respond within 30 days.</p>
-  <p>You also have the right to lodge a complaint with the <strong>Information Commissioner's Office (ICO)</strong> at <a href="https://ico.org.uk" target="_blank">ico.org.uk</a> or by calling 0303 123 1113.</p>
-
-  <h2>7. Cookies</h2>
-  <p>Rent Safe AI uses minimal cookies essential to platform operation (session management and login). We do not use advertising or tracking cookies. We do not use Google Analytics or any third-party tracking tools at this time.</p>
-  <p>By using the platform you consent to essential cookies. You can disable cookies in your browser settings but this may affect platform functionality.</p>
-
-  <h2>8. Data security</h2>
-  <p>We take data security seriously and implement appropriate technical and organisational measures to protect your personal data against unauthorised access, disclosure, alteration, or destruction. These include:</p>
-  <ul>
-    <li>Encrypted data transmission (HTTPS/TLS)</li>
-    <li>Secure password storage (hashed and salted)</li>
-    <li>Access controls limiting who can view your data</li>
-    <li>Regular security reviews</li>
-  </ul>
-  <p>In the event of a data breach that is likely to affect your rights and freedoms, we will notify you and the ICO within 72 hours of becoming aware, as required by UK GDPR.</p>
-
-  <h2>9. Children's data</h2>
-  <p>Rent Safe AI is not intended for use by anyone under the age of 18. We do not knowingly collect personal data from children. If you believe we have collected data from a child, please contact us immediately.</p>
-
-  <h2>10. Changes to this policy</h2>
-  <p>We may update this Privacy Policy from time to time. We will notify you of significant changes by email or by posting a notice on the platform. The "last updated" date at the top of this page will always reflect the most recent version.</p>
-
-  <div class="contact-box">
-    <h3>Contact us about your data</h3>
-    <p>For any privacy-related questions, data requests, or complaints:</p>
-    <p>📧 <a href="mailto:hello@rentsafeai.co.uk">hello@rentsafeai.co.uk</a></p>
-    <p>We aim to respond to all privacy requests within 5 working days and will always respond within the statutory 30-day period.</p>
+  <div class="notice">
+    <strong>This Privacy Policy applies to all users of RentSafe AI.</strong> It explains what personal data we collect, why we collect it, how we use it, and your rights under UK data protection law. Please read it carefully. If you upload personal data about tenants or third parties, you do so as a data controller in your own right — please read section 5 carefully.
   </div>
+
+  <div class="toc">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#p1">Who We Are</a></li>
+      <li><a href="#p2">Scope of This Policy</a></li>
+      <li><a href="#p3">Data We Collect About You</a></li>
+      <li><a href="#p4">How We Use Your Data</a></li>
+      <li><a href="#p5">Tenant &amp; Third-Party Data</a></li>
+      <li><a href="#p6">AI Processing of Data</a></li>
+      <li><a href="#p7">Legal Bases for Processing</a></li>
+      <li><a href="#p8">Data Sharing &amp; Sub-Processors</a></li>
+      <li><a href="#p9">International Data Transfers</a></li>
+      <li><a href="#p10">Data Retention</a></li>
+      <li><a href="#p11">Your Rights</a></li>
+      <li><a href="#p12">Security</a></li>
+      <li><a href="#p13">Cookies</a></li>
+      <li><a href="#p14">Children's Data</a></li>
+      <li><a href="#p15">Limitation of Our Liability</a></li>
+      <li><a href="#p16">Changes to This Policy</a></li>
+      <li><a href="#p17">Contact &amp; Complaints</a></li>
+    </ol>
+  </div>
+
+  <!-- 1 -->
+  <section id="p1">
+    <h2 class="section-title"><span class="num">1</span>Who We Are</h2>
+    <p>RentSafe AI is operated by <strong>Beacons Residentials Ltd</strong>, a company incorporated in England and Wales (Company No. 10990778), trading as RentSafe AI. Our registered office is at 115 Canterbury Road, Harrow, HA1 4AP.</p>
+    <p>For the purposes of UK data protection law, Beacons Residentials Ltd is the <strong>data controller</strong> in respect of personal data we collect directly about you (our subscribers and users). Where you upload personal data about tenants or third parties to the Service, the position is more nuanced — please see section 5.</p>
+    <p>We are in the process of registering with the Information Commissioner's Office (ICO). ICO Registration No.: <strong>[PENDING — TO BE INSERTED UPON REGISTRATION]</strong>.</p>
+    <p>Contact us at: <strong>support@rentsafeai.co.uk</strong></p>
+  </section>
+
+  <!-- 2 -->
+  <section id="p2">
+    <h2 class="section-title"><span class="num">2</span>Scope of This Policy</h2>
+    <p>This Privacy Policy applies to:</p>
+    <ul>
+      <li>All visitors to rentsafeai.co.uk;</li>
+      <li>All registered users and subscribers to the RentSafe AI platform;</li>
+      <li>Personal data processed by us in connection with the Service, including data uploaded by users about tenants and third parties.</li>
+    </ul>
+    <p>This Policy should be read alongside our <a href="terms.html">Terms &amp; Conditions</a>, <a href="ai-disclaimer.html">AI Disclaimer</a>, and <a href="cookies.html">Cookie Notice</a>, all of which form part of our Agreement with you.</p>
+    <p>This Policy does not apply to third-party websites linked from our Service. We are not responsible for the privacy practices of third-party sites and encourage you to review their policies independently.</p>
+  </section>
+
+  <!-- 3 -->
+  <section id="p3">
+    <h2 class="section-title"><span class="num">3</span>Data We Collect About You</h2>
+    <p>We collect the following categories of personal data about our users:</p>
+    <h3>3.1 Account Data</h3>
+    <ul>
+      <li>Full name and email address (collected at registration);</li>
+      <li>Password (stored in hashed, encrypted form — we never store plaintext passwords);</li>
+      <li>Account preferences and settings.</li>
+    </ul>
+    <h3>3.2 Property &amp; Portfolio Data</h3>
+    <ul>
+      <li>Property addresses and details you enter into the Service;</li>
+      <li>Tenancy information, lease dates, and rent amounts;</li>
+      <li>Compliance records, certificate details, and maintenance logs;</li>
+      <li>Documents you upload to the Service (tenancy agreements, certificates, inventories, and similar).</li>
+    </ul>
+    <h3>3.3 Billing &amp; Payment Data</h3>
+    <ul>
+      <li>Subscription plan, billing cycle, and payment history;</li>
+      <li>Payment card details are processed exclusively by our third-party payment processor and are <strong>never stored on our servers</strong>.</li>
+    </ul>
+    <h3>3.4 Technical &amp; Usage Data</h3>
+    <ul>
+      <li>IP address, browser type, and device information;</li>
+      <li>Pages visited, features used, and session duration;</li>
+      <li>Error logs and performance data used to improve the Service.</li>
+    </ul>
+    <h3>3.5 Communications Data</h3>
+    <ul>
+      <li>Emails and support messages you send to us;</li>
+      <li>Feedback and survey responses (where provided voluntarily).</li>
+    </ul>
+    <div class="highlight">
+      <strong>We do not collect special category data</strong> (as defined in Article 9 UK GDPR, including health, biometric, or racial/ethnic origin data) about our users. If you inadvertently upload such data within tenant documents, please refer to section 5.
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section id="p4">
+    <h2 class="section-title"><span class="num">4</span>How We Use Your Data</h2>
+    <table class="data-table">
+      <thead>
+        <tr><th>Purpose</th><th>Data Used</th><th>Legal Basis</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Providing and operating the Service</td><td>Account, property, document data</td><td>Contract (Art. 6(1)(b) UK GDPR)</td></tr>
+        <tr><td>Processing payments and managing subscriptions</td><td>Account, billing data</td><td>Contract (Art. 6(1)(b))</td></tr>
+        <tr><td>Sending transactional emails (reminders, receipts, notices)</td><td>Email address, tenancy data</td><td>Contract (Art. 6(1)(b))</td></tr>
+        <tr><td>Providing customer support</td><td>Account, communications data</td><td>Contract (Art. 6(1)(b))</td></tr>
+        <tr><td>Improving and securing the Service</td><td>Technical, usage data</td><td>Legitimate interests (Art. 6(1)(f))</td></tr>
+        <tr><td>Fraud prevention and security monitoring</td><td>Technical, account data</td><td>Legitimate interests (Art. 6(1)(f))</td></tr>
+        <tr><td>Complying with legal obligations</td><td>As required by law</td><td>Legal obligation (Art. 6(1)(c))</td></tr>
+      </tbody>
+    </table>
+    <p>We do <strong>not</strong> use your personal data for: marketing to third parties; selling or licensing data to any third party; automated decision-making that produces legal or similarly significant effects on you; or profiling for advertising purposes.</p>
+  </section>
+
+  <!-- 5 -->
+  <section id="p5">
+    <h2 class="section-title"><span class="num">5</span>Tenant &amp; Third-Party Data</h2>
+    <div class="liability-box">
+      <h3>⚖ Important — Controller / Processor Split</h3>
+      <p>This section defines the legal responsibility for tenant personal data. Please read it carefully.</p>
+    </div>
+    <h3>5.1 You Are the Data Controller for Tenant Data</h3>
+    <p>When you upload, enter, or otherwise submit personal data about your tenants or other third parties (including names, contact details, identification documents, financial records, or any other personal information) to the Service, <strong>you act as the data controller</strong> for that data. You determine the purposes and means of processing that personal data in your capacity as a landlord or property manager.</p>
+    <p>We act as your <strong>data processor</strong> in respect of tenant data, processing it solely on your documented instructions to provide the Service. This relationship is governed by the data processing provisions in our <a href="terms.html">Terms &amp; Conditions</a> (clause 12) and our <a href="dpa.html">Data Processing Agreement</a>.</p>
+    <h3>5.2 Your Obligations as Controller</h3>
+    <p>As data controller for tenant data, you are solely responsible for:</p>
+    <ul>
+      <li>Ensuring you have a <strong>lawful basis</strong> under UK GDPR for processing each category of tenant personal data you upload;</li>
+      <li>Providing tenants with appropriate <strong>privacy notices</strong> explaining how their data will be processed, including that it may be processed using AI-assisted tools and stored with cloud service providers;</li>
+      <li>Ensuring that any <strong>special category data</strong> (including copies of identification documents, health-related information, or similar) is processed with appropriate additional safeguards and a valid Article 9 condition;</li>
+      <li>Responding to any data subject access requests, erasure requests, or other rights exercises from your tenants in your capacity as controller;</li>
+      <li>Ensuring your use of the Service does not cause us to breach applicable data protection law.</li>
+    </ul>
+    <h3>5.3 Our Obligations as Processor</h3>
+    <p>As your data processor, we will:</p>
+    <ul>
+      <li>Process tenant data only on your documented instructions and only to the extent necessary to provide the Service;</li>
+      <li>Implement appropriate technical and organisational security measures to protect tenant data;</li>
+      <li>Not engage sub-processors for tenant data processing without ensuring equivalent protections apply (see section 8);</li>
+      <li>Notify you without undue delay if we become aware of a personal data breach affecting tenant data;</li>
+      <li>Assist you, so far as reasonably practicable, in responding to data subject rights requests relating to tenant data we hold on your behalf;</li>
+      <li>Delete or return tenant data to you upon termination of your account, in accordance with our data retention policy and your instructions.</li>
+    </ul>
+    <h3>5.4 No Liability for Unlawful Uploads</h3>
+    <p>We accept no liability whatsoever for any processing of personal data that you carry out in your capacity as data controller, including any failure by you to: obtain a lawful basis; provide adequate privacy notices to tenants; handle special category data lawfully; or comply with any data subject rights request. Any regulatory investigation, fine, or enforcement action arising from your conduct as data controller is entirely your responsibility.</p>
+  </section>
+
+  <!-- 6 -->
+  <section id="p6">
+    <h2 class="section-title"><span class="num">6</span>AI Processing of Data</h2>
+    <p>The Service uses artificial intelligence powered by the Anthropic Claude API to process documents and data you submit. You should be aware of the following:</p>
+    <h3>6.1 How AI Processes Your Data</h3>
+    <p>When you use AI-assisted features (such as document scanning, compliance analysis, notice drafting, or inventory reports), the relevant data — which may include personal data about you and your tenants — is transmitted to Anthropic's API for processing. Anthropic acts as a sub-processor on our behalf. This involves international data transfer to the United States — see section 9.</p>
+    <h3>6.2 No Automated Legal Decisions</h3>
+    <p>We do not use AI to make <strong>automated decisions</strong> that produce legal or similarly significant effects on any individual within the meaning of Article 22 UK GDPR. All AI outputs are informational and require human review before any action is taken. You are solely responsible for reviewing, verifying, and deciding whether to act on any AI-generated output.</p>
+    <h3>6.3 Minimisation</h3>
+    <p>You should avoid uploading more personal data than is necessary to use a specific AI feature. We are not responsible for personal data you choose to include in documents submitted for AI processing beyond what the feature requires.</p>
+    <h3>6.4 AI Output Accuracy</h3>
+    <p>AI-generated outputs may contain errors, omissions, or inaccuracies. We make no warranty as to the accuracy or completeness of AI outputs. Please refer to our <a href="ai-disclaimer.html">AI Disclaimer</a> for full details.</p>
+  </section>
+
+  <!-- 7 -->
+  <section id="p7">
+    <h2 class="section-title"><span class="num">7</span>Legal Bases for Processing</h2>
+    <p>We rely on the following legal bases under Article 6 UK GDPR:</p>
+    <dl>
+      <dt>Contract (Art. 6(1)(b))</dt>
+      <dd>Processing necessary to perform our contract with you — providing the Service, managing your account, billing, and transactional communications.</dd>
+      <dt>Legitimate Interests (Art. 6(1)(f))</dt>
+      <dd>Processing necessary for our legitimate interests in operating, securing, and improving the Service, provided those interests are not overridden by your rights. We have conducted legitimate interests assessments for these activities.</dd>
+      <dt>Legal Obligation (Art. 6(1)(c))</dt>
+      <dd>Processing necessary to comply with applicable law, including responding to lawful requests from regulatory authorities or courts.</dd>
+    </dl>
+    <p>We do not currently rely on consent as a legal basis for processing user data, except in connection with non-essential cookies (see section 13). Where we rely on legitimate interests, you may object to that processing — see section 11.</p>
+  </section>
+
+  <!-- 8 -->
+  <section id="p8">
+    <h2 class="section-title"><span class="num">8</span>Data Sharing &amp; Sub-Processors</h2>
+    <h3>8.1 We Do Not Sell Your Data</h3>
+    <p>We do not sell, rent, or license your personal data or tenant data to any third party for their own commercial purposes.</p>
+    <h3>8.2 Sub-Processors</h3>
+    <p>We share personal data with the following sub-processors solely to the extent necessary to provide the Service:</p>
+    <table class="data-table">
+      <thead>
+        <tr><th>Sub-Processor</th><th>Purpose</th><th>Location</th><th>Safeguard</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Supabase Inc.</strong></td>
+          <td>Database hosting, authentication, and file storage</td>
+          <td>EU (AWS eu-west-2)</td>
+          <td>Data Processing Agreement; EU hosting; UK GDPR compliant</td>
+        </tr>
+        <tr>
+          <td><strong>Anthropic PBC</strong></td>
+          <td>AI processing via the Claude API</td>
+          <td>United States</td>
+          <td>Standard Contractual Clauses (SCCs) — see section 9</td>
+        </tr>
+        <tr>
+          <td><strong>Resend Inc.</strong></td>
+          <td>Transactional email delivery</td>
+          <td>United States</td>
+          <td>Standard Contractual Clauses (SCCs) — see section 9</td>
+        </tr>
+      </tbody>
+    </table>
+    <h3>8.3 Other Disclosures</h3>
+    <p>We may also share personal data in the following limited circumstances:</p>
+    <ul>
+      <li><strong>Legal compliance:</strong> Where required by applicable law, court order, or regulatory authority (including the ICO), we will disclose data to the extent legally compelled to do so. We will notify you of any such request where permitted by law.</li>
+      <li><strong>Business transfer:</strong> In the event of a merger, acquisition, or sale of all or substantially all of our assets, personal data may be transferred to the acquirer, subject to equivalent protections and notification to you in advance.</li>
+      <li><strong>Professional advisers:</strong> We may share data with our legal advisers, accountants, or insurers on a confidential basis where necessary.</li>
+    </ul>
+    <p>We do not share your personal data with any other third party without your explicit consent.</p>
+  </section>
+
+  <!-- 9 -->
+  <section id="p9">
+    <h2 class="section-title"><span class="num">9</span>International Data Transfers</h2>
+    <p>The United Kingdom currently recognises certain countries as providing adequate protection for personal data. The United States is <strong>not</strong> currently a UK-recognised adequate country for general data transfers. Where personal data is transferred to our US-based sub-processors (Anthropic and Resend), we rely on the following safeguards:</p>
+    <h3>9.1 Standard Contractual Clauses</h3>
+    <p>We have entered into, or require our US sub-processors to operate under, the <strong>International Data Transfer Agreements (IDTAs)</strong> approved by the ICO, or the equivalent EU Standard Contractual Clauses (SCCs) with appropriate UK addendums, as the lawful transfer mechanism for personal data transferred to the United States. These contractual safeguards require our sub-processors to protect personal data to a standard equivalent to UK GDPR.</p>
+    <h3>9.2 AI Processing Transfer (Anthropic)</h3>
+    <p>When you use AI-assisted features, the data submitted for processing is transferred to Anthropic's servers in the United States. This transfer is covered by Standard Contractual Clauses as described above. Anthropic processes data solely for the purpose of returning AI-generated outputs and does not use your data to train its models under its API terms. You should nevertheless <strong>avoid submitting unnecessary personal data</strong> in AI processing requests and should not submit special category data (such as copies of passports or health information) unless strictly necessary for the feature in question.</p>
+    <h3>9.3 Email Delivery Transfer (Resend)</h3>
+    <p>Transactional emails (including compliance reminders, onboarding emails, and account notifications) are delivered via Resend's infrastructure, which operates from the United States. Email delivery involves the processing of recipient email addresses and the content of the email. This transfer is covered by Standard Contractual Clauses.</p>
+    <h3>9.4 Supabase</h3>
+    <p>Your primary account and property data is stored by Supabase on AWS infrastructure located in the <strong>EU West region (eu-west-2, London)</strong>. This data does not leave the UK/EU and no international transfer mechanism is required for Supabase data storage. Supabase operates under a Data Processing Agreement that is compliant with UK GDPR.</p>
+  </section>
+
+  <!-- 10 -->
+  <section id="p10">
+    <h2 class="section-title"><span class="num">10</span>Data Retention</h2>
+    <p>We retain personal data only for as long as is necessary for the purposes for which it was collected, or as required by applicable law. Our standard retention periods are as follows:</p>
+    <table class="data-table">
+      <thead>
+        <tr><th>Data Category</th><th>Retention Period</th><th>Reason</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Account and subscription data</td>
+          <td>Duration of account + 6 years after closure</td>
+          <td>Legal and contractual obligations; limitation periods</td>
+        </tr>
+        <tr>
+          <td>Property and tenancy data</td>
+          <td>Duration of account + 6 years after closure</td>
+          <td>Landlord legal obligations; potential disputes</td>
+        </tr>
+        <tr>
+          <td>Uploaded documents</td>
+          <td>Duration of account; deleted within 30 days of account closure on request</td>
+          <td>Service provision; user data ownership</td>
+        </tr>
+        <tr>
+          <td>Billing and payment records</td>
+          <td>7 years from transaction date</td>
+          <td>HMRC and statutory accounting requirements</td>
+        </tr>
+        <tr>
+          <td>Support and communications data</td>
+          <td>3 years from last communication</td>
+          <td>Customer service and dispute resolution</td>
+        </tr>
+        <tr>
+          <td>Technical and usage logs</td>
+          <td>12 months on a rolling basis</td>
+          <td>Security monitoring and service improvement</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>On account closure, you may request export of your Customer Data within 30 days. After this period, we will delete or anonymise your data in accordance with the above schedule. Certain data may be retained for longer where required by law or where we have a legitimate interest in doing so (such as defending legal claims).</p>
+    <div class="warning-box">
+      <strong>Tenant data:</strong> As you are the data controller for tenant personal data, you are responsible for managing retention of that data in accordance with your own obligations under UK GDPR. Our deletion of data on account closure does not relieve you of your separate obligations to maintain records required by landlord-tenant legislation (such as deposit protection records, which must be retained for up to 6 years).
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section id="p11">
+    <h2 class="section-title"><span class="num">11</span>Your Rights</h2>
+    <p>Under UK GDPR and the Data Protection Act 2018, you have the following rights in relation to your personal data. These rights apply to data for which we are the data controller (i.e. your account and usage data). For tenant data, rights must be exercised with you in your capacity as data controller.</p>
+    <dl>
+      <dt>Right of Access (Art. 15)</dt>
+      <dd>You have the right to request a copy of the personal data we hold about you and information about how we process it. We will respond within one calendar month.</dd>
+      <dt>Right to Rectification (Art. 16)</dt>
+      <dd>You have the right to request correction of inaccurate or incomplete personal data we hold about you. Much of your account data can be corrected directly within the Service.</dd>
+      <dt>Right to Erasure (Art. 17)</dt>
+      <dd>You have the right to request deletion of your personal data where: it is no longer necessary for the purposes for which it was collected; you withdraw consent (where consent was the basis); or we have no legitimate grounds to retain it. This right is subject to our legal obligations to retain certain data.</dd>
+      <dt>Right to Restrict Processing (Art. 18)</dt>
+      <dd>You have the right to request that we restrict our processing of your personal data in certain circumstances, such as where you contest its accuracy or object to our processing.</dd>
+      <dt>Right to Data Portability (Art. 20)</dt>
+      <dd>Where processing is based on contract or consent and carried out by automated means, you have the right to receive your personal data in a structured, commonly used, machine-readable format and to transmit it to another controller.</dd>
+      <dt>Right to Object (Art. 21)</dt>
+      <dd>You have the right to object to processing based on our legitimate interests. We will cease such processing unless we can demonstrate compelling legitimate grounds that override your interests, or the processing is necessary for legal claims.</dd>
+      <dt>Rights in Relation to Automated Decision-Making (Art. 22)</dt>
+      <dd>You have the right not to be subject to a decision based solely on automated processing that produces legal or significant effects. We do not make such automated decisions — see section 6.2.</dd>
+    </dl>
+    <p>To exercise any of these rights, please contact us at <strong>support@rentsafeai.co.uk</strong>. We will respond within one calendar month. We may need to verify your identity before processing your request. There is no charge for exercising your rights in most circumstances.</p>
+    <div class="highlight">
+      <strong>Right to complain:</strong> If you are dissatisfied with how we handle your personal data, you have the right to lodge a complaint with the Information Commissioner's Office (ICO) at <strong>ico.org.uk</strong> or by calling 0303 123 1113. We would, however, appreciate the opportunity to address your concerns directly before you contact the ICO.
+    </div>
+  </section>
+
+  <!-- 12 -->
+  <section id="p12">
+    <h2 class="section-title"><span class="num">12</span>Security</h2>
+    <p>We take the security of personal data seriously and implement appropriate technical and organisational measures to protect it against unauthorised access, accidental loss, destruction, or disclosure. Our security measures include:</p>
+    <ul>
+      <li><strong>Encryption in transit:</strong> All data transmitted between your browser and our Service is encrypted using TLS (HTTPS);</li>
+      <li><strong>Encryption at rest:</strong> Data stored in our Supabase database is encrypted at rest using AES-256;</li>
+      <li><strong>Access controls:</strong> Access to personal data is restricted on a need-to-know basis using role-based access controls and authenticated sessions;</li>
+      <li><strong>Password security:</strong> User passwords are hashed using industry-standard algorithms and are never stored in plaintext;</li>
+      <li><strong>Infrastructure security:</strong> We rely on Supabase's enterprise-grade security infrastructure, which includes regular security audits and penetration testing;</li>
+      <li><strong>Document storage:</strong> Uploaded documents are stored in private, access-controlled Supabase Storage buckets and are not publicly accessible.</li>
+    </ul>
+    <p>Notwithstanding the above, no method of transmission over the internet or electronic storage is completely secure. We cannot guarantee absolute security and are not liable for security breaches that are outside our reasonable control, including breaches resulting from your failure to keep your login credentials secure.</p>
+    <p>In the event of a personal data breach that is likely to result in a risk to your rights and freedoms, we will notify you and the ICO in accordance with our obligations under UK GDPR (within 72 hours of becoming aware, where feasible).</p>
+  </section>
+
+  <!-- 13 -->
+  <section id="p13">
+    <h2 class="section-title"><span class="num">13</span>Cookies</h2>
+    <p>We use a limited number of cookies and similar technologies on the Service. Full details are set out in our <a href="cookies.html">Cookie Notice</a>. In summary:</p>
+    <ul>
+      <li><strong>Strictly necessary cookies:</strong> We use session and authentication cookies that are essential for the Service to function. These do not require consent under PECR.</li>
+      <li><strong>No analytics cookies:</strong> We do not currently use any third-party analytics cookies (such as Google Analytics).</li>
+      <li><strong>No advertising cookies:</strong> We do not use any advertising or tracking cookies.</li>
+    </ul>
+    <p>Because we use only strictly necessary cookies, no cookie consent banner is required under the Privacy and Electronic Communications Regulations 2003 (PECR). Should we introduce non-essential cookies in the future, we will update our Cookie Notice and obtain your consent before placing them.</p>
+  </section>
+
+  <!-- 14 -->
+  <section id="p14">
+    <h2 class="section-title"><span class="num">14</span>Children's Data</h2>
+    <p>The Service is intended for use by adults (aged 18 and over) acting in a business or professional capacity as landlords or property managers. We do not knowingly collect personal data from individuals under the age of 18.</p>
+    <p>If you believe that a child under 18 has provided personal data to us without appropriate consent, please contact us at support@rentsafeai.co.uk and we will take steps to delete that data promptly.</p>
+    <p>Where tenant data you upload to the Service relates to a child (for example, a minor listed as an occupant on a tenancy agreement), you are responsible as data controller for ensuring that processing of such data complies with UK GDPR, including any enhanced protections applicable to children's data.</p>
+  </section>
+
+  <!-- 15 -->
+  <section id="p15">
+    <h2 class="section-title"><span class="num">15</span>Limitation of Our Liability</h2>
+    <div class="liability-box">
+      <h3>⚖ Liability in Data Protection Matters</h3>
+      <p>Our liability for data protection matters is governed by our Terms &amp; Conditions (clause 15) and applicable law. The key points are summarised here.</p>
+    </div>
+    <p>To the fullest extent permitted by applicable law:</p>
+    <ul>
+      <li>We are not liable for any loss, damage, regulatory fine, or enforcement action arising from <strong>your conduct as data controller</strong> for tenant data, including your failure to obtain a lawful basis, provide adequate privacy notices, or respond to data subject rights requests;</li>
+      <li>We are not liable for any breach arising from <strong>your failure to keep your login credentials secure</strong> or from unauthorised access to your account that results from your own actions or omissions;</li>
+      <li>We are not liable for the data handling practices of <strong>third-party sub-processors</strong> beyond our contractual obligations to ensure appropriate safeguards are in place;</li>
+      <li>Our aggregate liability for any data protection breach for which we are responsible is subject to the caps and exclusions set out in our <a href="terms.html">Terms &amp; Conditions</a>, clause 15, except where liability cannot be limited under UK GDPR or applicable law.</li>
+    </ul>
+    <p>Nothing in this section limits our liability for: (a) death or personal injury caused by our negligence; (b) fraud or fraudulent misrepresentation; or (c) any statutory liability under UK GDPR that cannot be excluded or limited.</p>
+  </section>
+
+  <!-- 16 -->
+  <section id="p16">
+    <h2 class="section-title"><span class="num">16</span>Changes to This Policy</h2>
+    <p>We may update this Privacy Policy from time to time to reflect changes in our data processing practices, applicable law, or the Service itself. We will notify you of material changes by email to your registered address at least <strong>14 days</strong> before the changes take effect, or by displaying a prominent notice within the Service.</p>
+    <p>The date of the most recent update is shown at the top of this page. Your continued use of the Service after the effective date of any updated Policy constitutes your acknowledgement of the changes. If you do not accept the changes, you may close your account in accordance with our Terms &amp; Conditions.</p>
+    <p>For minor or non-material changes (such as corrections or clarifications that do not affect your rights), we may update this Policy without prior notice.</p>
+  </section>
+
+  <!-- 17 -->
+  <section id="p17">
+    <h2 class="section-title"><span class="num">17</span>Contact &amp; Complaints</h2>
+    <h3>17.1 Contact Us</h3>
+    <p>For any questions, concerns, or requests relating to this Privacy Policy or your personal data, please contact us:</p>
+    <ul>
+      <li><strong>Email:</strong> support@rentsafeai.co.uk</li>
+      <li><strong>Post:</strong> Beacons Residentials Ltd, 115 Canterbury Road, Harrow, HA1 4AP</li>
+    </ul>
+    <p>We aim to respond to all data protection enquiries within <strong>5 business days</strong> and to all formal rights requests within one calendar month as required by UK GDPR.</p>
+    <h3>17.2 Complaints to the ICO</h3>
+    <p>If you are not satisfied with our response to any data protection concern, or if you believe we are processing your personal data in a way that does not comply with UK GDPR, you have the right to lodge a complaint with the <strong>Information Commissioner's Office (ICO)</strong>:</p>
+    <ul>
+      <li><strong>Website:</strong> ico.org.uk</li>
+      <li><strong>Telephone:</strong> 0303 123 1113</li>
+      <li><strong>Post:</strong> Information Commissioner's Office, Wycliffe House, Water Lane, Wilmslow, Cheshire, SK9 5AF</li>
+    </ul>
+    <p>We would always prefer the opportunity to resolve your concerns directly before you contact the ICO, and we encourage you to contact us first.</p>
+  </section>
 
 </div>
 
 <footer>
-  <p>
-    <a href="index.html">Home</a>
-    <a href="privacy.html">Privacy</a>
-    <a href="terms.html">Terms</a>
-    <a href="mailto:hello@rentsafeai.co.uk">Contact</a>
-  </p>
-  <p style="margin-top:12px">© 2026 Rent Safe AI · Operated by Saurabh Dhawan · United Kingdom</p>
+  <p>RentSafe AI is a trading name of <strong>Beacons Residentials Ltd</strong> · Registered in England and Wales · Company No. 10990778<br>
+  Registered Office: 115 Canterbury Road, Harrow, HA1 4AP · support@rentsafeai.co.uk</p>
+  <p style="margin-top:8px">© 2026 Beacons Residentials Ltd. All rights reserved. · <a href="terms.html">Terms &amp; Conditions</a> · <a href="ai-disclaimer.html">AI Disclaimer</a> · <a href="cookies.html">Cookie Notice</a></p>
 </footer>
 
 </body>
