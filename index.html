@@ -8,1104 +8,403 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  :root {
-    --navy: #1B2F5E;
-    --navy-dark: #111E3F;
-    --navy-light: #2A4480;
-    --blue: #3B82F6;
-    --blue-light: #60A5FA;
-    --slate: #64748B;
-    --slate-light: #94A3B8;
-    --bg: #F8FAFC;
-    --bg-dark: #EFF3F9;
-    --white: #FFFFFF;
-    --text: #0F1F3D;
-    --text-muted: #5A6A8A;
-    --border: #D1DCF0;
-    --gold: #D4A853;
-    --success: #059669;
-    --radius: 12px;
-    --shadow: 0 4px 24px rgba(27,47,94,0.10);
-    --shadow-lg: 0 12px 48px rgba(27,47,94,0.16);
-  }
+:root {
+  --navy: #1B2F5E;
+  --navy-dark: #111E3F;
+  --navy-light: #2A4480;
+  --blue: #3B82F6;
+  --blue-light: #60A5FA;
+  --slate: #64748B;
+  --slate-light: #94A3B8;
+  --bg: #F8FAFC;
+  --bg-dark: #EFF3F9;
+  --white: #FFFFFF;
+  --text: #0F1F3D;
+  --text-muted: #5A6A8A;
+  --border: #D1DCF0;
+  --gold: #D4A853;
+  --success: #059669;
+  --radius: 12px;
+  --shadow: 0 4px 24px rgba(27,47,94,0.10);
+  --shadow-lg: 0 12px 48px rgba(27,47,94,0.16);
+}
 
-  html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
 
-  /* ── COUNTDOWN BANNER ── */
-  #countdown-banner {
-    background: linear-gradient(90deg, #0D1626 0%, #1B2F5E 50%, #0D1626 100%);
-    border-bottom: 1px solid rgba(212,168,83,0.25);
-    padding: 10px 2rem;
-    text-align: center;
-    position: relative;
-    z-index: 101;
-  }
-  #countdown-banner.post-deadline {
-    background: linear-gradient(90deg, #0a1f0a 0%, #0f3d1a 50%, #0a1f0a 100%);
-    border-bottom: 1px solid rgba(5,150,105,0.3);
-  }
-  .countdown-inner {
-    max-width: 1200px; margin: 0 auto;
-    display: flex; align-items: center; justify-content: center; gap: 20px;
-    flex-wrap: wrap;
-  }
-  .countdown-label {
-    font-size: 0.8rem; font-weight: 600;
-    color: var(--gold);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .countdown-label .cd-dot {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: var(--gold);
-    animation: pulse 2s infinite;
-    flex-shrink: 0;
-  }
-  .countdown-units {
-    display: flex; align-items: center; gap: 6px;
-  }
-  .cd-unit {
-    display: flex; flex-direction: column; align-items: center;
-    min-width: 44px;
-  }
-  .cd-num {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.4rem; font-weight: 700;
-    color: var(--white);
-    line-height: 1;
-    background: rgba(255,255,255,0.07);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 6px;
-    padding: 4px 10px;
-    min-width: 44px; text-align: center;
-    transition: all 0.3s ease;
-  }
-  .cd-lbl {
-    font-size: 0.58rem; font-weight: 700; letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.35);
-    margin-top: 3px;
-  }
-  .cd-sep {
-    font-size: 1.2rem; font-weight: 700;
-    color: rgba(255,255,255,0.2);
-    margin-bottom: 14px;
-    align-self: flex-start; margin-top: 6px;
-  }
-  .countdown-cta {
-    font-size: 0.78rem; font-weight: 600;
-    color: rgba(255,255,255,0.5);
-    display: flex; align-items: center; gap: 6px;
-  }
-  .countdown-cta a {
-    color: var(--blue-light); text-decoration: none;
-    font-weight: 700;
-    border-bottom: 1px solid rgba(96,165,250,0.3);
-    transition: color 0.2s;
-  }
-  .countdown-cta a:hover { color: white; }
+/* ─── COUNTDOWN BANNER ─── */
+#countdown-banner {
+  background: var(--navy-dark);
+  border-bottom: 1px solid rgba(212,168,83,0.2);
+  padding: 9px 2rem;
+  text-align: center;
+  position: relative; z-index: 110;
+}
+#countdown-banner.post-deadline { background: #0a1f0a; border-bottom-color: rgba(5,150,105,0.3); }
+.cd-inner { max-width:1200px; margin:0 auto; display:flex; align-items:center; justify-content:center; gap:18px; flex-wrap:wrap; }
+.cd-label { font-size:0.75rem; font-weight:700; color:var(--gold); text-transform:uppercase; letter-spacing:0.06em; display:flex; align-items:center; gap:7px; }
+.cd-dot { width:6px; height:6px; border-radius:50%; background:var(--gold); animation:blink 2s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.cd-units { display:flex; align-items:center; gap:4px; }
+.cd-box { display:flex; flex-direction:column; align-items:center; min-width:38px; }
+.cd-num { font-family:'Playfair Display',serif; font-size:1.2rem; font-weight:700; color:var(--white); line-height:1; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:5px; padding:3px 8px; min-width:38px; text-align:center; }
+.cd-unit-lbl { font-size:0.55rem; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:rgba(255,255,255,0.3); margin-top:2px; }
+.cd-colon { font-size:1rem; font-weight:700; color:rgba(255,255,255,0.2); margin-bottom:12px; margin-top:2px; }
+.cd-cta { font-size:0.78rem; color:rgba(255,255,255,0.45); }
+.cd-cta a { color:var(--blue-light); font-weight:700; text-decoration:none; }
+.cd-done { display:none; font-size:0.82rem; font-weight:600; color:#34D399; align-items:center; gap:8px; }
+.cd-done a { color:var(--blue-light); font-weight:700; text-decoration:none; }
 
-  /* post-deadline state */
-  .post-deadline-msg {
-    display: none;
-    font-size: 0.85rem; font-weight: 600;
-    color: #34D399;
-    display: flex; align-items: center; gap: 10px;
-  }
-  .post-deadline-msg .pd-icon { font-size: 1rem; }
+/* ─── NAV ─── */
+nav {
+  position:fixed; top:38px; left:0; right:0; z-index:100;
+  background:rgba(255,255,255,0.93); backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+  padding:0 2rem; height:64px;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.nav-logo { display:flex; align-items:center; gap:10px; text-decoration:none; }
+.nav-logo-mark { width:34px; height:34px; background:var(--navy); border-radius:7px; display:flex; align-items:center; justify-content:center; }
+.nav-logo-mark svg { width:18px; height:18px; }
+.nav-logo-text { font-family:'Playfair Display',serif; font-size:1.2rem; font-weight:700; color:var(--navy); }
+.nav-logo-text span { color:var(--blue); }
+.nav-links { display:flex; align-items:center; gap:28px; }
+.nav-link { font-size:0.875rem; font-weight:500; color:var(--text-muted); text-decoration:none; transition:color 0.2s; }
+.nav-link:hover { color:var(--navy); }
+.nav-actions { display:flex; align-items:center; gap:10px; }
+.btn { display:inline-flex; align-items:center; gap:7px; padding:9px 20px; border-radius:8px; font-family:'DM Sans',sans-serif; font-size:0.875rem; font-weight:600; text-decoration:none; border:none; cursor:pointer; transition:all 0.2s; }
+.btn-primary { background:var(--navy); color:var(--white); box-shadow:0 2px 10px rgba(27,47,94,0.2); }
+.btn-primary:hover { background:var(--navy-light); transform:translateY(-1px); }
+.btn-outline { background:transparent; color:var(--navy); border:1.5px solid var(--navy); }
+.btn-outline:hover { background:var(--navy); color:var(--white); }
+.btn-lg { padding:13px 30px; font-size:0.95rem; border-radius:10px; }
 
+/* ─── HERO ─── */
+.hero {
+  max-width:1200px; margin:0 auto;
+  padding:152px 2rem 70px;
+  display:grid; grid-template-columns:1fr 1fr; gap:60px; align-items:center;
+  background:var(--white);
+}
+.hero-badge { display:inline-flex; align-items:center; gap:7px; background:#EFF6FF; border:1px solid #BFDBFE; color:var(--blue); font-size:0.75rem; font-weight:700; padding:5px 13px; border-radius:100px; margin-bottom:22px; letter-spacing:0.03em; text-transform:uppercase; }
+.hero-badge .pulse { width:6px; height:6px; background:var(--blue); border-radius:50%; animation:blink 2s infinite; }
+.hero h1 { font-family:'Playfair Display',serif; font-size:clamp(2.2rem,3.8vw,3.2rem); font-weight:800; line-height:1.12; color:var(--navy); margin-bottom:18px; }
+.hero h1 em { font-style:normal; color:var(--blue); position:relative; }
+.hero h1 em::after { content:''; position:absolute; bottom:1px; left:0; right:0; height:3px; background:var(--blue); border-radius:2px; opacity:0.25; }
+.hero-sub { font-size:1rem; color:var(--text-muted); max-width:460px; line-height:1.7; margin-bottom:32px; }
+.hero-actions { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:28px; }
+.hero-note { font-size:0.76rem; color:var(--slate-light); display:flex; align-items:center; gap:6px; }
+.hero-trust { margin-top:36px; padding-top:28px; border-top:1px solid var(--border); display:flex; align-items:center; gap:24px; flex-wrap:wrap; }
+.trust-item { display:flex; align-items:center; gap:8px; font-size:0.8rem; font-weight:500; color:var(--text-muted); }
+.trust-item svg { color:var(--blue); flex-shrink:0; }
+.trust-div { width:1px; height:20px; background:var(--border); }
 
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    line-height: 1.6;
-    -webkit-font-smoothing: antialiased;
-  }
+/* hero visual */
+.hero-visual { position:relative; }
+.hero-card { background:var(--white); border-radius:16px; box-shadow:var(--shadow-lg); overflow:hidden; border:1px solid var(--border); }
+.hc-header { background:var(--navy); padding:14px 18px; display:flex; align-items:center; gap:10px; }
+.hc-dots { display:flex; gap:5px; }
+.hc-dots span { width:9px; height:9px; border-radius:50%; }
+.d1{background:#FF5F57;} .d2{background:#FEBC2E;} .d3{background:#28C840;}
+.hc-title { color:rgba(255,255,255,0.6); font-size:0.75rem; font-weight:500; margin-left:4px; }
+.hc-body { padding:20px; }
+.hc-score { text-align:center; margin-bottom:16px; }
+.score-ring { width:88px; height:88px; margin:0 auto 10px; position:relative; }
+.score-ring svg { transform:rotate(-90deg); }
+.score-ring .track { fill:none; stroke:#EFF3F9; stroke-width:8; }
+.score-ring .fill { fill:none; stroke:var(--success); stroke-width:8; stroke-linecap:round; stroke-dasharray:251; stroke-dashoffset:25; }
+.score-num { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-family:'Playfair Display',serif; font-size:1.5rem; font-weight:700; color:var(--navy); }
+.score-lbl { font-size:0.72rem; font-weight:700; color:var(--success); text-transform:uppercase; letter-spacing:0.05em; }
+.hc-items { display:flex; flex-direction:column; gap:8px; }
+.hc-item { display:flex; align-items:center; gap:9px; padding:9px 12px; border-radius:7px; background:var(--bg); font-size:0.8rem; font-weight:500; }
+.hc-item.ok { border-left:3px solid var(--success); }
+.hc-item.warn { border-left:3px solid #F59E0B; }
+.hc-item-text { flex:1; color:var(--text); }
+.hc-badge { font-size:0.68rem; font-weight:700; padding:2px 7px; border-radius:100px; }
+.hc-item.ok .hc-badge { background:#DCFCE7; color:var(--success); }
+.hc-item.warn .hc-badge { background:#FEF3C7; color:#B45309; }
+.hero-float { position:absolute; background:var(--white); border-radius:9px; box-shadow:var(--shadow); padding:9px 13px; font-size:0.75rem; font-weight:600; border:1px solid var(--border); display:flex; align-items:center; gap:7px; animation:float 3s ease-in-out infinite; }
+.hero-float.f1 { top:-16px; right:-16px; color:var(--success); }
+.hero-float.f2 { bottom:28px; left:-18px; color:var(--navy); animation-delay:1.5s; }
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
 
-  /* ── NAV ── */
-  nav {
-    position: fixed; top: 40px; left: 0; right: 0; z-index: 100;
-    background: rgba(255,255,255,0.92);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border);
-    padding: 0 2rem;
-    height: 68px;
-    display: flex; align-items: center; justify-content: space-between;
-  }
-  .nav-logo {
-    display: flex; align-items: center; gap: 10px;
-    text-decoration: none;
-  }
-  .nav-logo-mark {
-    width: 36px; height: 36px;
-    background: var(--navy);
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .nav-logo-mark svg { width: 20px; height: 20px; }
-  .nav-logo-text {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--navy);
-  }
-  .nav-logo-text span { color: var(--blue); }
-  .nav-cta {
-    display: flex; align-items: center; gap: 12px;
-  }
-  .nav-link {
-    font-size: 0.875rem; font-weight: 500;
-    color: var(--text-muted); text-decoration: none;
-    transition: color 0.2s;
-  }
-  .nav-link:hover { color: var(--navy); }
-  .btn {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 10px 22px;
-    border-radius: 8px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.9rem; font-weight: 600;
-    text-decoration: none; border: none; cursor: pointer;
-    transition: all 0.2s ease;
-  }
-  .btn-primary {
-    background: var(--navy);
-    color: var(--white);
-    box-shadow: 0 2px 12px rgba(27,47,94,0.25);
-  }
-  .btn-primary:hover {
-    background: var(--navy-light);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 20px rgba(27,47,94,0.35);
-  }
-  .btn-outline {
-    background: transparent;
-    color: var(--navy);
-    border: 1.5px solid var(--navy);
-  }
-  .btn-outline:hover {
-    background: var(--navy);
-    color: var(--white);
-  }
-  .btn-lg {
-    padding: 14px 32px;
-    font-size: 1rem;
-    border-radius: 10px;
-  }
+/* social proof bar */
+.social-proof-bar { background:var(--bg-dark); border-top:1px solid var(--border); border-bottom:1px solid var(--border); padding:14px 2rem; text-align:center; }
+.social-proof-bar p { font-size:0.82rem; font-weight:500; color:var(--text-muted); }
+.social-proof-bar strong { color:var(--navy); }
 
-  /* ── HERO ── */
-  .hero {
-    padding: 160px 2rem 100px;
-    max-width: 1200px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 60px;
-    align-items: center;
-  }
-  .hero-badge {
-    display: inline-flex; align-items: center; gap: 8px;
-    background: #EFF6FF;
-    border: 1px solid #BFDBFE;
-    color: var(--blue);
-    font-size: 0.8rem; font-weight: 600;
-    padding: 6px 14px; border-radius: 100px;
-    margin-bottom: 24px;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-  }
-  .hero-badge .dot {
-    width: 7px; height: 7px;
-    background: var(--blue);
-    border-radius: 50%;
-    animation: pulse 2s infinite;
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(0.8); }
-  }
-  .hero h1 {
-    font-family: 'Playfair Display', serif;
-    font-size: clamp(2.4rem, 4vw, 3.5rem);
-    font-weight: 800;
-    line-height: 1.15;
-    color: var(--navy);
-    margin-bottom: 20px;
-  }
-  .hero h1 em {
-    font-style: normal;
-    color: var(--blue);
-    position: relative;
-  }
-  .hero h1 em::after {
-    content: '';
-    position: absolute;
-    bottom: 2px; left: 0; right: 0;
-    height: 3px;
-    background: var(--blue);
-    border-radius: 2px;
-    opacity: 0.3;
-  }
-  .hero-sub {
-    font-size: 1.1rem;
-    color: var(--text-muted);
-    margin-bottom: 36px;
-    max-width: 480px;
-    line-height: 1.7;
-  }
-  .hero-actions {
-    display: flex; align-items: center; gap: 14px;
-    flex-wrap: wrap;
-  }
-  .hero-note {
-    font-size: 0.78rem;
-    color: var(--slate-light);
-    margin-top: 14px;
-    display: flex; align-items: center; gap: 6px;
-  }
-  .hero-note svg { flex-shrink: 0; }
+/* ─── TABBED SHOWCASE ─── */
+#showcase { background:var(--white); padding:80px 2rem; }
+.showcase-inner { max-width:1200px; margin:0 auto; }
+.section-tag { font-size:0.72rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--blue); margin-bottom:10px; }
+.section-heading { font-family:'Playfair Display',serif; font-size:clamp(1.7rem,2.8vw,2.4rem); font-weight:800; color:var(--navy); line-height:1.2; margin-bottom:12px; }
+.section-sub { font-size:0.95rem; color:var(--text-muted); max-width:540px; line-height:1.7; }
+.showcase-header { margin-bottom:44px; }
 
-  .hero-visual {
-    position: relative;
-  }
-  .hero-card {
-    background: var(--white);
-    border-radius: 16px;
-    box-shadow: var(--shadow-lg);
-    overflow: hidden;
-    border: 1px solid var(--border);
-  }
-  .hero-card-header {
-    background: var(--navy);
-    padding: 16px 20px;
-    display: flex; align-items: center; gap: 10px;
-  }
-  .hero-card-dots { display: flex; gap: 6px; }
-  .hero-card-dots span {
-    width: 10px; height: 10px; border-radius: 50%;
-  }
-  .d1 { background: #FF5F57; }
-  .d2 { background: #FEBC2E; }
-  .d3 { background: #28C840; }
-  .hero-card-title {
-    color: rgba(255,255,255,0.7);
-    font-size: 0.8rem;
-    font-weight: 500;
-    margin-left: 6px;
-  }
-  .hero-card-body { padding: 24px; }
-  .compliance-score {
-    text-align: center;
-    margin-bottom: 20px;
-  }
-  .score-ring {
-    width: 100px; height: 100px;
-    margin: 0 auto 12px;
-    position: relative;
-  }
-  .score-ring svg { transform: rotate(-90deg); }
-  .score-ring .track { fill: none; stroke: #EFF3F9; stroke-width: 8; }
-  .score-ring .fill {
-    fill: none; stroke: var(--success); stroke-width: 8;
-    stroke-linecap: round;
-    stroke-dasharray: 251;
-    stroke-dashoffset: 25;
-    transition: stroke-dashoffset 1s ease;
-  }
-  .score-num {
-    position: absolute; top: 50%; left: 50%;
-    transform: translate(-50%,-50%);
-    font-family: 'Playfair Display', serif;
-    font-size: 1.6rem; font-weight: 700;
-    color: var(--navy);
-  }
-  .score-label {
-    font-size: 0.78rem; font-weight: 600;
-    color: var(--success);
-    text-transform: uppercase; letter-spacing: 0.05em;
-  }
-  .compliance-items { display: flex; flex-direction: column; gap: 10px; }
-  .ci {
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px 14px;
-    border-radius: 8px;
-    background: var(--bg);
-    font-size: 0.82rem;
-    font-weight: 500;
-  }
-  .ci.ok { border-left: 3px solid var(--success); }
-  .ci.warn { border-left: 3px solid #F59E0B; }
-  .ci-icon { font-size: 1rem; }
-  .ci-text { flex: 1; color: var(--text); }
-  .ci-status {
-    font-size: 0.72rem; font-weight: 600;
-    padding: 2px 8px; border-radius: 100px;
-  }
-  .ci.ok .ci-status { background: #DCFCE7; color: var(--success); }
-  .ci.warn .ci-status { background: #FEF3C7; color: #B45309; }
+.tab-bar { display:flex; gap:0; border-bottom:2px solid var(--border); margin-bottom:0; overflow-x:auto; }
+.tab-btn { display:flex; align-items:center; gap:7px; padding:12px 20px; border:none; background:transparent; cursor:pointer; font-family:'DM Sans',sans-serif; font-size:0.82rem; font-weight:600; color:var(--text-muted); transition:all 0.2s; position:relative; bottom:-2px; border-bottom:2px solid transparent; white-space:nowrap; flex-shrink:0; }
+.tab-btn:hover { color:var(--navy); }
+.tab-btn.active { color:var(--navy); border-bottom:2px solid var(--blue); }
+.tab-icon { font-size:0.95rem; }
 
-  .hero-float {
-    position: absolute;
-    background: var(--white);
-    border-radius: 10px;
-    box-shadow: var(--shadow);
-    padding: 10px 14px;
-    font-size: 0.78rem;
-    font-weight: 600;
-    border: 1px solid var(--border);
-    display: flex; align-items: center; gap: 8px;
-    animation: float 3s ease-in-out infinite;
-  }
-  .hero-float.f1 {
-    top: -18px; right: -18px;
-    animation-delay: 0s;
-    color: var(--success);
-  }
-  .hero-float.f2 {
-    bottom: 30px; left: -20px;
-    animation-delay: 1.5s;
-    color: var(--navy);
-  }
-  @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-6px); }
-  }
+.tab-panels { border:1px solid var(--border); border-top:none; border-radius:0 0 14px 14px; overflow:hidden; }
+.tab-panel { display:none; }
+.tab-panel.active { display:grid; grid-template-columns:1.15fr 1fr; min-height:400px; }
 
-  /* ── TRUST BAR ── */
-  .trust-bar {
-    background: var(--navy);
-    padding: 20px 2rem;
-  }
-  .trust-inner {
-    max-width: 1200px; margin: 0 auto;
-    display: flex; align-items: center; justify-content: center;
-    gap: 40px; flex-wrap: wrap;
-  }
-  .trust-item {
-    display: flex; align-items: center; gap: 10px;
-    color: rgba(255,255,255,0.75);
-    font-size: 0.85rem; font-weight: 500;
-  }
-  .trust-item svg { color: var(--blue-light); flex-shrink: 0; }
-  .trust-divider {
-    width: 1px; height: 24px;
-    background: rgba(255,255,255,0.15);
-  }
+.tab-mockup { background:var(--navy-dark); padding:28px; display:flex; flex-direction:column; justify-content:center; }
+.mock-window { background:#1a2744; border-radius:12px; overflow:hidden; border:1px solid rgba(255,255,255,0.08); box-shadow:0 8px 32px rgba(0,0,0,0.4); }
+.mock-bar { background:rgba(255,255,255,0.04); padding:10px 14px; display:flex; align-items:center; gap:8px; border-bottom:1px solid rgba(255,255,255,0.06); }
+.mock-bar-dots { display:flex; gap:4px; }
+.mock-bar-dots span { width:8px; height:8px; border-radius:50%; }
+.mock-bar-title { font-size:0.7rem; color:rgba(255,255,255,0.3); font-family:monospace; }
+.mock-body { padding:18px; }
 
-  /* ── SECTION BASE ── */
-  section { padding: 90px 2rem; }
-  .section-inner { max-width: 1200px; margin: 0 auto; }
-  .section-tag {
-    font-size: 0.75rem; font-weight: 700;
-    letter-spacing: 0.1em; text-transform: uppercase;
-    color: var(--blue);
-    margin-bottom: 12px;
-  }
-  .section-heading {
-    font-family: 'Playfair Display', serif;
-    font-size: clamp(1.8rem, 3vw, 2.6rem);
-    font-weight: 800;
-    color: var(--navy);
-    margin-bottom: 16px;
-    line-height: 1.2;
-  }
-  .section-sub {
-    font-size: 1.05rem;
-    color: var(--text-muted);
-    max-width: 560px;
-    line-height: 1.7;
-  }
-  .section-header { margin-bottom: 56px; }
-  .section-header.centered { text-align: center; }
-  .section-header.centered .section-sub { margin: 0 auto; }
+.tab-desc { padding:40px 36px; display:flex; flex-direction:column; justify-content:center; background:var(--bg); }
+.tab-desc-icon { width:48px; height:48px; background:#EFF6FF; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.4rem; margin-bottom:18px; }
+.tab-desc h3 { font-family:'Playfair Display',serif; font-size:1.3rem; font-weight:800; color:var(--navy); margin-bottom:10px; line-height:1.25; }
+.tab-desc p { font-size:0.875rem; color:var(--text-muted); line-height:1.7; margin-bottom:20px; }
+.tab-feats { list-style:none; display:flex; flex-direction:column; gap:9px; }
+.tab-feats li { display:flex; align-items:flex-start; gap:9px; font-size:0.82rem; font-weight:500; color:var(--text); line-height:1.4; }
+.tab-feats li::before { content:'✓'; color:var(--success); font-weight:700; flex-shrink:0; margin-top:1px; }
 
-  /* ── DEMO MOCKUP ── */
-  #demo { background: var(--bg-dark); }
-  .mockup-wrap {
-    max-width: 900px; margin: 0 auto;
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: var(--shadow-lg);
-    border: 1px solid var(--border);
-    background: var(--white);
-  }
-  .mockup-bar {
-    background: var(--navy);
-    padding: 14px 20px;
-    display: flex; align-items: center; gap: 12px;
-  }
-  .mockup-dots { display: flex; gap: 6px; }
-  .mockup-dots span { width: 10px; height: 10px; border-radius: 50%; }
-  .mockup-url {
-    flex: 1; background: rgba(255,255,255,0.1);
-    border-radius: 6px; padding: 5px 14px;
-    font-size: 0.75rem; color: rgba(255,255,255,0.5);
-    font-family: monospace;
-  }
-  .mockup-body {
-    display: grid;
-    grid-template-columns: 200px 1fr;
-    min-height: 460px;
-  }
-  .mockup-sidebar {
-    background: var(--navy-dark);
-    padding: 20px 0;
-  }
-  .mock-nav-item {
-    display: flex; align-items: center; gap: 10px;
-    padding: 11px 20px;
-    font-size: 0.8rem; font-weight: 500;
-    color: rgba(255,255,255,0.5);
-    cursor: default;
-    transition: all 0.3s;
-  }
-  .mock-nav-item.active {
-    background: rgba(59,130,246,0.15);
-    color: var(--white);
-    border-right: 3px solid var(--blue);
-  }
-  .mock-nav-item .icon { font-size: 1rem; }
-  .mockup-main { padding: 24px; overflow: hidden; }
-  .mock-header {
-    display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 20px;
-  }
-  .mock-title {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.1rem; font-weight: 700;
-    color: var(--navy);
-  }
-  .mock-badge {
-    background: #DCFCE7; color: var(--success);
-    font-size: 0.72rem; font-weight: 700;
-    padding: 4px 10px; border-radius: 100px;
-  }
-  .mock-cards {
-    display: grid; grid-template-columns: repeat(3, 1fr);
-    gap: 12px; margin-bottom: 20px;
-  }
-  .mock-card {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 14px;
-  }
-  .mock-card-label {
-    font-size: 0.7rem; font-weight: 600;
-    color: var(--text-muted); text-transform: uppercase;
-    letter-spacing: 0.05em; margin-bottom: 6px;
-  }
-  .mock-card-val {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.6rem; font-weight: 700;
-    color: var(--navy); line-height: 1;
-  }
-  .mock-card-sub { font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; }
-  .mock-rows { display: flex; flex-direction: column; gap: 8px; }
-  .mock-row {
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px 14px;
-    background: var(--bg); border-radius: 8px;
-    border: 1px solid var(--border);
-    font-size: 0.8rem;
-    opacity: 0; transform: translateX(12px);
-    transition: opacity 0.4s ease, transform 0.4s ease;
-  }
-  .mock-row.show { opacity: 1; transform: translateX(0); }
-  .mock-row-icon { font-size: 1rem; flex-shrink: 0; }
-  .mock-row-text { flex: 1; font-weight: 500; color: var(--text); }
-  .mock-row-date { font-size: 0.72rem; color: var(--text-muted); }
-  .mock-row-status {
-    font-size: 0.7rem; font-weight: 700;
-    padding: 3px 8px; border-radius: 100px;
-  }
-  .status-ok { background: #DCFCE7; color: var(--success); }
-  .status-warn { background: #FEF3C7; color: #B45309; }
-  .status-due { background: #FEE2E2; color: #DC2626; }
-  /* Animated score ring in mockup */
-  .mock-score-wrap {
-    display: flex; align-items: center; gap: 20px;
-    background: var(--bg); border-radius: 10px;
-    padding: 14px 18px; margin-bottom: 14px;
-    border: 1px solid var(--border);
-  }
-  .mock-ring { position: relative; width: 64px; height: 64px; flex-shrink: 0; }
-  .mock-ring svg { transform: rotate(-90deg); }
-  .mock-ring .r-track { fill: none; stroke: #EFF3F9; stroke-width: 7; }
-  .mock-ring .r-fill {
-    fill: none; stroke: var(--success); stroke-width: 7;
-    stroke-linecap: round;
-    stroke-dasharray: 163;
-    stroke-dashoffset: 163;
-    transition: stroke-dashoffset 1.8s ease 0.4s;
-  }
-  .mock-ring.animate .r-fill { stroke-dashoffset: 16; }
-  .mock-ring-num {
-    position: absolute; top: 50%; left: 50%;
-    transform: translate(-50%,-50%);
-    font-family: 'Playfair Display', serif;
-    font-size: 1rem; font-weight: 700; color: var(--navy);
-  }
-  .mock-score-info h4 {
-    font-size: 0.875rem; font-weight: 700; color: var(--navy); margin-bottom: 4px;
-  }
-  .mock-score-info p { font-size: 0.78rem; color: var(--text-muted); }
+/* mock ui components */
+.m-score-row { display:flex; align-items:center; gap:14px; margin-bottom:14px; }
+.m-ring { position:relative; width:56px; height:56px; flex-shrink:0; }
+.m-ring svg { transform:rotate(-90deg); }
+.rtrack { fill:none; stroke:rgba(255,255,255,0.08); stroke-width:6; }
+.rfill { fill:none; stroke:#34D399; stroke-width:6; stroke-linecap:round; stroke-dasharray:145; stroke-dashoffset:15; }
+.m-ring-n { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-family:'Playfair Display',serif; font-size:0.85rem; font-weight:700; color:white; }
+.m-info h5 { font-size:0.78rem; font-weight:700; color:white; margin-bottom:3px; }
+.m-info p { font-size:0.68rem; color:rgba(255,255,255,0.4); }
 
-  /* ── FEATURES ── */
-  #features { background: var(--white); }
-  .features-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 28px;
-  }
-  .feature-card {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 28px;
-    transition: all 0.25s ease;
-    position: relative;
-    overflow: hidden;
-  }
-  .feature-card::before {
-    content: '';
-    position: absolute; top: 0; left: 0; right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, var(--blue), var(--navy));
-    transform: scaleX(0);
-    transform-origin: left;
-    transition: transform 0.3s ease;
-  }
-  .feature-card:hover { 
-    box-shadow: var(--shadow);
-    transform: translateY(-3px);
-    border-color: #BFDBFE;
-  }
-  .feature-card:hover::before { transform: scaleX(1); }
-  .feature-icon {
-    width: 48px; height: 48px;
-    background: #EFF6FF;
-    border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    margin-bottom: 18px;
-    font-size: 1.4rem;
-  }
-  .feature-card h3 {
-    font-size: 1rem; font-weight: 700;
-    color: var(--navy);
-    margin-bottom: 8px;
-  }
-  .feature-card p {
-    font-size: 0.875rem;
-    color: var(--text-muted);
-    line-height: 1.65;
-  }
+.m-row { display:flex; align-items:center; gap:9px; padding:8px 11px; background:rgba(255,255,255,0.04); border-radius:7px; border:1px solid rgba(255,255,255,0.06); margin-bottom:7px; font-size:0.76rem; }
+.m-row-icon { font-size:0.9rem; flex-shrink:0; }
+.m-row-name { flex:1; color:rgba(255,255,255,0.7); font-weight:500; }
+.m-badge { font-size:0.65rem; font-weight:700; padding:2px 7px; border-radius:100px; }
+.b-ok { background:rgba(52,211,153,0.15); color:#34D399; }
+.b-warn { background:rgba(251,191,36,0.15); color:#FBBf24; }
+.b-due { background:rgba(248,113,113,0.15); color:#F87171; }
+.b-btn { background:rgba(59,130,246,0.2); color:var(--blue-light); border:none; cursor:default; }
 
-  /* ── PRICING (dark) ── */
-  #pricing {
-    background: #0D1626;
-  }
-  #pricing .section-tag { color: var(--blue-light); }
-  #pricing .section-heading { color: var(--white); }
-  #pricing .section-sub { color: rgba(255,255,255,0.55); }
+.m-sign-h { margin-bottom:10px; }
+.m-sign-h h6 { font-size:0.8rem; font-weight:700; color:white; margin-bottom:2px; }
+.m-sign-h p { font-size:0.68rem; color:rgba(255,255,255,0.35); }
+.m-sign-tag { display:inline-block; background:rgba(212,168,83,0.15); color:var(--gold); font-size:0.62rem; font-weight:700; padding:2px 8px; border-radius:100px; margin-bottom:10px; }
+.m-signer { display:flex; align-items:center; gap:9px; padding:9px 11px; background:rgba(255,255,255,0.04); border-radius:7px; margin-bottom:6px; }
+.m-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.dot-g{background:#34D399;} .dot-y{background:#FBBf24;} .dot-w{background:rgba(255,255,255,0.15);}
+.m-signer-name { flex:1; font-size:0.76rem; color:rgba(255,255,255,0.7); font-weight:500; }
+.m-signer-status { font-size:0.65rem; font-weight:700; color:rgba(255,255,255,0.3); }
+.s-signed { color:#34D399 !important; }
 
-  .founding-banner {
-    background: rgba(212,168,83,0.1);
-    border: 1px solid rgba(212,168,83,0.25);
-    border-radius: 12px;
-    padding: 18px 24px;
-    margin-bottom: 40px;
-    display: flex; align-items: center; gap: 14px;
-    color: var(--white);
-  }
-  .founding-icon { font-size: 1.6rem; flex-shrink: 0; }
-  .founding-text h4 { font-size: 0.9rem; font-weight: 700; margin-bottom: 3px; color: var(--gold); }
-  .founding-text p { font-size: 0.82rem; color: rgba(255,255,255,0.55); }
-  .founding-count { margin-left: auto; flex-shrink: 0; text-align: center; }
-  .founding-count .num {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.8rem; font-weight: 700; color: var(--gold); line-height: 1;
-  }
-  .founding-count .label {
-    font-size: 0.68rem; font-weight: 600;
-    color: rgba(255,255,255,0.4);
-    text-transform: uppercase; letter-spacing: 0.05em;
-  }
+.m-cal-hdr { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.m-cal-hdr h6 { font-size:0.8rem; font-weight:700; color:white; }
+.m-cal-hdr span { font-size:0.68rem; color:rgba(255,255,255,0.3); }
+.m-cal { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin-bottom:10px; }
+.m-cal-d { text-align:center; font-size:0.58rem; color:rgba(255,255,255,0.2); padding:2px 0; }
+.m-cal-c { width:100%; aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:0.63rem; color:rgba(255,255,255,0.4); border-radius:3px; position:relative; }
+.m-cal-c.today { background:var(--blue); color:white; font-weight:700; }
+.m-cal-c.ev::after { content:''; position:absolute; bottom:1px; left:50%; transform:translateX(-50%); width:3px; height:3px; border-radius:50%; background:#34D399; }
+.m-cal-c.evw::after { background:#FBBf24; }
+.m-ev-row { display:flex; align-items:center; gap:8px; padding:7px 10px; background:rgba(255,255,255,0.04); border-radius:6px; margin-bottom:5px; }
+.m-ev-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.m-ev-row span { font-size:0.7rem; color:rgba(255,255,255,0.55); }
+.m-ev-date { font-size:0.63rem; color:rgba(255,255,255,0.25); margin-left:auto; white-space:nowrap; }
 
-  .pricing-toggle {
-    display: flex; align-items: center; justify-content: center; gap: 14px;
-    margin-bottom: 40px;
-  }
-  .toggle-label { font-size: 0.875rem; font-weight: 600; color: rgba(255,255,255,0.4); cursor: pointer; }
-  .toggle-label.active { color: var(--white); }
-  .toggle-switch {
-    width: 52px; height: 28px; background: var(--blue);
-    border-radius: 100px; position: relative; cursor: pointer; transition: background 0.2s;
-  }
-  .toggle-switch::after {
-    content: ''; position: absolute;
-    width: 20px; height: 20px; background: var(--white);
-    border-radius: 50%; top: 4px; left: 4px; transition: transform 0.2s;
-  }
-  .toggle-switch.annual::after { transform: translateX(24px); }
-  .annual-badge {
-    background: rgba(5,150,105,0.2); color: #34D399;
-    font-size: 0.72rem; font-weight: 700;
-    padding: 3px 8px; border-radius: 100px;
-  }
+.m-repair { display:flex; align-items:flex-start; gap:9px; padding:10px 11px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06); border-radius:7px; margin-bottom:7px; }
+.m-repair-i { font-size:1rem; flex-shrink:0; margin-top:1px; }
+.m-repair-b { flex:1; }
+.m-repair-b h6 { font-size:0.75rem; font-weight:700; color:rgba(255,255,255,0.8); margin-bottom:2px; }
+.m-repair-b p { font-size:0.65rem; color:rgba(255,255,255,0.3); }
+.m-timer { font-size:0.62rem; font-weight:700; padding:2px 7px; border-radius:4px; white-space:nowrap; }
+.t-ok{background:rgba(52,211,153,0.15);color:#34D399;} .t-warn{background:rgba(251,191,36,0.15);color:#FBBf24;}
 
-  .pricing-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    margin-bottom: 20px;
-    align-items: stretch;
-  }
+.m-chat { display:flex; flex-direction:column; gap:9px; }
+.m-bubble { max-width:85%; padding:9px 12px; border-radius:10px; font-size:0.72rem; line-height:1.5; }
+.b-user { background:var(--blue); color:white; align-self:flex-end; border-radius:10px 10px 3px 10px; }
+.b-ai { background:rgba(255,255,255,0.07); color:rgba(255,255,255,0.8); align-self:flex-start; border-radius:10px 10px 10px 3px; }
+.m-ai-tag { display:inline-block; font-size:0.6rem; font-weight:700; padding:2px 7px; border-radius:100px; background:rgba(59,130,246,0.2); color:var(--blue-light); margin-bottom:6px; }
 
-  /* base card */
-  .pricing-card {
-    background: #131F35;
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 14px;
-    padding: 28px 22px;
-    position: relative;
-    transition: all 0.25s ease;
-    display: flex; flex-direction: column;
-  }
-  .pricing-card:hover {
-    border-color: rgba(255,255,255,0.18);
-    transform: translateY(-3px);
-  }
+/* ─── PRICING ─── */
+#pricing { background:#0D1626; padding:80px 2rem; }
+.pricing-inner { max-width:1100px; margin:0 auto; }
+#pricing .section-tag { color:var(--blue-light); }
+#pricing .section-heading { color:var(--white); margin-bottom:6px; }
+#pricing .section-sub { color:rgba(255,255,255,0.5); margin-bottom:32px; }
 
-  /* popular highlight */
-  .pricing-card.popular {
-    background: #1a2a4a;
-    border-color: var(--blue);
-    box-shadow: 0 0 0 1px var(--blue), 0 20px 60px rgba(59,130,246,0.15);
-  }
-  .popular-badge {
-    position: absolute; top: -13px; left: 50%;
-    transform: translateX(-50%);
-    background: var(--blue); color: var(--white);
-    font-size: 0.68rem; font-weight: 700;
-    padding: 4px 14px; border-radius: 100px;
-    letter-spacing: 0.05em; text-transform: uppercase;
-    white-space: nowrap;
-  }
+.founding-banner { background:rgba(212,168,83,0.08); border:1px solid rgba(212,168,83,0.2); border-radius:10px; padding:14px 20px; margin-bottom:28px; display:flex; align-items:center; gap:12px; }
+.f-icon { font-size:1.4rem; flex-shrink:0; }
+.f-text h4 { font-size:0.85rem; font-weight:700; color:var(--gold); margin-bottom:2px; }
+.f-text p { font-size:0.78rem; color:rgba(255,255,255,0.4); }
+.f-spots { margin-left:auto; text-align:center; flex-shrink:0; }
+.f-spots .num { font-family:'Playfair Display',serif; font-size:1.6rem; font-weight:700; color:var(--gold); line-height:1; }
+.f-spots .lbl { font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:rgba(255,255,255,0.3); }
 
-  /* HMO card */
-  .pricing-card.hmo-plan {
-    background: #0D1626;
-    border: 1px dashed rgba(255,255,255,0.15);
-    opacity: 0.7;
-  }
+.pricing-toggle { display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:28px; }
+.toggle-label { font-size:0.82rem; font-weight:600; color:rgba(255,255,255,0.35); cursor:pointer; }
+.toggle-label.active { color:white; }
+.toggle-sw { width:48px; height:26px; background:var(--blue); border-radius:100px; position:relative; cursor:pointer; transition:background 0.2s; }
+.toggle-sw::after { content:''; position:absolute; width:18px; height:18px; background:white; border-radius:50%; top:4px; left:4px; transition:transform 0.2s; }
+.toggle-sw.annual::after { transform:translateX(22px); }
+.annual-badge { background:rgba(5,150,105,0.18); color:#34D399; font-size:0.68rem; font-weight:700; padding:2px 8px; border-radius:100px; }
 
-  .plan-name {
-    font-size: 0.72rem; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.1em;
-    color: rgba(255,255,255,0.4);
-    margin-bottom: 6px;
-  }
-  .plan-props {
-    font-size: 0.8rem; color: rgba(255,255,255,0.4);
-    margin-bottom: 20px; min-height: 20px;
-  }
-  .plan-price { margin-bottom: 22px; }
-  .plan-price .founding {
-    font-size: 0.68rem; font-weight: 600; color: var(--gold);
-    text-transform: uppercase; letter-spacing: 0.05em;
-    display: block; margin-bottom: 6px;
-  }
-  .plan-price .amount {
-    font-family: 'Playfair Display', serif;
-    font-size: 3rem; font-weight: 700; color: var(--white); line-height: 1;
-  }
-  .plan-price .period { font-size: 0.85rem; color: rgba(255,255,255,0.45); }
-  .plan-price .standard {
-    font-size: 0.75rem; color: rgba(255,255,255,0.25);
-    text-decoration: line-through; margin-top: 6px; display: block;
-  }
+.pricing-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:28px; }
+.pc { background:#131F35; border:1px solid rgba(255,255,255,0.07); border-radius:12px; padding:24px 20px; display:flex; flex-direction:column; position:relative; transition:all 0.25s; }
+.pc:hover { border-color:rgba(255,255,255,0.15); transform:translateY(-2px); }
+.pc.popular { background:#1a2a4a; border-color:var(--blue); box-shadow:0 0 0 1px var(--blue),0 16px 48px rgba(59,130,246,0.12); }
+.pc-pop-badge { position:absolute; top:-11px; left:50%; transform:translateX(-50%); background:var(--blue); color:white; font-size:0.65rem; font-weight:700; padding:3px 12px; border-radius:100px; letter-spacing:0.05em; text-transform:uppercase; white-space:nowrap; }
+.pc-name { font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:rgba(255,255,255,0.35); margin-bottom:4px; }
+.pc-props { font-size:0.78rem; color:rgba(255,255,255,0.4); margin-bottom:16px; }
+.pc-founding { font-size:0.65rem; font-weight:700; color:var(--gold); text-transform:uppercase; letter-spacing:0.05em; display:block; margin-bottom:4px; }
+.pc-price-row { display:flex; align-items:baseline; gap:3px; margin-bottom:4px; }
+.pc-amount { font-family:'Playfair Display',serif; font-size:2.6rem; font-weight:700; color:white; line-height:1; }
+.pc-period { font-size:0.8rem; color:rgba(255,255,255,0.4); }
+.pc-standard { font-size:0.7rem; color:rgba(255,255,255,0.22); text-decoration:line-through; display:block; margin-bottom:18px; }
+.pc-btn { display:block; width:100%; text-align:center; padding:11px; border-radius:7px; font-size:0.82rem; font-weight:700; text-decoration:none; border:none; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.2s; margin-bottom:18px; }
+.pc-btn-p { background:var(--blue); color:white; }
+.pc-btn-p:hover { background:#2563EB; transform:translateY(-1px); }
+.pc-btn-o { background:transparent; border:1.5px solid rgba(255,255,255,0.18); color:white; }
+.pc-btn-o:hover { border-color:rgba(255,255,255,0.4); background:rgba(255,255,255,0.05); }
+.pc-div { height:1px; background:rgba(255,255,255,0.06); margin-bottom:16px; }
+.pc-feats { list-style:none; display:flex; flex-direction:column; gap:8px; }
+.pc-feats li { display:flex; align-items:center; gap:7px; font-size:0.78rem; color:rgba(255,255,255,0.55); }
+.pc-feats li .ck { color:var(--blue-light); font-size:0.78rem; flex-shrink:0; }
+.pc-feats li.gf { color:var(--gold); }
+.pc-feats li.gf .ck { color:var(--gold); }
 
-  .plan-btn {
-    display: block; width: 100%; text-align: center;
-    padding: 13px; border-radius: 8px;
-    font-size: 0.875rem; font-weight: 600;
-    text-decoration: none; border: none; cursor: pointer;
-    transition: all 0.2s; margin-bottom: 24px;
-  }
-  .plan-btn-primary { background: var(--blue); color: var(--white); }
-  .plan-btn-primary:hover { background: #2563EB; transform: translateY(-1px); }
-  .plan-btn-outline {
-    background: transparent;
-    border: 1.5px solid rgba(255,255,255,0.2);
-    color: var(--white);
-  }
-  .plan-btn-outline:hover { border-color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.05); }
-  .plan-btn-coming {
-    background: transparent;
-    border: 1.5px solid rgba(255,255,255,0.1);
-    color: rgba(255,255,255,0.3);
-    cursor: default;
-  }
+/* comparison table */
+.compare-wrap { margin-bottom:24px; }
+.compare-btn-wrap { text-align:center; margin-bottom:16px; }
+.compare-btn { background:transparent; border:1.5px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.45); padding:8px 20px; border-radius:7px; font-size:0.78rem; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.2s; display:inline-flex; align-items:center; gap:7px; }
+.compare-btn:hover { border-color:rgba(255,255,255,0.25); color:white; }
+.ct { display:none; }
+.ct.open { display:block; }
+.ct-box { background:#131F35; border:1px solid rgba(255,255,255,0.07); border-radius:12px; overflow:hidden; }
+.ct-head { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; background:rgba(255,255,255,0.03); border-bottom:1px solid rgba(255,255,255,0.07); padding:13px 20px; }
+.ct-hc { font-size:0.7rem; font-weight:700; color:rgba(255,255,255,0.3); text-transform:uppercase; letter-spacing:0.08em; text-align:center; }
+.ct-hc:first-child { text-align:left; }
+.ct-hc.pop { color:var(--blue-light); }
+.ct-glabel { padding:11px 20px 5px; font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:rgba(255,255,255,0.18); border-bottom:1px solid rgba(255,255,255,0.03); }
+.ct-row { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; padding:10px 20px; border-bottom:1px solid rgba(255,255,255,0.04); align-items:center; transition:background 0.15s; }
+.ct-row:hover { background:rgba(255,255,255,0.02); }
+.ct-row:last-child { border-bottom:none; }
+.ct-feat { font-size:0.8rem; color:rgba(255,255,255,0.5); }
+.ct-cell { text-align:center; }
+.ct-ok { color:#34D399; font-size:0.95rem; }
+.ct-no { color:rgba(255,255,255,0.12); font-size:0.85rem; }
+.ct-val { font-size:0.78rem; font-weight:600; color:white; }
 
-  .plan-divider { height: 1px; background: rgba(255,255,255,0.07); margin-bottom: 20px; }
+/* HMO strip */
+.hmo-strip { background:rgba(255,255,255,0.02); border:1px dashed rgba(255,255,255,0.09); border-radius:10px; padding:18px 24px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+.hmo-icons { font-size:1.3rem; display:flex; gap:8px; }
+.hmo-body { flex:1; min-width:200px; }
+.hmo-body h4 { font-size:0.85rem; font-weight:700; color:rgba(255,255,255,0.45); margin-bottom:3px; }
+.hmo-body p { font-size:0.76rem; color:rgba(255,255,255,0.28); }
+.hmo-badge { background:rgba(212,168,83,0.1); border:1px solid rgba(212,168,83,0.2); color:var(--gold); font-size:0.68rem; font-weight:700; padding:4px 12px; border-radius:100px; letter-spacing:0.05em; white-space:nowrap; }
+.pricing-note { text-align:center; margin-top:20px; font-size:0.76rem; color:rgba(255,255,255,0.22); }
+.pricing-note strong { color:rgba(255,255,255,0.38); }
 
-  .plan-features { list-style: none; display: flex; flex-direction: column; gap: 11px; flex: 1; }
-  .plan-features li {
-    display: flex; align-items: flex-start; gap: 9px;
-    font-size: 0.82rem; color: rgba(255,255,255,0.6);
-    line-height: 1.4;
-  }
-  .plan-features li .check { color: var(--blue-light); flex-shrink: 0; margin-top: 1px; }
-  .plan-features li.gold { color: var(--gold); }
-  .plan-features li.gold .check { color: var(--gold); }
+/* ─── NEXT PHASE BAND ─── */
+#npb { background:var(--navy-dark); border-top:1px solid rgba(255,255,255,0.05); padding:22px 2rem; }
+.npb-in { max-width:1100px; margin:0 auto; display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
+.npb-txt { flex:1; min-width:220px; }
+.npb-txt h4 { font-size:0.9rem; font-weight:700; color:white; margin-bottom:3px; }
+.npb-txt p { font-size:0.78rem; color:rgba(255,255,255,0.38); }
+.npb-chips { display:flex; gap:10px; flex-wrap:wrap; }
+.npb-chip { display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:7px; padding:7px 13px; font-size:0.76rem; font-weight:600; color:rgba(255,255,255,0.4); }
+.npb-form { display:flex; gap:8px; }
+.npb-form input { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:7px; padding:9px 14px; font-size:0.82rem; color:white; font-family:'DM Sans',sans-serif; outline:none; width:190px; transition:border-color 0.2s; }
+.npb-form input::placeholder { color:rgba(255,255,255,0.22); }
+.npb-form input:focus { border-color:rgba(59,130,246,0.45); }
+.npb-form button { background:rgba(59,130,246,0.18); border:1px solid rgba(59,130,246,0.28); color:var(--blue-light); border-radius:7px; padding:9px 16px; font-size:0.82rem; font-weight:700; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.2s; white-space:nowrap; }
+.npb-form button:hover { background:rgba(59,130,246,0.32); }
+#npb-ok { display:none; font-size:0.8rem; font-weight:600; color:#34D399; }
 
-  .pricing-note {
-    text-align: center; margin-top: 24px;
-    font-size: 0.8rem; color: rgba(255,255,255,0.3);
-  }
-  .pricing-note strong { color: rgba(255,255,255,0.5); }
+/* ─── FOOTER ─── */
+footer { background:var(--navy-dark); border-top:1px solid rgba(255,255,255,0.05); padding:52px 2rem 0; }
+.footer-grid { max-width:1100px; margin:0 auto; display:grid; grid-template-columns:1.7fr 1fr 1fr 1.5fr; gap:44px; padding-bottom:40px; border-bottom:1px solid rgba(255,255,255,0.05); }
+.footer-brand .nav-logo-text { color:white; }
+.footer-brand p { font-size:0.8rem; color:rgba(255,255,255,0.38); line-height:1.7; margin-top:12px; max-width:230px; }
+.footer-col h5 { font-size:0.66rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:rgba(255,255,255,0.28); margin-bottom:14px; }
+.footer-col a { display:block; font-size:0.82rem; color:rgba(255,255,255,0.48); text-decoration:none; margin-bottom:10px; transition:color 0.2s; }
+.footer-col a:hover { color:white; }
+.footer-contact h5 { font-size:0.66rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:rgba(255,255,255,0.28); margin-bottom:14px; }
+.fc-row { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-bottom:7px; }
+.fc-f input, .fc-f textarea { width:100%; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.09); border-radius:7px; padding:9px 11px; font-size:0.78rem; color:white; font-family:'DM Sans',sans-serif; outline:none; transition:border-color 0.2s; }
+.fc-f input::placeholder, .fc-f textarea::placeholder { color:rgba(255,255,255,0.22); }
+.fc-f input:focus, .fc-f textarea:focus { border-color:rgba(59,130,246,0.38); }
+.fc-ta { margin-bottom:7px; }
+.fc-ta textarea { resize:vertical; min-height:76px; display:block; }
+.fc-bottom { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.fc-note { font-size:0.68rem; color:rgba(255,255,255,0.26); display:flex; align-items:center; gap:5px; }
+.fc-note svg { color:var(--success); }
+.fc-submit { background:rgba(59,130,246,0.18); border:1px solid rgba(59,130,246,0.28); color:var(--blue-light); border-radius:6px; padding:7px 14px; font-size:0.78rem; font-weight:700; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.2s; display:flex; align-items:center; gap:5px; white-space:nowrap; }
+.fc-submit:hover { background:rgba(59,130,246,0.32); }
+#fc-ok { display:none; font-size:0.76rem; font-weight:600; color:#34D399; padding-top:6px; }
 
-  /* ── REFERRAL ── */
-  #referral { background: var(--navy); }
-  .referral-inner {
-    max-width: 800px; margin: 0 auto;
-    text-align: center;
-  }
-  .referral-inner .section-tag { color: var(--blue-light); }
-  .referral-inner .section-heading { color: var(--white); }
-  .referral-inner .section-sub { color: rgba(255,255,255,0.65); margin: 0 auto 40px; }
-  .referral-cards {
-    display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px;
-    align-items: center; margin-bottom: 40px;
-  }
-  .ref-card {
-    background: rgba(255,255,255,0.07);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 12px;
-    padding: 24px;
-    text-align: center;
-  }
-  .ref-card .icon { font-size: 2rem; margin-bottom: 10px; }
-  .ref-card h4 {
-    font-size: 0.875rem; font-weight: 700;
-    color: var(--white); margin-bottom: 6px;
-  }
-  .ref-card p {
-    font-size: 0.8rem;
-    color: rgba(255,255,255,0.55);
-  }
-  .ref-arrow {
-    font-size: 1.5rem;
-    color: rgba(255,255,255,0.25);
-  }
-  .ref-reward {
-    background: rgba(212,168,83,0.12);
-    border: 1px solid rgba(212,168,83,0.25);
-    border-radius: 10px;
-    padding: 16px 24px;
-    display: inline-flex; align-items: center; gap: 10px;
-    font-size: 0.9rem; font-weight: 600;
-    color: var(--gold);
-    margin-bottom: 32px;
-  }
+.footer-bottom { max-width:1100px; margin:0 auto; padding:18px 0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+.footer-bottom p { font-size:0.74rem; color:rgba(255,255,255,0.28); }
+.referral-line { font-size:0.74rem; color:rgba(255,255,255,0.35); }
+.referral-line a { color:var(--gold); font-weight:700; text-decoration:none; }
+.referral-line a:hover { color:#e6bb6a; }
+.f-badges { display:flex; gap:7px; }
+.f-badge { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); color:rgba(255,255,255,0.3); font-size:0.66rem; font-weight:600; padding:3px 9px; border-radius:5px; }
 
-  /* ── FOOTER ── */
-  footer {
-    background: var(--navy-dark);
-    padding: 48px 2rem 32px;
-    color: rgba(255,255,255,0.5);
-  }
-  .footer-inner {
-    max-width: 1200px; margin: 0 auto;
-    display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
-    gap: 40px; margin-bottom: 40px;
-  }
-  .footer-brand .nav-logo-text { color: var(--white); }
-  .footer-brand p {
-    font-size: 0.82rem; line-height: 1.7;
-    margin-top: 14px; max-width: 260px;
-  }
-  .footer-col h5 {
-    font-size: 0.78rem; font-weight: 700;
-    letter-spacing: 0.06em; text-transform: uppercase;
-    color: rgba(255,255,255,0.4);
-    margin-bottom: 16px;
-  }
-  .footer-col a {
-    display: block;
-    font-size: 0.85rem;
-    color: rgba(255,255,255,0.55);
-    text-decoration: none;
-    margin-bottom: 10px;
-    transition: color 0.2s;
-  }
-  .footer-col a:hover { color: var(--white); }
-  .footer-bottom {
-    border-top: 1px solid rgba(255,255,255,0.07);
-    padding-top: 24px;
-    display: flex; justify-content: space-between;
-    align-items: center; flex-wrap: wrap; gap: 10px;
-  }
-  .footer-bottom p { font-size: 0.8rem; }
-  .footer-badges { display: flex; gap: 10px; }
-  .footer-badge {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
-    color: rgba(255,255,255,0.5);
-    font-size: 0.72rem; font-weight: 600;
-    padding: 4px 10px; border-radius: 6px;
-    letter-spacing: 0.03em;
-  }
+/* ─── RESPONSIVE ─── */
+@media (max-width: 960px) {
+  .hero { grid-template-columns:1fr; gap:36px; padding:140px 1.5rem 60px; }
+  .hero-visual { order:-1; }
+  .hero-float.f2 { display:none; }
+  .tab-panel.active { grid-template-columns:1fr; }
+  .pricing-cards { grid-template-columns:1fr; max-width:360px; margin-left:auto; margin-right:auto; }
+  .footer-grid { grid-template-columns:1fr 1fr; }
+  .npb-in { flex-direction:column; align-items:flex-start; }
+}
+@media (max-width: 640px) {
+  .tab-btn { padding:10px 13px; font-size:0.76rem; }
+  .tab-icon { display:none; }
+  .footer-grid { grid-template-columns:1fr; gap:28px; }
+  .fc-row { grid-template-columns:1fr; }
+  nav .nav-links { display:none; }
+  .trust-div { display:none; }
+  .hmo-strip { flex-direction:column; }
+  .f-spots { display:none; }
+  .npb-form { flex-direction:column; }
+  .npb-form input { width:100%; }
+}
 
-  /* ── RESPONSIVE ── */
-  @media (max-width: 900px) {
-    .hero { grid-template-columns: 1fr; gap: 40px; padding: 120px 1.5rem 70px; }
-    .hero-visual { order: -1; }
-    .hero-float.f2 { display: none; }
-    .features-grid { grid-template-columns: 1fr 1fr; }
-    .pricing-grid { grid-template-columns: 1fr 1fr; }
-    .footer-inner { grid-template-columns: 1fr 1fr; }
-    .referral-cards { grid-template-columns: 1fr; }
-    .ref-arrow { transform: rotate(90deg); }
-  }
-  @media (max-width: 600px) {
-    .features-grid { grid-template-columns: 1fr; }
-    .pricing-grid { grid-template-columns: 1fr; }
-    .footer-inner { grid-template-columns: 1fr; }
-    nav .nav-link { display: none; }
-    .founding-count { display: none; }
-    .trust-inner { gap: 20px; }
-    .trust-divider { display: none; }
-    .hmo-card { flex-direction: column; text-align: center; }
-    .hmo-badge { margin: 0 auto; }
-  }
-
-  /* ── NEXT PHASE TEASER ── */
-  #next-phase {
-    background: var(--navy-dark);
-    padding: 70px 2rem;
-  }
-  .next-phase-inner { max-width: 1200px; margin: 0 auto; }
-  .next-phase-header {
-    text-align: center;
-    margin-bottom: 40px;
-  }
-  .next-phase-header .section-tag { color: var(--blue-light); }
-  .next-phase-header .section-heading { color: var(--white); }
-  .next-phase-header .section-sub { color: rgba(255,255,255,0.5); margin: 0 auto; }
-  .phase-cards {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
-    margin-bottom: 32px;
-  }
-  .phase-card {
-    background: rgba(255,255,255,0.03);
-    border: 1px dashed rgba(255,255,255,0.12);
-    border-radius: 14px;
-    padding: 32px 28px;
-    display: flex; gap: 20px;
-    align-items: flex-start;
-    transition: border-color 0.25s, background 0.25s;
-  }
-  .phase-card:hover {
-    border-color: rgba(59,130,246,0.3);
-    background: rgba(59,130,246,0.04);
-  }
-  .phase-card-icon {
-    font-size: 2rem; flex-shrink: 0;
-    width: 56px; height: 56px;
-    background: rgba(255,255,255,0.05);
-    border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .phase-card-body h3 {
-    font-size: 1rem; font-weight: 700; color: var(--white);
-    margin-bottom: 6px;
-  }
-  .phase-card-body p {
-    font-size: 0.82rem; color: rgba(255,255,255,0.45);
-    line-height: 1.6; margin-bottom: 14px;
-  }
-  .phase-soon-badge {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: rgba(212,168,83,0.1);
-    border: 1px solid rgba(212,168,83,0.2);
-    color: var(--gold);
-    font-size: 0.68rem; font-weight: 700;
-    padding: 3px 10px; border-radius: 100px;
-    letter-spacing: 0.05em; text-transform: uppercase;
-  }
-  .phase-interest-form {
-    background: rgba(59,130,246,0.06);
-    border: 1px solid rgba(59,130,246,0.15);
-    border-radius: 12px;
-    padding: 20px 24px;
-    display: flex; align-items: center; gap: 16px;
-    flex-wrap: wrap;
-  }
-  .phase-interest-form p {
-    font-size: 0.85rem; color: rgba(255,255,255,0.6);
-    flex: 1; min-width: 200px;
-  }
-  .phase-interest-form p strong { color: var(--white); }
-  .phase-email-row {
-    display: flex; gap: 10px; flex-shrink: 0;
-  }
-  .phase-email-row input {
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 8px;
-    padding: 10px 16px;
-    font-size: 0.85rem; color: var(--white);
-    font-family: 'DM Sans', sans-serif;
-    outline: none; width: 220px;
-    transition: border-color 0.2s;
-  }
-  .phase-email-row input::placeholder { color: rgba(255,255,255,0.25); }
-  .phase-email-row input:focus { border-color: rgba(59,130,246,0.5); }
-  .phase-email-row button {
-    background: var(--blue); color: var(--white);
-    border: none; border-radius: 8px;
-    padding: 10px 20px;
-    font-size: 0.85rem; font-weight: 600;
-    cursor: pointer; font-family: 'DM Sans', sans-serif;
-    transition: background 0.2s, transform 0.2s;
-    white-space: nowrap;
-  }
-  .phase-email-row button:hover { background: #2563EB; transform: translateY(-1px); }
-  #phase-success {
-    display: none;
-    font-size: 0.85rem; font-weight: 600; color: #34D399;
-    align-items: center; gap: 8px;
-  }
-
-  /* ── CONTACT ── */
-  #contact { background: var(--bg-dark); padding: 80px 2rem; }
-  .contact-inner {
-    max-width: 760px; margin: 0 auto; text-align: center;
-  }
-  .contact-inner .section-heading { color: var(--navy); }
-  .contact-inner .section-sub { margin: 0 auto 36px; }
-  .contact-form {
-    background: var(--white);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 36px;
-    text-align: left;
-    box-shadow: var(--shadow);
-  }
-  .cf-row {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
-    margin-bottom: 16px;
-  }
-  .cf-field { display: flex; flex-direction: column; gap: 6px; }
-  .cf-field label {
-    font-size: 0.78rem; font-weight: 600;
-    color: var(--text-muted); text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-  .cf-field input, .cf-field textarea, .cf-field select {
-    background: var(--bg);
-    border: 1.5px solid var(--border);
-    border-radius: 8px;
-    padding: 11px 14px;
-    font-size: 0.9rem; color: var(--text);
-    font-family: 'DM Sans', sans-serif;
-    outline: none;
-    transition: border-color 0.2s;
-    width: 100%;
-  }
-  .cf-field input:focus, .cf-field textarea:focus, .cf-field select:focus {
-    border-color: var(--blue);
-  }
-  .cf-field textarea { resize: vertical; min-height: 110px; }
-  .cf-full { margin-bottom: 16px; }
-  .cf-footer {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 16px; flex-wrap: wrap; margin-top: 8px;
-  }
-  .cf-response-note {
-    font-size: 0.78rem; color: var(--text-muted);
-    display: flex; align-items: center; gap: 6px;
-  }
-  .cf-response-note svg { color: var(--success); flex-shrink: 0; }
-  .cf-submit {
-    background: var(--navy); color: var(--white);
-    border: none; border-radius: 8px;
-    padding: 12px 28px;
-    font-size: 0.9rem; font-weight: 600;
-    cursor: pointer; font-family: 'DM Sans', sans-serif;
-    transition: all 0.2s;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .cf-submit:hover {
-    background: var(--navy-light);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(27,47,94,0.25);
-  }
-  #contact-success {
-    display: none; text-align: center;
-    padding: 24px;
-    font-size: 1rem; font-weight: 600;
-    color: var(--success);
-    gap: 10px; align-items: center; justify-content: center;
-  }
-  @media (max-width: 600px) {
-    .cf-row { grid-template-columns: 1fr; }
-    .phase-cards { grid-template-columns: 1fr; }
-    .phase-email-row { flex-direction: column; width: 100%; }
-    .phase-email-row input { width: 100%; }
-  }
-
-  .fade-in {
-    opacity: 0; transform: translateY(24px);
-    transition: opacity 0.6s ease, transform 0.6s ease;
-  }
-  .fade-in.visible { opacity: 1; transform: translateY(0); }
+/* ─── FADE ─── */
+.fade-in { opacity:0; transform:translateY(20px); transition:opacity 0.55s ease, transform 0.55s ease; }
+.fade-in.visible { opacity:1; transform:translateY(0); }
 </style>
 </head>
 <body>
 
 <!-- COUNTDOWN BANNER -->
 <div id="countdown-banner">
-  <div class="countdown-inner" id="countdown-live">
-    <div class="countdown-label">
-      <span class="cd-dot"></span>
-      RRA Deadline
+  <div class="cd-inner" id="cd-live">
+    <div class="cd-label"><span class="cd-dot"></span>RRA Deadline</div>
+    <div class="cd-units">
+      <div class="cd-box"><div class="cd-num" id="cd-d">--</div><div class="cd-unit-lbl">Days</div></div>
+      <span class="cd-colon">:</span>
+      <div class="cd-box"><div class="cd-num" id="cd-h">--</div><div class="cd-unit-lbl">Hrs</div></div>
+      <span class="cd-colon">:</span>
+      <div class="cd-box"><div class="cd-num" id="cd-m">--</div><div class="cd-unit-lbl">Mins</div></div>
+      <span class="cd-colon">:</span>
+      <div class="cd-box"><div class="cd-num" id="cd-s">--</div><div class="cd-unit-lbl">Secs</div></div>
     </div>
-    <div class="countdown-units">
-      <div class="cd-unit">
-        <div class="cd-num" id="cd-days">--</div>
-        <div class="cd-lbl">Days</div>
-      </div>
-      <span class="cd-sep">:</span>
-      <div class="cd-unit">
-        <div class="cd-num" id="cd-hours">--</div>
-        <div class="cd-lbl">Hours</div>
-      </div>
-      <span class="cd-sep">:</span>
-      <div class="cd-unit">
-        <div class="cd-num" id="cd-mins">--</div>
-        <div class="cd-lbl">Mins</div>
-      </div>
-      <span class="cd-sep">:</span>
-      <div class="cd-unit">
-        <div class="cd-num" id="cd-secs">--</div>
-        <div class="cd-lbl">Secs</div>
-      </div>
-    </div>
-    <div class="countdown-cta">until 31 May 2026 · <a href="landlord.html">Get compliant now →</a></div>
+    <div class="cd-cta">until 31 May 2026 &nbsp;·&nbsp; <a href="landlord.html">Get compliant now →</a></div>
   </div>
-  <div class="countdown-inner" id="countdown-done" style="display:none">
-    <div class="post-deadline-msg">
-      <span class="pd-icon">✅</span>
-      The Renters' Rights Act is now in force — is your portfolio compliant?
-      &nbsp;<a href="landlord.html" style="color:var(--blue-light);font-weight:700;text-decoration:none;border-bottom:1px solid rgba(96,165,250,0.3)">Check now →</a>
-    </div>
+  <div class="cd-inner" id="cd-done" style="display:none">
+    <div class="cd-done" style="display:flex">✅ The Renters' Rights Act is now in force — <a href="landlord.html">&nbsp;is your portfolio compliant?</a></div>
   </div>
 </div>
 
@@ -1113,571 +412,454 @@
 <nav>
   <a href="#" class="nav-logo">
     <div class="nav-logo-mark">
-      <svg viewBox="0 0 20 20" fill="none">
-        <path d="M10 2L3 6v8l7 4 7-4V6L10 2z" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
-        <path d="M10 2v16M3 6l7 4 7-4" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
-      </svg>
+      <svg viewBox="0 0 20 20" fill="none"><path d="M10 2L3 6v8l7 4 7-4V6L10 2z" stroke="white" stroke-width="1.5" stroke-linejoin="round"/><path d="M10 2v16M3 6l7 4 7-4" stroke="white" stroke-width="1.5" stroke-linejoin="round"/></svg>
     </div>
     <span class="nav-logo-text">RentSafe<span>AI</span></span>
   </a>
-  <nav class="nav-cta">
-    <a href="#features" class="nav-link">Features</a>
+  <div class="nav-links">
+    <a href="#showcase" class="nav-link">Features</a>
     <a href="#pricing" class="nav-link">Pricing</a>
-    <a href="#contact" class="nav-link">Contact</a>
+    <a href="#footer-contact" class="nav-link">Contact</a>
+  </div>
+  <div class="nav-actions">
+    <a href="landlord.html" class="btn btn-outline" style="font-size:0.82rem;padding:7px 16px;">Sign in</a>
     <a href="landlord.html" class="btn btn-primary">Start Free</a>
-  </nav>
+  </div>
 </nav>
 
-<!-- HERO -->
-<section style="padding:0; background: var(--white);">
+<!-- ══ SCROLL 1: HERO ══ -->
+<div style="background:var(--white)">
   <div class="hero">
-    <div class="hero-content fade-in">
-      <div class="hero-badge">
-        <span class="dot"></span>
-        Renters' Rights Act 2025 — Now in force
-      </div>
-      <h1>
-        Get <em>RRA-ready</em><br>
-        in 10 minutes.
-      </h1>
-      <p class="hero-sub">
-        The UK's first compliance platform built ground-up for the Renters' Rights Act. Stop guessing, stop scrambling — manage every property, document, and deadline in one place.
-      </p>
+    <div class="fade-in">
+      <div class="hero-badge"><span class="pulse"></span>Renters' Rights Act 2025 — Now in force</div>
+      <h1>Get <em>RRA-ready</em><br>in 10 minutes.</h1>
+      <p class="hero-sub">The UK's first compliance platform built ground-up for the Renters' Rights Act. Every property, document, and deadline — in one place.</p>
       <div class="hero-actions">
         <a href="landlord.html" class="btn btn-primary btn-lg">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
           Start Free — No Card Needed
         </a>
-        <a href="#demo" class="btn btn-outline btn-lg">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
-          Watch Demo
-        </a>
+        <a href="#showcase" class="btn btn-outline btn-lg">See how it works</a>
       </div>
       <p class="hero-note">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        Free for 30 days · First 100 users get founding price locked forever
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Free for 30 days · First 100 landlords lock founding price forever
       </p>
+      <div class="hero-trust fade-in" style="transition-delay:0.25s">
+        <div class="trust-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>RRA 2025 compliant</div>
+        <div class="trust-div"></div>
+        <div class="trust-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>UK data · SSL secured</div>
+        <div class="trust-div"></div>
+        <div class="trust-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Setup in 10 minutes</div>
+        <div class="trust-div"></div>
+        <div class="trust-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>No letting agent needed</div>
+      </div>
     </div>
-    <div class="hero-visual fade-in" style="transition-delay:0.2s">
+    <div class="hero-visual fade-in" style="transition-delay:0.15s">
       <div class="hero-float f1">✅ Section 21 abolished — compliant</div>
       <div class="hero-card">
-        <div class="hero-card-header">
-          <div class="hero-card-dots">
-            <span class="d1"></span><span class="d2"></span><span class="d3"></span>
-          </div>
-          <span class="hero-card-title">Compliance Dashboard · 14 Rowan Close</span>
+        <div class="hc-header">
+          <div class="hc-dots"><span class="d1"></span><span class="d2"></span><span class="d3"></span></div>
+          <span class="hc-title">Compliance Dashboard · 14 Rowan Close</span>
         </div>
-        <div class="hero-card-body">
-          <div class="compliance-score">
+        <div class="hc-body">
+          <div class="hc-score">
             <div class="score-ring">
-              <svg viewBox="0 0 100 100" width="100" height="100">
-                <circle class="track" cx="50" cy="50" r="40"/>
-                <circle class="fill" cx="50" cy="50" r="40"/>
-              </svg>
+              <svg viewBox="0 0 100 100" width="88" height="88"><circle class="track" cx="50" cy="50" r="40"/><circle class="fill" cx="50" cy="50" r="40"/></svg>
               <div class="score-num">90</div>
             </div>
-            <div class="score-label">✓ Compliant</div>
+            <div class="score-lbl">✓ Compliant</div>
           </div>
-          <div class="compliance-items">
-            <div class="ci ok">
-              <span class="ci-icon">📄</span>
-              <span class="ci-text">Gas Safety Certificate</span>
-              <span class="ci-status">Valid</span>
-            </div>
-            <div class="ci ok">
-              <span class="ci-icon">⚡</span>
-              <span class="ci-text">EICR Report</span>
-              <span class="ci-status">Valid</span>
-            </div>
-            <div class="ci ok">
-              <span class="ci-icon">🏠</span>
-              <span class="ci-text">How to Rent Guide</span>
-              <span class="ci-status">Sent</span>
-            </div>
-            <div class="ci warn">
-              <span class="ci-icon">🔥</span>
-              <span class="ci-text">Smoke Alarm Check</span>
-              <span class="ci-status">Due Soon</span>
-            </div>
+          <div class="hc-items">
+            <div class="hc-item ok"><span>📄</span><span class="hc-item-text">Gas Safety Certificate</span><span class="hc-badge">Valid</span></div>
+            <div class="hc-item ok"><span>⚡</span><span class="hc-item-text">EICR Report</span><span class="hc-badge">Valid</span></div>
+            <div class="hc-item warn"><span>🔥</span><span class="hc-item-text">Smoke Alarm Check</span><span class="hc-badge">Due soon</span></div>
+            <div class="hc-item ok"><span>📋</span><span class="hc-item-text">How to Rent Guide</span><span class="hc-badge">Sent</span></div>
           </div>
         </div>
       </div>
-      <div class="hero-float f2">📬 Welcome kit sent to tenant</div>
-    </div>
-  </div>
-</section>
-
-<!-- TRUST BAR -->
-<div class="trust-bar">
-  <div class="trust-inner">
-    <div class="trust-item">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-      Built for the Renters' Rights Act 2025
-    </div>
-    <div class="trust-divider"></div>
-    <div class="trust-item">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-      All 17 legal documents included
-    </div>
-    <div class="trust-divider"></div>
-    <div class="trust-item">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      Compliance deadlines auto-tracked
-    </div>
-    <div class="trust-divider"></div>
-    <div class="trust-item">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      Supabase encrypted · UK data
+      <div class="hero-float f2">📅 3 certs expiring this month</div>
     </div>
   </div>
 </div>
 
-<!-- DEMO MOCKUP -->
-<section id="demo">
-  <div class="section-inner">
-    <div class="section-header centered fade-in">
-      <div class="section-tag">See it in action</div>
-      <h2 class="section-heading">Your compliance dashboard,<br>at a glance</h2>
-      <p class="section-sub">Every property, certificate, and deadline in one place. Know your compliance status the moment you log in.</p>
-    </div>
-    <div class="mockup-wrap fade-in" style="transition-delay:0.15s" id="mockup">
-      <!-- Browser chrome -->
-      <div class="mockup-bar">
-        <div class="mockup-dots">
-          <span style="background:#FF5F57"></span>
-          <span style="background:#FEBC2E"></span>
-          <span style="background:#28C840"></span>
-        </div>
-        <div class="mockup-url">rentsafeai.co.uk/landlord</div>
-      </div>
-      <!-- App layout -->
-      <div class="mockup-body">
-        <!-- Sidebar -->
-        <div class="mockup-sidebar">
-          <div class="mock-nav-item active"><span class="icon">🏠</span> Dashboard</div>
-          <div class="mock-nav-item"><span class="icon">🏘️</span> Properties</div>
-          <div class="mock-nav-item"><span class="icon">👤</span> Tenants</div>
-          <div class="mock-nav-item"><span class="icon">📄</span> Documents</div>
-          <div class="mock-nav-item"><span class="icon">🔧</span> Maintenance</div>
-          <div class="mock-nav-item"><span class="icon">📅</span> Calendar</div>
-          <div class="mock-nav-item"><span class="icon">🤖</span> AI Assistant</div>
-        </div>
-        <!-- Main content -->
-        <div class="mockup-main">
-          <div class="mock-header">
-            <div class="mock-title">Good morning, Saby 👋</div>
-            <div class="mock-badge">✓ 3 of 3 properties compliant</div>
-          </div>
-          <!-- Score ring -->
-          <div class="mock-score-wrap">
-            <div class="mock-ring" id="mock-ring">
-              <svg viewBox="0 0 64 64" width="64" height="64">
-                <circle class="r-track" cx="32" cy="32" r="26"/>
-                <circle class="r-fill" cx="32" cy="32" r="26"/>
-              </svg>
-              <div class="mock-ring-num">90</div>
-            </div>
-            <div class="mock-score-info">
-              <h4>Portfolio Compliance Score</h4>
-              <p>1 action needed — smoke alarm check due at 14 Rowan Close</p>
-            </div>
-          </div>
-          <!-- Metric cards -->
-          <div class="mock-cards">
-            <div class="mock-card">
-              <div class="mock-card-label">Properties</div>
-              <div class="mock-card-val">3</div>
-              <div class="mock-card-sub">All active</div>
-            </div>
-            <div class="mock-card">
-              <div class="mock-card-label">Certs Expiring</div>
-              <div class="mock-card-val" style="color:#D97706">1</div>
-              <div class="mock-card-sub">Next 30 days</div>
-            </div>
-            <div class="mock-card">
-              <div class="mock-card-label">Open Repairs</div>
-              <div class="mock-card-val">2</div>
-              <div class="mock-card-sub">In progress</div>
-            </div>
-          </div>
-          <!-- Compliance rows -->
-          <div class="mock-rows">
-            <div class="mock-row" data-delay="0">
-              <span class="mock-row-icon">🔥</span>
-              <span class="mock-row-text">Smoke Alarm Check — 14 Rowan Close</span>
-              <span class="mock-row-date">Due 10 Jun</span>
-              <span class="mock-row-status status-warn">Due Soon</span>
-            </div>
-            <div class="mock-row" data-delay="150">
-              <span class="mock-row-icon">⛽</span>
-              <span class="mock-row-text">Gas Safety Certificate — 7 Maple Ave</span>
-              <span class="mock-row-date">Valid to Dec 2025</span>
-              <span class="mock-row-status status-ok">Valid</span>
-            </div>
-            <div class="mock-row" data-delay="300">
-              <span class="mock-row-icon">📄</span>
-              <span class="mock-row-text">Tenancy Agreement — 22 Birch Lane</span>
-              <span class="mock-row-date">Signed 1 Apr</span>
-              <span class="mock-row-status status-ok">Complete</span>
-            </div>
-            <div class="mock-row" data-delay="450">
-              <span class="mock-row-icon">🏠</span>
-              <span class="mock-row-text">How to Rent Guide — 22 Birch Lane</span>
-              <span class="mock-row-date">Sent 1 Apr</span>
-              <span class="mock-row-status status-ok">Sent</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+<div class="social-proof-bar">
+  <p>Built for the <strong>2.66 million private landlords</strong> across England &amp; Wales — compliance without a letting agent.</p>
+</div>
 
-<!-- FEATURES -->
-<section id="features">
-  <div class="section-inner">
-    <div class="section-header fade-in">
+<!-- ══ SCROLL 2: TABBED SHOWCASE ══ -->
+<section id="showcase">
+  <div class="showcase-inner">
+    <div class="showcase-header fade-in">
       <div class="section-tag">Everything you need</div>
-      <h2 class="section-heading">Built for private landlords,<br>not letting agents</h2>
-      <p class="section-sub">Every feature is designed around the reality of managing 1–15 properties yourself — without a compliance team behind you.</p>
+      <h2 class="section-heading">The full picture, one platform.</h2>
+      <p class="section-sub">Click through every feature — each one built specifically for UK private landlords.</p>
     </div>
-    <div class="features-grid">
-      <div class="feature-card fade-in" style="transition-delay:0.05s">
-        <div class="feature-icon">🛡️</div>
-        <h3>RRA 2025 Compliance Score</h3>
-        <p>Real-time compliance health score per property. Know exactly what's missing before a tenant complaint or council inspection.</p>
+
+    <div class="tab-bar fade-in" style="transition-delay:0.1s">
+      <button class="tab-btn active" onclick="switchTab('compliance',this)"><span class="tab-icon">🛡️</span> Compliance</button>
+      <button class="tab-btn" onclick="switchTab('documents',this)"><span class="tab-icon">📄</span> Documents</button>
+      <button class="tab-btn" onclick="switchTab('esign',this)"><span class="tab-icon">✍️</span> E-Signatures</button>
+      <button class="tab-btn" onclick="switchTab('calendar',this)"><span class="tab-icon">📅</span> Calendar</button>
+      <button class="tab-btn" onclick="switchTab('maintenance',this)"><span class="tab-icon">🔧</span> Maintenance</button>
+      <button class="tab-btn" onclick="switchTab('ai',this)"><span class="tab-icon">🤖</span> AI Assistant</button>
+    </div>
+
+    <div class="tab-panels fade-in" style="transition-delay:0.15s">
+
+      <!-- COMPLIANCE -->
+      <div class="tab-panel active" id="tab-compliance">
+        <div class="tab-mockup">
+          <div class="mock-window">
+            <div class="mock-bar"><div class="mock-bar-dots"><span style="background:#FF5F57"></span><span style="background:#FEBC2E"></span><span style="background:#28C840"></span></div><span class="mock-bar-title">rentsafeai.co.uk/dashboard</span></div>
+            <div class="mock-body">
+              <div class="m-score-row">
+                <div class="m-ring"><svg viewBox="0 0 56 56" width="56" height="56"><circle class="rtrack" cx="28" cy="28" r="23"/><circle class="rfill" cx="28" cy="28" r="23"/></svg><div class="m-ring-n">90</div></div>
+                <div class="m-info"><h5>Portfolio Compliance Score</h5><p>1 action needed — smoke alarm at 14 Rowan Close</p></div>
+              </div>
+              <div class="m-row"><span class="m-row-icon">⛽</span><span class="m-row-name">Gas Safety — 14 Rowan Close</span><span class="m-badge b-ok">Valid</span></div>
+              <div class="m-row"><span class="m-row-icon">⚡</span><span class="m-row-name">EICR — 7 Maple Ave</span><span class="m-badge b-ok">Valid</span></div>
+              <div class="m-row"><span class="m-row-icon">🏠</span><span class="m-row-name">EPC — 22 Birch Lane</span><span class="m-badge b-warn">Exp. Aug</span></div>
+              <div class="m-row"><span class="m-row-icon">🔥</span><span class="m-row-name">Smoke Alarm — 14 Rowan</span><span class="m-badge b-due">Due</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="tab-desc">
+          <div class="tab-desc-icon">🛡️</div>
+          <h3>Always know your compliance status</h3>
+          <p>A real-time compliance health score for every property. Know what's missing before a tenant complaint or council inspection.</p>
+          <ul class="tab-feats">
+            <li>Live RRA 2025 compliance score per property</li>
+            <li>17+ regulatory checks across all certs and documents</li>
+            <li>Instant alerts when certificates approach expiry</li>
+            <li>Section 21 abolition tracking built in</li>
+            <li>Shareable compliance certificate for tenants</li>
+          </ul>
+        </div>
       </div>
-      <div class="feature-card fade-in" style="transition-delay:0.1s">
-        <div class="feature-icon">📄</div>
-        <h3>17 Legal Documents</h3>
-        <p>Auto-generated tenancy agreements, Section 8 notices, deposit protection letters, and every mandatory document — in seconds.</p>
+
+      <!-- DOCUMENTS -->
+      <div class="tab-panel" id="tab-documents">
+        <div class="tab-mockup">
+          <div class="mock-window">
+            <div class="mock-bar"><div class="mock-bar-dots"><span style="background:#FF5F57"></span><span style="background:#FEBC2E"></span><span style="background:#28C840"></span></div><span class="mock-bar-title">Documents · 14 Rowan Close</span></div>
+            <div class="mock-body">
+              <div class="m-row"><span class="m-row-icon">📋</span><span class="m-row-name">Assured Shorthold Tenancy Agreement</span><span class="m-badge b-btn">Generate</span></div>
+              <div class="m-row"><span class="m-row-icon">🏠</span><span class="m-row-name">How to Rent Guide (Apr 2024)</span><span class="m-badge b-btn">Send</span></div>
+              <div class="m-row"><span class="m-row-icon">💰</span><span class="m-row-name">Deposit Protection Letter</span><span class="m-badge b-btn">Generate</span></div>
+              <div class="m-row"><span class="m-row-icon">📄</span><span class="m-row-name">Section 8 Notice — Ground 8</span><span class="m-badge b-btn">Generate</span></div>
+              <div class="m-row"><span class="m-row-icon">📝</span><span class="m-row-name">Section 13 Rent Increase Notice</span><span class="m-badge b-btn">Generate</span></div>
+              <div class="m-row"><span class="m-row-icon">📦</span><span class="m-row-name">Mandatory Starter Kit</span><span class="m-badge b-btn">Send all</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="tab-desc">
+          <div class="tab-desc-icon">📄</div>
+          <h3>Every legal document, generated instantly</h3>
+          <p>17 RRA-compliant documents auto-populated from your property data. No templates to fill, no missing clauses.</p>
+          <ul class="tab-feats">
+            <li>Tenancy agreements with all 2025 RRA clauses</li>
+            <li>All 37 Section 8 grounds covered</li>
+            <li>Section 13 rent increase notices</li>
+            <li>Deposit protection letters and prescribed information</li>
+            <li>Mandatory starter kit compiled and sent in one click</li>
+          </ul>
+        </div>
       </div>
-      <div class="feature-card fade-in" style="transition-delay:0.15s">
-        <div class="feature-icon">📦</div>
-        <h3>Mandatory Starter Kit</h3>
-        <p>Day-1 documents auto-compiled for every new tenancy: How to Rent guide, EPC, gas cert, deposit info, and more.</p>
+
+      <!-- E-SIGNATURES -->
+      <div class="tab-panel" id="tab-esign">
+        <div class="tab-mockup">
+          <div class="mock-window">
+            <div class="mock-bar"><div class="mock-bar-dots"><span style="background:#FF5F57"></span><span style="background:#FEBC2E"></span><span style="background:#28C840"></span></div><span class="mock-bar-title">E-Signatures · AST Signing</span></div>
+            <div class="mock-body">
+              <div class="m-sign-h"><h6>Assured Shorthold Tenancy</h6><p>14 Windsor Gardens, Wembley</p></div>
+              <div class="m-sign-tag">Tenants signing (1/2)</div>
+              <div class="m-signer"><div class="m-dot dot-g"></div><span class="m-signer-name">Mr R. Patel <span style="font-size:0.63rem;color:rgba(255,255,255,0.28)">Landlord</span></span><span class="m-signer-status s-signed">Signed 28/03</span></div>
+              <div class="m-signer"><div class="m-dot dot-g"></div><span class="m-signer-name">Aisha Khan <span style="font-size:0.63rem;color:rgba(255,255,255,0.28)">Tenant</span></span><span class="m-signer-status s-signed">Signed 29/03</span></div>
+              <div class="m-signer"><div class="m-dot dot-y"></div><span class="m-signer-name">Bilal Khan <span style="font-size:0.63rem;color:rgba(255,255,255,0.28)">Tenant</span></span><span class="m-signer-status">Awaiting</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="tab-desc">
+          <div class="tab-desc-icon">✍️</div>
+          <h3>Get any document e-signed</h3>
+          <p>Contracts, inventories, pet agreements, rent increase acknowledgements — upload any PDF and get it signed. No chasing, no printing, no posting.</p>
+          <ul class="tab-feats">
+            <li>Upload any PDF — tenants sign online in minutes</li>
+            <li>Auto-generated AST — RRA 2025 compliant</li>
+            <li>Signing order: landlord first, then tenants</li>
+            <li>Unlimited e-signatures on every plan</li>
+            <li>Signed PDFs saved to property records automatically</li>
+          </ul>
+        </div>
       </div>
-      <div class="feature-card fade-in" style="transition-delay:0.2s">
-        <div class="feature-icon">🔔</div>
-        <h3>Certificate Expiry Alerts</h3>
-        <p>Gas safety, EICR, EPC — get ahead of renewals with automated reminders before certificates expire.</p>
+
+      <!-- CALENDAR -->
+      <div class="tab-panel" id="tab-calendar">
+        <div class="tab-mockup">
+          <div class="mock-window">
+            <div class="mock-bar"><div class="mock-bar-dots"><span style="background:#FF5F57"></span><span style="background:#FEBC2E"></span><span style="background:#28C840"></span></div><span class="mock-bar-title">Compliance Calendar · May 2026</span></div>
+            <div class="mock-body">
+              <div class="m-cal-hdr"><h6>May 2026</h6><span>3 events</span></div>
+              <div class="m-cal">
+                <div class="m-cal-d">M</div><div class="m-cal-d">T</div><div class="m-cal-d">W</div><div class="m-cal-d">T</div><div class="m-cal-d">F</div><div class="m-cal-d">S</div><div class="m-cal-d">S</div>
+                <div class="m-cal-c"></div><div class="m-cal-c"></div><div class="m-cal-c"></div><div class="m-cal-c ev">1</div><div class="m-cal-c">2</div><div class="m-cal-c">3</div><div class="m-cal-c">4</div>
+                <div class="m-cal-c today">5</div><div class="m-cal-c">6</div><div class="m-cal-c">7</div><div class="m-cal-c evw">8</div><div class="m-cal-c">9</div><div class="m-cal-c">10</div><div class="m-cal-c">11</div>
+                <div class="m-cal-c">12</div><div class="m-cal-c">13</div><div class="m-cal-c">14</div><div class="m-cal-c">15</div><div class="m-cal-c ev">16</div><div class="m-cal-c">17</div><div class="m-cal-c">18</div>
+                <div class="m-cal-c">19</div><div class="m-cal-c">20</div><div class="m-cal-c evw">21</div><div class="m-cal-c">22</div><div class="m-cal-c">23</div><div class="m-cal-c">24</div><div class="m-cal-c">25</div>
+              </div>
+              <div class="m-ev-row"><div class="m-ev-dot" style="background:#34D399"></div><span>Gas cert renewal — 14 Rowan Close</span><span class="m-ev-date">1 May</span></div>
+              <div class="m-ev-row"><div class="m-ev-dot" style="background:#FBBf24"></div><span>Smoke alarm check due</span><span class="m-ev-date">8 May</span></div>
+              <div class="m-ev-row"><div class="m-ev-dot" style="background:#60A5FA"></div><span>Rent review — 22 Birch Lane</span><span class="m-ev-date">16 May</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="tab-desc">
+          <div class="tab-desc-icon">📅</div>
+          <h3>Never miss a deadline</h3>
+          <p>One view of every expiry, inspection, rent review, and compliance check across all properties. Colour-coded, always current.</p>
+          <ul class="tab-feats">
+            <li>11 event types across all your properties</li>
+            <li>Certificate renewals, inspections, and rent dates</li>
+            <li>Automated email reminders before key dates</li>
+            <li>Month navigation with multi-colour event dots</li>
+            <li>Drill down to any property from the calendar</li>
+          </ul>
+        </div>
       </div>
-      <div class="feature-card fade-in" style="transition-delay:0.25s">
-        <div class="feature-icon">🔧</div>
-        <h3>Maintenance & Awaab's Law</h3>
-        <p>Log, track, and resolve repairs with built-in Awaab's Law timers. Evidence every action with timestamps.</p>
+
+      <!-- MAINTENANCE -->
+      <div class="tab-panel" id="tab-maintenance">
+        <div class="tab-mockup">
+          <div class="mock-window">
+            <div class="mock-bar"><div class="mock-bar-dots"><span style="background:#FF5F57"></span><span style="background:#FEBC2E"></span><span style="background:#28C840"></span></div><span class="mock-bar-title">Maintenance · Open repairs</span></div>
+            <div class="mock-body">
+              <div class="m-repair"><div class="m-repair-i">💧</div><div class="m-repair-b"><h6>Boiler not heating — 14 Rowan Close</h6><p>Reported 2 May · Plumber assigned</p></div><span class="m-timer t-warn">⏱ 5d left</span></div>
+              <div class="m-repair"><div class="m-repair-i">🪟</div><div class="m-repair-b"><h6>Broken window latch — 7 Maple Ave</h6><p>Reported 28 Apr · In progress</p></div><span class="m-timer t-ok">✓ On track</span></div>
+              <div class="m-repair"><div class="m-repair-i">🔌</div><div class="m-repair-b"><h6>Socket not working — 22 Birch Lane</h6><p>Reported 1 May · Awaiting contractor</p></div><span class="m-timer t-ok">✓ On track</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="tab-desc">
+          <div class="tab-desc-icon">🔧</div>
+          <h3>Log repairs. Evidence everything.</h3>
+          <p>Awaab's Law imposes strict response deadlines on hazardous repairs. Every action is timestamped, every repair is traceable.</p>
+          <ul class="tab-feats">
+            <li>Awaab's Law timers auto-triggered on hazardous reports</li>
+            <li>Timestamped evidence trail for every repair</li>
+            <li>Contractor book with contact details</li>
+            <li>Escalation alerts before deadlines breach</li>
+            <li>AI-generated inventory reports on move-in/out</li>
+          </ul>
+        </div>
       </div>
-      <div class="feature-card fade-in" style="transition-delay:0.3s">
-        <div class="feature-icon">🏠</div>
-        <h3>Tenant Portal</h3>
-        <p>Give tenants their own secure portal to access documents, report issues, and sign agreements electronically.</p>
+
+      <!-- AI ASSISTANT -->
+      <div class="tab-panel" id="tab-ai">
+        <div class="tab-mockup">
+          <div class="mock-window">
+            <div class="mock-bar"><div class="mock-bar-dots"><span style="background:#FF5F57"></span><span style="background:#FEBC2E"></span><span style="background:#28C840"></span></div><span class="mock-bar-title">AI Compliance Assistant</span></div>
+            <div class="mock-body">
+              <div style="margin-bottom:10px"><span class="m-ai-tag">Powered by Claude AI</span></div>
+              <div class="m-chat">
+                <div class="m-bubble b-user">Can I still evict a tenant for rent arrears under the new rules?</div>
+                <div class="m-bubble b-ai">Yes — Section 8 still applies. Ground 8 (mandatory) now requires 4 weeks of arrears, up from 2. Want me to generate a Section 8 notice for this tenancy?</div>
+                <div class="m-bubble b-user">Yes — 14 Rowan Close</div>
+                <div class="m-bubble b-ai">Done. Pre-filled with the tenancy details — review and send from the Documents tab.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tab-desc">
+          <div class="tab-desc-icon">🤖</div>
+          <h3>Your RRA compliance expert, on demand</h3>
+          <p>Ask anything about the Renters' Rights Act, Section 8 grounds, or deposit rules — and take action without leaving the chat.</p>
+          <ul class="tab-feats">
+            <li>Full RRA 2025 knowledge built in</li>
+            <li>All 37 Section 8 grounds explained</li>
+            <li>Knows your properties and tenancies</li>
+            <li>Generates notices directly from chat</li>
+            <li>Powered by Claude (Anthropic)</li>
+          </ul>
+        </div>
       </div>
-      <div class="feature-card fade-in" style="transition-delay:0.35s">
-        <div class="feature-icon">✍️</div>
-        <h3>E-Signatures</h3>
-        <p>Sign tenancy agreements and notices digitally. No printing, no posting, no chasing.</p>
-      </div>
-      <div class="feature-card fade-in" style="transition-delay:0.4s">
-        <div class="feature-icon">🤖</div>
-        <h3>AI Compliance Assistant</h3>
-        <p>Ask anything about the Renters' Rights Act, Section 8 grounds, or deposit rules. Get instant, accurate answers.</p>
-      </div>
-      <div class="feature-card fade-in" style="transition-delay:0.45s">
-        <div class="feature-icon">📅</div>
-        <h3>Smart Compliance Calendar</h3>
-        <p>One view of every deadline, inspection, renewal, and check across all your properties. Never miss a date.</p>
-      </div>
+
     </div>
   </div>
 </section>
 
-<!-- NEXT PHASE -->
-<section id="next-phase">
-  <div class="next-phase-inner">
-    <div class="next-phase-header section-header centered fade-in">
-      <div class="section-tag">Our next phase</div>
-      <h2 class="section-heading">More coming soon</h2>
-      <p class="section-sub">We're building the most complete compliance platform for UK landlords. HMO and Management Agent support are next — register your interest to get early access.</p>
-    </div>
-    <div class="phase-cards fade-in">
-      <div class="phase-card">
-        <div class="phase-card-icon">🏘️</div>
-        <div class="phase-card-body">
-          <h3>HMO Licence Management</h3>
-          <p>Room-by-room compliance, HMO licence tracking, shared facilities logs, fire safety management, and council inspection prep — purpose-built for HMO landlords.</p>
-          <span class="phase-soon-badge">⏳ Coming Soon</span>
-        </div>
-      </div>
-      <div class="phase-card">
-        <div class="phase-card-icon">🏢</div>
-        <div class="phase-card-body">
-          <h3>Management Agent Portal</h3>
-          <p>A dedicated white-label portal for letting agents to manage client portfolios, track compliance across landlords, and generate branded compliance reports.</p>
-          <span class="phase-soon-badge">⏳ Coming Soon</span>
-        </div>
-      </div>
-    </div>
-    <div class="phase-interest-form fade-in">
-      <p><strong>Get early access.</strong> Leave your email and we'll notify you the moment it's live.</p>
-      <div class="phase-email-row">
-        <input type="email" id="phase-email" placeholder="your@email.com">
-        <button onclick="submitPhaseInterest()">Notify Me</button>
-      </div>
-      <div id="phase-success">✅ You're on the list — we'll be in touch.</div>
-    </div>
-  </div>
-</section>
-
-<!-- PRICING -->
+<!-- ══ SCROLL 3: PRICING ══ -->
 <section id="pricing">
-  <div class="section-inner">
-    <div class="section-header centered fade-in">
+  <div class="pricing-inner">
+
+    <div class="fade-in" style="margin-bottom:24px">
       <div class="section-tag">Pricing</div>
       <h2 class="section-heading">Simple pricing. No surprises.</h2>
-      <p class="section-sub">Start free for 30 days. First 100 landlords get founding prices locked for life.</p>
+      <p class="section-sub">Every plan includes every feature. Price reflects your portfolio size, not what you can access.</p>
     </div>
 
     <div class="founding-banner fade-in">
-      <div class="founding-icon">🏅</div>
-      <div class="founding-text">
-        <h4>Founding Member Offer — Limited to 100 Landlords</h4>
-        <p>Sign up today and lock in your founding price forever. Free for the first 30 days — no card required.</p>
-      </div>
-      <div class="founding-count">
-        <div class="num">100</div>
-        <div class="label">Spots Left</div>
-      </div>
+      <div class="f-icon">🏅</div>
+      <div class="f-text"><h4>Founding Member Offer — Limited to 100 Landlords</h4><p>Sign up today and lock your founding price forever. Free for 30 days — no card required.</p></div>
+      <div class="f-spots"><div class="num">100</div><div class="lbl">Spots Left</div></div>
     </div>
 
     <div class="pricing-toggle fade-in">
       <span class="toggle-label active" id="monthly-label">Monthly</span>
-      <div class="toggle-switch" id="billing-toggle" onclick="toggleBilling()"></div>
+      <div class="toggle-sw" id="billing-toggle" onclick="toggleBilling()"></div>
       <span class="toggle-label" id="annual-label">Annual</span>
       <span class="annual-badge">Save 2 months</span>
     </div>
 
-    <div class="pricing-grid fade-in">
-
+    <div class="pricing-cards fade-in">
       <!-- Starter -->
-      <div class="pricing-card">
-        <div class="plan-name">Starter</div>
-        <div class="plan-props">For landlords with up to 2 properties</div>
-        <div class="plan-price">
-          <span class="founding">🏅 Founding price</span>
-          <span class="amount" id="starter-price">£4.99</span><span class="period">/mo</span>
-          <span class="standard" id="starter-standard">Standard: £7.99/mo</span>
-        </div>
-        <a href="landlord.html" class="plan-btn plan-btn-outline">Start free trial</a>
-        <div class="plan-divider"></div>
-        <ul class="plan-features">
-          <li><span class="check">✓</span> Up to 2 properties</li>
-          <li><span class="check">✓</span> Compliance dashboard &amp; health score</li>
-          <li><span class="check">✓</span> All 17 legal documents</li>
-          <li><span class="check">✓</span> Mandatory starter kit</li>
-          <li><span class="check">✓</span> Certificate expiry alerts</li>
-          <li><span class="check">✓</span> Tenant portal &amp; e-signatures</li>
-          <li><span class="check">✓</span> S.13 &amp; S.8 notice generator</li>
-          <li><span class="check">✓</span> AI compliance assistant</li>
-          <li><span class="check">✓</span> Smart compliance calendar</li>
-          <li><span class="check">✓</span> Maintenance &amp; Awaab's Law timers</li>
-          <li><span class="check">✓</span> Contractor book</li>
-          <li><span class="check">✓</span> Deposit protection alerts</li>
-          <li class="gold"><span class="check">✓</span> Founding member badge</li>
+      <div class="pc">
+        <div class="pc-name">Starter</div>
+        <div class="pc-props">Up to 2 properties</div>
+        <span class="pc-founding">🏅 Founding price</span>
+        <div class="pc-price-row"><span class="pc-amount" id="starter-price">£4.99</span><span class="pc-period">/mo</span></div>
+        <span class="pc-standard" id="starter-standard">Standard: £7.99/mo</span>
+        <a href="landlord.html" class="pc-btn pc-btn-o">Start free trial</a>
+        <div class="pc-div"></div>
+        <ul class="pc-feats">
+          <li><span class="ck">✓</span> Full compliance dashboard</li>
+          <li><span class="ck">✓</span> All 17 legal documents</li>
+          <li><span class="ck">✓</span> Tenant portal &amp; e-signatures</li>
+          <li><span class="ck">✓</span> AI compliance assistant</li>
+          <li class="gf"><span class="ck">✓</span> Founding member badge</li>
         </ul>
       </div>
-
-      <!-- Landlord (popular) -->
-      <div class="pricing-card popular">
-        <div class="popular-badge">Most Popular</div>
-        <div class="plan-name">Landlord</div>
-        <div class="plan-props">For landlords with up to 10 properties</div>
-        <div class="plan-price">
-          <span class="founding">🏅 Founding price</span>
-          <span class="amount" id="landlord-price">£9.99</span><span class="period">/mo</span>
-          <span class="standard" id="landlord-standard">Standard: £15.99/mo</span>
-        </div>
-        <a href="landlord.html" class="plan-btn plan-btn-primary">Start free trial</a>
-        <div class="plan-divider"></div>
-        <ul class="plan-features">
-          <li><span class="check">✓</span> Up to 10 properties</li>
-          <li><span class="check">✓</span> Everything in Starter</li>
-          <li><span class="check">✓</span> Bulk document generation</li>
-          <li><span class="check">✓</span> Portfolio health overview</li>
-          <li><span class="check">✓</span> Compliance audit log</li>
-          <li><span class="check">✓</span> Rent tracking &amp; reminders</li>
-          <li><span class="check">✓</span> Insurance tracking</li>
-          <li><span class="check">✓</span> AI inventory report</li>
-          <li><span class="check">✓</span> 📊 MTD-ready tax reporting</li>
-          <li class="gold"><span class="check">✓</span> Founding member badge</li>
+      <!-- Landlord -->
+      <div class="pc popular">
+        <div class="pc-pop-badge">Most Popular</div>
+        <div class="pc-name">Landlord</div>
+        <div class="pc-props">Up to 10 properties</div>
+        <span class="pc-founding">🏅 Founding price</span>
+        <div class="pc-price-row"><span class="pc-amount" id="landlord-price">£9.99</span><span class="pc-period">/mo</span></div>
+        <span class="pc-standard" id="landlord-standard">Standard: £15.99/mo</span>
+        <a href="landlord.html" class="pc-btn pc-btn-p">Start free trial</a>
+        <div class="pc-div"></div>
+        <ul class="pc-feats">
+          <li><span class="ck">✓</span> Everything in Starter</li>
+          <li><span class="ck">✓</span> Bulk document generation</li>
+          <li><span class="ck">✓</span> 📊 MTD-ready tax reporting</li>
+          <li><span class="ck">✓</span> Portfolio health overview</li>
+          <li class="gf"><span class="ck">✓</span> Founding member badge</li>
         </ul>
       </div>
-
       <!-- Portfolio -->
-      <div class="pricing-card">
-        <div class="plan-name">Portfolio</div>
-        <div class="plan-props">Unlimited properties</div>
-        <div class="plan-price">
-          <span class="founding">🏅 Founding price</span>
-          <span class="amount" id="portfolio-price">£11.99</span><span class="period">/mo</span>
-          <span class="standard" id="portfolio-standard">Standard: £23.99/mo</span>
-        </div>
-        <a href="landlord.html" class="plan-btn plan-btn-outline">Start free trial</a>
-        <div class="plan-divider"></div>
-        <ul class="plan-features">
-          <li><span class="check">✓</span> Unlimited properties</li>
-          <li><span class="check">✓</span> Everything in Landlord</li>
-          <li><span class="check">✓</span> 📊 MTD-ready tax reporting</li>
-          <li><span class="check">✓</span> Custom document templates</li>
-          <li><span class="check">✓</span> Dedicated onboarding</li>
-          <li><span class="check">✓</span> Priority email support</li>
-          <li><span class="check">✓</span> Multi-user access</li>
-          <li class="gold"><span class="check">✓</span> Founding member badge</li>
+      <div class="pc">
+        <div class="pc-name">Portfolio</div>
+        <div class="pc-props">Unlimited properties</div>
+        <span class="pc-founding">🏅 Founding price</span>
+        <div class="pc-price-row"><span class="pc-amount" id="portfolio-price">£11.99</span><span class="pc-period">/mo</span></div>
+        <span class="pc-standard" id="portfolio-standard">Standard: £23.99/mo</span>
+        <a href="landlord.html" class="pc-btn pc-btn-o">Start free trial</a>
+        <div class="pc-div"></div>
+        <ul class="pc-feats">
+          <li><span class="ck">✓</span> Everything in Landlord</li>
+          <li><span class="ck">✓</span> 📊 MTD-ready tax reporting</li>
+          <li><span class="ck">✓</span> Custom document templates</li>
+          <li><span class="ck">✓</span> Priority support &amp; onboarding</li>
+          <li class="gf"><span class="ck">✓</span> Founding member badge</li>
         </ul>
       </div>
+    </div>
 
-      <!-- HMO Coming Soon -->
-      <div class="pricing-card hmo-plan">
-        <div class="plan-name">HMO</div>
-        <div class="plan-props">HMO &amp; Management Agent</div>
-        <div class="plan-price">
-          <span class="founding" style="opacity:0.4">Coming soon</span>
-          <span class="amount" style="opacity:0.3">—</span>
-        </div>
-        <a class="plan-btn plan-btn-coming">Coming Soon</a>
-        <div class="plan-divider"></div>
-        <ul class="plan-features">
-          <li><span class="check" style="opacity:0.3">✓</span> HMO licence tracking</li>
-          <li><span class="check" style="opacity:0.3">✓</span> Room-by-room compliance</li>
-          <li><span class="check" style="opacity:0.3">✓</span> Fire safety management</li>
-          <li><span class="check" style="opacity:0.3">✓</span> Council inspection prep</li>
-          <li><span class="check" style="opacity:0.3">✓</span> Management agent portal</li>
-          <li><span class="check" style="opacity:0.3">✓</span> White-label reporting</li>
-        </ul>
+    <!-- Comparison table -->
+    <div class="compare-wrap fade-in">
+      <div class="compare-btn-wrap">
+        <button class="compare-btn" id="compare-btn" onclick="toggleCT()">
+          <span id="ct-icon">▼</span> Compare all features
+        </button>
       </div>
+      <div class="ct" id="ct">
+        <div class="ct-box">
+          <div class="ct-head">
+            <div class="ct-hc">Feature</div>
+            <div class="ct-hc">Starter</div>
+            <div class="ct-hc pop">Landlord</div>
+            <div class="ct-hc">Portfolio</div>
+          </div>
+          <div class="ct-glabel">Portfolio size</div>
+          <div class="ct-row"><div class="ct-feat">Properties</div><div class="ct-cell"><span class="ct-val">2</span></div><div class="ct-cell"><span class="ct-val">10</span></div><div class="ct-cell"><span class="ct-val">Unlimited</span></div></div>
 
+          <div class="ct-glabel">Core compliance — all plans</div>
+          <div class="ct-row"><div class="ct-feat">RRA 2025 compliance score</div><div class="ct-cell"><span class="ct-ok">✓</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div></div>
+          <div class="ct-row"><div class="ct-feat">All 17 legal documents</div><div class="ct-cell"><span class="ct-ok">✓</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div></div>
+          <div class="ct-row"><div class="ct-feat">Mandatory starter kit</div><div class="ct-cell"><span class="ct-ok">✓</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div></div>
+          <div class="ct-row"><div class="ct-feat">Certificate expiry alerts</div><div class="ct-cell"><span class="ct-ok">✓</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div></div>
+          <div class="ct-row"><div class="ct-feat">Tenant portal &amp; e-signatures</div><div class="ct-cell"><span class="ct-ok">✓</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div></div>
+          <div class="ct-row"><div class="ct-feat">S.8 &amp; S.13 notice generator</div><div class="ct-cell"><span class="ct-ok">✓</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div></div>
+          <div class="ct-row"><div class="ct-feat">AI compliance assistant</div><div class="ct-cell"><span class="ct-ok">✓</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div></div>
+          <div class="ct-row"><div class="ct-feat">Compliance calendar</div><div class="ct-cell"><span class="ct-ok">✓</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div></div>
+          <div class="ct-row"><div class="ct-feat">Maintenance &amp; Awaab's Law</div><div class="ct-cell"><span class="ct-ok">✓</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div></div>
+          <div class="ct-row"><div class="ct-feat">Contractor book</div><div class="ct-cell"><span class="ct-ok">✓</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div></div>
+          <div class="ct-row"><div class="ct-feat">Deposit protection alerts</div><div class="ct-cell"><span class="ct-ok">✓</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div></div>
+
+          <div class="ct-glabel">Portfolio management — Landlord &amp; Portfolio</div>
+          <div class="ct-row"><div class="ct-feat">Bulk document generation</div><div class="ct-cell"><span class="ct-no">—</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div></div>
+          <div class="ct-row"><div class="ct-feat">Portfolio health overview</div><div class="ct-cell"><span class="ct-no">—</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div></div>
+          <div class="ct-row"><div class="ct-feat">Compliance audit log</div><div class="ct-cell"><span class="ct-no">—</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div></div>
+          <div class="ct-row"><div class="ct-feat">Rent tracking &amp; reminders</div><div class="ct-cell"><span class="ct-no">—</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div></div>
+          <div class="ct-row"><div class="ct-feat">📊 MTD-ready tax reporting</div><div class="ct-cell"><span class="ct-no">—</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div></div>
+          <div class="ct-row"><div class="ct-feat">AI inventory report</div><div class="ct-cell"><span class="ct-no">—</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div></div>
+          <div class="ct-row"><div class="ct-feat">Insurance tracking</div><div class="ct-cell"><span class="ct-no">—</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div></div>
+
+          <div class="ct-glabel">Advanced — Portfolio only</div>
+          <div class="ct-row"><div class="ct-feat">Custom document templates</div><div class="ct-cell"><span class="ct-no">—</span></div><div class="ct-cell"><span class="ct-no">—</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div></div>
+          <div class="ct-row"><div class="ct-feat">Dedicated onboarding</div><div class="ct-cell"><span class="ct-no">—</span></div><div class="ct-cell"><span class="ct-no">—</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div></div>
+          <div class="ct-row"><div class="ct-feat">Priority email support</div><div class="ct-cell"><span class="ct-no">—</span></div><div class="ct-cell"><span class="ct-no">—</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div></div>
+          <div class="ct-row"><div class="ct-feat">Multi-user access</div><div class="ct-cell"><span class="ct-no">—</span></div><div class="ct-cell"><span class="ct-no">—</span></div><div class="ct-cell"><span class="ct-ok">✓</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HMO strip -->
+    <div class="hmo-strip fade-in">
+      <div class="hmo-icons">🏘️ 🏢</div>
+      <div class="hmo-body">
+        <h4>HMO Licence Management &amp; Management Agent Portal</h4>
+        <p>Our next phase — room-by-room compliance, fire safety, council inspection prep, and a white-label agent portal.</p>
+      </div>
+      <span class="hmo-badge">⏳ Coming Soon</span>
     </div>
 
     <p class="pricing-note fade-in">All plans include a <strong>30-day free trial</strong> · No card required · Cancel anytime · Annual billing saves 2 months</p>
+
   </div>
 </section>
 
-<!-- CONTACT -->
-<section id="contact">
-  <div class="contact-inner">
-    <div class="section-header centered fade-in">
-      <div class="section-tag">Get in touch</div>
-      <h2 class="section-heading">Questions? We're here.</h2>
-      <p class="section-sub">Drop us a message and we'll get back to you within 48 hours.</p>
+<!-- NEXT PHASE BAND -->
+<div id="npb">
+  <div class="npb-in">
+    <div class="npb-txt"><h4>HMO &amp; Management Agent — register early interest</h4><p>Be first to know when it launches.</p></div>
+    <div class="npb-chips"><div class="npb-chip">🏘️ HMO Licence Mgmt</div><div class="npb-chip">🏢 Agent Portal</div></div>
+    <div class="npb-form">
+      <input type="email" id="npb-email" placeholder="your@email.com">
+      <button onclick="submitNPB()">Notify Me</button>
     </div>
-    <div class="contact-form fade-in">
-      <div id="contact-success">✅ Message sent — we'll be back to you within 48 hours.</div>
-      <div id="contact-form-body">
-        <div class="cf-row">
-          <div class="cf-field">
-            <label>Your name</label>
-            <input type="text" id="cf-name" placeholder="John Smith">
-          </div>
-          <div class="cf-field">
-            <label>Email address</label>
-            <input type="email" id="cf-email" placeholder="john@example.com">
-          </div>
-        </div>
-        <div class="cf-row">
-          <div class="cf-field">
-            <label>Subject</label>
-            <select id="cf-subject">
-              <option value="">Select a topic</option>
-              <option>Pricing &amp; plans</option>
-              <option>Technical question</option>
-              <option>RRA compliance query</option>
-              <option>Partnership / letting agent</option>
-              <option>Something else</option>
-            </select>
-          </div>
-          <div class="cf-field">
-            <label>Number of properties</label>
-            <select id="cf-props">
-              <option value="">Select</option>
-              <option>1–2</option>
-              <option>3–10</option>
-              <option>11–20</option>
-              <option>20+</option>
-            </select>
-          </div>
-        </div>
-        <div class="cf-field cf-full">
-          <label>Message</label>
-          <textarea id="cf-message" placeholder="Tell us what's on your mind..."></textarea>
-        </div>
-        <div class="cf-footer">
-          <div class="cf-response-note">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            We respond within 48 hours
-          </div>
-          <button class="cf-submit" onclick="submitContact()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            Send Message
-          </button>
-        </div>
-      </div>
-    </div>
+    <div id="npb-ok">✅ You're on the list.</div>
   </div>
-</section>
+</div>
 
-<!-- REFERRAL -->
-<section id="referral">
-  <div class="section-inner">
-    <div class="referral-inner fade-in">
-      <div class="section-tag">Refer a landlord</div>
-      <h2 class="section-heading">Share RentSafeAI.<br>Both of you get 3 months free.</h2>
-      <p class="section-sub">Know another landlord scrambling for RRA compliance? Send them your referral link — they get 3 months free, you get 3 months free. No catch.</p>
-
-      <div class="referral-cards">
-        <div class="ref-card">
-          <div class="icon">🔗</div>
-          <h4>Share your link</h4>
-          <p>Get your unique referral link from your dashboard</p>
-        </div>
-        <div class="ref-arrow">→</div>
-        <div class="ref-card">
-          <div class="icon">🏠</div>
-          <h4>They sign up</h4>
-          <p>Your friend starts their free trial via your link</p>
-        </div>
-      </div>
-
-      <div class="ref-reward">
-        🎁 You both get 3 months free — automatically applied
-      </div>
-
-      <a href="landlord.html" class="btn btn-outline btn-lg" style="border-color:rgba(255,255,255,0.3); color:white;">
-        Get Your Referral Link
-      </a>
-    </div>
-  </div>
-</section>
-
-<!-- FOOTER -->
-<footer>
-  <div class="footer-inner">
+<!-- ══ SCROLL 4: FOOTER ══ -->
+<footer id="footer-contact">
+  <div class="footer-grid">
     <div class="footer-brand">
       <a href="#" class="nav-logo">
-        <div class="nav-logo-mark">
-          <svg viewBox="0 0 20 20" fill="none">
-            <path d="M10 2L3 6v8l7 4 7-4V6L10 2z" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
-            <path d="M10 2v16M3 6l7 4 7-4" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
-          </svg>
-        </div>
+        <div class="nav-logo-mark"><svg viewBox="0 0 20 20" fill="none"><path d="M10 2L3 6v8l7 4 7-4V6L10 2z" stroke="white" stroke-width="1.5" stroke-linejoin="round"/><path d="M10 2v16M3 6l7 4 7-4" stroke="white" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
         <span class="nav-logo-text">RentSafe<span>AI</span></span>
       </a>
       <p>The UK's first compliance platform built ground-up for the Renters' Rights Act 2025. Protect your properties, stay compliant.</p>
     </div>
     <div class="footer-col">
       <h5>Product</h5>
-      <a href="#features">Features</a>
+      <a href="#showcase">Features</a>
       <a href="#pricing">Pricing</a>
-      <a href="#demo">Demo</a>
-      <a href="landlord.html">Sign In</a>
+      <a href="landlord.html">Sign in</a>
+      <a href="landlord.html">Start free trial</a>
     </div>
     <div class="footer-col">
       <h5>Legal</h5>
@@ -1686,127 +868,110 @@
       <a href="#">Cookie Policy</a>
       <a href="#">GDPR</a>
     </div>
-    <div class="footer-col">
-      <h5>Contact</h5>
-      <a href="mailto:hello@rentsafeai.co.uk">hello@rentsafeai.co.uk</a>
-      <a href="#contact">Get in touch</a>
-      <a href="#">Founder Story</a>
-      <a href="#referral">Referral Programme</a>
+    <div class="footer-contact">
+      <h5>Get in touch</h5>
+      <div id="fc-ok"></div>
+      <div id="fc-body">
+        <div class="fc-row">
+          <div class="fc-f"><input type="text" id="fc-name" placeholder="Your name"></div>
+          <div class="fc-f"><input type="email" id="fc-email" placeholder="Email address"></div>
+        </div>
+        <div class="fc-ta fc-f"><textarea id="fc-msg" placeholder="How can we help?"></textarea></div>
+        <div class="fc-bottom">
+          <div class="fc-note"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>We respond within 48 hours</div>
+          <button class="fc-submit" onclick="submitFC()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Send</button>
+        </div>
+      </div>
     </div>
   </div>
   <div class="footer-bottom">
-    <p>© 2025 RentSafeAI. All rights reserved. Built for UK private landlords.</p>
-    <div class="footer-badges">
-      <span class="footer-badge">RRA 2025</span>
-      <span class="footer-badge">UK Data</span>
-      <span class="footer-badge">SSL Secured</span>
-    </div>
+    <p>© 2026 RentSafeAI. All rights reserved. Built for UK private landlords.</p>
+    <div class="referral-line">💛 Know a landlord? <a href="landlord.html">Refer them — you both get 3 months free.</a></div>
+    <div class="f-badges"><span class="f-badge">RRA 2025</span><span class="f-badge">UK Data</span><span class="f-badge">SSL Secured</span></div>
   </div>
 </footer>
 
 <script>
-  // Fade in on scroll
-  const faders = document.querySelectorAll('.fade-in');
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      if (e.isIntersecting) {
-        e.target.classList.add('visible');
-        observer.unobserve(e.target);
-      }
-    });
-  }, { threshold: 0.1 });
-  faders.forEach(f => observer.observe(f));
+// FADE IN
+const faders = document.querySelectorAll('.fade-in');
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
+}, { threshold: 0.07 });
+faders.forEach(f => io.observe(f));
+document.querySelectorAll('.hero .fade-in, .hero > .fade-in').forEach((el,i) => setTimeout(() => el.classList.add('visible'), 80 + i*120));
 
-  // Mockup animations
-  const mockup = document.getElementById('mockup');
-  const mockupObserver = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      if (e.isIntersecting) {
-        document.getElementById('mock-ring')?.classList.add('animate');
-        document.querySelectorAll('.mock-row').forEach(row => {
-          const delay = parseInt(row.dataset.delay || 0);
-          setTimeout(() => row.classList.add('show'), delay + 300);
-        });
-        mockupObserver.unobserve(e.target);
-      }
-    });
-  }, { threshold: 0.3 });
-  if (mockup) mockupObserver.observe(mockup);
-  document.querySelectorAll('.hero .fade-in').forEach(el => {
-    setTimeout(() => el.classList.add('visible'), 100);
-  });
-
-  // ── COUNTDOWN ──
-  const DEADLINE = new Date('2026-05-31T23:59:59Z').getTime();
-  function updateCountdown() {
-    const now = Date.now();
-    const diff = DEADLINE - now;
-    if (diff <= 0) {
-      document.getElementById('countdown-live').style.display = 'none';
-      document.getElementById('countdown-done').style.display = 'flex';
-      document.getElementById('countdown-banner').classList.add('post-deadline');
-      return;
-    }
-    const d = Math.floor(diff / 86400000);
-    const h = Math.floor((diff % 86400000) / 3600000);
-    const m = Math.floor((diff % 3600000) / 60000);
-    const s = Math.floor((diff % 60000) / 1000);
-    document.getElementById('cd-days').textContent  = String(d).padStart(2,'0');
-    document.getElementById('cd-hours').textContent = String(h).padStart(2,'0');
-    document.getElementById('cd-mins').textContent  = String(m).padStart(2,'0');
-    document.getElementById('cd-secs').textContent  = String(s).padStart(2,'0');
+// COUNTDOWN
+const DEADLINE = new Date('2026-05-31T23:59:59+01:00').getTime();
+function tick() {
+  const diff = DEADLINE - Date.now();
+  if (diff <= 0) {
+    document.getElementById('cd-live').style.display = 'none';
+    document.getElementById('cd-done').style.display = 'flex';
+    document.getElementById('countdown-banner').classList.add('post-deadline');
+    return;
   }
-  updateCountdown();
-  setInterval(updateCountdown, 1000);
+  document.getElementById('cd-d').textContent = String(Math.floor(diff/86400000)).padStart(2,'0');
+  document.getElementById('cd-h').textContent = String(Math.floor(diff%86400000/3600000)).padStart(2,'0');
+  document.getElementById('cd-m').textContent = String(Math.floor(diff%3600000/60000)).padStart(2,'0');
+  document.getElementById('cd-s').textContent = String(Math.floor(diff%60000/1000)).padStart(2,'0');
+}
+tick(); setInterval(tick, 1000);
 
-  // ── ANNUAL/MONTHLY TOGGLE ──
-  const prices = {
-    starter:   { founding: { m: '£4.99',  a: '£3.99' }, standard: { m: '£7.99',  a: '£6.66' } },
-    landlord:  { founding: { m: '£9.99',  a: '£8.33' }, standard: { m: '£15.99', a: '£13.33' } },
-    portfolio: { founding: { m: '£11.99', a: '£9.99' }, standard: { m: '£23.99', a: '£19.99' } },
-  };
+// TABS
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+}
 
-  let isAnnual = false;
-  function toggleBilling() {
-    isAnnual = !isAnnual;
-    const toggle = document.getElementById('billing-toggle');
-    const mLabel = document.getElementById('monthly-label');
-    const aLabel = document.getElementById('annual-label');
-    toggle.classList.toggle('annual', isAnnual);
-    mLabel.classList.toggle('active', !isAnnual);
-    aLabel.classList.toggle('active', isAnnual);
-    const period = isAnnual ? 'a' : 'm';
-    const periodLabel = isAnnual ? '/mo (billed annually)' : '/mo';
-    for (const [plan, data] of Object.entries(prices)) {
-      const priceEl = document.getElementById(`${plan}-price`);
-      const stdEl   = document.getElementById(`${plan}-standard`);
-      const periodEl = priceEl?.nextElementSibling;
-      if (priceEl) priceEl.textContent = data.founding[period];
-      if (periodEl) periodEl.textContent = periodLabel;
-      if (stdEl) stdEl.textContent = `Standard: ${data.standard[period]}`;
-    }
+// BILLING TOGGLE
+const prices = {
+  starter:   { founding:{m:'£4.99',a:'£3.99'}, standard:{m:'£7.99',a:'£6.66'} },
+  landlord:  { founding:{m:'£9.99',a:'£8.33'}, standard:{m:'£15.99',a:'£13.33'} },
+  portfolio: { founding:{m:'£11.99',a:'£9.99'}, standard:{m:'£23.99',a:'£19.99'} },
+};
+let isAnnual = false;
+function toggleBilling() {
+  isAnnual = !isAnnual;
+  document.getElementById('billing-toggle').classList.toggle('annual', isAnnual);
+  document.getElementById('monthly-label').classList.toggle('active', !isAnnual);
+  document.getElementById('annual-label').classList.toggle('active', isAnnual);
+  const p = isAnnual ? 'a' : 'm';
+  const pl = isAnnual ? '/mo (billed annually)' : '/mo';
+  for (const [plan, d] of Object.entries(prices)) {
+    const a = document.getElementById(plan+'-price');
+    const s = document.getElementById(plan+'-standard');
+    const per = a?.nextElementSibling;
+    if (a) a.textContent = d.founding[p];
+    if (per) per.textContent = pl;
+    if (s) s.textContent = 'Standard: '+d.standard[p];
   }
+}
 
-  // ── PHASE INTEREST FORM ──
-  function submitPhaseInterest() {
-    const email = document.getElementById('phase-email').value.trim();
-    if (!email || !email.includes('@')) {
-      document.getElementById('phase-email').focus();
-      return;
-    }
-    document.querySelector('.phase-email-row').style.display = 'none';
-    document.getElementById('phase-success').style.display = 'flex';
-  }
+// COMPARE TABLE
+function toggleCT() {
+  const open = document.getElementById('ct').classList.toggle('open');
+  document.getElementById('compare-btn').innerHTML = `<span>${open?'▲':'▼'}</span> ${open?'Hide comparison':'Compare all features'}`;
+}
 
-  // ── CONTACT FORM ──
-  function submitContact() {
-    const name    = document.getElementById('cf-name').value.trim();
-    const email   = document.getElementById('cf-email').value.trim();
-    const message = document.getElementById('cf-message').value.trim();
-    if (!name || !email || !message) return;
-    document.getElementById('contact-form-body').style.display = 'none';
-    document.getElementById('contact-success').style.display = 'flex';
-  }
+// FORMS
+function submitNPB() {
+  const e = document.getElementById('npb-email').value.trim();
+  if (!e || !e.includes('@')) { document.getElementById('npb-email').focus(); return; }
+  document.querySelector('.npb-form').style.display = 'none';
+  document.getElementById('npb-ok').style.display = 'block';
+}
+function submitFC() {
+  const n = document.getElementById('fc-name').value.trim();
+  const e = document.getElementById('fc-email').value.trim();
+  const m = document.getElementById('fc-msg').value.trim();
+  if (!n || !e || !m) return;
+  document.getElementById('fc-body').style.display = 'none';
+  const ok = document.getElementById('fc-ok');
+  ok.textContent = "✅ Message sent — we'll be back to you within 48 hours.";
+  ok.style.cssText = 'display:block;font-size:0.78rem;font-weight:600;color:#34D399;padding:8px 0';
+}
 </script>
 </body>
 </html>
