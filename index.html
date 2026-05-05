@@ -33,6 +33,91 @@
 
   html { scroll-behavior: smooth; }
 
+  /* ── COUNTDOWN BANNER ── */
+  #countdown-banner {
+    background: linear-gradient(90deg, #0D1626 0%, #1B2F5E 50%, #0D1626 100%);
+    border-bottom: 1px solid rgba(212,168,83,0.25);
+    padding: 10px 2rem;
+    text-align: center;
+    position: relative;
+    z-index: 101;
+  }
+  #countdown-banner.post-deadline {
+    background: linear-gradient(90deg, #0a1f0a 0%, #0f3d1a 50%, #0a1f0a 100%);
+    border-bottom: 1px solid rgba(5,150,105,0.3);
+  }
+  .countdown-inner {
+    max-width: 1200px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: center; gap: 20px;
+    flex-wrap: wrap;
+  }
+  .countdown-label {
+    font-size: 0.8rem; font-weight: 600;
+    color: var(--gold);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .countdown-label .cd-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--gold);
+    animation: pulse 2s infinite;
+    flex-shrink: 0;
+  }
+  .countdown-units {
+    display: flex; align-items: center; gap: 6px;
+  }
+  .cd-unit {
+    display: flex; flex-direction: column; align-items: center;
+    min-width: 44px;
+  }
+  .cd-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem; font-weight: 700;
+    color: var(--white);
+    line-height: 1;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    padding: 4px 10px;
+    min-width: 44px; text-align: center;
+    transition: all 0.3s ease;
+  }
+  .cd-lbl {
+    font-size: 0.58rem; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+    margin-top: 3px;
+  }
+  .cd-sep {
+    font-size: 1.2rem; font-weight: 700;
+    color: rgba(255,255,255,0.2);
+    margin-bottom: 14px;
+    align-self: flex-start; margin-top: 6px;
+  }
+  .countdown-cta {
+    font-size: 0.78rem; font-weight: 600;
+    color: rgba(255,255,255,0.5);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .countdown-cta a {
+    color: var(--blue-light); text-decoration: none;
+    font-weight: 700;
+    border-bottom: 1px solid rgba(96,165,250,0.3);
+    transition: color 0.2s;
+  }
+  .countdown-cta a:hover { color: white; }
+
+  /* post-deadline state */
+  .post-deadline-msg {
+    display: none;
+    font-size: 0.85rem; font-weight: 600;
+    color: #34D399;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .post-deadline-msg .pd-icon { font-size: 1rem; }
+
+
   body {
     font-family: 'DM Sans', sans-serif;
     background: var(--bg);
@@ -43,7 +128,7 @@
 
   /* ── NAV ── */
   nav {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    position: fixed; top: 40px; left: 0; right: 0; z-index: 100;
     background: rgba(255,255,255,0.92);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
@@ -114,7 +199,7 @@
 
   /* ── HERO ── */
   .hero {
-    padding: 140px 2rem 100px;
+    padding: 160px 2rem 100px;
     max-width: 1200px;
     margin: 0 auto;
     display: grid;
@@ -575,7 +660,7 @@
 
   .pricing-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 16px;
     margin-bottom: 20px;
     align-items: stretch;
@@ -800,7 +885,182 @@
     .hmo-badge { margin: 0 auto; }
   }
 
-  /* ── FADE IN ── */
+  /* ── NEXT PHASE TEASER ── */
+  #next-phase {
+    background: var(--navy-dark);
+    padding: 70px 2rem;
+  }
+  .next-phase-inner { max-width: 1200px; margin: 0 auto; }
+  .next-phase-header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .next-phase-header .section-tag { color: var(--blue-light); }
+  .next-phase-header .section-heading { color: var(--white); }
+  .next-phase-header .section-sub { color: rgba(255,255,255,0.5); margin: 0 auto; }
+  .phase-cards {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+    margin-bottom: 32px;
+  }
+  .phase-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px dashed rgba(255,255,255,0.12);
+    border-radius: 14px;
+    padding: 32px 28px;
+    display: flex; gap: 20px;
+    align-items: flex-start;
+    transition: border-color 0.25s, background 0.25s;
+  }
+  .phase-card:hover {
+    border-color: rgba(59,130,246,0.3);
+    background: rgba(59,130,246,0.04);
+  }
+  .phase-card-icon {
+    font-size: 2rem; flex-shrink: 0;
+    width: 56px; height: 56px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .phase-card-body h3 {
+    font-size: 1rem; font-weight: 700; color: var(--white);
+    margin-bottom: 6px;
+  }
+  .phase-card-body p {
+    font-size: 0.82rem; color: rgba(255,255,255,0.45);
+    line-height: 1.6; margin-bottom: 14px;
+  }
+  .phase-soon-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(212,168,83,0.1);
+    border: 1px solid rgba(212,168,83,0.2);
+    color: var(--gold);
+    font-size: 0.68rem; font-weight: 700;
+    padding: 3px 10px; border-radius: 100px;
+    letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  .phase-interest-form {
+    background: rgba(59,130,246,0.06);
+    border: 1px solid rgba(59,130,246,0.15);
+    border-radius: 12px;
+    padding: 20px 24px;
+    display: flex; align-items: center; gap: 16px;
+    flex-wrap: wrap;
+  }
+  .phase-interest-form p {
+    font-size: 0.85rem; color: rgba(255,255,255,0.6);
+    flex: 1; min-width: 200px;
+  }
+  .phase-interest-form p strong { color: var(--white); }
+  .phase-email-row {
+    display: flex; gap: 10px; flex-shrink: 0;
+  }
+  .phase-email-row input {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 0.85rem; color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    outline: none; width: 220px;
+    transition: border-color 0.2s;
+  }
+  .phase-email-row input::placeholder { color: rgba(255,255,255,0.25); }
+  .phase-email-row input:focus { border-color: rgba(59,130,246,0.5); }
+  .phase-email-row button {
+    background: var(--blue); color: var(--white);
+    border: none; border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 0.85rem; font-weight: 600;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+    transition: background 0.2s, transform 0.2s;
+    white-space: nowrap;
+  }
+  .phase-email-row button:hover { background: #2563EB; transform: translateY(-1px); }
+  #phase-success {
+    display: none;
+    font-size: 0.85rem; font-weight: 600; color: #34D399;
+    align-items: center; gap: 8px;
+  }
+
+  /* ── CONTACT ── */
+  #contact { background: var(--bg-dark); padding: 80px 2rem; }
+  .contact-inner {
+    max-width: 760px; margin: 0 auto; text-align: center;
+  }
+  .contact-inner .section-heading { color: var(--navy); }
+  .contact-inner .section-sub { margin: 0 auto 36px; }
+  .contact-form {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px;
+    text-align: left;
+    box-shadow: var(--shadow);
+  }
+  .cf-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    margin-bottom: 16px;
+  }
+  .cf-field { display: flex; flex-direction: column; gap: 6px; }
+  .cf-field label {
+    font-size: 0.78rem; font-weight: 600;
+    color: var(--text-muted); text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .cf-field input, .cf-field textarea, .cf-field select {
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 11px 14px;
+    font-size: 0.9rem; color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+  .cf-field input:focus, .cf-field textarea:focus, .cf-field select:focus {
+    border-color: var(--blue);
+  }
+  .cf-field textarea { resize: vertical; min-height: 110px; }
+  .cf-full { margin-bottom: 16px; }
+  .cf-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap; margin-top: 8px;
+  }
+  .cf-response-note {
+    font-size: 0.78rem; color: var(--text-muted);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .cf-response-note svg { color: var(--success); flex-shrink: 0; }
+  .cf-submit {
+    background: var(--navy); color: var(--white);
+    border: none; border-radius: 8px;
+    padding: 12px 28px;
+    font-size: 0.9rem; font-weight: 600;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .cf-submit:hover {
+    background: var(--navy-light);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(27,47,94,0.25);
+  }
+  #contact-success {
+    display: none; text-align: center;
+    padding: 24px;
+    font-size: 1rem; font-weight: 600;
+    color: var(--success);
+    gap: 10px; align-items: center; justify-content: center;
+  }
+  @media (max-width: 600px) {
+    .cf-row { grid-template-columns: 1fr; }
+    .phase-cards { grid-template-columns: 1fr; }
+    .phase-email-row { flex-direction: column; width: 100%; }
+    .phase-email-row input { width: 100%; }
+  }
+
   .fade-in {
     opacity: 0; transform: translateY(24px);
     transition: opacity 0.6s ease, transform 0.6s ease;
@@ -809,6 +1069,45 @@
 </style>
 </head>
 <body>
+
+<!-- COUNTDOWN BANNER -->
+<div id="countdown-banner">
+  <div class="countdown-inner" id="countdown-live">
+    <div class="countdown-label">
+      <span class="cd-dot"></span>
+      RRA Deadline
+    </div>
+    <div class="countdown-units">
+      <div class="cd-unit">
+        <div class="cd-num" id="cd-days">--</div>
+        <div class="cd-lbl">Days</div>
+      </div>
+      <span class="cd-sep">:</span>
+      <div class="cd-unit">
+        <div class="cd-num" id="cd-hours">--</div>
+        <div class="cd-lbl">Hours</div>
+      </div>
+      <span class="cd-sep">:</span>
+      <div class="cd-unit">
+        <div class="cd-num" id="cd-mins">--</div>
+        <div class="cd-lbl">Mins</div>
+      </div>
+      <span class="cd-sep">:</span>
+      <div class="cd-unit">
+        <div class="cd-num" id="cd-secs">--</div>
+        <div class="cd-lbl">Secs</div>
+      </div>
+    </div>
+    <div class="countdown-cta">until 31 May 2026 · <a href="landlord.html">Get compliant now →</a></div>
+  </div>
+  <div class="countdown-inner" id="countdown-done" style="display:none">
+    <div class="post-deadline-msg">
+      <span class="pd-icon">✅</span>
+      The Renters' Rights Act is now in force — is your portfolio compliant?
+      &nbsp;<a href="landlord.html" style="color:var(--blue-light);font-weight:700;text-decoration:none;border-bottom:1px solid rgba(96,165,250,0.3)">Check now →</a>
+    </div>
+  </div>
+</div>
 
 <!-- NAV -->
 <nav>
@@ -824,7 +1123,7 @@
   <nav class="nav-cta">
     <a href="#features" class="nav-link">Features</a>
     <a href="#pricing" class="nav-link">Pricing</a>
-    <a href="#demo" class="nav-link">Demo</a>
+    <a href="#contact" class="nav-link">Contact</a>
     <a href="landlord.html" class="btn btn-primary">Start Free</a>
   </nav>
 </nav>
@@ -1092,6 +1391,43 @@
   </div>
 </section>
 
+<!-- NEXT PHASE -->
+<section id="next-phase">
+  <div class="next-phase-inner">
+    <div class="next-phase-header section-header centered fade-in">
+      <div class="section-tag">Our next phase</div>
+      <h2 class="section-heading">More coming soon</h2>
+      <p class="section-sub">We're building the most complete compliance platform for UK landlords. HMO and Management Agent support are next — register your interest to get early access.</p>
+    </div>
+    <div class="phase-cards fade-in">
+      <div class="phase-card">
+        <div class="phase-card-icon">🏘️</div>
+        <div class="phase-card-body">
+          <h3>HMO Licence Management</h3>
+          <p>Room-by-room compliance, HMO licence tracking, shared facilities logs, fire safety management, and council inspection prep — purpose-built for HMO landlords.</p>
+          <span class="phase-soon-badge">⏳ Coming Soon</span>
+        </div>
+      </div>
+      <div class="phase-card">
+        <div class="phase-card-icon">🏢</div>
+        <div class="phase-card-body">
+          <h3>Management Agent Portal</h3>
+          <p>A dedicated white-label portal for letting agents to manage client portfolios, track compliance across landlords, and generate branded compliance reports.</p>
+          <span class="phase-soon-badge">⏳ Coming Soon</span>
+        </div>
+      </div>
+    </div>
+    <div class="phase-interest-form fade-in">
+      <p><strong>Get early access.</strong> Leave your email and we'll notify you the moment it's live.</p>
+      <div class="phase-email-row">
+        <input type="email" id="phase-email" placeholder="your@email.com">
+        <button onclick="submitPhaseInterest()">Notify Me</button>
+      </div>
+      <div id="phase-success">✅ You're on the list — we'll be in touch.</div>
+    </div>
+  </div>
+</section>
+
 <!-- PRICING -->
 <section id="pricing">
   <div class="section-inner">
@@ -1125,7 +1461,7 @@
       <!-- Starter -->
       <div class="pricing-card">
         <div class="plan-name">Starter</div>
-        <div class="plan-props">For landlords with 1 property</div>
+        <div class="plan-props">For landlords with up to 2 properties</div>
         <div class="plan-price">
           <span class="founding">🏅 Founding price</span>
           <span class="amount" id="starter-price">£4.99</span><span class="period">/mo</span>
@@ -1134,14 +1470,18 @@
         <a href="landlord.html" class="plan-btn plan-btn-outline">Start free trial</a>
         <div class="plan-divider"></div>
         <ul class="plan-features">
-          <li><span class="check">✓</span> 1 property</li>
-          <li><span class="check">✓</span> Compliance dashboard</li>
+          <li><span class="check">✓</span> Up to 2 properties</li>
+          <li><span class="check">✓</span> Compliance dashboard &amp; health score</li>
           <li><span class="check">✓</span> All 17 legal documents</li>
           <li><span class="check">✓</span> Mandatory starter kit</li>
           <li><span class="check">✓</span> Certificate expiry alerts</li>
-          <li><span class="check">✓</span> Tenant portal</li>
+          <li><span class="check">✓</span> Tenant portal &amp; e-signatures</li>
           <li><span class="check">✓</span> S.13 &amp; S.8 notice generator</li>
-          <li><span class="check">✓</span> E-signatures</li>
+          <li><span class="check">✓</span> AI compliance assistant</li>
+          <li><span class="check">✓</span> Smart compliance calendar</li>
+          <li><span class="check">✓</span> Maintenance &amp; Awaab's Law timers</li>
+          <li><span class="check">✓</span> Contractor book</li>
+          <li><span class="check">✓</span> Deposit protection alerts</li>
           <li class="gold"><span class="check">✓</span> Founding member badge</li>
         </ul>
       </div>
@@ -1150,23 +1490,24 @@
       <div class="pricing-card popular">
         <div class="popular-badge">Most Popular</div>
         <div class="plan-name">Landlord</div>
-        <div class="plan-props">For landlords with up to 5 properties</div>
+        <div class="plan-props">For landlords with up to 10 properties</div>
         <div class="plan-price">
           <span class="founding">🏅 Founding price</span>
-          <span class="amount" id="landlord-price">£6.99</span><span class="period">/mo</span>
-          <span class="standard" id="landlord-standard">Standard: £12.99/mo</span>
+          <span class="amount" id="landlord-price">£9.99</span><span class="period">/mo</span>
+          <span class="standard" id="landlord-standard">Standard: £15.99/mo</span>
         </div>
         <a href="landlord.html" class="plan-btn plan-btn-primary">Start free trial</a>
         <div class="plan-divider"></div>
         <ul class="plan-features">
-          <li><span class="check">✓</span> Up to 5 properties</li>
+          <li><span class="check">✓</span> Up to 10 properties</li>
           <li><span class="check">✓</span> Everything in Starter</li>
-          <li><span class="check">✓</span> AI compliance assistant</li>
-          <li><span class="check">✓</span> Maintenance tracking</li>
-          <li><span class="check">✓</span> Awaab's Law timers</li>
-          <li><span class="check">✓</span> Contractor book</li>
-          <li><span class="check">✓</span> Compliance calendar</li>
+          <li><span class="check">✓</span> Bulk document generation</li>
+          <li><span class="check">✓</span> Portfolio health overview</li>
+          <li><span class="check">✓</span> Compliance audit log</li>
           <li><span class="check">✓</span> Rent tracking &amp; reminders</li>
+          <li><span class="check">✓</span> Insurance tracking</li>
+          <li><span class="check">✓</span> AI inventory report</li>
+          <li><span class="check">✓</span> 📊 MTD-ready tax reporting</li>
           <li class="gold"><span class="check">✓</span> Founding member badge</li>
         </ul>
       </div>
@@ -1174,7 +1515,7 @@
       <!-- Portfolio -->
       <div class="pricing-card">
         <div class="plan-name">Portfolio</div>
-        <div class="plan-props">For landlords with up to 15 properties</div>
+        <div class="plan-props">Unlimited properties</div>
         <div class="plan-price">
           <span class="founding">🏅 Founding price</span>
           <span class="amount" id="portfolio-price">£11.99</span><span class="period">/mo</span>
@@ -1183,37 +1524,13 @@
         <a href="landlord.html" class="plan-btn plan-btn-outline">Start free trial</a>
         <div class="plan-divider"></div>
         <ul class="plan-features">
-          <li><span class="check">✓</span> Up to 15 properties</li>
-          <li><span class="check">✓</span> Everything in Landlord</li>
-          <li><span class="check">✓</span> Bulk document generation</li>
-          <li><span class="check">✓</span> Portfolio health overview</li>
-          <li><span class="check">✓</span> Compliance audit log</li>
-          <li><span class="check">✓</span> Deposit protection alerts</li>
-          <li><span class="check">✓</span> Priority email support</li>
-          <li><span class="check">✓</span> Insurance tracking</li>
-          <li class="gold"><span class="check">✓</span> Founding member badge</li>
-        </ul>
-      </div>
-
-      <!-- Pro -->
-      <div class="pricing-card">
-        <div class="plan-name">Pro</div>
-        <div class="plan-props">For portfolios of 16+ properties</div>
-        <div class="plan-price">
-          <span class="founding">🏅 Founding price</span>
-          <span class="amount" id="pro-price">£17.99</span><span class="period">/mo</span>
-          <span class="standard" id="pro-standard">Standard: £34.99/mo</span>
-        </div>
-        <a href="landlord.html" class="plan-btn plan-btn-outline">Start free trial</a>
-        <div class="plan-divider"></div>
-        <ul class="plan-features">
           <li><span class="check">✓</span> Unlimited properties</li>
-          <li><span class="check">✓</span> Everything in Portfolio</li>
+          <li><span class="check">✓</span> Everything in Landlord</li>
+          <li><span class="check">✓</span> 📊 MTD-ready tax reporting</li>
           <li><span class="check">✓</span> Custom document templates</li>
           <li><span class="check">✓</span> Dedicated onboarding</li>
-          <li><span class="check">✓</span> Phone support</li>
+          <li><span class="check">✓</span> Priority email support</li>
           <li><span class="check">✓</span> Multi-user access</li>
-          <li><span class="check">✓</span> Letting agent portal</li>
           <li class="gold"><span class="check">✓</span> Founding member badge</li>
         </ul>
       </div>
@@ -1221,7 +1538,7 @@
       <!-- HMO Coming Soon -->
       <div class="pricing-card hmo-plan">
         <div class="plan-name">HMO</div>
-        <div class="plan-props">HMO licence management</div>
+        <div class="plan-props">HMO &amp; Management Agent</div>
         <div class="plan-price">
           <span class="founding" style="opacity:0.4">Coming soon</span>
           <span class="amount" style="opacity:0.3">—</span>
@@ -1231,16 +1548,79 @@
         <ul class="plan-features">
           <li><span class="check" style="opacity:0.3">✓</span> HMO licence tracking</li>
           <li><span class="check" style="opacity:0.3">✓</span> Room-by-room compliance</li>
-          <li><span class="check" style="opacity:0.3">✓</span> Shared facilities logs</li>
           <li><span class="check" style="opacity:0.3">✓</span> Fire safety management</li>
           <li><span class="check" style="opacity:0.3">✓</span> Council inspection prep</li>
-          <li><span class="check" style="opacity:0.3">✓</span> Multi-tenant management</li>
+          <li><span class="check" style="opacity:0.3">✓</span> Management agent portal</li>
+          <li><span class="check" style="opacity:0.3">✓</span> White-label reporting</li>
         </ul>
       </div>
 
     </div>
 
     <p class="pricing-note fade-in">All plans include a <strong>30-day free trial</strong> · No card required · Cancel anytime · Annual billing saves 2 months</p>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact">
+  <div class="contact-inner">
+    <div class="section-header centered fade-in">
+      <div class="section-tag">Get in touch</div>
+      <h2 class="section-heading">Questions? We're here.</h2>
+      <p class="section-sub">Drop us a message and we'll get back to you within 48 hours.</p>
+    </div>
+    <div class="contact-form fade-in">
+      <div id="contact-success">✅ Message sent — we'll be back to you within 48 hours.</div>
+      <div id="contact-form-body">
+        <div class="cf-row">
+          <div class="cf-field">
+            <label>Your name</label>
+            <input type="text" id="cf-name" placeholder="John Smith">
+          </div>
+          <div class="cf-field">
+            <label>Email address</label>
+            <input type="email" id="cf-email" placeholder="john@example.com">
+          </div>
+        </div>
+        <div class="cf-row">
+          <div class="cf-field">
+            <label>Subject</label>
+            <select id="cf-subject">
+              <option value="">Select a topic</option>
+              <option>Pricing &amp; plans</option>
+              <option>Technical question</option>
+              <option>RRA compliance query</option>
+              <option>Partnership / letting agent</option>
+              <option>Something else</option>
+            </select>
+          </div>
+          <div class="cf-field">
+            <label>Number of properties</label>
+            <select id="cf-props">
+              <option value="">Select</option>
+              <option>1–2</option>
+              <option>3–10</option>
+              <option>11–20</option>
+              <option>20+</option>
+            </select>
+          </div>
+        </div>
+        <div class="cf-field cf-full">
+          <label>Message</label>
+          <textarea id="cf-message" placeholder="Tell us what's on your mind..."></textarea>
+        </div>
+        <div class="cf-footer">
+          <div class="cf-response-note">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            We respond within 48 hours
+          </div>
+          <button class="cf-submit" onclick="submitContact()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            Send Message
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -1309,8 +1689,9 @@
     <div class="footer-col">
       <h5>Contact</h5>
       <a href="mailto:hello@rentsafeai.co.uk">hello@rentsafeai.co.uk</a>
+      <a href="#contact">Get in touch</a>
       <a href="#">Founder Story</a>
-      <a href="#">Referral Programme</a>
+      <a href="#referral">Referral Programme</a>
     </div>
   </div>
   <div class="footer-bottom">
@@ -1336,14 +1717,12 @@
   }, { threshold: 0.1 });
   faders.forEach(f => observer.observe(f));
 
-  // Mockup animations — trigger when mockup scrolls into view
+  // Mockup animations
   const mockup = document.getElementById('mockup');
   const mockupObserver = new IntersectionObserver((entries) => {
     entries.forEach(e => {
       if (e.isIntersecting) {
-        // Animate score ring
         document.getElementById('mock-ring')?.classList.add('animate');
-        // Stagger compliance rows
         document.querySelectorAll('.mock-row').forEach(row => {
           const delay = parseInt(row.dataset.delay || 0);
           setTimeout(() => row.classList.add('show'), delay + 300);
@@ -1357,12 +1736,34 @@
     setTimeout(() => el.classList.add('visible'), 100);
   });
 
-  // Annual/monthly toggle
+  // ── COUNTDOWN ──
+  const DEADLINE = new Date('2026-05-31T23:59:59Z').getTime();
+  function updateCountdown() {
+    const now = Date.now();
+    const diff = DEADLINE - now;
+    if (diff <= 0) {
+      document.getElementById('countdown-live').style.display = 'none';
+      document.getElementById('countdown-done').style.display = 'flex';
+      document.getElementById('countdown-banner').classList.add('post-deadline');
+      return;
+    }
+    const d = Math.floor(diff / 86400000);
+    const h = Math.floor((diff % 86400000) / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    document.getElementById('cd-days').textContent  = String(d).padStart(2,'0');
+    document.getElementById('cd-hours').textContent = String(h).padStart(2,'0');
+    document.getElementById('cd-mins').textContent  = String(m).padStart(2,'0');
+    document.getElementById('cd-secs').textContent  = String(s).padStart(2,'0');
+  }
+  updateCountdown();
+  setInterval(updateCountdown, 1000);
+
+  // ── ANNUAL/MONTHLY TOGGLE ──
   const prices = {
     starter:   { founding: { m: '£4.99',  a: '£3.99' }, standard: { m: '£7.99',  a: '£6.66' } },
-    landlord:  { founding: { m: '£6.99',  a: '£5.83' }, standard: { m: '£12.99', a: '£10.83' } },
+    landlord:  { founding: { m: '£9.99',  a: '£8.33' }, standard: { m: '£15.99', a: '£13.33' } },
     portfolio: { founding: { m: '£11.99', a: '£9.99' }, standard: { m: '£23.99', a: '£19.99' } },
-    pro:       { founding: { m: '£17.99', a: '£14.99'}, standard: { m: '£34.99', a: '£29.16' } },
   };
 
   let isAnnual = false;
@@ -1378,12 +1779,33 @@
     const periodLabel = isAnnual ? '/mo (billed annually)' : '/mo';
     for (const [plan, data] of Object.entries(prices)) {
       const priceEl = document.getElementById(`${plan}-price`);
-      const stdEl = document.getElementById(`${plan}-standard`);
+      const stdEl   = document.getElementById(`${plan}-standard`);
       const periodEl = priceEl?.nextElementSibling;
       if (priceEl) priceEl.textContent = data.founding[period];
       if (periodEl) periodEl.textContent = periodLabel;
       if (stdEl) stdEl.textContent = `Standard: ${data.standard[period]}`;
     }
+  }
+
+  // ── PHASE INTEREST FORM ──
+  function submitPhaseInterest() {
+    const email = document.getElementById('phase-email').value.trim();
+    if (!email || !email.includes('@')) {
+      document.getElementById('phase-email').focus();
+      return;
+    }
+    document.querySelector('.phase-email-row').style.display = 'none';
+    document.getElementById('phase-success').style.display = 'flex';
+  }
+
+  // ── CONTACT FORM ──
+  function submitContact() {
+    const name    = document.getElementById('cf-name').value.trim();
+    const email   = document.getElementById('cf-email').value.trim();
+    const message = document.getElementById('cf-message').value.trim();
+    if (!name || !email || !message) return;
+    document.getElementById('contact-form-body').style.display = 'none';
+    document.getElementById('contact-success').style.display = 'flex';
   }
 </script>
 </body>
