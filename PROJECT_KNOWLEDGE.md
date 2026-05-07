@@ -22,6 +22,7 @@
 11. [Pricing & Plans](#11-pricing--plans)
 12. [Code Standards & Maintainability](#12-code-standards--maintainability)
 13. [Feature Change Log](#13-feature-change-log)
+14. [Stripe Integration Guide](#14-stripe-integration-guide)
 
 ---
 
@@ -69,6 +70,7 @@ Saurabh Dhawan (featured on landing page, `index.html` founder story section)
 |---|---|---|
 | **Supabase** | PostgreSQL database, Auth, Edge Functions, Storage, RLS | Hardcoded in HTML files |
 | **Resend** | Transactional email (`documents@rentsafeai.co.uk`) | Edge Function secret `RESEND_API_KEY` |
+| **Stripe** | Subscription billing for Starter/Landlord/Portfolio plans | Edge Function secrets `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, price IDs |
 | **Anthropic Claude** (`claude-sonnet-4-5`) | AI chat assistant + maintenance priority classification | `super-processor` edge function |
 | **Formspree** (`xdapbzqv`) | Waitlist email capture on landing page | Inline in `index.html` |
 | **Crisp** (ID: `6a5c5215-3c14-4afa-94a4-f1f8b05e2f62`) | Live chat widget | `index.html`, `login.html`, `tenant.html`, `mtd.html` |
@@ -87,26 +89,31 @@ Saurabh Dhawan (featured on landing page, `index.html` founder story section)
 
 ```
 rentsafeai/
-├── index.html                  Marketing landing page
-├── login.html                  Auth page (login / signup / password reset)
-├── landlord.html               Main SPA app (~3,973 lines) — entire landlord dashboard
-├── tenant.html                 Tenant portal + e-sign flow (~1,200+ lines)
-├── mtd.html                    Making Tax Digital standalone page (~1,500+ lines)
-├── app-mockup.html             Static dashboard preview (iframe on landing page)
-├── privacy.html                Privacy policy
-├── Terms.html                  Terms of service
-├── nav_snippet.html            Dev snippet: MTD nav item code (copy-paste reference)
-├── og-image.png                OpenGraph social share image (1200×630)
-├── CNAME                       GitHub Pages custom domain: rentsafeai.co.uk
-├── email-alerts-index.ts       Supabase Edge Function source (Sprint 10)
-├── mtd_tables.sql              SQL migration: MTD tables
-├── sprint10_step1_db.sql       SQL migration: Sprint 10 DB setup
-├── sprint10_step1_fix.sql      SQL migration: Sprint 10 patch/fix
-├── sprint10_step2_cron.sql     SQL: pg_cron scheduled jobs
-├── SPRINT10_DEPLOY.md          Sprint 10 deployment guide
-├── PROJECT_KNOWLEDGE.md        THIS FILE — agent initialization reference
-├── fix.b64                     Binary patch (base64 encoded)
-└── fix.patch                   Git patch file
+├── index.html                      Marketing landing page
+├── login.html                      Auth page (login / signup / password reset)
+├── signup.html                     Sign-up page (Sprint 11)
+├── profile.html                    Account & Billing page (Sprint 13)
+├── landlord.html                   Main SPA app (~3,973 lines) — entire landlord dashboard
+├── tenant.html                     Tenant portal + e-sign flow (~1,200+ lines)
+├── mtd.html                        Making Tax Digital standalone page (~1,500+ lines)
+├── app-mockup.html                 Static dashboard preview (iframe on landing page)
+├── privacy.html                    Privacy policy
+├── Terms.html                      Terms of service
+├── nav_snippet.html                Dev snippet: MTD nav item code (copy-paste reference)
+├── og-image.png                    OpenGraph social share image (1200×630)
+├── CNAME                           GitHub Pages custom domain: rentsafeai.co.uk
+├── email-alerts-index.ts           Supabase Edge Function source (Sprint 10)
+├── stripe-checkout-index.ts        Supabase Edge Function source (Sprint 13)
+├── stripe-webhook-index.ts         Supabase Edge Function source (Sprint 13)
+├── mtd_tables.sql                  SQL migration: MTD tables
+├── sprint10_step1_db.sql           SQL migration: Sprint 10 DB setup
+├── sprint10_step1_fix.sql          SQL migration: Sprint 10 patch/fix
+├── sprint10_step2_cron.sql         SQL: pg_cron scheduled jobs
+├── sprint13_db.sql                 SQL migration: Sprint 13 (user_profiles, stripe_subscriptions)
+├── SPRINT10_DEPLOY.md              Sprint 10 deployment guide
+├── PROJECT_KNOWLEDGE.md            THIS FILE — agent initialization reference
+├── fix.b64                         Binary patch (base64 encoded)
+└── fix.patch                       Git patch file
 ```
 
 > **No `supabase/` folder.** Edge functions are deployed via `npx supabase functions deploy`
@@ -118,6 +125,8 @@ rentsafeai/
 |---|---|---|
 | `index.html` | Marketing: hero, pricing, features, founder, FAQ | None |
 | `login.html` | Supabase email+password + Google OAuth + password reset | None |
+| `signup.html` | Account creation with password strength meter | None |
+| `profile.html` | Account details, personal info, Stripe subscription management | Yes — redirects to `login.html` |
 | `landlord.html` | Full landlord SPA — all dashboard modules | Yes — redirects to `login.html` |
 | `tenant.html` | Tenant portal — token-based, no Supabase auth needed | Token in URL or localStorage |
 | `mtd.html` | MTD tax module — standalone (Tailwind CSS) | Yes — uses Supabase session |
@@ -227,6 +236,33 @@ Deduplication table for all outgoing alerts.
 
 **Unique index:** `(landlord_id, alert_type, reference_key)` — prevents duplicate sends.
 
+#### `user_profiles` (Sprint 13)
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid PK | Matches `auth.users(id)` — one row per user |
+| `full_name` | text | |
+| `phone` | text | |
+| `company_name` | text | For limited company landlords |
+| `address` | text | Personal/billing address |
+| `utr_number` | text | 10-digit HMRC Unique Taxpayer Reference |
+| `created_at`, `updated_at` | timestamptz | |
+
+#### `stripe_subscriptions` (Sprint 13)
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid PK | |
+| `user_id` | uuid FK UNIQUE | → `auth.users` — one row per user |
+| `stripe_customer_id` | text | Stripe Customer ID (`cus_...`) |
+| `stripe_subscription_id` | text | Stripe Subscription ID (`sub_...`) |
+| `stripe_price_id` | text | Stripe Price ID (`price_...`) |
+| `plan_name` | text | `starter` \| `landlord` \| `portfolio` |
+| `status` | text | `active` \| `trialing` \| `past_due` \| `canceled` \| `incomplete` |
+| `current_period_start`, `current_period_end` | timestamptz | |
+| `cancel_at_period_end` | boolean | True if user has requested cancellation |
+| `created_at`, `updated_at` | timestamptz | |
+
+**RLS:** Users can SELECT their own row. INSERT/UPDATE is service-role only (webhook).
+
 #### Other Core Tables
 | Table | Purpose |
 |---|---|
@@ -313,6 +349,23 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
 
 #### `ai-proxy` (pre-existing, not in repo)
 - Referenced as having `RESEND_API_KEY` set — copy this value for `email-alerts`
+
+#### `stripe-checkout` (Sprint 13)
+- **Source file:** `stripe-checkout-index.ts` (root) → deploy from `supabase/functions/stripe-checkout/index.ts`
+- **Auth:** Requires valid Supabase JWT (user must be logged in) — standard verify-jwt
+- **`--no-verify-jwt`:** NOT used — user JWT is required and verified inside the function
+- **Trigger:** HTTP POST from `js/profile.js` via `supabase.functions.invoke('stripe-checkout', { body: { plan } })`
+- **Request body:** `{ plan: 'starter' | 'landlord' | 'portfolio' }`
+- **Response:** `{ url: 'https://checkout.stripe.com/pay/...' }` — frontend redirects to this URL
+- **Full details:** See [Section 14](#14-stripe-integration-guide)
+
+#### `stripe-webhook` (Sprint 13)
+- **Source file:** `stripe-webhook-index.ts` (root) → deploy from `supabase/functions/stripe-webhook/index.ts`
+- **Auth:** NO Supabase JWT — Stripe calls this endpoint directly. Deploy with `--no-verify-jwt`
+- **Security:** Stripe-Signature header verified via `stripe.webhooks.constructEventAsync()`
+- **Events handled:** `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`
+- **Webhook URL:** `https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/stripe-webhook`
+- **Full details:** See [Section 14](#14-stripe-integration-guide)
 
 ---
 
@@ -513,6 +566,7 @@ Annual billing: 2 months free (pay 10 months, get 12)
 | `index.html` | `js/index.js` |
 | `login.html` | `js/login.js` |
 | `signup.html` | `js/signup.js` |
+| `profile.html` | `js/profile.js` ✓ Exists |
 | `landlord.html` | `js/landlord.js` |
 | `tenant.html` | `js/tenant.js` |
 | `mtd.html` | `js/mtd.js` |
@@ -532,14 +586,15 @@ Annual billing: 2 months free (pay 10 months, get 12)
 rentsafeai/
 ├── js/
 │   ├── lib/
-│   │   ├── supabase-client.js   Supabase client singleton
-│   │   ├── auth.js              Auth session helpers
-│   │   ├── ui.js                Shared UI utilities
-│   │   ├── validation.js        Input validation helpers
-│   │   └── cookies.js           Cookie consent banner
+│   │   ├── supabase-client.js   Supabase client singleton            ✓ Exists
+│   │   ├── auth.js              Auth session helpers                  ✓ Exists
+│   │   ├── ui.js                Shared UI utilities                   ✓ Exists
+│   │   ├── validation.js        Input validation helpers              ✓ Exists
+│   │   └── cookies.js           Cookie consent banner                ✓ Exists
 │   ├── index.js                 Landing page scripts
 │   ├── login.js                 Login / reset password logic
-│   ├── signup.js                Sign-up + password strength
+│   ├── signup.js                Sign-up + password strength           ✓ Exists
+│   ├── profile.js               Account & Billing / Stripe            ✓ Exists
 │   ├── landlord.js              Full landlord dashboard logic
 │   ├── tenant.js                Tenant portal logic
 │   └── mtd.js                   MTD tax module logic
