@@ -110,6 +110,7 @@ rentsafeai/
 ├── sprint10_step1_fix.sql          SQL migration: Sprint 10 patch/fix
 ├── sprint10_step2_cron.sql         SQL: pg_cron scheduled jobs
 ├── sprint13_db.sql                 SQL migration: Sprint 13 (user_profiles, stripe_subscriptions)
+├── session7_tenant_documents.sql   SQL migration: Session 7 (tenant_documents table + RLS) — run in Supabase SQL Editor
 ├── SPRINT10_DEPLOY.md              Sprint 10 deployment guide
 ├── PROJECT_KNOWLEDGE.md            THIS FILE — agent initialization reference
 ├── fix.b64                         Binary patch (base64 encoded)
@@ -276,6 +277,7 @@ Deduplication table for all outgoing alerts.
 | `checklist_progress` | Inspection checklist state per property |
 | `meter_readings` | Gas/electric meter readings |
 | `esign_requests` | E-signature requests with `token` for tenant portal |
+| `tenant_documents` | Tenant KYC documents — passport, RTR, address proofs, references, guarantor. One row per slot per tenant. AI-scanned via Claude. **Requires `session7_tenant_documents.sql` migration + `tenant-documents` Storage bucket.** |
 
 ### MTD Tables (from `mtd_tables.sql`)
 | Table | Purpose |
@@ -536,12 +538,16 @@ All migrations run manually in **Supabase → SQL Editor** (no automated migrati
 | 2 | Resend SPF/DKIM records not set | Email delivery | Pending — emails unreliable |
 | 3 | RRA PDF (GOV.UK Form 3A) not attached | Section 8 notices | Pending |
 | 4 | Section 8 output is draft text only — handoff to Form 3A UI | UX | Pending |
-| 5 | Email sending via `super-processor` (not dedicated function) | Architecture | Technical debt |
+| 5 | Email sending via `super-processor` (not dedicated function) | Architecture | **FIXED Session 6** — replaced with `ai-proxy` |
 | 6 | PDF export via `window.print()` (not jsPDF) | Landlord dashboard | Technical debt |
 | 7 | No tenant data input validation | Tenant portal | Technical debt |
 | 8 | No offline/error recovery states | General | Technical debt |
 | 9 | MX record missing for `rentsafeai.co.uk` | DNS / Email | Post-launch |
 | 10 | Supabase credentials hardcoded in HTML files | Security hygiene | Acceptable — anon key is public-safe |
+| 11 | `parseInt()` on UUID `prop_id`/`tenant_id` values — produces NaN | Data integrity | **FIXED Session 7** — replaced with `String()` (22 locations) |
+| 12 | `tenant_documents` table missing from DB — KYC scanning fails silently | Database | **SQL created** — run `session7_tenant_documents.sql` in Supabase SQL Editor |
+| 13 | `tenant-documents` Storage bucket not created | Storage | Pending — create in Supabase Dashboard → Storage |
+| 14 | Section 8 missing RRA 2025 grounds (1B, 2ZA, 2ZB, 2ZC, 2ZD) | Legal compliance | **FIXED Session 7** — added with social housing notes |
 
 ---
 
@@ -888,6 +894,72 @@ When **touching any of these files for a new feature or bug fix**, follow this p
   - Deploy `stripe-checkout` and `stripe-webhook` edge functions
   - Register webhook endpoint in Stripe Dashboard
   - See Section 14 for full step-by-step
+
+### Session 7 — May 2026 — QA, Bug Fixing & GOV.UK Compliance Review
+**Date:** May 2026
+
+#### Bugs Fixed
+
+**1. Critical: `parseInt()` on UUID `prop_id` / `tenant_id` values (22 locations)**
+- **Root cause:** All tables use UUID primary/foreign keys. Calling `parseInt()` on a UUID (e.g. `"550e8400-e29b-41d4-a716-..."`) returns `NaN`, causing Supabase inserts/updates to fail or store corrupt data.
+- **Fixed:** Replaced all `parseInt(propId/pid/p.id/t.id)` with `String()` equivalents across:
+  - `saveCertToDB()` — certificate saves
+  - `saveIssueToDB()` — maintenance issue saves
+  - Property setup wizard cert/insurance saves (3 certs, 3 insurance lines)
+  - `saveBulkResults()` — bulk document scan
+  - `_saveTenantSetupToDB()` — tenant wizard (prop_id + insurance)
+  - Welcome kit email log, meter readings, Kanban stage change email log
+  - Insurance save (`saveInsurance()`), payment save (`savePayment()`)
+  - Document library upload
+  - `sendEmailNow()` email log (template sends)
+  - Section 8 draft + send email log entries (tenant_id + prop_id)
+  - RRA Information Sheet email log
+  - Section 13 email log
+  - Maintenance notify email log
+
+**2. Missing RRA 2025 Section 8 grounds**
+- Added: Ground 1B (rent-to-buy, social housing), Ground 2ZA, 2ZB, 2ZC, 2ZD (superior tenancy / sub-tenancy scenarios)
+- All new grounds include "social housing only" notes as they don't apply to typical private landlords
+- Updated Ground 1 description to match RRA 2025 exact statutory wording:
+  - Expanded family scope: now explicitly includes cohabiting partner and their children/grandchildren
+  - Clarified 1-year tenancy minimum requirement
+  - Updated field options for "Relationship to you" selector
+- Removed "37 grounds" claim from all UI text — now says "All RRA 2025 grounds" (Housing Act 1988 as amended 1 May 2026)
+
+**3. `tenant_documents` table missing from database**
+- The KYC tenant document scanning feature (`uploadTenantDoc`, `scanTenantDoc`, `verifyTenantDoc`) queries a `tenant_documents` table that was never created in the DB
+- Created `session7_tenant_documents.sql` — run in Supabase SQL Editor to create the table and storage bucket
+- Storage bucket `tenant-documents` also needs to be created in Supabase Dashboard → Storage
+
+#### QA Findings (No Code Changes Required)
+
+| Module | Status | Notes |
+|---|---|---|
+| Dashboard / compliance score | ✓ Pass | `calcRAG()` logic correct; `get_compliance_score()` DB function working |
+| Properties (add/edit/delete) | ✓ Pass after fix | Was affected by parseInt bug — fixed |
+| Certificates (upload, RAG, expiry) | ✓ Pass after fix | saveCertToDB parseInt fixed; scanAndFill AI scan working |
+| Maintenance (Kanban, Awaab's Law) | ✓ Pass | Keywords correct; 14-day trigger logic correct |
+| Tenants (add, invite token, portal) | ✓ Pass after fix | Tenant wizard parseInt fixed; invite token logic correct |
+| Document generation (17 templates) | ✓ Pass | All templates present; AI prompt quality good |
+| Section 8 wizard | ✓ Pass after fix | Grounds updated; notice periods correct; Form 3A handoff noted |
+| E-sign flow | ✓ Pass | Generates AST, sends to tenant, esign_requests table used |
+| MTD tax module | ✓ Pass | Phase scope checker correct; quarter status flow correct |
+| AI chat assistant | ✓ Pass | Uses ai-proxy; Claude responding correctly |
+| Email alerts | ✓ Pass | 8 alert types; dedup via email_log working |
+| Section 13 notice | ✓ Pass | 2-month notice correctly enforced; tribunal rights included |
+| RRA Info Sheet | ✓ Pass | 31 May 2026 deadline clearly shown; email + log working |
+
+#### GOV.UK Compliance Assessment
+
+| Document | Compliance | Notes |
+|---|---|---|
+| Section 8 Notice | ✓ Compliant (with fixes) | Draft particulars + Form 3A handoff; all RRA 2025 grounds now included |
+| Section 13 Notice | ✓ Compliant | Correct statutory references; tribunal rights stated; 2-month minimum enforced |
+| RRA Information Sheet | ✓ Compliant | Correctly generates covering letter + GOV.UK document link; deadline warnings prominent |
+| Written Statement | ✓ Pass | AI-generated — correct as of RRA 2025 (replaces AST from 1 May 2026) |
+
+#### New Files Added
+- `session7_tenant_documents.sql` — SQL migration to create `tenant_documents` table with RLS
 
 ---
 

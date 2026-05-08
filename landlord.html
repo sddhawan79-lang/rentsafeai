@@ -685,7 +685,7 @@ async function sbLoadMeters(pid) {
   try {
     const { data } = await sb.from('meter_readings')
       .select('type, reading')
-      .eq('prop_id', parseInt(pid))
+      .eq('prop_id', String(pid))
       .eq('user_id', currentUser.id)
       .order('created_at', { ascending: false });
     const result = {};
@@ -982,7 +982,7 @@ async function saveCertToDB() {
   let status = expiry ? (new Date(expiry) < new Date() ? 'Expired' : 'Valid') : 'No expiry';
 
   const cert = {
-    prop_id: parseInt(propId), type: certType,
+    prop_id: String(propId), type: certType,
     expiry: expiry || null, status,
     has_file: true, served: false,
     engineer: engineer || null,
@@ -1016,7 +1016,7 @@ async function saveIssueToDB() {
 
   const awaabVal = document.getElementById('i-awaab')?.value || 'No';
   const issue = {
-    prop_id: parseInt(propId),
+    prop_id: String(propId),
     title: desc.slice(0, 60),
     description: desc,
     cat: document.getElementById('i-cat')?.value || 'Other',
@@ -1829,9 +1829,9 @@ async function _savePropertySetupToDB() {
     // ② Certificates
     const mkStatus = exp => exp ? (new Date(exp) < new Date() ? 'Expired' : 'Valid') : 'Valid';
     const certsToInsert = [];
-    if (s.gasExpiry || s.gasEngineer)   certsToInsert.push({ prop_id:parseInt(pid), type:'Gas Safety Certificate (GSC)',                    expiry:s.gasExpiry||null,  engineer:s.gasEngineer||null,  status:mkStatus(s.gasExpiry),  has_file:false, served:false, user_id:currentUser.id });
-    if (s.eicrExpiry || s.eicrEngineer) certsToInsert.push({ prop_id:parseInt(pid), type:'Electrical Installation Condition Report (EICR)', expiry:s.eicrExpiry||null, engineer:s.eicrEngineer||null, status:mkStatus(s.eicrExpiry), has_file:false, served:false, user_id:currentUser.id });
-    if (s.epcRating || s.epcExpiry)     certsToInsert.push({ prop_id:parseInt(pid), type:'Energy Performance Certificate (EPC)',             expiry:s.epcExpiry||null,  engineer:null,                 status:mkStatus(s.epcExpiry),  has_file:false, served:false, user_id:currentUser.id });
+    if (s.gasExpiry || s.gasEngineer)   certsToInsert.push({ prop_id:String(pid), type:'Gas Safety Certificate (GSC)',                    expiry:s.gasExpiry||null,  engineer:s.gasEngineer||null,  status:mkStatus(s.gasExpiry),  has_file:false, served:false, user_id:currentUser.id });
+    if (s.eicrExpiry || s.eicrEngineer) certsToInsert.push({ prop_id:String(pid), type:'Electrical Installation Condition Report (EICR)', expiry:s.eicrExpiry||null, engineer:s.eicrEngineer||null, status:mkStatus(s.eicrExpiry), has_file:false, served:false, user_id:currentUser.id });
+    if (s.epcRating || s.epcExpiry)     certsToInsert.push({ prop_id:String(pid), type:'Energy Performance Certificate (EPC)',             expiry:s.epcExpiry||null,  engineer:null,                 status:mkStatus(s.epcExpiry),  has_file:false, served:false, user_id:currentUser.id });
     if (certsToInsert.length) {
       const { data: cd } = await sb.from('certificates').insert(certsToInsert).select();
       if (cd) D.certs.push(...cd.map(c=>({...c,file:false})));
@@ -1842,11 +1842,11 @@ async function _savePropertySetupToDB() {
     const existing = D.insurance.filter(i=>String(i.prop_id)===String(pid));
     const insToInsert = [];
     if ((s.bldProvider||s.bldExpiry) && !existing.find(i=>(i.type||'').toLowerCase().includes('buildings')))
-      insToInsert.push({ prop_id:parseInt(pid), type:'Buildings Insurance',        provider:s.bldProvider||'Not set', policy:s.bldPolicyRef||null, expiry:s.bldExpiry||null, premium:null, status:mkInsStatus(s.bldExpiry), user_id:currentUser.id });
+      insToInsert.push({ prop_id:String(pid), type:'Buildings Insurance',        provider:s.bldProvider||'Not set', policy:s.bldPolicyRef||null, expiry:s.bldExpiry||null, premium:null, status:mkInsStatus(s.bldExpiry), user_id:currentUser.id });
     if ((s.llProvider||s.llExpiry) && !existing.find(i=>(i.type||'').toLowerCase().includes('contents')))
-      insToInsert.push({ prop_id:parseInt(pid), type:'Landlord Contents Insurance', provider:s.llProvider||'Not set', policy:s.llPolicyRef||null, expiry:s.llExpiry||null,  premium:null, status:mkInsStatus(s.llExpiry),  user_id:currentUser.id });
+      insToInsert.push({ prop_id:String(pid), type:'Landlord Contents Insurance', provider:s.llProvider||'Not set', policy:s.llPolicyRef||null, expiry:s.llExpiry||null,  premium:null, status:mkInsStatus(s.llExpiry),  user_id:currentUser.id });
     if ((s.rgProvider||s.rgExpiry) && !existing.find(i=>(i.type||'').toLowerCase().includes('guarantee')))
-      insToInsert.push({ prop_id:parseInt(pid), type:'Rent Guarantee Insurance',   provider:s.rgProvider||'Not set', policy:null,                 expiry:s.rgExpiry||null,  premium:null, status:mkInsStatus(s.rgExpiry),  user_id:currentUser.id });
+      insToInsert.push({ prop_id:String(pid), type:'Rent Guarantee Insurance',   provider:s.rgProvider||'Not set', policy:null,                 expiry:s.rgExpiry||null,  premium:null, status:mkInsStatus(s.rgExpiry),  user_id:currentUser.id });
     if (insToInsert.length) {
       const { data: id2 } = await sb.from('insurance').insert(insToInsert).select();
       if (id2) D.insurance.push(...id2);
@@ -2098,7 +2098,7 @@ function _renderBulkResults(results) {
 async function saveBulkResults() {
   const btn = document.getElementById('bulk-save-btn');
   if (btn) { btn.disabled=true; btn.innerHTML='<span class="spin"></span>Saving…'; }
-  const pid = parseInt(document.getElementById('bulk-prop')?.value || window._bulkScan.pid);
+  const pid = String(document.getElementById('bulk-prop')?.value || window._bulkScan.pid);
   const results = window._bulkScan.results;
   let saved = 0;
 
@@ -2570,7 +2570,7 @@ async function _saveTenantSetupToDB() {
     const schemeClean = s.depositScheme.replace(' (Deposit Protection Service)','').replace(' (Tenancy Deposit Scheme)','');
 
     const tenant = {
-      prop_id:      parseInt(s.pid),
+      prop_id:      String(s.pid),
       name:         s.name,
       email:        s.email || null,
       phone:        s.phone || null,
@@ -2619,7 +2619,7 @@ async function _saveTenantSetupToDB() {
     const insToSave = Object.entries(insTypeMap)
       .filter(([k]) => s[k]?.provider || s[k]?.expiry || s[k]?.premium)
       .map(([k, typeName]) => ({
-        prop_id:  parseInt(s.pid),
+        prop_id:  String(s.pid),
         type:     typeName,
         provider: s[k].provider || null,
         policy:   s[k].policy   || null,
@@ -2975,7 +2975,7 @@ async function sendWelcomeKit(pid) {
     const tenant2 = D.tenants.find(t => String(t.prop_id) === String(pid) && t.status === 'Active');
     if (tenant2) {
       const logEntry = {
-        prop_id: parseInt(pid),
+        prop_id: String(pid),
         tenant_id: tenant2.id,
         tenant_name: tenantName,
         template_id: 'welcome_kit',
@@ -3208,7 +3208,7 @@ function pgDashboard(){
         <div>
           <div style="font-size:10px;font-weight:700;color:#00C896;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px">✦ RRA 2025 — Section 21 abolished 1 May 2026</div>
           <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:4px">Section 8 Notice Generator</div>
-          <div style="font-size:12px;color:rgba(255,255,255,0.6)">All 37 RRA 2025 grounds · Auto-filled · PDF download · Email to tenant</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.6)">All RRA 2025 grounds · Auto-filled · PDF download · Email to tenant</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${btn}</div>
       </div>`;
@@ -3516,7 +3516,7 @@ async function saveMeterReading(pid,mkey,val){
   try {
     await sb.from('meter_readings').insert({
       user_id: currentUser.id,
-      prop_id: parseInt(pid),
+      prop_id: String(pid),
       type: mkey,
       reading: parseFloat(val) || 0,
       read_date: new Date().toISOString().split('T')[0],
@@ -3823,7 +3823,7 @@ function pdTabContent(pid, tab) {
           <div>
             <div style="font-size:10px;font-weight:700;color:var(--green);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px">⚖️ Section 8 — RRA 2025</div>
             <div style="font-size:13px;font-weight:600;color:#fff">Generate Section 8 draft</div>
-            <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px">All 37 grounds · Auto-filled</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px">All RRA 2025 grounds · Auto-filled</div>
           </div>
           <button class="btn btn-sm" style="background:var(--green);color:#0B1E3D;border:none;font-weight:700;flex-shrink:0" onclick="moSection8('${pid}')">Generate →</button>
         </div>
@@ -5531,7 +5531,7 @@ function moAddPayment(prefPropId, editId) {
 }
 
 async function savePayment(editId) {
-  const prop_id = parseInt(document.getElementById('pay-prop')?.value);
+  const prop_id = String(document.getElementById('pay-prop')?.value || '');
   const month   = document.getElementById('pay-month')?.value;
   const amount  = parseFloat(document.getElementById('pay-amount')?.value)||0;
   const due     = document.getElementById('pay-due')?.value||null;
@@ -5865,7 +5865,7 @@ async function moveStage(id,stage){
         const logEntry = {
           user_id: currentUser.id,
           tenant_id: tenant.id||null,
-          prop_id: parseInt(m?.prop_id),
+          prop_id: m?.prop_id ? String(m.prop_id) : null,
           template_id: 'maintenance_notification',
           template_name: `Maintenance: ${m?.title||'Job'} → ${stage}`,
           sent_to: tenant.email,
@@ -6012,7 +6012,7 @@ function moAddInsurance(insId, prefPropId, prefType) {
 }
 
 async function saveInsurance(insId) {
-  const prop_id = parseInt(document.getElementById('ins-prop')?.value);
+  const prop_id = String(document.getElementById('ins-prop')?.value || '');
   const type    = document.getElementById('ins-type')?.value;
   const provider= document.getElementById('ins-provider')?.value.trim()||'Not set';
   const policy  = document.getElementById('ins-policy')?.value.trim()||null;
@@ -6833,7 +6833,7 @@ async function dlUpload(){
   const{error:upErr}=await sb.storage.from('esign-documents').upload(filename,file,{contentType:file.type});
   if(upErr){toast('Upload failed: '+upErr.message,true);return;}
   const{data:urlData}=sb.storage.from('esign-documents').getPublicUrl(filename);
-  const cert={prop_id:propId?parseInt(propId):null,type:'__DOC__:'+name,expiry:new Date().toISOString().split('T')[0],engineer:urlData.publicUrl,status:'Uploaded',has_file:true,served:false,user_id:currentUser.id};
+  const cert={prop_id:propId?String(propId):null,type:'__DOC__:'+name,expiry:new Date().toISOString().split('T')[0],engineer:urlData.publicUrl,status:'Uploaded',has_file:true,served:false,user_id:currentUser.id};
   const{data,error}=await sb.from('certificates').insert(cert).select().single();
   if(error){toast('Save failed: '+error.message,true);return;}
   D.certs.push(data);
@@ -7308,7 +7308,7 @@ function pgTemplates() {
       label: 'Legal Notices',
       badge: null,
       templates: [
-        { id: 'section8', name: 'Section 8 Notice', desc: 'RRA 2025 compliant — all 37 grounds, guided flow, auto-filled, PDF & email. The only tool you need.', tag: 'Possession', ai: true, s8:true },
+        { id: 'section8', name: 'Section 8 Notice', desc: 'RRA 2025 compliant — all grounds (Housing Act 1988 as amended 1 May 2026), guided flow, auto-filled, PDF & email. The only tool you need.', tag: 'Possession', ai: true, s8:true },
         { id: 'section13', name: 'Section 13 Notice', desc: 'Formal rent increase notice under the Housing Act 1988', tag: 'Rent increase', ai: true },
         { id: 'noticetoquit', name: 'Notice to Quit', desc: 'Landlord notice to end a periodic tenancy', tag: 'Periodic', ai: true },
       ]
@@ -7898,8 +7898,8 @@ async function sendEmailNow() {
     if (data.error || !res.ok) throw new Error(data.error || 'Send failed');
     const logEntry = {
       user_id: currentUser.id,
-      tenant_id: ctx.tenantId ? parseInt(ctx.tenantId) : null,
-      prop_id: ctx.propId ? parseInt(ctx.propId) : null,
+      tenant_id: ctx.tenantId ? String(ctx.tenantId) : null,
+      prop_id: ctx.propId ? String(ctx.propId) : null,
       template_id: ctx.templateId,
       template_name: ctx.templateName,
       sent_to: to,
@@ -8003,26 +8003,53 @@ async function deleteCustomTemplate(id) {
 // S5: SECTION 8 GENERATOR
 // ══════════════════════════════════════════════════
 
-// All 37 RRA 2025 grounds (20 mandatory, 17 discretionary)
+// All RRA 2025 grounds — Housing Act 1988 Schedule 2 as amended by Renters' Rights Act 2025 (in force 1 May 2026)
+// 31 grounds included (20 mandatory incl. new 2ZA-2ZD, 11 discretionary incl. legacy grounds)
+// Note: Ground 3 (former holiday let) was omitted by RRA 2025 for new tenancies from 1 May 2026
 const S8_GROUNDS = [
   // ── MANDATORY GROUNDS ──
   { num:'1',   type:'M', cat:'landlord', label:'Landlord or family moving in',
-    plain:'You, or a close family member, intend to occupy the property as their only or principal home.',
+    plain:'You require the property as the only or principal home for yourself, your spouse/civil partner/cohabitee, or a close family member (parent, grandparent, sibling, child, grandchild, or child/grandchild of your cohabitee). The tenancy must have begun at least 1 year before the date of the notice. (RRA 2025 — in force 1 May 2026)',
     notice:'4 months', days:122, restrict12:true,
-    evidence:'Written notice served at tenancy start that this ground may be used. State who is moving in.',
+    evidence:'Evidence that the named person intends to live there as their only or principal home. If the tenancy started before 1 May 2026, you must also have given written notice at the start that Ground 1 may be used.',
     fields:[
       {id:'s8_occupant', label:'Who is moving in?', type:'text', placeholder:'e.g. My daughter Jane Smith', req:true},
-      {id:'s8_relation', label:'Relationship to you', type:'select', opts:['Landlord (me)','Spouse / civil partner','Parent','Child','Sibling','Grandparent','Grandchild'], req:true}
+      {id:'s8_relation', label:'Relationship to you', type:'select', opts:['Landlord (me)','Spouse / civil partner','Person living with me as if married or civil partner','Parent','Child','Sibling','Grandparent','Grandchild','Child/grandchild of my cohabiting partner'], req:true}
     ]},
   { num:'1A',  type:'M', cat:'landlord', label:'Landlord intends to sell the property',
-    plain:'You intend to sell the property with vacant possession. (New ground under RRA 2025 — replaces many Section 21 "I want to sell" cases.)',
+    plain:'You intend to sell the property with vacant possession. The tenancy must have begun at least 1 year before the date of the notice. (RRA 2025 — replaces many Section 21 "I want to sell" cases. Cannot be used by social housing registered providers.)',
     notice:'4 months', days:122, restrict12:true,
     evidence:'Estate agent instructions, valuation report, or marketing evidence confirming intent to sell.',
+    fields:[]},
+  { num:'1B',  type:'M', cat:'landlord', label:'Rent-to-buy scheme — purchase period expired',
+    plain:'The landlord is a private registered provider of social housing and the property was let under a rent-to-buy agreement. The stated period in the agreement has expired and the landlord has complied with any obligation to offer the property for sale. (RRA 2025 — applies only to registered providers under rent-to-buy schemes. Does not apply to private landlords.)',
+    notice:'4 months', days:122, restrict12:false,
+    evidence:'Rent-to-buy agreement documentation. Evidence that the offer period has expired and any statutory offer obligations have been met.',
     fields:[]},
   { num:'2',   type:'M', cat:'other', label:'Mortgagee seeking possession',
     plain:'The property is subject to a mortgage and the lender is entitled to possession.',
     notice:'2 months', days:61, restrict12:false,
     evidence:'Mortgage documentation and lender possession order.',
+    fields:[]},
+  { num:'2ZA', type:'M', cat:'other', label:'Landlord holds under a superior tenancy ending soon (social/agricultural)',
+    plain:'The landlord holds the property under a superior tenancy that will end within 12 months, and the landlord is a registered provider of social housing, agricultural tenant, supported accommodation provider, or local authority company. (RRA 2025 — mainly applies to social landlords, not typical private landlords.)',
+    notice:'2 months', days:61, restrict12:false,
+    evidence:'Evidence of the superior tenancy and its impending end. Confirmation of landlord type (registered provider / agricultural / supported accommodation).',
+    fields:[]},
+  { num:'2ZB', type:'M', cat:'other', label:'Superior long-lease (21+ years) expiring within 12 months',
+    plain:'The landlord holds under a long fixed-term superior tenancy (21+ years) which will expire within 12 months. (RRA 2025 — applies where an intermediate landlord\'s long lease is ending.)',
+    notice:'2 months', days:61, restrict12:false,
+    evidence:'Documentation of the superior fixed-term tenancy and its expiry date.',
+    fields:[]},
+  { num:'2ZC', type:'M', cat:'other', label:'New landlord via section 18 — previous landlord was social/agricultural',
+    plain:'The current landlord became landlord via section 18 of the Housing Act 1988 within the last 6 months, and the previous landlord was a registered provider of social housing, agricultural tenant, supported accommodation provider, or local authority company. (RRA 2025 — specialist ground, rarely applies to private landlords.)',
+    notice:'2 months', days:61, restrict12:false,
+    evidence:'Evidence that the previous landlord fell into one of the qualifying categories. Documentation of how you became the landlord.',
+    fields:[]},
+  { num:'2ZD', type:'M', cat:'other', label:'New landlord via section 18 — long lease expiry',
+    plain:'The current landlord became landlord via section 18 of the Housing Act 1988 as a result of a long fixed-term superior tenancy (21+ years) coming to an end, and this happened within the past 6 months. (RRA 2025 — specialist ground.)',
+    notice:'2 months', days:61, restrict12:false,
+    evidence:'Documentation of the long superior tenancy that ended and evidence of how you became the landlord.',
     fields:[]},
   { num:'3',   type:'M', cat:'other', label:'Former holiday let',
     plain:'The tenancy was for 8 months or less and the property was a holiday let in the prior 12 months.',
@@ -8178,7 +8205,7 @@ const S8_CATS = [
   { id:'landlord', icon:'🏠', label:'I need the property back',  sub:'Selling, moving back in, redevelopment' },
   { id:'breach',  icon:'📋', label:'Tenant broke the agreement', sub:'Pets, damage, subletting, false info' },
   { id:'asb',     icon:'⚠️', label:'Tenant is causing problems', sub:'Nuisance, anti-social behaviour, criminal activity' },
-  { id:'other',   icon:'📂', label:'Other / show all grounds',   sub:'View the full list of all 37 RRA 2025 grounds' },
+  { id:'other',   icon:'📂', label:'Other / show all grounds',   sub:'View the full list of all RRA 2025 grounds' },
 ];
 
 // State for Section 8 generator
@@ -8319,7 +8346,7 @@ function s8Step3() {
   const tip = `<div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:8px;padding:9px 13px;font-size:12px;color:var(--blue);margin-bottom:14px">💡 <strong>Tip:</strong> Select multiple grounds where possible — if one fails, others can succeed. For arrears, always tick both Ground 8 AND 10.</div>`;
 
   return `<div style="font-size:15px;font-weight:600;margin-bottom:4px">Select grounds for possession</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">${_s8.category==='other'?'All 37 RRA 2025 grounds':'Grounds relevant to your situation'} · ${selCount} selected</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">${_s8.category==='other'?'All RRA 2025 grounds (Housing Act 1988 as amended)':'Grounds relevant to your situation'} · ${selCount} selected</div>
     ${tip}
     <div style="max-height:380px;overflow-y:auto;padding-right:4px">${cards}</div>`;
 }
@@ -8537,15 +8564,15 @@ INSTRUCTIONS:
     try {
       await sb.from('email_log').insert({
         user_id: currentUser.id,
-        tenant_id: t ? parseInt(t.id) : null,
-        prop_id: parseInt(p.id),
+        tenant_id: t ? String(t.id) : null,
+        prop_id: String(p.id),
         template_id: 'section8_notice',
         template_name: `Section 8 Notice — Grounds ${selectedData.map(g=>g.num).join(', ')}`,
         sent_to: t?.email || null,
         subject: `Section 8 Notice — ${p.address}`,
         status: 'Draft'
       });
-      D.emailLog.unshift({ template_name: `Section 8 Notice`, sent_to: t?.email||'—', sent_at: new Date().toISOString(), status: 'Draft', prop_id: parseInt(p.id) });
+      D.emailLog.unshift({ template_name: `Section 8 Notice`, sent_to: t?.email||'—', sent_at: new Date().toISOString(), status: 'Draft', prop_id: String(p.id) });
     } catch(e) { /* non-critical */ }
 
     await logAudit('GENERATE_S8', 'section8', p.id, `Grounds: ${selectedData.map(g=>g.num).join(', ')}`);
@@ -8636,8 +8663,8 @@ async function s8SendToTenant() {
     // Update log entry to 'Sent'
     const logEntry = {
       user_id: currentUser.id,
-      tenant_id: parseInt(t.id),
-      prop_id: parseInt(p.id),
+      tenant_id: String(t.id),
+      prop_id: String(p.id),
       template_id: 'section8_notice',
       template_name: `Section 8 Notice — Grounds ${_s8.selectedGrounds.join(', ')}`,
       sent_to: t.email,
@@ -8839,8 +8866,8 @@ Keep it under 200 words. Professional but warm. Plain text, no markdown.`;
     // Log it
     const logEntry = {
       user_id: currentUser.id,
-      tenant_id: parseInt(t.id),
-      prop_id: t.prop_id ? parseInt(t.prop_id) : null,
+      tenant_id: String(t.id),
+      prop_id: t.prop_id ? String(t.prop_id) : null,
       template_id: 'rra_info_sheet',
       template_name: "RRA 2025 Information Sheet",
       sent_to: t.email,
@@ -9625,7 +9652,7 @@ async function _sendS13() {
 
     // Log to email_log
     const { data: logData } = await sb.from('email_log').insert({
-      prop_id: parseInt(s.pid), tenant_id: tenant?.id||null, tenant_name: tenant?.name||'—',
+      prop_id: s.pid ? String(s.pid) : null, tenant_id: tenant?.id ? String(tenant.id) : null, tenant_name: tenant?.name||'—',
       template_id: 'section13',
       subject: `Section 13 Notice — £${curRent.toLocaleString()} → £${nw.toLocaleString()}/mo from ${eDate}`,
       status: 'Sent', user_id: currentUser.id,
@@ -9722,7 +9749,7 @@ async function sendMaintenanceNotify(maintenanceId) {
     });
     const logEntry = {
       user_id: currentUser.id, tenant_id: tenant.id||null,
-      prop_id: parseInt(m.prop_id), template_id: 'maintenance_notification',
+      prop_id: m.prop_id ? String(m.prop_id) : null, template_id: 'maintenance_notification',
       template_name: `Maintenance: ${m.title||'Job'}`,
       sent_to: tenant.email, subject: `Maintenance update: ${m.title||'Job'}`,
       status: 'Sent', email_body: html
