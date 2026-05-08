@@ -116,8 +116,9 @@ rentsafeai/
 └── fix.patch                       Git patch file
 ```
 
-> **No `supabase/` folder.** Edge functions are deployed via `npx supabase functions deploy`
-> and their source is kept as loose `.ts` files at the repo root.
+> **`supabase/functions/ai-proxy/index.ts` now exists** (created Session 6).
+> Other edge function sources remain as loose `.ts` files at the repo root.
+> Deploy command: `npx supabase functions deploy <name> --project-ref mahtcfukgzbonwibtsxz`
 
 ### HTML File Responsibilities
 
@@ -342,13 +343,19 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
 - **Trigger:** HTTP POST with `{"type": "daily"}` or `{"type": "weekly_summary"}`
 - **Full details:** See [Section 7](#7-email-alert-system-sprint-10)
 
-#### `super-processor` (pre-existing, not in repo)
-- Handles: AI chat (Claude `claude-sonnet-4-5`), email sending via Resend
-- Used by: `landlord.html` AI assistant, `tenant.html` AI priority classification
-- **EDGE_URL:** `https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/super-processor`
+#### `ai-proxy` ✓ CANONICAL AI FUNCTION (Session 6)
+- **Source:** `supabase/functions/ai-proxy/index.ts` — exists in repo
+- **URL:** `https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/ai-proxy`
+- **Deploy:** `npx supabase functions deploy ai-proxy --project-ref mahtcfukgzbonwibtsxz --no-verify-jwt`
+- **Secrets:** `ANTHROPIC_API_KEY`, `RESEND_API_KEY`
+- Handles: Claude AI requests + email sending via Resend
+- Used by: ALL AI calls in `landlord.html` (document generation, chat, Section 8, e-sign, inventory, tenant doc scanning, reminders)
+- **Replaces `super-processor`** — do not use `super-processor` in any new code
 
-#### `ai-proxy` (pre-existing, not in repo)
-- Referenced as having `RESEND_API_KEY` set — copy this value for `email-alerts`
+#### `super-processor` (DEPRECATED — do not use)
+- Was the original AI proxy — source never in repo, `ANTHROPIC_API_KEY` was invalid
+- All references replaced with `ai-proxy` in Session 6
+- Still listed in Supabase Dashboard as `ai-proxy` function (same Supabase internal name)
 
 #### `stripe-checkout` (Sprint 13)
 - **Source file:** `stripe-checkout-index.ts` (root) → deploy from `supabase/functions/stripe-checkout/index.ts`
@@ -834,6 +841,28 @@ When **touching any of these files for a new feature or bug fix**, follow this p
 - Annual equivalents recalculated consistently (10 months ÷ 12): Portfolio founding £19.99/mo, Portfolio standard £33.32/mo, Landlord standard £12.49/mo
 - Changes applied in: HTML display (`id="portfolio-price"`, `id="portfolio-standard"`, `id="landlord-standard"`) and the `prices` JS object in `index.html`
 - Section 11 of `PROJECT_KNOWLEDGE.md` updated to reflect the full founding/standard price matrix
+
+### Session 6 — May 2026 — AI Fix & Edge Function Rebuild
+**Date:** May 2026
+- **Root cause diagnosed:** All AI generation calls in `landlord.html` pointed to `functions/v1/super-processor` — a pre-existing edge function whose source was not in the repo and whose `ANTHROPIC_API_KEY` secret was invalid/expired
+- **Fix:** Created `supabase/functions/ai-proxy/index.ts` from scratch — a minimal Deno proxy that:
+  - Forwards Claude AI requests to `https://api.anthropic.com/v1/messages` using `ANTHROPIC_API_KEY` secret
+  - Handles email sending via Resend when `body.type === 'send_email'`
+  - Full CORS headers for browser requests
+  - Deployed with `--no-verify-jwt` flag
+- **Updated `ANTHROPIC_API_KEY` secret** in Supabase Dashboard → Edge Functions → Secrets with a fresh Anthropic key (created May 8 2026, "Saurabh" key)
+- **Global find-and-replace** in `landlord.html`: all occurrences of `functions/v1/super-processor` replaced with `functions/v1/ai-proxy` (affects ~20 fetch calls across document generation, AI chat, Section 8, e-sign, inventory, tenant doc scanning, email reminders)
+- **Verified working:** PowerShell test returned Status 200 with Claude response content
+
+#### ai-proxy Edge Function Reference
+- **Source:** `supabase/functions/ai-proxy/index.ts` ✓ Exists in repo
+- **URL:** `https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/ai-proxy`
+- **Deploy:** `npx supabase functions deploy ai-proxy --project-ref mahtcfukgzbonwibtsxz --no-verify-jwt`
+- **Secrets required:** `ANTHROPIC_API_KEY`, `RESEND_API_KEY`
+- **Request formats supported:**
+  - Claude AI: `{ model, max_tokens, messages, system? }` → proxies to Anthropic, returns full Claude response
+  - Email: `{ type: 'send_email', to, subject, html }` → sends via Resend from `documents@rentsafeai.co.uk`
+- **IMPORTANT:** This replaces `super-processor` entirely. Never reference `super-processor` in new code — always use `ai-proxy`
 
 ### Sprint 13 — User Profile Page & Stripe Subscription Billing
 **Date:** May 2026
