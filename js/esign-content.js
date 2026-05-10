@@ -244,12 +244,54 @@
         'Tenant: ' + tenantName,
         'Document type: ' + docLabel,
         '',
-        'This PDF confirms the electronic signature recorded below.',
-        'The full document is stored securely by RentSafe AI.'
+        'This PDF contains the full signed document.',
+        'The signature confirmation is on the final page.'
       ];
       coverLines.forEach(function (l, i) { doc.text(l, 20, 70 + i * 8); });
 
-      doc.addPage();
+      // ── Embed full document content ──
+      if (req.document_html) {
+        doc.addPage();
+        // Strip HTML tags to plain text for jsPDF rendering
+        var text = req.document_html
+          .replace(/<br\s*\/?>/gi, '\n')
+          .replace(/<\/p>/gi, '\n\n')
+          .replace(/<\/h[1-6]>/gi, '\n\n')
+          .replace(/<\/li>/gi, '\n')
+          .replace(/<[^>]+>/g, '')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/\n{3,}/g, '\n\n')
+          .trim();
+
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+        doc.setTextColor(40, 40, 40);
+        var lines = doc.splitTextToSize(text, 170);
+        var y = 20;
+        var pageH = 277;
+        for (var i = 0; i < lines.length; i++) {
+          if (y > pageH) { doc.addPage(); y = 20; }
+          doc.text(lines[i], 20, y);
+          y += 5;
+        }
+      } else if (req.document_pdf_url) {
+        // For uploaded PDFs, note the reference and provide the URL
+        doc.addPage();
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
+        doc.setTextColor(40, 40, 40);
+        doc.text('The original uploaded document is available at:', 20, 30);
+        doc.setTextColor(59, 111, 232);
+        doc.setFontSize(9);
+        var docUrlLines = doc.splitTextToSize(req.document_pdf_url, 170);
+        docUrlLines.forEach(function (l, i) { doc.text(l, 20, 42 + i * 6); });
+        doc.setTextColor(100, 100, 100);
+        doc.setFontSize(10);
+        doc.text('The landlord uploaded this document as a PDF. It is stored securely and available for download separately. This signature page confirms the tenant electronically signed the referenced document.', 20, 60, { maxWidth: 170 });
+      }
+
+      // ── Signature confirmation page ──
       doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
       doc.text('Electronic Signature Confirmation', 20, 20);
       doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
