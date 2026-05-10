@@ -71,7 +71,7 @@ Saurabh Dhawan (featured on landing page, `index.html` founder story section)
 | **Supabase** | PostgreSQL database, Auth, Edge Functions, Storage, RLS | Hardcoded in HTML files |
 | **Resend** | Transactional email (`documents@rentsafeai.co.uk`) | Edge Function secret `RESEND_API_KEY` |
 | **Stripe** | Subscription billing for Starter/Landlord/Portfolio plans | Edge Function secrets `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, price IDs |
-| **Anthropic Claude** (`claude-sonnet-4-5`) | AI chat assistant + maintenance priority classification | `super-processor` edge function |
+| **Anthropic Claude** (`claude-sonnet-4-5`) | AI chat assistant + maintenance priority classification | `ai-proxy` edge function |
 | **Formspree** (`xdapbzqv`) | Waitlist email capture on landing page | Inline in `index.html` |
 | **Crisp** (ID: `6a5c5215-3c14-4afa-94a4-f1f8b05e2f62`) | Live chat widget | `index.html`, `login.html`, `tenant.html`, `mtd.html` |
 | **signature_pad** v4.1.7 | E-signature canvas on tenant portal | CDN in `tenant.html` |
