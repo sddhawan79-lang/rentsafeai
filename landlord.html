@@ -2220,24 +2220,36 @@ function moTenant(pid) {
   const p = pid ? P(pid) : D.properties[0];
   const opts = D.properties.map(pr => `<option value="${pr.id}"${String(pr.id)===String(pid)?' selected':''}>${pr.address}, ${pr.city}</option>`).join('');
 
+  // Detect if this is the first active tenant at this property
+  const existingTenants = D.tenants.filter(t => t.status === 'Active' && String(t.prop_id) === String(pid));
+  const isFirstTenant = existingTenants.length === 0;
+  const totalSteps = isFirstTenant ? 7 : 4;
+
+  // If not first tenant, copy deposit/rent/insurance from the lead tenant
+  const leadT = existingTenants[0] || null;
+  const copyDeposit  = leadT?.deposit || '';
+  const copyScheme   = leadT?.scheme || '';
+  const copySchemeRef= leadT?.scheme_ref || '';
+  const copyRent     = leadT?.rent || '';
+  const copyRentDay  = leadT?.rent_day || '1';
+
   window._tsetup = {
     pid: pid ? String(pid) : (D.properties[0]?.id ? String(D.properties[0].id) : ''),
     opts,
-    step: 1,
+    step: 1, isLead: isFirstTenant, totalSteps,
     // Step 1 — basics
     name:'', email:'', phone:'', tenancyType:'APT', startDate:'', endDate:'',
-    isLead: !D.tenants.filter(t=>t.status==='Active'&&String(t.prop_id)===String(pid)).length, // auto-lead if first
     // Step 2 — IDs (2 documents)
     id1Type:'', id1Ref:'', id1Expiry:'', id1Issuer:'',
     id2Type:'', id2Ref:'', id2Expiry:'', id2Issuer:'',
     // Step 3 — Right to Rent
     rtrDocType:'Passport', rtrRef:'', rtrCheckedBy:'', rtrCheckDate:'', rtrExpiry:'', rtrSkipped:false,
-    // Step 4 — Address proof + deposit
+    // Step 4 — Address proof + deposit (lead-tenant only, otherwise auto-filled)
     addr1Type:'', addr1File:null, addr2Type:'', addr2File:null,
-    deposit:'', depositScheme:'', depositRef:'',
-    // Step 5 — Rent
-    rent:'', rentDay:'1', firstPayDate:'', payMethod:'Standing order',
-    // Step 6 — Insurance (optional, tied to tenancy start)
+    deposit: copyDeposit || '', depositScheme: copyScheme || '', depositRef: copySchemeRef || '',
+    // Step 5 — Rent (lead-tenant only, otherwise auto-filled)
+    rent: copyRent || '', rentDay: copyRentDay || '1', firstPayDate:'', payMethod:'Standing order',
+    // Step 6 — Insurance (lead-tenant only)
     ins_buildings:{ provider:'',policy:'',expiry:'',premium:'' },
     ins_contents:{ provider:'',policy:'',expiry:'',premium:'' },
     ins_liability:{ provider:'',policy:'',expiry:'',premium:'' },
@@ -2247,7 +2259,7 @@ function moTenant(pid) {
   };
 
   document.getElementById('mo-t').textContent = 'Add tenant';
-  document.getElementById('mo-s').textContent = 'Step 1 of 7 — tenant details';
+  document.getElementById('mo-s').textContent = `Step 1 of ${totalSteps} — tenant details`;
   document.querySelector('.mo-box').classList.add('mo-wide');
   _renderTenantStep(1);
   document.getElementById('mo').classList.add('open');
@@ -2255,22 +2267,33 @@ function moTenant(pid) {
 
 function _renderTenantStep(n) {
   const s = window._tsetup;
-  const stepLabels = ['','Details','IDs','Right to Rent','Deposit','Rent','Insurance','Review'];
-  const segBar = [1,2,3,4,5,6,7].map(i =>
+  const isLead = s.isLead;
+  const total  = s.totalSteps || 7;
+
+  const stepLabelsFull = ['','Details','IDs','Right to Rent','Deposit','Rent','Insurance','Review'];
+  const stepLabelsShort = ['','Details','IDs','Right to Rent','Review'];
+  const stepLabels = isLead ? stepLabelsFull : stepLabelsShort;
+
+  const stepNums = isLead ? [1,2,3,4,5,6,7] : [1,2,3,4];
+
+  // Map UI step index to actual step number (for non-lead: step 4 UI = step 7 logic)
+  const actualStep = isLead ? n : (n === 4 ? 7 : n);
+
+  const segBar = stepNums.map(i =>
     `<div style="flex:1;height:3px;border-radius:100px;background:${i<n?'var(--green)':i===n?'var(--blue)':'var(--border)'};transition:background .3s"></div>`
   ).join('');
 
   document.getElementById('mo-b').innerHTML = `
     <div style="display:flex;gap:4px;margin-bottom:6px">${segBar}</div>
     <div style="display:flex;justify-content:space-between;margin-bottom:20px">
-      ${[1,2,3,4,5,6,7].map(i=>`<div style="font-size:9px;font-weight:${i===n?'700':'400'};color:${i<n?'var(--green-dark)':i===n?'var(--blue)':'var(--muted)'};text-align:center;flex:1">${stepLabels[i]}</div>`).join('')}
+      ${stepNums.map(i=>`<div style="font-size:9px;font-weight:${i===n?'700':'400'};color:${i<n?'var(--green-dark)':i===n?'var(--blue)':'var(--muted)'};text-align:center;flex:1">${stepLabels[i]}</div>`).join('')}
     </div>
-    ${_tenantStepHtml(n)}`;
+    ${_tenantStepHtml(actualStep)}`;
 
   document.getElementById('mo-f').innerHTML = `
     <button onclick="tenantStepBack()" style="display:inline-flex;align-items:center;gap:6px;background:none;border:none;font-family:var(--font);font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;padding:7px 0;visibility:${n===1?'hidden':'visible'}">← Back</button>
-    <span style="font-size:12px;color:var(--muted)">Step ${n} of 7</span>
-    <button class="btn btn-navy" id="tsetup-next" onclick="tenantStepNext()">${n===7?'Add tenant ✓':'Next →'}</button>`;
+    <span style="font-size:12px;color:var(--muted)">Step ${n} of ${total}</span>
+    <button class="btn btn-navy" id="tsetup-next" onclick="tenantStepNext()">${n===total?'Add tenant ✓':'Next →'}</button>`;
 }
 
 function _tenantStepHtml(n) {
@@ -2672,7 +2695,7 @@ function tenantStepNext() {
       };
     });
 
-  } else if (n === 7) {
+  } else if (n === 7 || (n === 4 && !s.isLead)) {
     s.sendInvite     = document.getElementById('ts-send-invite')?.checked ?? true;
     s.sendWelcomeKit = document.getElementById('ts-send-kit')?.checked ?? false;
     _saveTenantSetupToDB();
@@ -2680,16 +2703,17 @@ function tenantStepNext() {
   }
 
   window._tsetup.step = n + 1;
-  document.getElementById('mo-s').textContent = `Step ${n+1} of 7`;
+  document.getElementById('mo-s').textContent = `Step ${n+1} of ${s.totalSteps || 7}`;
   _renderTenantStep(n + 1);
   document.querySelector('.mo-box')?.scrollTo?.(0, 0);
 }
 
 function tenantStepBack() {
   const n = window._tsetup.step;
+  const s = window._tsetup;
   if (n <= 1) return;
   window._tsetup.step = n - 1;
-  document.getElementById('mo-s').textContent = `Step ${n-1} of 7`;
+  document.getElementById('mo-s').textContent = `Step ${n-1} of ${s.totalSteps || 7}`;
   _renderTenantStep(n - 1);
   document.querySelector('.mo-box')?.scrollTo?.(0, 0);
 }
@@ -2727,8 +2751,6 @@ async function _saveTenantSetupToDB() {
       addr_proof_1:   s.addr1Type || null,
       addr_proof_2:   s.addr2Type || null,
       // Payment
-      first_pay_date: s.firstPayDate || null,
-      pay_method:     s.payMethod || null,
       status:         'Active',
       is_lead:        s.isLead !== false,
       user_id:        currentUser.id,

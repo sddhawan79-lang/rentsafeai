@@ -1097,14 +1097,16 @@ When **touching any of these files for a new feature or bug fix**, follow this p
 - **`scanAndFill` (`landlord.html:919`):** Reusable cert scanner prompt updated to extract `issuing_authority` (company/organisation that issued the certificate). Applied across all cert scanning: `scanDoc`, `uploadScanCert`, `scanSetupCert`, `scanPropLicence`, `scanPropEPC`, `scanPropDeposit`, `runBulkScan`.
 - **KYC slots unchanged** (7 slots: passport, right_to_rent, address_1, address_2, reference, guarantor, other).
 
-#### Wizard Restructure: 6 Steps → 7 Steps
-- **Old flow:** Details → RTR → Deposit → Rent → Insurance → Review
-- **New flow:** Details → **IDs** → RTR → Deposit → Rent → Insurance → Review
-- **Step 2 — IDs (new):** 2 ID document slots with AI scan. Acceptable types: Passport (any nationality), BRP, Photo Card Driving Licence (UK), National Identity Card (EU/EEA), Biometric Residence Card (BRC), HM Forces Identity Card, Firearms Certificate, UK Birth Certificate, Other. At least 1 required, 2 recommended.
-- **Step 3 — Right to Rent (was Step 2):** Updated doc types: UK Passport, Irish Passport/Passport Card, UK Birth Certificate + NI proof, Share Code (eVisa/EUSS), BRP, BRC, Home Office Immigration Document, Passport with valid visa. AI scan with issuing authority extraction.
-- **New function `scanIDDoc(num, input)` (`landlord.html:1922`):** AI scans ID documents in the wizard, auto-detects type (passport, driving licence, BRP, etc.), fills number, expiry, issuing authority. Maps to dropdown options.
-- **`moTenant`, `_renderTenantStep`, `_tenantStepHtml`, `tenantStepNext`, Review step** all updated for 7-step flow with ID fields in state and display.
-- **`_saveTenantSetupToDB`** unchanged — ID details captured in wizard for visual review; actual documents uploaded via `uploadTenantDoc` on tenant detail page after creation.
+#### Wizard Restructure: 6 Steps → Variable Steps (7 or 4)
+- **Old flow (6 steps):** Details → RTR → Deposit → Rent → Insurance → Review
+- **New flow — First tenant at property (lead, 7 steps):** Details → IDs → RTR → Deposit → Rent → Insurance → Review
+- **New flow — Additional tenants (4 steps):** Details → IDs → RTR → Review (deposit/rent/insurance auto-copied from lead tenant)
+- **Step 2 — IDs:** 2 document slots (1 required, 1 optional) with AI scan. 9 acceptable ID types.
+- **Step 3 — RTR:** 9 document types, AI scan with issuing authority extraction.
+- **Fix:** Removed `first_pay_date` and `pay_method` from tenant insert — columns didn't exist in DB schema.
+- **`moTenant`:** Auto-detects if first active tenant at property. Sets `isLead` flag and `totalSteps` (7 or 4). For subsequent tenants, pre-fills deposit, rent, scheme from lead tenant.
+- **`_renderTenantStep`:** Variable step labels and progress bar (4 or 7 steps).
+- **`tenantStepNext`:** Non-lead tenants jump from step 3 to save (step 4 = review).
 
 ---
 
