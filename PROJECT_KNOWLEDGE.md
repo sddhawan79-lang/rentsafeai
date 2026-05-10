@@ -37,7 +37,7 @@
 ### Core Value Propositions
 - **Compliance tracking** — Gas Safety, EICR, EPC certificates with RAG (Red/Amber/Green) status
 - **Maintenance management** — Kanban board with Awaab's Law enforcement (damp/mould deadlines)
-- **Legal document generation** — Section 8 notices (all 37 RRA 2025 grounds), S13 rent increase, AST, inspection reports
+- **Legal document generation** — Section 8 notices (all 31 RRA 2025 grounds), S13 rent increase, AST, inspection reports
 - **Making Tax Digital (MTD)** — Quarterly submission tracking, Section 24 calculator, HMRC phase timeline
 - **Tenant portal** — Token-based no-login access for tenants to report issues, view jobs, download certificates, e-sign documents
 - **Email alerts** — 8 automated alert types delivered via Resend, deduplicated via `email_log`
@@ -94,7 +94,8 @@ rentsafeai/
 ├── signup.html                     Sign-up page (Sprint 11)
 ├── profile.html                    Account & Billing page (Sprint 13)
 ├── landlord.html                   Main SPA app (~10,070 lines) — entire landlord dashboard
-├── tenant.html                     Tenant portal + e-sign flow (~1,200+ lines)
+├── tenant.html                     Tenant portal (~1,200+ lines)
+├── esign.html                       Standalone e-sign page — landlord signs first, tenant counter-signs
 ├── mtd.html                        Making Tax Digital standalone page (~1,500+ lines)
 ├── app-mockup.html                 Static dashboard preview (iframe on landing page)
 ├── privacy.html                    Privacy policy
@@ -135,6 +136,7 @@ rentsafeai/
 | `profile.html` | Account details, personal info, Stripe subscription management | Yes — redirects to `login.html` |
 | `landlord.html` | Full landlord SPA — all dashboard modules | Yes — redirects to `login.html` |
 | `tenant.html` | Tenant portal — token-based, no Supabase auth needed | Token in URL or localStorage |
+| `esign.html` | Standalone e-sign page — landlord initiates, tenant counter-signs, both get full PDF | Token in URL + design token |
 | `mtd.html` | MTD tax module — standalone (Tailwind CSS) | Yes — uses Supabase session |
 
 ---
@@ -608,6 +610,7 @@ Annual billing: 2 months free (pay 10 months, get 12)
 | `profile.html` | `js/profile.js` ✓ Exists |
 | `landlord.html` | `js/landlord.js` |
 | `tenant.html` | `js/tenant.js` |
+| `esign.html` | `js/esign-content.js` ✓ Exists |
 | `mtd.html` | `js/mtd.js` |
 
 **Rule: Shared utilities go in `js/lib/` — never duplicated across files.**
@@ -636,6 +639,7 @@ rentsafeai/
 │   ├── profile.js               Account & Billing / Stripe            ✓ Exists
 │   ├── landlord.js              Full landlord dashboard logic
 │   ├── tenant.js                Tenant portal logic
+│   ├── esign-content.js         Standalone e-sign signing flow        ✓ Exists
 │   └── mtd.js                   MTD tax module logic
 ```
 
@@ -1046,9 +1050,34 @@ When **touching any of these files for a new feature or bug fix**, follow this p
 - Both output proper multi-page A4 PDFs with clean text rendering (handles markdown headings, removes `**` bold markers)
 
 #### Remaining for Next Session (Priority Order)
-1. **esign.html** + `esign-content.js` — standalone signing page (landlord signs first, tenant counter-signs, both get full PDF). Move e-sign logic out of `landlord.html` and `tenant.html`
-2. **guidance-content.js** — NRLA compliance guide topics: Right to Rent checks, written tenancy terms, guarantor process, welcome letter
-3. **AI Assistant upgrade** — add app-aware FAQ responses ("where is X feature?" questions)
+1. **guidance-content.js** — NRLA compliance guide topics: Right to Rent checks, written tenancy terms, guarantor process, welcome letter
+2. **AI Assistant upgrade** — add app-aware FAQ responses ("where is X feature?" questions)
+
+---
+
+### Session 10 — May 2026 — Standalone E-Sign Page
+
+#### New Feature: `esign.html` — Extraction from Monoliths
+- **Purpose:** Extracted the tenant e-sign signing flow into a standalone page, decoupled from `tenant.html`
+- **Files created:** `esign.html`, `js/esign-content.js`
+- **Files modified:**
+  - `landlord.html:9586` — signing link now points to `esign.html?esign={token}` (was `tenant.html`)
+  - `tenant.html:init()` — `?esign=` token now hard-redirects to `esign.html`
+  - `tenant.html:loadDocuments()` — "Sign Now" links point to `esign.html`
+  - `tenant.html` — removed ~290 lines of dead esign CSS, HTML (screen-esign), and JS functions
+- **Auth:** No Supabase auth required — token-based access via `?esign=` URL parameter
+- **Key functionality (in `js/esign-content.js`, IIFE module):**
+  - Token validation against `esign_requests` table
+  - ECA 2000 consent overlay with sessionStorage persistence
+  - Document rendering (HTML inline or PDF iframe)
+  - `signature_pad` v4.1.7 canvas with DPR scaling and resize handling
+  - PDF generation via jsPDF (cover page + signature confirmation page)
+  - Signed PDF upload to `signed-documents` Storage bucket
+  - Audit log insertion (`audit_log`)
+  - Confirmation emails to tenant + landlord via `ai-proxy` edge function
+  - IP address capture via ipify.org
+- **Landlord initiate flow** remains in `landlord.html` (`moEsign`, `esignGenerateDoc`, `_sendEsignRequest`) — only the tenant signing path was extracted
+- **`esign_requests` table** still has no SQL migration file (schema documented as comment in `landlord.html:9397`)
 
 ---
 

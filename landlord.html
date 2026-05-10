@@ -9573,7 +9573,7 @@ async function _sendEsignRequest(pid, tid, mode) {
     return;
   }
 
-  const signingLink = `${window.location.origin}/tenant.html?esign=${token}`;
+  const signingLink = `${window.location.origin}/esign.html?esign=${token}`;
   const docLabel    = docType === 'written_statement' ? 'Written Statement of Tenancy Terms' : 'Tenancy Document';
   const expDate     = new Date(expiresAt).toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'});
 
