@@ -624,6 +624,7 @@ let currentUser = null;
 const D = {
   properties: [], tenants: [], certs: [], maintenance: [], rent: [], insurance: [],
   emailLog: [], customTemplates: [], contractors: [], jobAssignments: [], tenantDocs: [],
+  userProfile: null,
   chat: [{role:'ai', text:'Hello! I\'m your AI compliance assistant. Ask me anything about UK landlord law — Section 8, Renters Rights Act, Awaab\'s Law, deposits, or anything else.'}]
 };
 
@@ -632,6 +633,7 @@ const main = document.getElementById('main');
 const P  = id => D.properties.find(p => String(p.id) === String(id));
 const CF = pid => D.certs.filter(c => String(c.prop_id) === String(pid));
 const INI = n => n.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+const _profileName = () => D.userProfile?.full_name || (currentUser?.email||'').split('@')[0] || 'Landlord';
 const FMT = d => d ? new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—';
 const FMS = d => d ? new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
 let _toastTimer;
@@ -744,7 +746,7 @@ async function logout() {
 
 // ── LOAD DATA ──
 async function loadData() {
-  const [p, t, c, m, r, i, el, ct, con, ja, td] = await Promise.all([
+  const [p, t, c, m, r, i, el, ct, con, ja, td, up] = await Promise.all([
     sb.from('properties').select('*').order('created_at', {ascending: false}),
     sb.from('tenants').select('*'),
     sb.from('certificates').select('*'),
@@ -756,6 +758,7 @@ async function loadData() {
     sb.from('contractors').select('*').order('name', {ascending: true}),
     sb.from('job_assignments').select('*, tenant_maintenance(prop_id, category, submitted_at)'),
     sb.from('tenant_documents').select('*').order('uploaded_at', {ascending: false}),
+    sb.from('user_profiles').select('*').eq('id', currentUser.id).maybeSingle(),
   ]);
 
   if (p.data?.length) {
@@ -797,6 +800,7 @@ async function loadData() {
   if (con.data?.length) D.contractors = con.data;
   if (ja.data?.length) D.jobAssignments = ja.data;
   if (td.data?.length) D.tenantDocs = td.data;
+  if (up.data) D.userProfile = up.data;
   await checkComplianceReminders();
 }
 
@@ -7769,7 +7773,7 @@ async function runGenerate(templateId) {
   const contextInfo = `
 Property: ${prop ? `${prop.address}, ${prop.city}, ${prop.postcode}` : 'Not specified'}
 Monthly rent: ${prop ? '£' + prop.rent : 'Not specified'}
-Landlord: ${(currentUser?.email || 'Landlord').split('@')[0]}
+Landlord: ${_profileName()}
 Tenant: ${tenant ? tenant.name : 'Not specified'}
 Tenant email: ${tenant?.email || 'Not specified'}
 Tenancy start: ${tenant?.start_date || 'Not specified'}
@@ -7783,7 +7787,7 @@ ${notes ? '\nLandlord notes: ' + notes : ''}
 1. DATE: Use today's date (${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'})}) for the document date unless a different date was provided in the guided fields. Never write "**Date**" or leave it blank.
 2. SIGNATURE: End every document with a proper signature block in this exact format:
    Signed: ________________________
-   Name: ${(currentUser?.email||'Landlord').split('@')[0]}
+   Name: ${_profileName()}
    Date: ${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'})}
 3. Use plain text only — no markdown bold (**) or asterisks in dates, names or signature lines.
 4. Use [FIELD NAME] in square brackets only for values genuinely unknown and not provided above.\n\n`;
@@ -8664,7 +8668,7 @@ Evidence required: ${g.evidence}`;
 PROPERTY & TENANCY DETAILS:
 Property: ${p.address}, ${p.city}, ${p.postcode}
 Monthly rent: £${p.rent || '[unknown]'}
-Landlord name: ${(currentUser?.email||'Landlord').split('@')[0]}
+Landlord name: ${_profileName()}
 Tenant name: ${t ? t.name : '[Tenant name]'}
 Tenant email: ${t?.email || '[unknown]'}
 Tenancy start date: ${FMS(t?.start_date) || '[unknown]'}
@@ -8946,7 +8950,7 @@ async function rraSendOne(tid) {
 
 Tenant: ${t.name}
 Property: ${p.address}, ${p.city}, ${p.postcode}
-Landlord: ${(currentUser?.email||'Your landlord').split('@')[0]}
+Landlord: ${_profileName()}
 Today's date: ${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'})}
 
 The letter should:
@@ -9557,7 +9561,7 @@ function moSection13(pid) {
     currentRent: p?.rent || 0, newRent: '',
     noticeDate: today.toISOString().slice(0,10),
     effectiveDate: minEff.toISOString().slice(0,10),
-    landlordName: currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'Landlord',
+    landlordName: _profileName(),
     landlordAddress: '', noticeHtml: '',
   };
   document.getElementById('mo-t').textContent = 'Section 13 Notice';
@@ -9603,7 +9607,7 @@ function _s13StepHtml(n) {
     </div>`:''}
     ${tooEarly&&tenant?.start_date?`<div style="background:var(--red-bg);border:1px solid rgba(229,62,62,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--red);margin-bottom:14px;display:flex;gap:8px"><span>⚠️</span><div><strong>Notice may be invalid</strong> — rent cannot be increased in the first 12 months. Tenancy started ${FMS(tenant.start_date)} (${monthsIn} months ago). You can still generate for future use.</div></div>`:''}
     <div class="fg"><label>Landlord name (as it appears on the notice)</label><input type="text" id="s13-lname" value="${s.landlordName}" placeholder="Full name or company"></div>
-    <div class="fg"><label>Landlord address</label><input type="text" id="s13-laddr" value="${s.landlordAddress}" placeholder="Full UK address including postcode"></div>
+    <div class="fg"><label>Landlord address</label><input type="text" id="s13-laddr" value="${s.landlordAddress}" placeholder="Full UK address including postcode"><div style="font-size:10px;color:var(--muted);margin-top:3px">If you are <strong>joint landlords</strong>, include both full names separated by "and" (e.g. Saurabh Dhawan and Jane Smith). Both names must appear on the notice for it to be legally valid.</div></div>
     <div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--blue)">ℹ️ Under RRA 2025, rent can only be increased <strong>once every 12 months</strong> using a Section 13 notice with <strong>2 months minimum notice</strong>.</div>`;
   }
   if (n === 2) {

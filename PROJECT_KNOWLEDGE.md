@@ -44,7 +44,7 @@
 - **AI assistant** — Claude-powered chat for landlord questions + AI maintenance priority classification
 
 ### Regulatory Context
-- **Renters Rights Act 2025 (RRA 2025)** — All 37 Section 8 grounds implemented
+- **Renters Rights Act 2025 (RRA 2025)** — All Section 8 grounds implemented (31 grounds, Housing Act 1988 Schedule 2 as amended 1 May 2026)
 - **Awaab's Law** — Damp/mould issues open 14+ days trigger critical alerts
 - **MTD for Income Tax (ITSA)** — Phase 1: Apr 2026 (>£50k), Phase 2: Apr 2027 (>£30k), Phase 3: Apr 2028 (>£20k)
 - **Section 24 mortgage interest restriction** — Tax calculator built into MTD module
@@ -93,12 +93,16 @@ rentsafeai/
 ├── login.html                      Auth page (login / signup / password reset)
 ├── signup.html                     Sign-up page (Sprint 11)
 ├── profile.html                    Account & Billing page (Sprint 13)
-├── landlord.html                   Main SPA app (~3,973 lines) — entire landlord dashboard
+├── landlord.html                   Main SPA app (~10,070 lines) — entire landlord dashboard
 ├── tenant.html                     Tenant portal + e-sign flow (~1,200+ lines)
 ├── mtd.html                        Making Tax Digital standalone page (~1,500+ lines)
 ├── app-mockup.html                 Static dashboard preview (iframe on landing page)
 ├── privacy.html                    Privacy policy
-├── Terms.html                      Terms of service
+├── terms.html                      Terms of service
+├── complaints.html                 Complaints policy (Session 8)
+├── ai-disclaimer.html              AI liability disclaimer standalone page (Session 8)
+├── cookies.html                    Cookie policy
+├── dpa.html                        GDPR / Data Protection Act page
 ├── nav_snippet.html                Dev snippet: MTD nav item code (copy-paste reference)
 ├── og-image.png                    OpenGraph social share image (1200×630)
 ├── CNAME                           GitHub Pages custom domain: rentsafeai.co.uk
@@ -525,8 +529,18 @@ All migrations run manually in **Supabase → SQL Editor** (no automated migrati
 - E-sign flow triggered via `?esign=xxx` URL parameter → looks up `esign_requests` table
 
 ### Data Loading Pattern (`landlord.html`)
-`loadData()` fires 10 parallel Supabase queries on startup:
-`properties`, `tenants`, `certificates`, `maintenance`, `rent_payments`, `insurance`, `email_log`, `custom_templates`, `contractors`, `job_assignments`
+`loadData()` fires 12 parallel Supabase queries on startup:
+`properties`, `tenants`, `certificates`, `maintenance`, `rent_payments`, `insurance`, `email_log`, `custom_templates`, `contractors`, `job_assignments`, `tenant_documents`, `user_profiles` (added Session 8)
+
+The `user_profiles` row is queried by `currentUser.id` via `.maybeSingle()` and stored in `D.userProfile`. Use the `_profileName()` helper (not raw `email.split('@')[0]`) for all landlord name references in AI prompts and legal documents — it resolves `full_name` from the profile, falling back to email username.
+
+### Legal Document Disclaimer Gate (`landlord.html`)
+Session 8 introduced a 3-checkbox pre-generation consent gate for 4 legal document types: `section13`, `noticetoquit`, `writtenstatement`. Section 8 has its own dedicated flow with identical wording. The gate:
+- Captures user form selections (`_gateCtx`) before replacing the modal body with the disclaimer
+- Requires 3 explicit acknowledgements (AI draft, personal liability, independent legal advice)
+- On acceptance: calls `logAudit('DISCLAIMER_ACCEPTED', ...)` with timestamp, restores modal + user selections, runs `runGenerate()`
+- `gateBack()` restores the full generate modal with saved selections if user backs out
+- All other templates (letters, inventories, RRA sheet) bypass the gate — only the lightweight inline banner applies
 
 ---
 
@@ -548,6 +562,9 @@ All migrations run manually in **Supabase → SQL Editor** (no automated migrati
 | 12 | `tenant_documents` table missing from DB — KYC scanning fails silently | Database | **SQL created** — run `session7_tenant_documents.sql` in Supabase SQL Editor |
 | 13 | `tenant-documents` Storage bucket not created | Storage | Pending — create in Supabase Dashboard → Storage |
 | 14 | Section 8 missing RRA 2025 grounds (1B, 2ZA, 2ZB, 2ZC, 2ZD) | Legal compliance | **FIXED Session 7** — added with social housing notes |
+| 15 | Landlord name derived from email username instead of `user_profiles.full_name` | Document generation | **FIXED Session 8** — added `_profileName()` helper, hits `user_profiles` in `loadData()` |
+| 16 | Footer links on `index.html` — 6 dead `href="#"` links (Privacy, Terms, Cookies, GDPR) | Marketing page | **FIXED Session 8** — all now point to real `.html` files; added Complaints link |
+| 17 | No complaints policy page | Legal compliance | **FIXED Session 8** — created `complaints.html` (UK-compliant: ICO reference, ADR, 2/10 day timelines) |
 
 ---
 
@@ -960,6 +977,36 @@ When **touching any of these files for a new feature or bug fix**, follow this p
 
 #### New Files Added
 - `session7_tenant_documents.sql` — SQL migration to create `tenant_documents` table with RLS
+
+### Session 8 — May 2026 — Landlord Name Fix, Complaints Policy & Liability Gate
+**Date:** May 2026
+
+#### Fixes
+**Landlord name from user_profiles instead of email username**
+- **Before:** All AI prompts, document signatures, and Section 13 used `currentUser.email.split('@')[0]` — shows `john.smith` not `John Smith`
+- **After:** Added `userProfile: null` to `D` data store; added `sb.from('user_profiles').select('*').eq('id', currentUser.id).maybeSingle()` to `loadData()` (now 12 parallel queries); created `_profileName()` helper at line 636 which resolves `full_name` from profile first, falls back to email username
+- Updated 5 locations: `runGenerate()` context info, `PLACEHOLDER_RULE` signature block, Section 8 AI prompt, RRA sheet AI prompt, Section 13 `landlordName` init
+- Added joint landlord hint below landlord address field in Section 13 form — "If you are joint landlords, include both full names separated by 'and'"
+
+**Footer dead links fixed in `index.html`**
+- 6 `href="#"` dead links replaced: Privacy Policy → `privacy.html`, Terms → `terms.html`, Cookies → `cookies.html`, GDPR → `dpa.html`
+- Added Complaints → `complaints.html` link
+
+**UK-compliant complaints policy page (`complaints.html`)**
+- Covers: platform bugs, billing, data protection, AI output, account access, email, general service
+- Process: Stage 1 (2-day acknowledgment), Stage 2 (10-day investigation), Stage 3 (written response), Stage 4 (escalation to management)
+- ICO contact details for data protection complaints
+- ADR reference (Consumer Rights Act 2015 compliant)
+- Re-directs tenant-vs-landlord complaints to Citizens Advice / Shelter
+- Styling matches `privacy.html` / `terms.html` (Lora + DM Sans, navy/amber/cream palette)
+
+**AI Disclaimer Gate (liability protection) — built earlier in Session 8**
+- 3-checkbox consent modal for 4 legal document types: `section13`, `noticetoquit`, `writtenstatement` (Section 8 uses its own upgraded consent flow)
+- Checkboxes: AI draft only / full personal liability / seek independent legal advice
+- `_gateCtx` saves user selections before modal swap; `gateBack()` restores if user backs out
+- On accept: `logAudit('DISCLAIMER_ACCEPTED', ...)` with timestamp; restores modal + selections; runs `runGenerate()`
+- Section 8 consent upgraded from 4 boxes to 3 clearer boxes matching the same liability language
+- All other templates bypass the gate — keep lightweight inline banner only
 
 ---
 
