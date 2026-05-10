@@ -3560,7 +3560,7 @@ function buildRentSchedule(pid) {
     const dueDateStr = cur.toISOString().slice(0, 10);
     const existing = D.rent.find(r =>
       String(r.prop_id) === String(pid) &&
-      (r.month === monthLabel || (r.due_date && r.due_date.slice(0,7) === dueDateStr.slice(0,7)))
+      r.due_date && r.due_date.slice(0,7) === dueDateStr.slice(0,7)
     );
     let status;
     if (existing) {
@@ -3587,20 +3587,20 @@ async function markRentReceived(pid, monthLabel, dueDateStr, amount) {
   const today = new Date().toISOString().slice(0, 10);
   const existing = D.rent.find(r =>
     String(r.prop_id) === String(pid) &&
-    (r.month === monthLabel || (r.due_date && r.due_date.slice(0,7) === dueDateStr.slice(0,7)))
+    r.due_date && r.due_date.slice(0,7) === dueDateStr.slice(0,7)
   );
   if (existing) {
     const {error} = await sb.from('rent_payments').update({status:'Paid', paid_date:today}).eq('id', existing.id);
-    if (error) { toast('Error saving — ' + error.message, true); return; }
+    if (error) { console.error('[markRentReceived:update]', error); toast('Error saving — ' + error.message, true); return; }
     existing.status = 'Paid'; existing.paid_date = today; existing.paid = today;
   } else {
     const payload = {
-      prop_id: pid, user_id: currentUser.id,
-      month: monthLabel, due_date: dueDateStr,
-      amount: amount, status: 'Paid', paid_date: today
+      prop_id: String(pid), user_id: currentUser.id,
+      due_date: dueDateStr,
+      amount: parseFloat(amount) || 0, status: 'Paid', paid_date: today
     };
     const {data, error} = await sb.from('rent_payments').insert(payload).select().single();
-    if (error) { toast('Error saving — ' + error.message, true); return; }
+    if (error) { console.error('[markRentReceived:insert]', error); toast('Error saving — ' + error.message, true); return; }
     D.rent.unshift(data);
   }
   toast('✓ Rent marked as received for ' + monthLabel);
@@ -3747,8 +3747,13 @@ function pgPropDetail(pid) {
 function pdSetTab(pid, tab) {
   window._pdTab[pid] = tab;
   document.querySelectorAll('.pd-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-  const el = document.getElementById('pd-tab-content');
-  if (!el) return;
+  let el = document.getElementById('pd-tab-content');
+  if (!el) {
+    // Tab content div missing — re-render the property detail page
+    nav('prop-detail', pid);
+    setTimeout(() => { const el2 = document.getElementById('pd-tab-content'); if (el2) el2.innerHTML = pdTabContent(pid, tab); }, 50);
+    return;
+  }
   try {
     el.innerHTML = pdTabContent(pid, tab);
   } catch(err) {
@@ -6102,7 +6107,7 @@ function getCalEvents(){
       if(days>=-1&&days<=180){
         const dStr=d.toISOString().slice(0,10);
         const urg=days<0?'red':days===0?'red':days<=3?'amber':'blue';
-        events.push({date:dStr,type:'rent',label:`Rent due — ${t.name}`,sub:`£${(t.rent||0).toLocaleString()} · ${prop}`,urg,days,icon:'💷',pid:t.prop_id});
+        events.push({date:dStr,type:'rent',label:`Rent due — ${t.name}`,sub:`£${(t.rent||0).toLocaleString()} · ${prop}`,urg,days,icon:'💷',pid:t.prop_id,rentAmt:t.rent||0});
       }
     }
   });
@@ -6386,7 +6391,7 @@ function showCalDay(yr,mo,d){
       r.due_date && r.due_date.slice(0,7)===e.date.slice(0,7)
     );
     const rentBtn = isPastRent && !alreadyPaid
-      ? `<button onclick="markRentReceived('${e.pid}','${new Date(e.date).toLocaleString('en-GB',{month:'long',year:'numeric'})}','${e.date}',${parseInt((e.sub||'0').replace(/[^0-9]/g,''))||0})" style="font-size:11px;padding:4px 11px;border-radius:6px;border:1px solid var(--green-dark);background:var(--green-bg);color:var(--green-dark);cursor:pointer;font-family:var(--font);font-weight:600;margin-top:4px">✓ Mark received</button>`
+      ? `<button onclick="markRentReceived('${e.pid}','${new Date(e.date).toLocaleString('en-GB',{month:'long',year:'numeric'})}','${e.date}',${e.rentAmt||0})" style="font-size:11px;padding:4px 11px;border-radius:6px;border:1px solid var(--green-dark);background:var(--green-bg);color:var(--green-dark);cursor:pointer;font-family:var(--font);font-weight:600;margin-top:4px">✓ Mark received</button>`
       : alreadyPaid ? `<span style="font-size:11px;color:var(--green-dark);font-weight:600">✓ Paid</span>` : '';
     return `<div class="ai-row" style="flex-wrap:wrap">
       <div style="font-size:18px;min-width:36px;text-align:center">${e.icon}</div>
@@ -7620,7 +7625,7 @@ function moGenerate(templateId, customContent = null) {
     <div class="fg"><label>Additional notes (optional)</label><textarea id="gen-notes" placeholder="Any extra details to include…"></textarea></div>
     <div id="gen-output" style="display:none;margin-top:16px">
       <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:8px">✦ Generated document — click to edit</div>
-      <div id="gen-text" contenteditable="true" spellcheck="false" oninput="checkPlaceholders()" style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:16px;font-size:13px;line-height:1.8;max-height:360px;overflow-y:auto;color:var(--txt);outline:none;cursor:text"></div>
+      <div id="gen-text" contenteditable="true" spellcheck="false" oninput="checkPlaceholders()" style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:16px;font-size:13px;line-height:1.8;max-height:55vh;overflow-y:auto;color:var(--txt);outline:none;cursor:text"></div>
       <div id="gen-placeholder-warn" style="display:none;background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:7px;padding:8px 12px;font-size:12px;color:var(--blue);margin-top:8px"></div>
       <div id="gen-actions" style="display:flex;gap:8px;margin-top:10px">
         <button class="btn btn-sm" onclick="copyTemplate()">📋 Copy</button>
@@ -7937,31 +7942,69 @@ function checkPlaceholders() {
 // ── S4: PDF DOWNLOAD ──
 function downloadAsPDF() {
   const ctx = window._genContext;
-  const el = document.getElementById('gen-text');
-  const content = el?.innerHTML || '';
-  if (!content) { toast('Generate a document first', true); return; }
+  const rawText = ctx?.rawText || document.getElementById('gen-text')?.dataset?.raw || '';
+  if (!rawText) { toast('Generate a document first', true); return; }
   const title = ctx?.templateName || 'Document';
-  const win = window.open('', '_blank');
-  if (!win) { toast('Please allow pop-ups to download PDF', true); return; }
-  win.document.write(`<!DOCTYPE html><html><head><title>${title}</title>
-    <style>body{font-family:Georgia,serif;font-size:13px;line-height:1.8;padding:48px;max-width:680px;margin:0 auto;color:#1A2B45}
-    h3{font-size:16px;font-weight:700;margin:18px 0 6px;color:#0B1E3D}
-    h4{font-size:14px;font-weight:700;margin:16px 0 5px;color:#0B1E3D}
-    h5{font-size:13px;font-weight:700;margin:14px 0 4px}
-    strong{font-weight:600}hr{border:none;border-top:1px solid #ddd;margin:12px 0}
-    @media print{body{padding:0}}</style>
-    </head><body>
-    <div style="border-bottom:2px solid #0B1E3D;margin-bottom:24px;padding-bottom:12px">
-      <strong style="font-size:16px;color:#0B1E3D">RentSafe AI</strong>
-      <span style="color:#999;font-size:12px;margin-left:12px">${title}</span>
-    </div>
-    ${content}
-    <div style="margin-top:32px;padding-top:12px;border-top:1px solid #eee;font-size:10px;color:#999">
-      Generated by RentSafe AI · ${new Date().toLocaleDateString('en-GB')} · For reference only — not legal advice
-    </div>
-    <script>window.onload=function(){window.print();}<\/script>
-    </body></html>`);
-  win.document.close();
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+    const W = doc.internal.pageSize.getWidth();
+    let y = 18;
+
+    // Header
+    doc.setFontSize(15); doc.setTextColor(11,30,61);
+    doc.text('RentSafe AI', 16, y);
+    doc.setFontSize(9); doc.setTextColor(153,153,153);
+    doc.text(title, 45, y);
+    doc.setDrawColor(11,30,61);
+    doc.line(16, y+4, W-16, y+4);
+    y += 11;
+
+    // Body — render plain text with auto page breaks
+    doc.setFontSize(10); doc.setTextColor(26,43,69);
+    const lines = rawText.split('\n');
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.length === 0) { y += 5; continue; }
+      // Handle markdown-like headings
+      if (trimmed.startsWith('#')) {
+        const headingText = trimmed.replace(/^#+\s*/, '');
+        doc.setFontSize(12); doc.setFont(undefined, 'bold');
+        y += 4;
+        const splits = doc.splitTextToSize(headingText, W-32);
+        for (const s of splits) { if (y > 270) { doc.addPage(); y = 18; } doc.text(s, 16, y); y += 7; }
+        doc.setFontSize(10); doc.setFont(undefined, 'normal');
+        y += 2;
+        continue;
+      }
+      const parts = trimmed.split(/(\*\*[^*]+\*\*)/g);
+      let lineText = '';
+      for (let pi = 0; pi < parts.length; pi++) {
+        if (parts[pi].startsWith('**') && parts[pi].endsWith('**')) {
+          lineText += parts[pi].slice(2, -2);
+        } else {
+          lineText += parts[pi];
+        }
+      }
+      const splits = doc.splitTextToSize(lineText, W-32);
+      for (const s of splits) { if (y > 270) { doc.addPage(); y = 18; } doc.text(s, 16, y); y += 5.5; }
+    }
+
+    // Footer
+    y += 6;
+    doc.setDrawColor(238,238,238);
+    doc.line(16, y, W-16, y);
+    y += 6;
+    doc.setFontSize(7.5); doc.setTextColor(153,153,153);
+    const footer = `Generated by RentSafe AI \u00b7 ${new Date().toLocaleDateString('en-GB')} \u00b7 For reference only \u2014 not legal advice`;
+    doc.text(footer, 16, y);
+
+    doc.save((title.replace(/[^a-z0-9]/gi,'_').toLowerCase()) + '.pdf');
+  } catch(e) {
+    console.error('[downloadAsPDF]', e);
+    toast('PDF generation failed. Try again.', true);
+  }
 }
 
 // ── S4: SEND TO TENANT MODAL ──
@@ -8724,7 +8767,7 @@ INSTRUCTIONS:
       <div style="background:var(--amber-bg);border:1px solid var(--amber);border-radius:8px;padding:9px 13px;font-size:11px;color:var(--txt);margin-bottom:14px">
         <strong>Next steps:</strong> (1) Download this draft PDF · (2) Complete official GOV.UK <strong>Form 3A</strong> using these particulars · (3) Serve on ALL named tenants · (4) Keep proof of service
       </div>
-      <div id="s8-output" style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:16px;font-size:12.5px;line-height:1.8;max-height:320px;overflow-y:auto;white-space:pre-wrap;font-family:Georgia,serif">${text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
+      <div id="s8-output" style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:16px;font-size:12.5px;line-height:1.8;max-height:55vh;overflow-y:auto;white-space:pre-wrap;font-family:Georgia,serif">${text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
 
     document.getElementById('mo-f').innerHTML = `
       <div style="display:flex;justify-content:space-between;width:100%;gap:8px;flex-wrap:wrap">
@@ -8751,24 +8794,50 @@ function s8DownloadPDF() {
   const text = _s8.generatedText;
   if (!text) { toast('Generate the draft first', true); return; }
   const p = _s8.prop;
-  const win = window.open('', '_blank');
-  if (!win) { toast('Please allow pop-ups to download PDF', true); return; }
-  win.document.write(`<!DOCTYPE html><html><head><title>Section 8 Notice — ${p.address}</title>
-    <style>body{font-family:Georgia,serif;font-size:13px;line-height:1.8;padding:48px;max-width:680px;margin:0 auto;color:#1A2B45}
-    h3{font-size:16px;font-weight:700;margin:18px 0 6px;color:#0B1E3D}
-    strong{font-weight:600}pre{white-space:pre-wrap;font-family:Georgia,serif}
-    @media print{body{padding:0}}</style></head><body>
-    <div style="border-bottom:2px solid #0B1E3D;margin-bottom:24px;padding-bottom:12px">
-      <strong style="font-size:16px;color:#0B1E3D">RentSafe AI</strong>
-      <span style="color:#999;font-size:12px;margin-left:12px">Section 8 Notice Draft — ${p.address}</span>
-    </div>
-    <pre>${text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
-    <div style="margin-top:32px;padding-top:12px;border-top:1px solid #eee;font-size:10px;color:#999">
-      Generated by RentSafe AI · ${new Date().toLocaleDateString('en-GB')} · Draft only — transfer to GOV.UK Form 3A before serving
-    </div>
-    <script>window.onload=function(){window.print();}<\/script>
-    </body></html>`);
-  win.document.close();
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+    const W = doc.internal.pageSize.getWidth();
+    let y = 18;
+
+    doc.setFontSize(15); doc.setTextColor(11,30,61);
+    doc.text('RentSafe AI', 16, y);
+    doc.setFontSize(9); doc.setTextColor(153,153,153);
+    doc.text(`Section 8 Notice Draft \u2014 ${p?.address||''}`, 45, y);
+    doc.setDrawColor(11,30,61);
+    doc.line(16, y+4, W-16, y+4);
+    y += 11;
+
+    doc.setFontSize(10); doc.setTextColor(26,43,69);
+    const lines = text.split('\n');
+    for (const line of lines) {
+      if (line.trim().length === 0) { y += 5; continue; }
+      if (line.trim().startsWith('#')) {
+        const h = line.trim().replace(/^#+\s*/, '');
+        doc.setFontSize(12); doc.setFont(undefined, 'bold');
+        y += 4;
+        const splits = doc.splitTextToSize(h, W-32);
+        for (const s of splits) { if (y > 270) { doc.addPage(); y = 18; } doc.text(s, 16, y); y += 7; }
+        doc.setFontSize(10); doc.setFont(undefined, 'normal');
+        y += 2;
+        continue;
+      }
+      const splits = doc.splitTextToSize(line.replace(/\*\*/g,''), W-32);
+      for (const s of splits) { if (y > 270) { doc.addPage(); y = 18; } doc.text(s, 16, y); y += 5.5; }
+    }
+
+    y += 6;
+    doc.setDrawColor(238,238,238);
+    doc.line(16, y, W-16, y);
+    y += 6;
+    doc.setFontSize(7.5); doc.setTextColor(153,153,153);
+    doc.text(`Generated by RentSafe AI \u00b7 ${new Date().toLocaleDateString('en-GB')} \u00b7 Draft only \u2014 transfer to GOV.UK Form 3A before serving`, 16, y);
+
+    doc.save('section8_notice_draft.pdf');
+  } catch(e) {
+    console.error('[s8DownloadPDF]', e);
+    toast('PDF generation failed. Try again.', true);
+  }
 }
 
 async function s8SendToTenant() {
@@ -9667,7 +9736,7 @@ function _s13StepHtml(n) {
     return `
     <div style="font-size:15px;font-weight:600;margin-bottom:2px">Review & send</div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:14px">Review the notice below then send to tenant</div>
-    <div style="border:1px solid var(--border);border-radius:10px;padding:20px;max-height:320px;overflow-y:auto;margin-bottom:14px;background:var(--white)">${window._s13.noticeHtml}</div>
+    <div style="border:1px solid var(--border);border-radius:10px;padding:20px;max-height:50vh;overflow-y:auto;margin-bottom:14px;background:var(--white)">${window._s13.noticeHtml}</div>
     <div style="background:var(--off);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">
       <div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:10px">Delivery</div>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px">

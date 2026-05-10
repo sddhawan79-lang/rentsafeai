@@ -75,7 +75,7 @@ Saurabh Dhawan (featured on landing page, `index.html` founder story section)
 | **Formspree** (`xdapbzqv`) | Waitlist email capture on landing page | Inline in `index.html` |
 | **Crisp** (ID: `6a5c5215-3c14-4afa-94a4-f1f8b05e2f62`) | Live chat widget | `index.html`, `login.html`, `tenant.html`, `mtd.html` |
 | **signature_pad** v4.1.7 | E-signature canvas on tenant portal | CDN in `tenant.html` |
-| **jsPDF** v2.5.1 | PDF generation in tenant portal | CDN in `tenant.html` |
+| **jsPDF** v2.5.1 | PDF generation in tenant portal + landlord document downloads (Session 9) | CDN in `tenant.html`, `landlord.html` |
 | **GitHub Pages** | Static hosting with custom domain (`rentsafeai.co.uk`) | `CNAME` file |
 | **Deno** | Runtime for all Supabase Edge Functions | Supabase managed |
 | **pg_cron + pg_net** | Scheduled jobs within Supabase | `sprint10_step2_cron.sql` |
@@ -500,11 +500,13 @@ All migrations run manually in **Supabase → SQL Editor** (no automated migrati
 - Returns 0–100 rounded to 1 decimal place
 
 ### Section 8 Notice Generator (`moSection8()` in `landlord.html`)
-- All 37 grounds under the Renters Rights Act 2025 (RRA 2025)
+- All RRA 2025 grounds (31 grounds, Housing Act 1988 Schedule 2 as amended 1 May 2026)
 - Mandatory (`s8-badge-m`) vs Discretionary (`s8-badge-d`) classification
 - 5-step wizard: pre-conditions → reason/category → ground selection → notice details → review
 - Auto-calculates notice periods and court filing dates
+- 3-checkbox liability disclaimer with audit logging before generation
 - Output: Draft notice text only — handoff to GOV.UK Form 3A still required (pending item)
+- PDF download via jsPDF with proper A4 multi-page output (Session 9)
 
 ### Awaab's Law
 - Triggered by damp/mould keyword match on maintenance description
@@ -553,7 +555,7 @@ Session 8 introduced a 3-checkbox pre-generation consent gate for 4 legal docume
 | 3 | RRA PDF (GOV.UK Form 3A) not attached | Section 8 notices | Pending |
 | 4 | Section 8 output is draft text only — handoff to Form 3A UI | UX | Pending |
 | 5 | Email sending via `super-processor` (not dedicated function) | Architecture | **FIXED Session 6** — replaced with `ai-proxy` |
-| 6 | PDF export via `window.print()` (not jsPDF) | Landlord dashboard | Technical debt |
+| 6 | PDF export via `window.print()` (not jsPDF) | Landlord dashboard | **FIXED Session 9** — `downloadAsPDF()` + `s8DownloadPDF()` rewritten to jsPDF with A4 auto-pagination |
 | 7 | No tenant data input validation | Tenant portal | Technical debt |
 | 8 | No offline/error recovery states | General | Technical debt |
 | 9 | MX record missing for `rentsafeai.co.uk` | DNS / Email | Post-launch |
@@ -565,6 +567,11 @@ Session 8 introduced a 3-checkbox pre-generation consent gate for 4 legal docume
 | 15 | Landlord name derived from email username instead of `user_profiles.full_name` | Document generation | **FIXED Session 8** — added `_profileName()` helper, hits `user_profiles` in `loadData()` |
 | 16 | Footer links on `index.html` — 6 dead `href="#"` links (Privacy, Terms, Cookies, GDPR) | Marketing page | **FIXED Session 8** — all now point to real `.html` files; added Complaints link |
 | 17 | No complaints policy page | Legal compliance | **FIXED Session 8** — created `complaints.html` (UK-compliant: ICO reference, ADR, 2/10 day timelines) |
+| 18 | Rent "Mark received" errors on save — `month` column removed, `prop_id` String()-wrapped, calendar amount bug | Rent module | **FIXED Session 9** — 3 functions updated (`markRentReceived`, `buildRentSchedule`, `getCalEvents`) |
+| 19 | Property detail tabs unresponsive — `pdSetTab` silently returns if content div missing | Property detail | **FIXED Session 9** — added re-render fallback when `#pd-tab-content` not in DOM |
+| 20 | Generated document output shrunk to 360px — only ~10 lines visible | Document gen | **FIXED Session 9** — gen-text/s8-output/s13-preview `max-height` → vh units (50-55vh) |
+| 21 | Calendar "Mark received" parsed rent amount from display label (address digits contaminated value) | Calendar | **FIXED Session 9** — `rentAmt` passed directly from calendar event object |
+| 22 | `rent_payments` table has no SQL migration file in repo | Database docs | Pending — Saby to document actual schema or create SQL file |
 
 ---
 
@@ -1007,6 +1014,41 @@ When **touching any of these files for a new feature or bug fix**, follow this p
 - On accept: `logAudit('DISCLAIMER_ACCEPTED', ...)` with timestamp; restores modal + selections; runs `runGenerate()`
 - Section 8 consent upgraded from 4 boxes to 3 clearer boxes matching the same liability language
 - All other templates bypass the gate — keep lightweight inline banner only
+
+### Session 9 — May 2026 — Bug Fix Sprint: Rent Save, Tabs, Contract Display & PDF
+**Date:** May 2026
+
+#### Architecture Decision
+- **Architecture shift:** Saby moving to separate module files. `landlord.html` becomes a shell. Each new feature = its own `.html` + `.js` file.
+- Two people now working on codebase — Saby + developer. Build target: 31 May 2026 launch.
+
+#### Bugs Fixed
+**1. Rent "Mark received" save error (2 code paths)**
+- `markRentReceived()` line 3598: `prop_id` was passed raw from onclick — now `String(pid)` wrapped
+- `markRentReceived()` line 3599: `month: monthLabel` removed from DB insert payload (column may not exist in `rent_payments` table)
+- `markRentReceived()` line 3600: `amount` now sanitized via `parseFloat(amount) || 0`
+- `buildRentSchedule()` lines 3561-3563: matching changed from `r.month === monthLabel` to `r.due_date.slice()` only
+- `console.error` logging added to both update and insert paths for debugging
+- Calendar view `showCalDay()` line 6389: `amount` was parsed from `e.sub` (display label like `"£1,200 · 123 High St"`) — now uses `e.rentAmt` (added to calendar event at `getCalEvents()` line 6105)
+
+**2. Unresponsive property detail tabs**
+- `pdSetTab()` line 3748-3754: when `#pd-tab-content` div was missing (e.g. JS error during page render), function silently returned — tabs appeared frozen
+- Now calls `nav('prop-detail', pid)` to re-render entire detail page, then restores the tab after DOM settles
+
+**3. Contract display "shrink" — 3 locations**
+- `gen-text` output container (line 7628): `max-height:360px` → `max-height:55vh`
+- `s8-output` container (line 8732): `max-height:320px` → `max-height:55vh`
+- Section 13 preview (line 9675): `max-height:320px` → `max-height:50vh`
+
+**4. PDF download only 2 pages — 2 functions**
+- `downloadAsPDF()`: `window.print()` pop-up → jsPDF with `splitTextToSize(W-32)`, auto `addPage()` at y>270mm, branded header/footer
+- `s8DownloadPDF()`: same jsPDF rewrite with Section 8 disclaimer footer
+- Both output proper multi-page A4 PDFs with clean text rendering (handles markdown headings, removes `**` bold markers)
+
+#### Remaining for Next Session (Priority Order)
+1. **esign.html** + `esign-content.js` — standalone signing page (landlord signs first, tenant counter-signs, both get full PDF). Move e-sign logic out of `landlord.html` and `tenant.html`
+2. **guidance-content.js** — NRLA compliance guide topics: Right to Rent checks, written tenancy terms, guarantor process, welcome letter
+3. **AI Assistant upgrade** — add app-aware FAQ responses ("where is X feature?" questions)
 
 ---
 
