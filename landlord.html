@@ -3669,16 +3669,11 @@ function pgProperties(){
            :'<span style="font-size:11px;font-weight:600;color:#E53E3E;background:rgba(229,62,62,0.08);padding:2px 8px;border-radius:100px">Vacant</span>')
       +'</div>'
       +'<div style="flex:1;text-align:right;font-size:13px;font-weight:600;color:var(--green-dark)">'+(p.rent?'£'+(p.rent).toLocaleString()+'/mo':'&#8212;')+'</div>'
-      +'<div style="flex:1;display:flex;gap:5px;flex-wrap:wrap;justify-content:center">'
-        +(p.beds?'<span style="font-size:10px;color:var(--muted);background:var(--off);border:1px solid var(--border);padding:1px 7px;border-radius:100px">'+p.beds+' bed</span>':'')
-        +(p.type?'<span style="font-size:10px;color:var(--muted);background:var(--off);border:1px solid var(--border);padding:1px 7px;border-radius:100px">'+p.type+'</span>':'')
-      +'</div>'
       +'<div style="flex:0.7;text-align:center">'
         +(openIssues>0?'<span style="font-size:11px;font-weight:600;color:'+(awaab?'#E53E3E':'#D97706')+'">'+(awaab?'⚠ ':'')+openIssues+' issue'+(openIssues!==1?'s':'')+' open</span>'
                      :'<span style="font-size:11px;color:var(--muted)">&#8212;</span>')
       +'</div>'
       +'<div style="display:flex;gap:6px;flex-shrink:0" onclick="event.stopPropagation()">'
-        +'<button class="btn btn-sm" style="background:var(--green);color:var(--navy);border-color:var(--green);font-weight:600;font-size:11px" onclick="moPropertySetup(\''+p.id+'\')">🚀 Setup</button>'
         +'<button class="btn btn-sm" style="font-size:13px;padding:4px 10px" onclick="nav(\'prop-detail\',\''+p.id+'\')">&#8250;</button>'
       +'</div>'
     +'</div>';
