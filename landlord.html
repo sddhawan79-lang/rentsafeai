@@ -7816,7 +7816,7 @@ function pgTemplates() {
                   <div style="font-size:12px;color:var(--muted);flex:1">${t.desc}</div>
                   <div style="display:flex;gap:6px;margin-top:4px">
                     ${t.s8 ? `<button class="btn btn-sm btn-navy" onclick="s8LaunchFromTemplates()">⚖️ Open Section 8 Generator</button>` : t.id === 'section13' ? `<button class="btn btn-sm btn-navy" onclick="moSection13()">📈 Open S.13 Generator</button>` : t.ai ? `<button class="btn btn-sm btn-navy" onclick="moGenerate('${t.id}')">✦ Generate with AI</button>` : `<button class="btn btn-sm btn-navy" onclick="moGenerate('${t.id}')">Generate</button>`}
-                    <button class="btn btn-sm" onclick="moUploadTemplate()">↑ Use my own</button>
+                    <button class="btn btn-sm" onclick="moUploadTemplate('${t.id}','${t.name}')">↑ Use my own</button>
                   </div>
                 </div>
               `).join('')}
@@ -8314,10 +8314,11 @@ function copyTemplate() {
   }
 }
 
-function moUploadTemplate() {
-  openMo('Upload your template', 'AI will auto-fill your placeholders using property & tenant data',
-    `<div class="fg"><label>Template name <span class="req">*</span></label>
-       <input type="text" id="ct-name" placeholder="e.g. My custom tenancy agreement"></div>
+function moUploadTemplate(templateId, templateName) {
+  openMo('Upload your template', templateName ? 'Uploading your own version of: ' + templateName : 'Upload a custom template — AI will auto-fill your placeholders using property & tenant data',
+    `<input type="hidden" id="upload-tmpl-id" value="${templateId||''}">
+     <div class="fg"><label>Template name <span class="req">*</span></label>
+       <input type="text" id="ct-name" placeholder="e.g. My custom tenancy agreement" value="${templateName||''}"></div>
      <div class="fg"><label>Category</label>
        <select id="ct-cat"><option>Legal Notices</option><option>Tenancy Documents</option><option>Compliance</option><option>Communications</option><option>Other</option></select>
      </div>
