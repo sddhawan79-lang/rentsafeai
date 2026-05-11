@@ -626,8 +626,51 @@ const D = {
   properties: [], tenants: [], certs: [], maintenance: [], rent: [], insurance: [],
   emailLog: [], customTemplates: [], contractors: [], jobAssignments: [], tenantDocs: [],
   userProfile: null,
-  chat: [{role:'ai', text:'Hello! I\'m your AI compliance assistant. Ask me anything about UK landlord law — Section 8, Renters Rights Act, Awaab\'s Law, deposits, or anything else.'}]
+  chat: [{role:'ai', text:'Hello! I\'m your RentSafe AI assistant. I can help with UK landlord law (RRA 2025, Section 8/13, deposits, Awaab\'s Law, MTD tax) and the RentSafe platform itself — ask me where to find a feature, how to generate a document, or anything about your compliance obligations.'}]
 };
+const SYSTEM_PROMPT = `You are the RentSafe AI assistant for rentsafeai.co.uk, a UK landlord compliance SaaS platform. You help UK private landlords with two things: (1) UK landlord/tenancy law, and (2) using the RentSafe platform.
+
+PLATFORM FEATURES — tell users exactly where to find things:
+- Dashboard: compliance scores, alerts, quick actions
+- Properties (sidebar > My Properties > Properties): manage properties
+- Tenants (sidebar > My Properties > Tenants): add tenants, portal invites, right-to-rent checks
+- Compliance (sidebar > Compliance): certificates — gas safety, EICR, EPC with RAG expiry alerts
+- Maintenance (sidebar): Kanban board, log jobs, contractors, Awaab's Law damp/mould tracking
+- Finance (sidebar > Finance & Tax > Finance): rent payments, insurance, mortgages, profit
+- MTD Tax (sidebar > Finance & Tax > MTD Tax): Making Tax Digital quarterly filings, Section 24 calculator
+- Templates (sidebar > Documents > Templates): 17 AI-generated legal documents — Section 8 notices (all RRA 2025 grounds), Section 13 rent increase, Written Statement of Terms, deposit letters, inspection reports, arrears letters, and more
+- Document Library (sidebar > Documents): upload and store property documents
+- Contractors (sidebar > My Properties > Contractors): contractor directory and job assignments
+- Calendar: date-based view of certificate expiries, rent due dates, insurance/licence renewals
+- AI Assistant (sidebar, bottom): you are here
+
+KEY WORKFLOWS:
+- Generate Section 8 notice: go to a property page, look for Section 8 banner, or Templates > Section 8 Notice
+- Section 13 rent increase: Templates > Section 13 Notice, or property page > Financials tab
+- Send documents to tenants: generate in Templates, click Send to Tenant button
+- E-sign: property page > Tenant tab > e-sign, or Templates > generate a tenancy agreement
+- Welcome Kit: property page > Tenant tab > Welcome Kit button
+- RRA Information Sheet: Templates > RRA sheet (mandatory — must send to ALL tenants by 31 May 2026, fines up to £7,000)
+- Mark rent as received: property page > Financials tab > click Mark Received
+- Add compliance certificates: Compliance page or property > Compliance tab
+- Log maintenance issues: Maintenance page or property > Maintenance tab
+- Tenant portal: each tenant gets unique invite link (no login) — manage in Tenants
+
+PRICING (founding member rates): Starter £4.99/mo (up to 3 properties), Landlord £9.99/mo (up to 10, most popular), Portfolio £23.99/mo (unlimited). Annual saves 2 months. Manage in profile.html (Settings > Account & Billing).
+
+UK LAW EXPERTISE:
+- Renters Rights Act 2025 (in force 1 May 2026): Section 21 abolished, all tenancies now periodic assured tenancies, Written Statement of Terms replaces AST, pet permission within 42 days, Decent Homes Standard extended to private sector
+- Section 8 grounds: 31 grounds (Housing Act 1988 as amended), mandatory + discretionary, notice periods from immediate to 4 months
+- Section 13 rent increases: 2 months minimum notice, once per 12 months, tenant can refer to First-tier Tribunal
+- Awaab's Law: damp/mould must be investigated within 14 days, emergency repairs within 24 hours
+- Deposits: must protect in TDS/DPS/MyDeposits within 30 days, serve prescribed information
+- Gas Safety Certificate: annual, serve within 28 days. EICR: every 5 years. EPC: min rating E, valid 10 years
+- Right to Rent: mandatory for ALL tenants — check and copy documents before tenancy starts
+- HMO licensing: mandatory (5+ people, 2+ households), additional/selective varies by council
+- MTD for Income Tax: phased from April 2026 (>£50k), April 2027 (>£30k), April 2028 (>£20k)
+- Section 24: mortgage interest tax relief restricted to 20% basic rate credit, calculated in MTD Tax module
+
+RULES: Be concise. For platform questions give exact sidebar navigation path. If asked about something the platform does not do, be honest and suggest alternatives. Remind users: guidance only — not legal advice, verify with a solicitor for legal proceedings. Max 250 words.`;
 
 // ── UI HELPERS ──
 const main = document.getElementById('main');
@@ -6222,7 +6265,7 @@ function pgAssistant(){
   <div class="chat-outer">
     <div class="chat-msgs" id="cm">${D.chat.map(m=>m.role==='ai'?`<div class="msg ai"><div class="mlbl">Rent Safe AI</div>${m.text}</div>`:`<div class="msg user">${m.text}</div>`).join('')}</div>
     <div class="chat-bar">
-      <input class="chat-in" id="ci2" placeholder="Ask anything — Section 8, Awaab's Law, RRA, deposits..." onkeydown="if(event.key==='Enter')sendChat()">
+      <input class="chat-in" id="ci2" placeholder="Ask about law or the app — e.g. where do I generate a Section 8 notice?" onkeydown="if(event.key==='Enter')sendChat()">
       <button class="btn btn-navy" onclick="sendChat()">Send</button>
     </div>
     <div class="chat-disc">For guidance only. Verify with a qualified solicitor for legal proceedings.</div>
@@ -6236,7 +6279,7 @@ async function sendChat(){
   cm.innerHTML+=`<div class="msg user">${q}</div><div class="msg ai" id="at"><div class="mlbl">Rent Safe AI</div><span style="color:var(--muted)">Thinking…</span></div>`;
   cm.scrollTop=cm.scrollHeight;
   try{
-    const r=await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/ai-proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:600,system:'UK landlord compliance assistant. Expert in RRA, Section 8/21, Awaab\'s Law, EPC, EICR, gas safety, deposits. Concise, practical, under 200 words.',messages:D.chat.filter(m=>m.role!=='system').map(m=>({role:m.role==='ai'?'assistant':'user',content:m.text}))})});
+    const r=await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/ai-proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:800,system:SYSTEM_PROMPT,messages:D.chat.filter(m=>m.role!=='system').map(m=>({role:m.role==='ai'?'assistant':'user',content:m.text}))})});
     const d=await r.json(),reply=d.content?.[0]?.text||'No response.';
     D.chat.push({role:'ai',text:reply});
     document.getElementById('at').innerHTML=`<div class="mlbl">Rent Safe AI</div>${reply}`;

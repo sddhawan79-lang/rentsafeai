@@ -553,6 +553,16 @@ All migrations run manually in **Supabase → SQL Editor** (no automated migrati
 
 The `user_profiles` row is queried by `currentUser.id` via `.maybeSingle()` and stored in `D.userProfile`. Use the `_profileName()` helper (not raw `email.split('@')[0]`) for all landlord name references in AI prompts and legal documents — it resolves `full_name` from the profile, falling back to email username.
 
+### AI Chat Assistant (`sendChat()` in `landlord.html`)
+- Powered by Claude via `ai-proxy` edge function (replaced `super-processor` — Session 6)
+- Session 9 upgrade: `SYSTEM_PROMPT` constant (line 631, template literal) provides the AI with full platform knowledge + UK law expertise
+- **Platform knowledge:** all sidebar navigation paths, feature locations, key workflows (Section 8, e-sign, rent marking, RRA sheet), pricing
+- **Law expertise:** RRA 2025, all 31 Section 8 grounds, Section 13, Awaab's Law, deposits, EPC/EICR/GSC, Right to Rent, HMO licensing, MTD phases, Section 24
+- **Rules for AI:** give exact sidebar navigation path for platform questions, be honest about limitations, always state guidance only/not legal advice
+- Chat history stored in `D.chat[]` (in-memory only — clears on refresh)
+- Input placeholder updated to hint at both legal and platform questions
+- `max_tokens` set to 800 (was 600 before Session 9)
+
 ### Legal Document Disclaimer Gate (`landlord.html`)
 Session 8 introduced a 3-checkbox pre-generation consent gate for 4 legal document types: `section13`, `noticetoquit`, `writtenstatement`. Section 8 has its own dedicated flow with identical wording. The gate:
 - Captures user form selections (`_gateCtx`) before replacing the modal body with the disclaimer
@@ -1064,9 +1074,16 @@ When **touching any of these files for a new feature or bug fix**, follow this p
 - `s8DownloadPDF()`: same jsPDF rewrite with Section 8 disclaimer footer
 - Both output proper multi-page A4 PDFs with clean text rendering (handles markdown headings, removes `**` bold markers)
 
+**5. AI Assistant upgraded with platform knowledge**
+- Rewrote system prompt from 25-word generic to ~500-word comprehensive template literal (`SYSTEM_PROMPT` constant at line 631)
+- Covers: all sidebar navigation paths, feature locations, key workflows (Section 8, Section 13, e-sign, Welcome Kit, RRA sheet, rent marking), pricing (3 tiers)
+- Also retains full UK law expertise: RRA 2025, Section 8/13, Awaab's Law, deposits, EPC/EICR/GSC, Right to Rent, HMO licensing, MTD phases, Section 24
+- Rules for Claude: give exact sidebar paths, be honest about limitations, always disclaim "not legal advice"
+- Increased `max_tokens` 600→800
+- Updated initial greeting and input placeholder to hint at platform questions
+
 #### Remaining for Next Session (Priority Order)
 1. **guidance-content.js** — NRLA compliance guide topics: Right to Rent checks, written tenancy terms, guarantor process, welcome letter
-2. **AI Assistant upgrade** — add app-aware FAQ responses ("where is X feature?" questions)
 
 ---
 
