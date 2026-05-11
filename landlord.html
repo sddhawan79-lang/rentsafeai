@@ -6895,27 +6895,24 @@ function pgFinancials(){
     <div class="panel">
       <div class="ph2"><h2>Property breakdown</h2><p>Per property P&L — click Detail for monthly view</p></div>
       <div class="tw"><table>
-        <thead><tr><th>Property</th><th>Monthly rent</th><th>Mortgage</th><th>Insurance</th><th>Maintenance</th><th>Net profit</th><th>Yield</th><th>Tax est.</th><th></th></tr></thead>
+        <thead><tr><th>Property</th><th>Monthly rent</th><th>Expenses</th><th>Net profit</th><th>Yield</th><th></th></tr></thead>
         <tbody>${D.properties.map(p=>{
           const ins=D.insurance.filter(ii=>String(ii.prop_id)===String(p.id)).reduce((s,ii)=>s+(ii.premium||0)/12,0);
           const mort=p.mortgage_monthly||0;
           const maint=getMaintCostMonthly(p.id);
           const profit=(p.rent||0)-mort-ins-maint;
           const yld=p.mortgage_outstanding?((p.rent||0)*12/p.mortgage_outstanding*100).toFixed(1):'—';
-          const tax=profit>0?Math.round(profit*0.2):0;
           return`<tr>
             <td class="td-bold">${p.address}</td>
             <td style="color:var(--green-dark);font-weight:600">£${(p.rent||0).toLocaleString()}</td>
-            <td style="color:var(--red)">£${mort.toLocaleString()}</td>
-            <td style="color:var(--amber)">£${Math.round(ins).toLocaleString()}</td>
-            <td style="color:var(--amber)">£${Math.round(maint).toLocaleString()}</td>
+            <td style="color:var(--red)">£${Math.round(mort+ins+maint).toLocaleString()}<div style="font-size:10px;color:var(--muted);margin-top:1px">${mort?'M £'+mort.toLocaleString():''}${ins?' · I £'+Math.round(ins).toLocaleString():''}${maint?' · R £'+Math.round(maint).toLocaleString():''}</div></td>
             <td style="font-weight:600;color:${profit>=0?'var(--green-dark)':'var(--red)'}">£${Math.round(profit).toLocaleString()}</td>
             <td><span class="badge ${parseFloat(yld)>=5?'b-green':parseFloat(yld)>=3?'b-amber':'b-red'}">${yld}%</span></td>
-            <td style="color:var(--muted);font-size:12px">~£${tax}/mo</td>
             <td><button class="btn btn-sm" onclick="moFinancials('${p.id}')">📊 Detail</button></td>
           </tr>`;
         }).join('')}</tbody>
       </table></div>
+      <div style="font-size:11px;color:var(--muted);padding:8px 4px;line-height:1.6">* Expenses = mortgage + insurance (monthly) + maintenance avg. Tax estimates in Detail view are indicative only — not financial advice.</div>
       ${D.properties.length===0?`<div class="empty"><div class="empty-ic">📊</div><div class="empty-t">No properties yet</div><div class="empty-s">Add a property to see your P&amp;L breakdown</div><div style="margin-top:16px"><button class="btn btn-navy" onclick="moAddProp()">+ Add property</button></div></div>`:''}
     </div>
     <div class="panel" style="background:linear-gradient(135deg,#0B1E3D,#132847);color:#fff;border:none">
