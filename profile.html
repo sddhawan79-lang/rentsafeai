@@ -225,6 +225,24 @@ html,body{min-height:100%;font-family:var(--font);color:var(--txt);background:va
 .manage-note a{color:var(--navy);font-weight:500;text-decoration:none}
 .manage-note a:hover{text-decoration:underline}
 
+/* ── DANGER ZONE ── */
+.btn-close-account{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:11px 24px;border-radius:9px;
+  background:transparent;color:var(--red);
+  font-family:var(--font);font-size:14px;font-weight:600;
+  border:2px solid var(--red);cursor:pointer;transition:all .15s;
+}
+.btn-close-account:hover{background:var(--red);color:#fff}
+#close-modal .fg input{
+  width:100%;padding:11px 14px;border-radius:9px;
+  border:1.5px solid var(--border);
+  font-family:var(--font);font-size:14px;color:var(--txt);
+  outline:none;transition:border .2s;background:var(--white);
+}
+#close-modal .fg input:focus{border-color:var(--red)}
+#close-confirm-btn:disabled{opacity:.4;cursor:not-allowed}
+
 /* ── RESPONSIVE ── */
 @media(max-width:768px){
   .topbar{padding:0 16px}
@@ -396,7 +414,41 @@ html,body{min-height:100%;font-family:var(--font);color:var(--txt);background:va
     </div>
   </section>
 
+  <!-- ── SECTION 4: DANGER ZONE ── -->
+  <section class="section-card" id="sect-close">
+    <div class="section-hd" style="border-bottom-color:var(--red-border)">
+      <h2 style="color:var(--red)">Danger Zone</h2>
+      <p>Permanently close your RentSafeAI account</p>
+    </div>
+    <div class="section-body">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px">
+        Closing your account will cancel your subscription and mark your data as deleted. Your records will be preserved for 6 years for legal and dispute-resolution purposes, after which they will be permanently removed.
+      </p>
+      <button class="btn-close-account" id="close-account-btn">Close My Account</button>
+    </div>
+  </section>
+
 </main><!-- /content -->
+
+<!-- ── ACCOUNT CLOSURE CONFIRMATION MODAL ── -->
+<div id="close-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:1000;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--white);border-radius:12px;width:480px;max-width:100%;padding:24px;box-shadow:0 8px 32px rgba(0,0,0,0.2)">
+    <h3 style="font-size:16px;font-weight:700;color:var(--red);margin-bottom:6px">Close Your Account?</h3>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px">
+      This action cannot be undone. Your subscription will be cancelled and your data will be marked for deletion. Records required for legal compliance will be retained for 6 years.
+    </p>
+    <div class="fg">
+      <label>Type your email to confirm</label>
+      <input type="email" id="close-email" placeholder="you@example.com" autocomplete="off">
+      <p class="field-hint" style="color:var(--red)">You must type your email address exactly to confirm.</p>
+    </div>
+    <div class="error-msg" id="close-error" style="display:none">Email does not match your account email.</div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+      <button id="close-cancel-btn" style="padding:10px 20px;border:1px solid var(--border);border-radius:8px;background:var(--white);font-family:var(--font);font-size:13px;font-weight:500;cursor:pointer;color:var(--txt)">Cancel</button>
+      <button id="close-confirm-btn" disabled style="padding:10px 20px;border:none;border-radius:8px;background:var(--red);color:#fff;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s">Close My Account</button>
+    </div>
+  </div>
+</div>
 
 <!-- ── SCRIPTS ── -->
 <!-- Supabase CDN must load first -->

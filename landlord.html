@@ -2925,6 +2925,76 @@ async function _saveTenantSetupToDB() {
   }
 }
 
+// ── END TENANCY ──────────────────────────────────────────────────────────────
+
+/** Opens the end-tenancy confirmation modal for a given tenant. */
+function moEndTenancy(tid) {
+  const t = D.tenants.find(x => String(x.id) === String(tid));
+  if (!t) { toast('Tenant not found', true); return; }
+  const p = P(t.prop_id) || { address: '—' };
+  openMo('End Tenancy', `${t.name} · ${p.address}`,
+    '<div style="background:var(--amber-bg);border:1px solid rgba(217,119,6,0.25);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--amber)">' +
+    '⚠️ This will archive the tenancy. Rent payments, maintenance history and documents will be preserved for dispute resolution.' +
+    '</div>' +
+    '<div class="fg"><label>End reason <span class="req">*</span></label>' +
+    '<select id="et-reason">' +
+    '<option value="">Select reason…</option>' +
+    '<option value="Tenant left — mutual agreement">Tenant left — mutual agreement</option>' +
+    '<option value="Tenant left — notice served">Tenant left — notice served</option>' +
+    '<option value="Eviction — Section 8 possession order">Eviction — Section 8 possession order</option>' +
+    '<option value="Tenant abandoned property">Tenant abandoned property</option>' +
+    '<option value="Other">Other</option>' +
+    '</select></div>' +
+    '<div class="fg"><label>End date (leave blank for today)</label>' +
+    '<input type="date" id="et-date" value="' + new Date().toISOString().slice(0,10) + '"></div>',
+    '<button class="btn" onclick="closeMo()">Cancel</button>' +
+    '<button class="btn btn-navy" id="et-btn" onclick="_endTenancy(\'' + t.id + '\')">✔ End Tenancy</button>'
+  );
+}
+
+/** Ends a tenancy: archives the tenant row to preserve data for disputes. */
+async function _endTenancy(tid) {
+  const btn = document.getElementById('et-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Ending…';
+
+  const reason = document.getElementById('et-reason')?.value;
+  const endDate = document.getElementById('et-date')?.value || new Date().toISOString().slice(0,10);
+
+  if (!reason) { toast('Please select a reason for ending the tenancy.', true); btn.disabled = false; btn.innerHTML = '✔ End Tenancy'; return; }
+
+  try {
+    const now = new Date().toISOString();
+    const { error } = await sb.from('tenants').update({
+      status: 'Ended',
+      archived: true,
+      archived_at: now,
+      end_reason: reason,
+      end_date: endDate,
+    }).eq('id', tid);
+
+    if (error) { toast('Error: ' + error.message, true); btn.disabled = false; btn.innerHTML = '✔ End Tenancy'; return; }
+
+    // Update in-memory cache
+    const t = D.tenants.find(x => String(x.id) === String(tid));
+    if (t) {
+      t.status = 'Ended';
+      t.archived = true;
+      t.archived_at = now;
+      t.end_reason = reason;
+      t.end_date = endDate;
+    }
+
+    await logAudit('END_TENANCY', 'tenants', tid, `Ended: ${reason}`);
+    closeMo();
+    toast('✓ Tenancy ended — data archived for disputes');
+    nav('tenant-detail', tid);
+  } catch (e) {
+    console.error('[_endTenancy]', e);
+    toast('Error ending tenancy. Try again.', true);
+    btn.disabled = false; btn.innerHTML = '✔ End Tenancy';
+  }
+}
+
 // ── MODAL: WELCOME KIT ──
 // Auto-compiled document pack sent to tenant at tenancy start.
 // Mandatory items cannot be silently removed — they show a warning if missing.
@@ -5113,18 +5183,37 @@ async function testReminder(id) {
 
 // ── PAGE: TENANTS ──
 function pgTenants(){
-  return`<div class="topbar"><span class="tb-title">Tenants</span><div class="tb-right"><button class="btn btn-navy" onclick="moTenant()">+ Add tenant</button></div></div>
-  <div class="content">
-    <div class="ph"><h1>Tenants</h1><p>${D.tenants.filter(t=>t.status==='Active').length} active tenant${D.tenants.filter(t=>t.status==='Active').length!==1?'s':''} · Click any row to view details</p></div>
-    ${D.tenants.filter(t=>t.status==='Active').length?`<div class="panel"><div class="tw"><table>
+  const filter = window._tenantFilter || 'Active';
+  const activeList = D.tenants.filter(t => t.status === 'Active');
+  const endedList = D.tenants.filter(t => t.status === 'Ended' || t.archived === true);
+  const visibleList = filter === 'Ended' ? endedList : filter === 'All' ? D.tenants : activeList;
+
+  const filterTabs = `
+    <div style="display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px">
+      <button onclick="window._tenantFilter='Active';nav('tenants')" style="padding:7px 16px;font-size:13px;font-weight:500;cursor:pointer;border:none;font-family:var(--font);background:${filter==='Active'?'var(--navy)':'var(--white)'};color:${filter==='Active'?'#fff':'var(--txt)'};transition:background .15s">Active${activeList.length?' ('+activeList.length+')':''}</button>
+      <button onclick="window._tenantFilter='Ended';nav('tenants')" style="padding:7px 16px;font-size:13px;font-weight:500;cursor:pointer;border:none;border-left:1px solid var(--border);font-family:var(--font);background:${filter==='Ended'?'var(--navy)':'var(--white)'};color:${filter==='Ended'?'#fff':'var(--txt)'};transition:background .15s">Ended${endedList.length?' ('+endedList.length+')':''}</button>
+      <button onclick="window._tenantFilter='All';nav('tenants')" style="padding:7px 16px;font-size:13px;font-weight:500;cursor:pointer;border:none;border-left:1px solid var(--border);font-family:var(--font);background:${filter==='All'?'var(--navy)':'var(--white)'};color:${filter==='All'?'#fff':'var(--txt)'};transition:background .15s">All (${D.tenants.length})</button>
+    </div>`;
+
+  const endedBadge = '<span style="font-size:10px;font-weight:600;background:var(--off);color:var(--muted);padding:2px 7px;border-radius:100px;margin-left:6px">Archived</span>';
+
+  const rows = visibleList.length
+    ? `<div class="panel"><div class="tw"><table>
       <thead><tr><th>Name</th><th>Property</th><th>Email</th><th>Start</th><th>End</th><th>Deposit</th><th>Status</th></tr></thead>
-      <tbody>${D.tenants.map(t=>{const p=P(t.prop_id)||{address:'—'};return`<tr style="cursor:pointer" onclick="nav('tenant-detail','${t.id}')">
-        <td><div style="display:flex;align-items:center;gap:10px"><div class="t-av">${INI(t.name)}</div><div><div class="td-bold">${t.name}</div><div style="font-size:11px;color:var(--muted)">${t.phone||'—'}</div></div></div></td>
+      <tbody>${visibleList.map(t=>{const p=P(t.prop_id)||{address:'—'};const isEnded=t.status==='Ended'||t.archived;return`<tr style="cursor:pointer;${isEnded?'opacity:.65':''}" onclick="nav('tenant-detail','${t.id}')">
+        <td><div style="display:flex;align-items:center;gap:10px"><div class="t-av">${INI(t.name)}</div><div><div class="td-bold">${t.name}${isEnded?endedBadge:''}</div><div style="font-size:11px;color:var(--muted)">${t.phone||'—'}</div></div></div></td>
         <td>${p.address}</td><td style="font-size:12px;color:var(--muted)">${t.email||'—'}</td>
         <td>${FMS(t.start||t.start_date)}</td><td>${FMS(t.end||t.end_date)}</td>
-        <td>${t.scheme?B('Protected'):'<span style="color:var(--muted);font-size:12px">Not set</span>'}</td><td>${B(t.status)}</td>
+        <td>${t.scheme?B('Protected'):'<span style="color:var(--muted);font-size:12px">Not set</span>'}</td><td>${isEnded?B('Ended'):B(t.status)}</td>
       </tr>`}).join('')}</tbody>
-    </table></div></div>`:'<div class="empty"><div class="empty-ic">👤</div><div class="empty-t">No tenants yet</div><div class="empty-s">Add your first tenant to get started</div><div style="margin-top:16px"><button class="btn btn-navy" onclick="moTenant()">+ Add tenant</button></div></div>'}
+    </table></div></div>`
+    : `<div class="empty"><div class="empty-ic">${filter==='Ended'?'📦':'👤'}</div><div class="empty-t">${filter==='Ended'?'No ended tenancies':'No tenants yet'}</div><div class="empty-s">${filter==='Ended'?'Ended tenancies will appear here — their data is preserved for disputes':'Add your first tenant to get started'}</div>${filter==='Active'?'<div style="margin-top:16px"><button class="btn btn-navy" onclick="moTenant()">+ Add tenant</button></div>':''}</div>`;
+
+  return`<div class="topbar"><span class="tb-title">Tenants</span><div class="tb-right"><button class="btn btn-navy" onclick="moTenant()">+ Add tenant</button></div></div>
+  <div class="content">
+    <div class="ph"><h1>Tenants</h1><p>${activeList.length} active · ${endedList.length} ended · Click any row to view details</p></div>
+    ${filterTabs}
+    ${rows}
   </div>`;
 }
 
@@ -5186,8 +5275,9 @@ function pgTenantDetail(tid) {
       <div class="ph2">
         <div><h2>Tenancy Details</h2><p>${p.address}</p></div>
         <div style="display:flex;gap:6px">
-          <button class="btn btn-sm" onclick="moTenantDetail('${t.id}')">✎ Edit</button>
+          ${t.status === 'Ended' ? '<span style="font-size:11px;font-weight:600;background:var(--off);color:var(--muted);padding:5px 10px;border-radius:6px;border:1px solid var(--border)">📦 Archived</span>' : `<button class="btn btn-sm" onclick="moTenantDetail('${t.id}')">✎ Edit</button>`}
           <button class="btn btn-sm btn-navy" onclick="moSection8('${t.prop_id}')">⚖️ Section 8</button>
+          ${t.status === 'Ended' ? '' : `<button class="btn btn-sm" style="border-color:var(--red);color:var(--red)" onclick="moEndTenancy('${t.id}')">⏻ End Tenancy</button>`}
         </div>
       </div>
       <div style="padding:14px 18px">
@@ -5378,6 +5468,14 @@ function pgTenantDetail(tid) {
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3L5 8l5 5"/></svg>
         Back to tenants
       </button>
+      ${t.status === 'Ended' ? `
+      <div style="background:var(--off);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:flex-start;gap:12px">
+        <span style="font-size:22px;flex-shrink:0">📦</span>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:600;color:var(--txt);margin-bottom:4px">Tenancy Ended — Archived</div>
+          <div style="font-size:12px;color:var(--muted)">Ended on ${FMS(t.end_date) || '—'} · Reason: ${t.end_reason || '—'}. All records (rent, maintenance, documents) are preserved for dispute resolution.</div>
+        </div>
+      </div>` : ''}
 
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
         <div style="display:flex;align-items:center;gap:14px">
