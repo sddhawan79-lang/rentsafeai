@@ -6108,7 +6108,7 @@ function pgMaintenance(){
 
   // KANBAN — filtered
   const kanbanHtml = filterBar + `<div id="kanban-scroll-hint" style="display:none;font-size:11px;color:var(--muted);text-align:center;padding:6px 0;margin-bottom:4px">← Scroll to see all stages →</div>
-<script>
+<scr` + `ipt>
 (function(){
   var board = document.getElementById('kanban-board');
   var hint = document.getElementById('kanban-scroll-hint');
@@ -6117,7 +6117,7 @@ function pgMaintenance(){
     if (board.scrollWidth > board.clientWidth) hint.style.display = 'block';
   }, 100);
 })();
-</script>
+<\/scr` + `ipt>
 <div id="kanban-board" style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;align-items:flex-start;-webkit-overflow-scrolling:touch">
     ${stages.map(stage=>{
       const items=filtered.filter(m=>(m.stage||'Reported')===stage);
