@@ -6107,11 +6107,22 @@ function pgMaintenance(){
   </div>`;
 
   // KANBAN — filtered
-  const kanbanHtml = filterBar + `<div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;align-items:flex-start">
+  const kanbanHtml = filterBar + `<div id="kanban-scroll-hint" style="display:none;font-size:11px;color:var(--muted);text-align:center;padding:6px 0;margin-bottom:4px">← Scroll to see all stages →</div>
+<script>
+(function(){
+  var board = document.getElementById('kanban-board');
+  var hint = document.getElementById('kanban-scroll-hint');
+  if (!board||!hint) return;
+  setTimeout(function(){
+    if (board.scrollWidth > board.clientWidth) hint.style.display = 'block';
+  }, 100);
+})();
+</script>
+<div id="kanban-board" style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;align-items:flex-start;-webkit-overflow-scrolling:touch">
     ${stages.map(stage=>{
       const items=filtered.filter(m=>(m.stage||'Reported')===stage);
       const col=stageCol[stage];
-      return`<div style="min-width:210px;flex:1">
+      return`<div style="min-width:200px;max-width:260px;flex:1">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
           <div style="width:9px;height:9px;border-radius:50%;background:${col};flex-shrink:0"></div>
           <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)">${stage}</span>
@@ -6130,8 +6141,19 @@ function pgMaintenance(){
               ${m.cost?`<span style="font-size:10px;font-weight:600;color:var(--green-dark);margin-left:auto">£${m.cost}</span>`:''}
             </div>
             ${m.assigned_to?`<div style="font-size:10px;color:var(--blue);margin-bottom:6px">👷 ${m.assigned_to}</div>`:''}
-            <div style="display:flex;gap:4px;flex-wrap:wrap">
-              ${stages.filter(s=>s!==stage).map(s=>`<button onclick="event.stopPropagation();moveStage('${m.id}','${s}')" style="font-size:10px;padding:2px 7px;border-radius:4px;border:1px solid var(--border);background:var(--off);color:var(--muted);cursor:pointer;font-family:var(--font)" onmouseenter="this.style.background='${stageCol[s]}';this.style.color='#fff';this.style.borderColor='${stageCol[s]}'" onmouseleave="this.style.background='var(--off)';this.style.color='var(--muted)';this.style.borderColor='var(--border)'">${s}</button>`).join('')}
+            <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
+              ${(()=>{
+                const idx = stages.indexOf(stage);
+                const next = idx < stages.length-1 ? stages[idx+1] : null;
+                const others = stages.filter(s => s !== stage && s !== next);
+                return `${next ? `<button onclick="event.stopPropagation();moveStage('${m.id}','${next}')" style="font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid ${stageCol[next]};background:transparent;color:${stageCol[next]};cursor:pointer;font-family:var(--font);font-weight:600" onmouseenter="this.style.background='${stageCol[next]}';this.style.color='#fff'" onmouseleave="this.style.background='transparent';this.style.color='${stageCol[next]}'">→ ${next}</button>` : ''}
+                ${others.length ? `<div style="position:relative;display:inline-block">
+                  <button onclick="event.stopPropagation();var d=this.nextElementSibling;d.style.display=d.style.display==='block'?'none':'block'" style="font-size:10px;padding:3px 7px;border-radius:5px;border:1px solid var(--border);background:var(--off);color:var(--muted);cursor:pointer;font-family:var(--font)">▾</button>
+                  <div style="display:none;position:absolute;bottom:100%;left:0;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.1);z-index:50;min-width:130px;padding:4px 0">
+                    ${others.map(s=>`<div onclick="event.stopPropagation();moveStage('${m.id}','${s}')" style="padding:7px 12px;font-size:11px;cursor:pointer;color:var(--txt)" onmouseenter="this.style.background='var(--off)'" onmouseleave="this.style.background='transparent'">${s}</div>`).join('')}
+                  </div>
+                </div>` : ''}`;
+              })()}
             </div>
           </div>`;
         }).join(''):`<div style="border:2px dashed var(--border);border-radius:10px;padding:16px;text-align:center;color:var(--muted);font-size:12px">No jobs</div>`}
