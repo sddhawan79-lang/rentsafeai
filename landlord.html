@@ -4501,6 +4501,7 @@ function buildCertStatusGrid(pid) {
 }
 
 function pgCompliance(){
+  if (window._compView === undefined) window._compView = 'action';
   const today = new Date(); today.setHours(0,0,0,0);
 
   // Build enriched cert list with days-to-expiry
@@ -4747,23 +4748,35 @@ function pgCompliance(){
       </div>
     </div>
 
+    ${(window._compView||'action') === 'action' ? `
     <!-- Action list -->
     <div class="panel" style="margin-bottom:18px" id="comp-action-list">
-      <div class="ph2">
+      <div class="ph2" style="flex-wrap:wrap;gap:8px">
         <div>
           <h2>${filterLabel}</h2>
           <p>${actionItems.length ? `${actionItems.length} item${actionItems.length!==1?'s':''} ${activeFilter==='ok'?'compliant':'need attention'}` : activeFilter==='ok'?'All compliant':'Nothing to do right now'}</p>
         </div>
-        ${activeFilter !== 'all' ? `<button class="btn btn-sm" onclick="filterCompliance('all')" style="font-size:11px">✕ Clear filter</button>` : ''}
+        <div style="display:flex;gap:6px">
+          <button id="comp-view-action" onclick="window._compView='action';nav('compliance')" style="font-size:12px;padding:5px 12px;border-radius:7px;cursor:pointer;font-family:var(--font);font-weight:600;border:1px solid var(--navy);background:${(window._compView||'action')==='action'?'var(--navy)':'transparent'};color:${(window._compView||'action')==='action'?'#fff':'var(--navy)'}">⚠️ Action required</button>
+          <button id="comp-view-full" onclick="window._compView='full';nav('compliance')" style="font-size:12px;padding:5px 12px;border-radius:7px;cursor:pointer;font-family:var(--font);font-weight:600;border:1px solid var(--navy);background:${window._compView==='full'?'var(--navy)':'transparent'};color:${window._compView==='full'?'#fff':'var(--navy)'}">📋 Full audit</button>
+        </div>
       </div>
       ${actionHtml}
     </div>
+    ` : ''}
 
-    <!-- Property breakdown drill-down -->
-    ${D.properties.length ? `<div>
-      <div style="margin-bottom:14px">
-        <h2 style="font-size:15px;font-weight:700;margin:0">Property breakdown</h2>
-        <p style="font-size:12px;color:var(--muted);margin:3px 0 0">${_selProp?(_selProp.address+(_selProp.city?', '+_selProp.city:'')):'Select a property to view details'}</p>
+    ${window._compView === 'full' ? `<div>
+      <div style="margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+          <div>
+            <h2 style="font-size:16px;font-weight:700;color:var(--navy);margin:0 0 4px">Full compliance audit</h2>
+            <p style="font-size:12px;color:var(--muted);margin:0">Every certificate slot across all properties — green = present, amber = expiring, red = missing or expired</p>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button id="comp-view-action2" onclick="window._compView='action';nav('compliance')" style="font-size:12px;padding:5px 12px;border-radius:7px;cursor:pointer;font-family:var(--font);font-weight:600;border:1px solid var(--navy);background:transparent;color:var(--navy)">⚠️ Action required</button>
+            <button id="comp-view-full2" onclick="window._compView='full';nav('compliance')" style="font-size:12px;padding:5px 12px;border-radius:7px;cursor:pointer;font-family:var(--font);font-weight:600;border:1px solid var(--navy);background:var(--navy);color:#fff">📋 Full audit</button>
+          </div>
+        </div>
       </div>
       ${_selProp ? propDetail : propOverview}
     </div>` : ''}
@@ -10655,6 +10668,7 @@ async function sendMaintenanceNotify(maintenanceId) {
 // ── COMPLIANCE FILTER ──
 function filterCompliance(filter) {
   window._compFilter = filter;
+  window._compView = 'action';
   nav('compliance');
   // Scroll to action list after render
   setTimeout(() => {
