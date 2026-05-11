@@ -849,6 +849,7 @@ async function loadData() {
   // Resolve user plan from Stripe subscription, fallback to portfolio (grandfather existing users)
   window._userPlan = (sub.data && sub.data.plan_name) ? sub.data.plan_name : 'portfolio';
   await checkComplianceReminders();
+  checkAllReminders(); // fire-and-forget weekly digest + reminders on login
 }
 
 // ── PLAN GATING HELPERS ──
@@ -4952,15 +4953,17 @@ async function checkAllReminders() {
   // ── 11. Compliance score digest (weekly) ──
   if (isReminderEnabled('compliance_digest') && D.properties.length) {
     const sevenDaysAgo = new Date(today); sevenDaysAgo.setDate(sevenDaysAgo.getDate()-7);
+    let shouldSendDigest = true;
     try {
       const { data: existing } = await sb.from('audit_log').select('id')
         .eq('action','REMINDER_COMPLIANCE_DIGEST')
         .eq('record_id','portfolio')
         .gte('created_at', sevenDaysAgo.toISOString())
         .limit(1);
-      if (existing && existing.length) return; // already sent this week
-    } catch(e) { return; }
+      if (existing && existing.length) shouldSendDigest = false; // already sent this week
+    } catch(e) { shouldSendDigest = false; }
 
+    if (shouldSendDigest) {
     // Calculate portfolio score
     const allCerts = D.certs;
     const totalCerts = allCerts.length;
@@ -5058,8 +5061,9 @@ async function checkAllReminders() {
 
     await sendReminder(
       `📊 Weekly compliance digest — Portfolio score: ${portfolioScore}/100`,
-      html, 'REMINDER_COMPLIANCE_DIGEST', 'portfolio', `digest_${today.toISOString().slice(0,10)}`
+      html, 'REMINDER_COMPLIANCE_DIGEST', 'portfolio',       `digest_${today.toISOString().slice(0,10)}`
     );
+    } // end shouldSendDigest
   }
 
   // ── 12. Inspection due ──
