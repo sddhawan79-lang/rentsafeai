@@ -1070,6 +1070,83 @@ async function uploadScanCert(certId, input){
   }
 }
 
+/** AI scans a deposit protection certificate and auto-fills scheme, reference & amount. */
+async function scanDepositCert(input) {
+  if (!input.files[0]) return;
+  const file = input.files[0];
+  const box = document.getElementById('ts-dep-scan-box');
+  const result = document.getElementById('ts-dep-scan-result');
+  if (box) box.innerHTML = '<div class="scan-ic">⏳</div><div class="scan-t">Scanning deposit certificate…</div><div class="scan-badge">✦ AI reading</div>';
+  if (result) result.innerHTML = '';
+  try {
+    await scanAndFill(file, (parsed) => {
+      if (parsed.type && parsed.type.toLowerCase().includes('deposit')) {
+        const schemeEl = document.getElementById('ts-dep-scheme');
+        const refEl = document.getElementById('ts-dep-ref');
+        const amountEl = document.getElementById('ts-deposit');
+        const scheme = parsed.type || parsed.engineer || '';
+        if (scheme && schemeEl) {
+          const match = ['DPS','MyDeposits','TDS'].find(s => scheme.toLowerCase().includes(s.toLowerCase()));
+          if (match) schemeEl.value = match;
+        }
+        if (parsed.reference || parsed.ref) {
+          if (refEl) refEl.value = parsed.reference || parsed.ref || '';
+        }
+        if (parsed.amount || parsed.deposit) {
+          const amt = parseFloat(parsed.amount || parsed.deposit) || 0;
+          if (amountEl && amt > 0) amountEl.value = amt;
+        }
+        if (result) result.innerHTML = '<span style="color:var(--green-dark);font-size:11px">✓ AI extracted: ' + [scheme?scheme:'', parsed.ref?'ref '+parsed.ref:'', parsed.amount?'£'+parsed.amount:''].filter(Boolean).join(' · ') + '</span>';
+        if (box) box.innerHTML = '<div class="scan-ic">✅</div><div class="scan-t">Deposit certificate scanned</div><div class="scan-badge" style="background:var(--green-bg);color:var(--green-dark)">✓ Auto-filled</div>';
+      } else {
+        if (result) result.innerHTML = '<span style="color:var(--amber);font-size:11px">⚠️ Could not determine deposit scheme — fill in manually</span>';
+        if (box) box.innerHTML = '<div class="scan-ic">⚠️</div><div class="scan-t">Upload deposit certificate</div><div class="scan-s">DPS, TDS, MyDeposits</div><div class="scan-badge" style="background:rgba(217,119,6,0.1);color:var(--amber)">✎ Manual entry</div><input type="file" accept="image/*,.pdf" onchange="scanDepositCert(this)">';
+      }
+    });
+  } catch (e) {
+    if (result) result.innerHTML = '<span style="color:var(--red);font-size:11px">Scan failed — enter details manually</span>';
+    if (box) box.innerHTML = '<div class="scan-ic">⚠️</div><div class="scan-t">Upload deposit certificate</div><div class="scan-s">DPS, TDS, MyDeposits</div><input type="file" accept="image/*,.pdf" onchange="scanDepositCert(this)">';
+  }
+}
+
+/** AI scans an insurance policy doc and auto-fills provider, policy, expiry & premium. */
+async function scanInsDoc(insKey, input) {
+  if (!input.files[0]) return;
+  const file = input.files[0];
+  const boxId = 'ts-' + insKey + '-scan';
+  const resultId = 'ts-' + insKey + '-scan-result';
+  const box = document.getElementById(boxId);
+  const result = document.getElementById(resultId);
+  if (box) box.innerHTML = '<div style="font-size:11px;color:var(--blue);font-weight:600">⏳ Scanning policy…</div>';
+  try {
+    await scanAndFill(file, (parsed) => {
+      const provEl = document.getElementById('ts-' + insKey + '-prov');
+      const polEl = document.getElementById('ts-' + insKey + '-pol');
+      const expEl = document.getElementById('ts-' + insKey + '-exp');
+      const premEl = document.getElementById('ts-' + insKey + '-prem');
+      if (parsed.engineer || parsed.issuing_authority) {
+        const prov = parsed.engineer || parsed.issuing_authority || '';
+        if (provEl && !provEl.value) provEl.value = prov;
+      }
+      if (parsed.reference || parsed.policy) {
+        if (polEl && !polEl.value) polEl.value = parsed.reference || parsed.policy || '';
+      }
+      if (parsed.expiry) {
+        if (expEl && !expEl.value) expEl.value = parsed.expiry;
+      }
+      if (parsed.premium || parsed.amount) {
+        const amt = parseFloat(parsed.premium || parsed.amount) || 0;
+        if (premEl && !premEl.value && amt > 0) premEl.value = amt;
+      }
+      if (result) result.innerHTML = '<span style="color:var(--green-dark);font-size:11px">✓ Auto-filled from scan</span>';
+      if (box) box.innerHTML = '<div style="font-size:11px;color:var(--green-dark);font-weight:600">✅ Scanned — review above</div>';
+    });
+  } catch (e) {
+    if (result) result.innerHTML = '<span style="color:var(--red);font-size:11px">Scan failed — enter manually</span>';
+    if (box) box.innerHTML = '<div class="scan-box" style="padding:8px;margin-bottom:0"><input type="file" accept="image/*,.pdf" onchange="scanInsDoc(\'' + insKey + '\',this)"><div style="font-size:11px;color:var(--muted)">📎 Retry upload</div></div>';
+  }
+}
+
 async function saveCertToDB() {
   const propId = document.getElementById('cp')?.value;
   let certType = document.getElementById('ct')?.value;
@@ -2606,6 +2683,18 @@ function _tenantStepHtml(n) {
       </div>
       <div class="fg" style="margin-bottom:0"><label>Scheme reference</label><input type="text" id="ts-dep-ref" value="${s.depositRef}" placeholder="Scheme reference number"></div>
     </div>
+
+    <div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:10px;padding:14px;margin-top:12px" id="ts-dep-scan-box-wrap">
+      <div style="font-size:12px;font-weight:600;color:var(--blue);margin-bottom:8px">📄 Upload deposit certificate — AI auto-fill</div>
+      <div class="scan-box" id="ts-dep-scan-box" style="margin-bottom:10px">
+        <input type="file" accept="image/*,.pdf" onchange="scanDepositCert(this)">
+        <div class="scan-ic">🔍</div>
+        <div class="scan-t">Upload deposit protection certificate</div>
+        <div class="scan-s">DPS, TDS, MyDeposits — AI extracts scheme, reference & amount</div>
+        <div class="scan-badge">✦ AI auto-extraction</div>
+      </div>
+      <div id="ts-dep-scan-result" style="font-size:11px"></div>
+    </div>
     <div style="background:rgba(229,62,62,0.07);border:1px solid rgba(229,62,62,0.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--red);margin-top:10px;display:flex;gap:8px;align-items:flex-start">
       <span style="flex-shrink:0">⚠️</span>
       <div>Deposit must be protected in an approved scheme within <strong>30 days</strong> of receipt. Failure = 1–3× deposit penalty.</div>
@@ -2655,9 +2744,16 @@ function _tenantStepHtml(n) {
         <div class="fg"><label>Provider</label><input type="text" id="ts-${ins.key}-prov" value="${s[ins.key]?.provider||''}" placeholder="e.g. Aviva, Direct Line"></div>
         <div class="fg"><label>Policy number</label><input type="text" id="ts-${ins.key}-pol" value="${s[ins.key]?.policy||''}" placeholder="e.g. POL-12345"></div>
       </div>
-      <div class="fg-row" style="margin-bottom:0">
+      <div class="fg-row" style="margin-bottom:6px">
         <div class="fg"><label>Renewal / expiry date</label><input type="date" id="ts-${ins.key}-exp" value="${s[ins.key]?.expiry||''}"></div>
         <div class="fg"><label>Annual premium (£)</label><input type="number" id="ts-${ins.key}-prem" value="${s[ins.key]?.premium||''}" placeholder="e.g. 450" min="0"></div>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:8px;margin-top:4px">
+        <div class="scan-box" style="padding:8px;margin-bottom:0" id="ts-${ins.key}-scan">
+          <input type="file" accept="image/*,.pdf" onchange="scanInsDoc('${ins.key}',this)">
+          <div style="font-size:11px;color:var(--muted)">📎 Upload policy doc — AI will fill provider, policy, expiry & premium</div>
+        </div>
+        <div id="ts-${ins.key}-scan-result" style="font-size:11px;margin-top:4px"></div>
       </div>
     </div>`).join('')}`;
   }
