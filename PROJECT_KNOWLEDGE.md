@@ -1292,6 +1292,16 @@ When **touching any of these files for a new feature or bug fix**, follow this p
 - **Problem:** `session10_tenants_columns.sql` had not been run — `rtr_check_date`, `rtr_checked_by`, `rtr_expiry`, `addr_proof_1`, `addr_proof_2`, `is_lead`, `invite_used` etc. columns missing from `tenants` table
 - **Fix:** Ran `session10_tenants_columns.sql` (13 columns added to `tenants` table)
 
+#### AI Certificate Scanning — Prompt Mismatch & Missing Fields Fix
+- **Problem:** `scanAndFill()` sent the same generic "compliance certificate" prompt for every document type. `scanDepositCert` and `scanInsDoc` tried to read fields (`ref`, `amount`, `policy_number`, `premium`) the AI was never asked for — so they never auto-filled. The `moCert()` form also lacked fields for certificate/reference number and amount/cost.
+- **Fixes:**
+  - **`scanAndFill(file, onResult, customPrompt)`** (`landlord.html:1018`) — now accepts optional 3rd parameter for a custom AI prompt, falls back to default if not provided
+  - **`scanDepositCert`** — sends deposit-specific prompt: `"Extract: scheme name (DPS/MyDeposits/TDS), deposit amount in GBP, protection reference number. Keys: scheme, amount, ref."`
+  - **`scanInsDoc`** — sends insurance-specific prompt: `"Extract: provider, policy number, expiry date, annual premium in GBP. Keys: provider, policy_number, expiry, premium."`
+  - **`scanDoc`** (`moCert` form) — sends enhanced prompt asking for `ref`, `amount` in addition to `type, issued, expiry, engineer, address`; auto-fills new `#cref` and `#camt` fields
+  - **`moCert()` form** — added two new fields: Certificate/reference number (`#cref`) and Amount/cost (`#camt`)
+  - **`saveCertToDB()`** — now reads and saves `cert_ref` and `amount` to DB insert
+
 #### Tech Debt / Infrastructure
 - **`C:\Dev\rentsafeai\session_archive.sql`** — DB migration for archived tenants + account soft-delete
 - **`C:\Dev\rentsafeai\sprint10_fix_cron_key.sql`** — re-creates pg_cron jobs with real service role key

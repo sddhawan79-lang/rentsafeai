@@ -1015,13 +1015,15 @@ async function savePropToDB() {
 
 // ── SAVE: CERTIFICATE ──
 // ── REUSABLE: scanAndFill ──
-async function scanAndFill(file, onResult){
+async function scanAndFill(file, onResult, customPrompt){
   if(!file) return;
   const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});
   const isImg=file.type.startsWith('image/');
+  const defaultPrompt = 'UK property compliance certificate. Extract: certificate type, issue date (YYYY-MM-DD), expiry date (YYYY-MM-DD), engineer or provider name, issuing_authority (the company or organisation that issued the certificate), address. Return JSON only, keys: type, issued, expiry, engineer, issuing_authority, address.';
+  const prompt = customPrompt || defaultPrompt;
   const msgContent=isImg
-    ?[{type:'image',source:{type:'base64',media_type:file.type,data:b64}},{type:'text',text:'UK property compliance certificate. Extract: certificate type, issue date (YYYY-MM-DD), expiry date (YYYY-MM-DD), engineer or provider name, issuing_authority (the company or organisation that issued the certificate), address. Return JSON only, keys: type, issued, expiry, engineer, issuing_authority, address.'}]
-    :[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:'UK property compliance certificate. Extract: certificate type, issue date (YYYY-MM-DD), expiry date (YYYY-MM-DD), engineer or provider name, issuing_authority (the company or organisation that issued the certificate), address. Return JSON only, keys: type, issued, expiry, engineer, issuing_authority, address.'}];
+    ?[{type:'image',source:{type:'base64',media_type:file.type,data:b64}},{type:'text',text:prompt}]
+    :[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:prompt}];
   const res=await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/ai-proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:300,messages:[{role:'user',content:msgContent}]})});
   const data=await res.json();
   const txt=data.content?.[0]?.text||'{}';
@@ -1080,29 +1082,24 @@ async function scanDepositCert(input) {
   if (result) result.innerHTML = '';
   try {
     await scanAndFill(file, (parsed) => {
-      if (parsed.type && parsed.type.toLowerCase().includes('deposit')) {
-        const schemeEl = document.getElementById('ts-dep-scheme');
-        const refEl = document.getElementById('ts-dep-ref');
-        const amountEl = document.getElementById('ts-deposit');
-        const scheme = parsed.type || parsed.engineer || '';
-        if (scheme && schemeEl) {
-          const match = ['DPS','MyDeposits','TDS'].find(s => scheme.toLowerCase().includes(s.toLowerCase()));
-          if (match) schemeEl.value = match;
-        }
-        if (parsed.reference || parsed.ref) {
-          if (refEl) refEl.value = parsed.reference || parsed.ref || '';
-        }
-        if (parsed.amount || parsed.deposit) {
-          const amt = parseFloat(parsed.amount || parsed.deposit) || 0;
-          if (amountEl && amt > 0) amountEl.value = amt;
-        }
-        if (result) result.innerHTML = '<span style="color:var(--green-dark);font-size:11px">✓ AI extracted: ' + [scheme?scheme:'', parsed.ref?'ref '+parsed.ref:'', parsed.amount?'£'+parsed.amount:''].filter(Boolean).join(' · ') + '</span>';
-        if (box) box.innerHTML = '<div class="scan-ic">✅</div><div class="scan-t">Deposit certificate scanned</div><div class="scan-badge" style="background:var(--green-bg);color:var(--green-dark)">✓ Auto-filled</div>';
-      } else {
-        if (result) result.innerHTML = '<span style="color:var(--amber);font-size:11px">⚠️ Could not determine deposit scheme — fill in manually</span>';
-        if (box) box.innerHTML = '<div class="scan-ic">⚠️</div><div class="scan-t">Upload deposit certificate</div><div class="scan-s">DPS, TDS, MyDeposits</div><div class="scan-badge" style="background:rgba(217,119,6,0.1);color:var(--amber)">✎ Manual entry</div><input type="file" accept="image/*,.pdf" onchange="scanDepositCert(this)">';
+      const schemeEl = document.getElementById('ts-dep-scheme');
+      const refEl = document.getElementById('ts-dep-ref');
+      const amountEl = document.getElementById('ts-deposit');
+      const scheme = parsed.scheme || parsed.type || parsed.engineer || '';
+      if (scheme && schemeEl) {
+        const match = ['DPS','MyDeposits','TDS'].find(s => scheme.toLowerCase().includes(s.toLowerCase()));
+        if (match) schemeEl.value = match;
       }
-    });
+      if (parsed.ref || parsed.reference) {
+        if (refEl) refEl.value = parsed.ref || parsed.reference || '';
+      }
+      if (parsed.amount || parsed.deposit) {
+        const amt = parseFloat(parsed.amount || parsed.deposit) || 0;
+        if (amountEl && amt > 0) amountEl.value = amt;
+      }
+      if (result) result.innerHTML = '<span style="color:var(--green-dark);font-size:11px">✓ AI extracted: ' + [scheme||parsed.scheme||'', parsed.ref?'ref '+parsed.ref:'', (parsed.amount||parsed.deposit)?'£'+(parsed.amount||parsed.deposit):''].filter(Boolean).join(' · ') + '</span>';
+      if (box) box.innerHTML = '<div class="scan-ic">✅</div><div class="scan-t">Deposit certificate scanned</div><div class="scan-badge" style="background:var(--green-bg);color:var(--green-dark)">✓ Auto-filled</div>';
+    }, 'UK tenancy deposit protection certificate. Extract: scheme name (DPS, MyDeposits, or TDS), deposit amount in GBP (number only), protection reference number. Return JSON only, keys: scheme, amount, ref.');
   } catch (e) {
     if (result) result.innerHTML = '<span style="color:var(--red);font-size:11px">Scan failed — enter details manually</span>';
     if (box) box.innerHTML = '<div class="scan-ic">⚠️</div><div class="scan-t">Upload deposit certificate</div><div class="scan-s">DPS, TDS, MyDeposits</div><input type="file" accept="image/*,.pdf" onchange="scanDepositCert(this)">';
@@ -1124,23 +1121,18 @@ async function scanInsDoc(insKey, input) {
       const polEl = document.getElementById('ts-' + insKey + '-pol');
       const expEl = document.getElementById('ts-' + insKey + '-exp');
       const premEl = document.getElementById('ts-' + insKey + '-prem');
-      if (parsed.engineer || parsed.issuing_authority) {
-        const prov = parsed.engineer || parsed.issuing_authority || '';
-        if (provEl && !provEl.value) provEl.value = prov;
-      }
-      if (parsed.reference || parsed.policy) {
-        if (polEl && !polEl.value) polEl.value = parsed.reference || parsed.policy || '';
-      }
+      const prov = parsed.provider || parsed.engineer || parsed.issuing_authority || '';
+      if (provEl && !provEl.value) provEl.value = prov;
+      const pol = parsed.policy_number || parsed.policy || parsed.reference || '';
+      if (polEl && !polEl.value) polEl.value = pol;
       if (parsed.expiry) {
         if (expEl && !expEl.value) expEl.value = parsed.expiry;
       }
-      if (parsed.premium || parsed.amount) {
-        const amt = parseFloat(parsed.premium || parsed.amount) || 0;
-        if (premEl && !premEl.value && amt > 0) premEl.value = amt;
-      }
+      const prem = parseFloat(parsed.premium || parsed.amount) || 0;
+      if (premEl && !premEl.value && prem > 0) premEl.value = prem;
       if (result) result.innerHTML = '<span style="color:var(--green-dark);font-size:11px">✓ Auto-filled from scan</span>';
       if (box) box.innerHTML = '<div style="font-size:11px;color:var(--green-dark);font-weight:600">✅ Scanned — review above</div>';
-    });
+    }, 'UK landlord insurance policy document. Extract: provider (insurer name), policy number, expiry date (YYYY-MM-DD), annual premium in GBP (number only). Return JSON only, keys: provider, policy_number, expiry, premium.');
   } catch (e) {
     if (result) result.innerHTML = '<span style="color:var(--red);font-size:11px">Scan failed — enter manually</span>';
     if (box) box.innerHTML = '<div class="scan-box" style="padding:8px;margin-bottom:0"><input type="file" accept="image/*,.pdf" onchange="scanInsDoc(\'' + insKey + '\',this)"><div style="font-size:11px;color:var(--muted)">📎 Retry upload</div></div>';
@@ -1156,6 +1148,8 @@ async function saveCertToDB() {
   }
   const expiry = document.getElementById('ce')?.value || null;
   const engineer = document.getElementById('ceng')?.value.trim() || null;
+  const certRef = document.getElementById('cref')?.value.trim() || null;
+  const certAmt = parseFloat(document.getElementById('camt')?.value) || null;
 
   if (!propId || !certType) { toast('Please select a property and certificate type.', true); return; }
 
@@ -1166,6 +1160,8 @@ async function saveCertToDB() {
     expiry: expiry || null, status,
     has_file: true, served: false,
     engineer: engineer || null,
+    cert_ref: certRef || null,
+    amount: certAmt,
     user_id: currentUser.id
   };
 
@@ -1363,6 +1359,10 @@ function moCert(pid){
       <div class="fg"><label>Expiry date</label><input type="date" id="ce"></div>
     </div>
     <div class="fg"><label>Engineer / provider</label><input type="text" id="ceng" placeholder="e.g. City Gas Services"></div>
+    <div class="fg-row">
+      <div class="fg"><label>Certificate / reference number</label><input type="text" id="cref" placeholder="e.g. GSC-2026-12345"></div>
+      <div class="fg"><label>Amount / cost (£)</label><input type="number" id="camt" placeholder="e.g. 450" min="0"></div>
+    </div>
     <div class="fg"><label>Notes (optional)</label><textarea placeholder="Any notes…"></textarea></div>
   `,'<button class="btn" onclick="closeMo()">Cancel</button><button class="btn btn-navy" onclick="saveCertToDB()">Save certificate</button>');
 }
@@ -1378,10 +1378,12 @@ async function scanDoc(input){
       if(parsed.issued)document.getElementById('ci').value=parsed.issued;
       if(parsed.expiry)document.getElementById('ce').value=parsed.expiry;
       if(parsed.engineer)document.getElementById('ceng').value=parsed.engineer;
-      document.getElementById('arg').innerHTML=[['Type',parsed.type],['Issue date',parsed.issued],['Expiry',parsed.expiry],['Engineer',parsed.engineer],['Address',parsed.address]].map(([l,v])=>`<div class="ai-res-f"><span>${l}</span><strong>${v||'Not detected'}</strong></div>`).join('');
+      if(parsed.reference||parsed.ref||parsed.cert_number){const el=document.getElementById('cref');if(el)el.value=parsed.reference||parsed.ref||parsed.cert_number||'';}
+      if(parsed.amount||parsed.premium||parsed.cost){const el=document.getElementById('camt');if(el){const amt=parseFloat(parsed.amount||parsed.premium||parsed.cost)||0;if(amt>0)el.value=amt;}}
+      document.getElementById('arg').innerHTML=[['Type',parsed.type],['Issue date',parsed.issued],['Expiry',parsed.expiry],['Engineer',parsed.engineer],['Reference',parsed.reference||parsed.ref||parsed.cert_number],['Amount',parsed.amount||parsed.premium||parsed.cost],['Address',parsed.address]].map(([l,v])=>`<div class="ai-res-f"><span>${l}</span><strong>${v||'Not detected'}</strong></div>`).join('');
       document.getElementById('ar').style.display='block';
       sb2.innerHTML=`<div style="font-size:13px;color:var(--green-dark);font-weight:600">✓ Scanned — fields filled below</div><div style="font-size:12px;color:var(--muted);margin-top:4px">${file.name}</div>`;
-    });
+    }, 'UK property compliance certificate or document. Extract: certificate type, certificate/reference number, issue date (YYYY-MM-DD), expiry date (YYYY-MM-DD), engineer/provider name, amount/cost in GBP if present (number only), property address. Return JSON only, keys: type, ref, issued, expiry, engineer, amount, address.');
   }catch(e){sb2.innerHTML=`<div style="font-size:13px;color:var(--amber);font-weight:500">Could not scan — please fill in manually</div>`;}
 }
 
