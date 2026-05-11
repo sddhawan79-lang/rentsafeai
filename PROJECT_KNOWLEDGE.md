@@ -1266,6 +1266,9 @@ When **touching any of these files for a new feature or bug fix**, follow this p
 #### Insurance Page Topbar
 - **"+ Add policy" button** added to `pgInsurance()` topbar, calls `moAddInsurance(null,'','')`
 
+#### AI Assistant System Prompt — Pricing Correction
+- Updated pricing line in `SYSTEM_PROMPT` constant (`landlord.html:677`) — corrected property limits (Starter=2, Landlord=10, Portfolio=unlimited), added founding-vs-standard pricing, annual equivalents, 30-day free trial + lifetime lock for first 100 users
+
 #### Tech Debt / Infrastructure
 - **`C:\Dev\rentsafeai\session_archive.sql`** — DB migration for archived tenants + account soft-delete
 - **`C:\Dev\rentsafeai\sprint10_fix_cron_key.sql`** — re-creates pg_cron jobs with real service role key
