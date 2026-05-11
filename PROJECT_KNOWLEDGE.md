@@ -1269,6 +1269,10 @@ When **touching any of these files for a new feature or bug fix**, follow this p
 #### AI Assistant System Prompt — Pricing Correction
 - Updated pricing line in `SYSTEM_PROMPT` constant (`landlord.html:677`) — corrected property limits (Starter=2, Landlord=10, Portfolio=unlimited), added founding-vs-standard pricing, annual equivalents, 30-day free trial + lifetime lock for first 100 users
 
+#### Section 8 Dashboard Dropdown — Option Visibility Fix
+- **Problem:** The `<select>` on the dark navy Section 8 dashboard card had `color:#fff` — the `<option>` elements inherited white text, rendering invisible against the browser's default white dropdown background
+- **Fix:** Added `style="color:var(--txt)"` to each `<option>` in the `s8-dash-sel` dropdown (`landlord.html:3555`) so property names render in dark navy text inside the dropdown popup while the select itself stays white-on-dark
+
 #### Tech Debt / Infrastructure
 - **`C:\Dev\rentsafeai\session_archive.sql`** — DB migration for archived tenants + account soft-delete
 - **`C:\Dev\rentsafeai\sprint10_fix_cron_key.sql`** — re-creates pg_cron jobs with real service role key
