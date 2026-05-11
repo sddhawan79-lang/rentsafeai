@@ -7862,18 +7862,24 @@ function moGenerate(templateId, customContent = null) {
     titles[templateId] || 'Generate Template',
     '✦ AI auto-fills from your property & tenant data',
     `
-    <div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--muted)">
-      ⚠️ For reference only — not legal advice. Always verify with a qualified solicitor.
+    <div id="gen-inputs">
+      <div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--muted)">
+        ⚠️ For reference only — not legal advice. Always verify with a qualified solicitor.
+      </div>
+      <div class="fg-row">
+        <div class="fg"><label>Property</label><select id="gen-prop">${propOpts}</select></div>
+        <div class="fg"><label>Tenant</label><select id="gen-tenant">${tenantOpts}</select></div>
+      </div>
+      ${renderGuidedFields(templateId)}
+      <div class="fg"><label>Additional notes (optional)</label><textarea id="gen-notes" placeholder="Any extra details to include…"></textarea></div>
+      <div style="height:1px;background:var(--border);margin:12px 0 8px"></div>
     </div>
-    <div class="fg-row">
-      <div class="fg"><label>Property</label><select id="gen-prop">${propOpts}</select></div>
-      <div class="fg"><label>Tenant</label><select id="gen-tenant">${tenantOpts}</select></div>
+    <div id="gen-inputs-toggle" style="display:none;margin-bottom:12px">
+      <button onclick="toggleGenInputs()" style="background:var(--white);border:1px solid var(--border);border-radius:6px;padding:5px 12px;cursor:pointer;font-size:12px;color:var(--muted);font-family:var(--font)">✎ Edit document details ▸</button>
     </div>
-    ${renderGuidedFields(templateId)}
-    <div class="fg"><label>Additional notes (optional)</label><textarea id="gen-notes" placeholder="Any extra details to include…"></textarea></div>
-    <div id="gen-output" style="display:none;margin-top:16px">
+    <div id="gen-output" style="display:none">
       <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:8px">✦ Generated document — click to edit</div>
-      <div id="gen-text" contenteditable="true" spellcheck="false" oninput="checkPlaceholders()" style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:16px;font-size:13px;line-height:1.8;max-height:55vh;overflow-y:auto;color:var(--txt);outline:none;cursor:text"></div>
+      <div id="gen-text" contenteditable="true" spellcheck="false" oninput="checkPlaceholders()" style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:16px;font-size:13px;line-height:1.8;max-height:60vh;overflow-y:auto;color:var(--txt);outline:none;cursor:text"></div>
       <div id="gen-placeholder-warn" style="display:none;background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:7px;padding:8px 12px;font-size:12px;color:var(--blue);margin-top:8px"></div>
       <div id="gen-actions" style="display:flex;gap:8px;margin-top:10px">
         <button class="btn btn-sm" onclick="copyTemplate()">📋 Copy</button>
@@ -7885,7 +7891,21 @@ function moGenerate(templateId, customContent = null) {
     `<button class="btn" onclick="closeMo()">Cancel</button>
      <button class="btn btn-navy" id="gen-btn" onclick="gateGenerate('${templateId}')">✦ Generate document</button>`
   );
+  document.querySelector('.mo-box').classList.add('mo-wide');
   if (customContent) window._customTemplateContent = customContent;
+}
+
+/** Toggles the input form visibility when a document has been generated. */
+function toggleGenInputs() {
+  const inputs = document.getElementById('gen-inputs');
+  const toggle = document.getElementById('gen-inputs-toggle');
+  if (!inputs || !toggle) return;
+  const hidden = inputs.style.display === 'none';
+  inputs.style.display = hidden ? 'block' : 'none';
+  toggle.style.display = hidden ? 'none' : 'block';
+  // Adjust text area max-height to suit available space
+  const genText = document.getElementById('gen-text');
+  if (genText) genText.style.maxHeight = hidden ? '40vh' : '60vh';
 }
 
 // ── LEGAL DISCLAIMER GATE ──
@@ -8036,14 +8056,7 @@ ${guidedData ? '\nAdditional details provided:\n' + guidedData : ''}
 ${notes ? '\nLandlord notes: ' + notes : ''}
   `.trim();
 
-  const PLACEHOLDER_RULE = `FORMATTING RULES — follow exactly:
-1. DATE: Use today's date (${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'})}) for the document date unless a different date was provided in the guided fields. Never write "**Date**" or leave it blank.
-2. SIGNATURE: End every document with a proper signature block in this exact format:
-   Signed: ________________________
-   Name: ${_profileName()}
-   Date: ${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'})}
-3. Use plain text only — no markdown bold (**) or asterisks in dates, names or signature lines.
-4. Use [FIELD NAME] in square brackets only for values genuinely unknown and not provided above.\n\n`;
+  const PLACEHOLDER_RULE = `FORMAT: Use date ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})} unless overridden. Sign with: ___ Name: ${_profileName()} Date: ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}. Plain text, no markdown. Leave [FIELD] for genuinely unknown values only.\n\n`;
 
   const prompts = {
     section8: `${PLACEHOLDER_RULE}Generate a formal UK Section 8 Notice (Housing Act 1988) using these details:\n${contextInfo}\n\nInclude: header, property address, tenant name, grounds for possession (Ground 8 — rent arrears), required notice period (2 weeks minimum), date, landlord signature block. Format professionally. End with a clear disclaimer that this is a template only and not legal advice.`,
@@ -8086,6 +8099,9 @@ ${notes ? '\nLandlord notes: ' + notes : ''}
     document.getElementById('gen-text').innerHTML = '<p style="margin:0">' + mdToHtml(text) + '</p>';
     document.getElementById('gen-text').dataset.raw = text;
     document.getElementById('gen-output').style.display = 'block';
+    // Collapse input form so generated document takes full modal space
+    document.getElementById('gen-inputs').style.display = 'none';
+    document.getElementById('gen-inputs-toggle').style.display = 'block';
     btn.disabled = false;
     btn.innerHTML = '✦ Regenerate';
     window._genContext = {
