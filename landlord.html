@@ -3481,14 +3481,36 @@ function getTodayEventsHtml(){
 
 // ── PAGE: DASHBOARD ──
 
+// ── DASHBOARD QUICK ACTIONS DROPDOWN ──
+window._dashDDOpen = false;
+window._toggleDashDD = function () {
+  window._dashDDOpen = !window._dashDDOpen;
+  document.getElementById('dashdd-menu').style.display = window._dashDDOpen ? 'block' : 'none';
+  document.getElementById('dashdd-btn').textContent = window._dashDDOpen ? 'Quick actions ▴' : 'Quick actions ▾';
+  if (window._dashDDOpen) {
+    var closeFn = function (e) {
+      if (!e.target.closest('#dashdd-menu') && e.target !== document.getElementById('dashdd-btn')) {
+        window._dashDDOpen = false;
+        document.getElementById('dashdd-menu').style.display = 'none';
+        document.getElementById('dashdd-btn').textContent = 'Quick actions ▾';
+        document.removeEventListener('click', closeFn);
+      }
+    };
+    setTimeout(function () { document.addEventListener('click', closeFn); }, 0);
+  }
+};
+
 function pgDashboard(){
   const acts=UA(),tot=D.properties.reduce((s,p)=>s+(p.rent||0),0),open=D.maintenance.filter(m=>m.status!=='Resolved').length;
   const today=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  return`<div class="topbar"><span class="tb-title">Dashboard</span><div class="tb-right">
+  return`<div class="topbar"><span class="tb-title">Dashboard</span><div class="tb-right" style="position:relative">
     <button class="btn btn-navy" onclick="moAddProp()">+ Add property</button>
-    <button class="btn" onclick="moBulkScan()">✦ Scan docs</button>
-    <button class="btn" onclick="moCert()">+ Add certificate</button>
-    <button class="btn" onclick="moIssue()">Report issue</button>
+    <button class="btn" onclick="window._toggleDashDD()" id="dashdd-btn">Quick actions ▾</button>
+    <div id="dashdd-menu" style="display:none;position:absolute;right:0;top:100%;margin-top:6px;background:var(--white);border:1px solid var(--border);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.10);z-index:999;min-width:180px">
+      <div onclick="moBulkScan();window._toggleDashDD()" style="padding:10px 16px;font-size:13px;cursor:pointer;border-radius:10px 10px 0 0" onmouseenter="this.style.background='var(--off)'" onmouseleave="this.style.background='transparent'">✦ Scan docs</div>
+      <div onclick="moCert();window._toggleDashDD()" style="padding:10px 16px;font-size:13px;cursor:pointer" onmouseenter="this.style.background='var(--off)'" onmouseleave="this.style.background='transparent'">+ Add certificate</div>
+      <div onclick="moIssue();window._toggleDashDD()" style="padding:10px 16px;font-size:13px;cursor:pointer;border-radius:0 0 10px 10px" onmouseenter="this.style.background='var(--off)'" onmouseleave="this.style.background='transparent'">Report issue</div>
+    </div>
   </div></div>
   <div class="content">
     <div id="setup-banner-slot"></div>
