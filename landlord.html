@@ -962,41 +962,57 @@ async function initApp() {
 
   try { await loadData(); } catch(e) { _logError('loadData', e); }
 
-  // ── TRIAL RESOLUTION ──
-  // Inline trial startup (avoids hoisting issues with large script blocks)
-  (async function(){
-    const up = D.userProfile;
-    if (!up || up.trial_expires_at) return;
-    const now = new Date();
-    const expires = new Date(now.getTime() + 30 * 864e5);
-    try {
-      await sb.from('user_profiles').upsert({ id: currentUser.id, trial_started_at: now.toISOString(), trial_expires_at: expires.toISOString(), plan: 'trial' }, { onConflict: 'id' });
-      D.userProfile = { ...up, trial_started_at: now.toISOString(), trial_expires_at: expires.toISOString(), plan: 'trial' };
-    } catch(e) {}
+  // ── TRIAL RESOLUTION (inline — avoids hoisting issues) ──
+  (function(){
+    const up = D.userProfile||{};
+    const now = Date.now();
+    const expiresAt = up.trial_expires_at ? new Date(up.trial_expires_at).getTime() : null;
+    const plan = up.plan || 'trial';
+    const daysLeft = expiresAt ? Math.max(0, Math.ceil((expiresAt - now) / 864e5)) : 0;
+    const isTrialing = plan === 'trial' && expiresAt && now < expiresAt;
+    const hasExpired = plan === 'trial' && expiresAt && now >= expiresAt;
+    _trialState = { isTrialing, daysLeft, hasExpired, plan, expiresAt };
+
+    // Set trial if not started
+    if (up && !up.trial_expires_at) {
+      const expiry = new Date(now + 30*864e5);
+      sb.from('user_profiles').upsert({ id: currentUser.id, trial_started_at: new Date().toISOString(), trial_expires_at: expiry.toISOString(), plan:'trial' }, { onConflict:'id' }).catch(()=>{});
+      D.userProfile = { ...up, trial_started_at: new Date().toISOString(), trial_expires_at: expiry.toISOString(), plan:'trial' };
+      _trialState = { isTrialing:true, daysLeft:30, hasExpired:false, plan:'trial', expiresAt:expiry.getTime() };
+    }
+
+    // Override plan
+    if (isTrialing) { window._userPlan = 'portfolio'; }
+    if (hasExpired && plan === 'trial') { window._userPlan = 'expired'; }
+
+    // ── UI ──
+    // Indicator
+    const ind = document.getElementById('trial-indicator');
+    if (ind) { ind.style.display='inline-flex';
+      if (hasExpired && plan==='trial') { ind.innerHTML='<span style="color:var(--red);font-weight:700">⚠ Trial expired</span>'; ind.style.background='var(--red-bg)'; }
+      else if (isTrialing) { const u=daysLeft<=5; ind.innerHTML='<span style="color:'+(u?'var(--red)':'var(--amber)')+';font-weight:700">'+(u?'⚠ ':'')+'Trial — '+daysLeft+' day'+(daysLeft!==1?'s':'')+' left</span>'; ind.style.background=u?'var(--red-bg)':'var(--amber-bg)'; }
+      else if (plan!=='trial') { const pl={starter:'Starter',landlord:'Landlord',portfolio:'Portfolio',pro:'Pro'}; ind.innerHTML='<span style="color:var(--green-dark);font-weight:700">'+pl[plan]+'</span>'; ind.style.background='var(--green-bg)'; }
+    }
+    // Sidebar chip
+    const chip = document.getElementById('sb-trial-chip');
+    if (chip) {
+      if (isTrialing) { chip.style.display='block'; chip.innerHTML='<div style="background:linear-gradient(135deg,var(--green-bg),rgba(0,200,150,0.05));border:1px solid var(--green);border-radius:8px;padding:10px;margin:6px 10px;cursor:pointer;font-size:11px;text-align:center" onclick="showTrialUpgradeModal()"><div style="font-weight:700;color:var(--green-dark)">🎁 Founding price — upgrade now</div><div style="color:var(--muted);margin-top:2px">First 100 users lock price for life</div></div>'; }
+      else if (hasExpired && plan==='trial') { chip.style.display='block'; chip.innerHTML='<div style="background:var(--red-bg);border:1px solid var(--red);border-radius:8px;padding:10px;margin:6px 10px;cursor:pointer;font-size:11px;text-align:center" onclick="showTrialExpiryPopup()"><div style="font-weight:700;color:var(--red)">⚠ Trial expired — upgrade now</div></div>'; }
+      else { chip.style.display='none'; }
+    }
+    // Expired banner
+    const banner = document.getElementById('trial-expired-banner');
+    if (banner && hasExpired && plan==='trial') {
+      banner.style.display='flex';
+      banner.innerHTML='<span>⏰ Your trial ended on <strong>'+new Date(expiresAt).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})+'</strong>. <a href="profile.html" style="color:var(--navy);font-weight:700;text-decoration:underline">Upgrade to keep access →</a></span>';
+    }
+    // Hard popup
+    if (hasExpired && plan==='trial') { setTimeout(()=>showTrialExpiryPopup(),800); }
   })();
-  getTrialState(); // cache state
-  // Override plan during trial — full access
-  if (isTrialActive()) {
-    window._userPlan = 'portfolio';
-    getUserPlan(); // invalidate any cached plan
-  }
-  if (isTrialExpired() && getTrialState().plan === 'trial') {
-    window._userPlan = 'expired';
-  }
 
   applyPlanGating();
   updateNavBadges();
   initSbGroups();
-
-  // ── TRIAL UI ──
-  renderTrialIndicator();
-  renderTrialUpgradeChip();
-  if (isTrialExpired() && getTrialState().plan === 'trial') {
-    // Show banner on every page
-    showTrialExpiredBanner();
-    // Hard popup only once on load
-    setTimeout(() => showTrialExpiryPopup(), 800);
-  }
 
   try {
     nav('dashboard');
