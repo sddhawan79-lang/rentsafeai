@@ -976,7 +976,7 @@ async function initApp() {
     // Set trial if not started
     if (up && !up.trial_expires_at) {
       const expiry = new Date(now + 30*864e5);
-      sb.from('user_profiles').upsert({ id: currentUser.id, trial_started_at: new Date().toISOString(), trial_expires_at: expiry.toISOString(), plan:'trial' }, { onConflict:'id' }).catch(()=>{});
+      sb.from('user_profiles').upsert({ id: currentUser.id, trial_started_at: new Date().toISOString(), trial_expires_at: expiry.toISOString(), plan:'trial' }, { onConflict:'id' }).then(() => {}).catch(() => {});
       D.userProfile = { ...up, trial_started_at: new Date().toISOString(), trial_expires_at: expiry.toISOString(), plan:'trial' };
       _trialState = { isTrialing:true, daysLeft:30, hasExpired:false, plan:'trial', expiresAt:expiry.getTime() };
     }
@@ -7890,8 +7890,7 @@ function nav(page, param){
   // Trial expiry — hard block all non-profile pages
   if (isExpired() && page !== 'dashboard') {
     upgradePrompt('Trial expired — upgrade to restore access', 'landlord');
-    renderTrialIndicator();
-    renderTrialUpgradeChip();
+    // UI updates handled inline in initApp
     return;
   }
   // Plan gating — intercept restricted pages
