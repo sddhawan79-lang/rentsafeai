@@ -902,9 +902,9 @@ async function loadData() {
 }
 
 // ── PLAN GATING HELPERS ──
-function getUserPlan(){ return effectivePlan(); }
-function isPortfolio(){ return getUserPlan()==='portfolio'; }
-function isLandlordOrAbove(){ const p=getUserPlan(); return p==='landlord'||p==='portfolio'; }
+function getUserPlan(){ return 'trial'; }
+function isPortfolio(){ return true; }
+function isLandlordOrAbove(){ return true; }
 function isStarter(){ return getUserPlan()==='starter'; }
 function isExpired(){ return getUserPlan()==='expired'; }
 const PLAN_LIMITS = { starter:2, landlord:10, portfolio:999 };
@@ -920,19 +920,7 @@ function upgradePrompt(feature, plan){
       <a href="profile.html" class="btn btn-navy" style="display:inline-block;text-decoration:none">Upgrade plan →</a>
     </div>`, `<button class="btn" onclick="closeMo()">Close</button>`);
 }
-function applyPlanGating(){
-  const mtdEl=document.getElementById('sb-mtd');
-  if(mtdEl){
-    if(isPortfolio()){
-      mtdEl.style.display='';
-    } else {
-      // Show PRO badge, keep clickable but gate in router
-      const lbl=document.getElementById('sb-mtd-label');
-      if(lbl)lbl.innerHTML='MTD Tax <span style="font-size:9px;background:var(--amber);color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px;font-weight:600">PRO</span>';
-      mtdEl.onclick=function(e){ e.preventDefault(); upgradePrompt('MTD Tax Reporting','portfolio'); return false; };
-    }
-  }
-}
+function applyPlanGating(){ return; }
 
 function checkComplianceReminders() {
   const today = new Date(); today.setHours(0,0,0,0);

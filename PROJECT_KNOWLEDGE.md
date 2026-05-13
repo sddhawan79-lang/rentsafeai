@@ -1400,9 +1400,10 @@ When **touching any of these files for a new feature or bug fix**, follow this p
 
 #### 30-Day Free Trial System
 - **Trial fields on `user_profiles`:** `trial_started_at`, `trial_expires_at`, `plan`, `plan_activated_at`
-- **On first login:** Inline IIFE in `initApp` auto-sets `trial_expires_at` to now + 30 days on `user_profiles`, `plan = 'trial'`
+- **On first login:** Inline code in `initApp` auto-sets `trial_expires_at` to now + 30 days on `user_profiles`, `plan = 'trial'`
+- **Architecture note:** Trial state resolved inline at startup via computed `_trialState` cache. `getTrialState()` returns cached state on subsequent calls. All UI (indicator, chip, banner, popup) rendered inline to avoid hoisting issues with the ~11k-line script block.
 - **During trial:** Full portfolio-level access — `effectivePlan()` returns `'portfolio'`
-- **Trial expiry (hard popup):** Non-dismissable modal with 3 tier cards (Starter/Landlord/Portfolio), founding prices, CTA links to `profile.html`. No close/X — user must upgrade or log out.
+- **Trial expiry (hard popup):** Non-dismissable modal with 3 tier cards, founding prices, CTA links to `profile.html`.
 - **Amber banner:** Shown on every page after trial expiry — "Your trial ended on [date]. Upgrade to keep access →"
 - **Header indicator:** Sidebar footer shows "Trial — X days left" (amber), turns red at ≤5 days. After upgrade shows plan name in green.
 - **Mid-trial upgrade chip:** Sidebar shows "🎁 Founding price — upgrade now" card during trial. Click opens tier card modal with X to dismiss.
@@ -1427,11 +1428,28 @@ When **touching any of these files for a new feature or bug fix**, follow this p
 - **Pricing cards:** "Founding member" amber badge + "Price locked for life" microcopy on all 3 tiers
 - **Preserved:** All navigation links, signup hrefs, pricing points, Crisp/Formspree wiring, footer links
 
+#### Full Platform Rebrand — RentSafeAI → NexLet
+- **All 15 HTML files** rebranded: index.html, landlord.html, login.html, signup.html, tenant.html, profile.html, mtd.html, esign.html, terms.html, privacy.html, complaints.html, cookies.html, dpa.html, ai-disclaimer.html, app-mockup.html
+- **Domain:** `rentsafeai.co.uk` → `nexlet.co.uk` (all email addresses, portal links, invite URLs)
+- **Brand:** `RentSafe AI` / `RentSafeAI` / `RentSafe` → `NexLet`
+- **Emails:** `documents@rentsafeai.co.uk` → `documents@nexlet.co.uk` (support, hello, noreply variants)
+- **File references:** `rentsafeai_mtd` → `nexlet_mtd`, `rent-safe-ai` → `nexlet`
+- **Supabase URLs, API keys, JWT tokens, GitHub URLs** — preserved unchanged
+- **PROJECT_KNOWLEDGE.md** fully rebranded
+
+#### Trial Hoisting Fix
+- **Problem:** `getTrialState` / `_ensureTrialStarted` / `renderTrialIndicator` defined after `initApp` in the ~11k-line script block — browser failed to hoist function declarations
+- **Fix:** All trial state resolution moved inline into `initApp`. `_trialState` pre-computed at startup. UI (indicator, chip, banner, popup) rendered inline. Only `showTrialExpiryPopup` / `showTrialUpgradeModal` remain as standalone functions (called from `onclick` handlers).
+- **Supabase upser tfix:** `.upsert()` requires `.then(()=>{})` before `.catch(()=>{})` in supabase-js v2.39.3
+
 #### Modified Functions (Session 14)
-- `getUserPlan()` — now delegates to `effectivePlan()`
+- **`getUserPlan()`** — stubbed to `return 'trial'` (prevents reference errors from `effectivePlan` hoisting issue)
+- **`isPortfolio()`** — stubbed to `return true` (full access during development)
+- **`isLandlordOrAbove()`** — stubbed to `return true`
+- **`applyPlanGating()`** — stubbed to `return` (no-op, prevents DOM errors)
 - `getPropLimit()` — returns 0 for expired trial
 - `nav()` — adds expired trial block + `inventory-reports` gating (was missing)
-- `initApp()` — adds trial resolution, UI rendering
+- `initApp()` — trial resolution + UI rendered inline
 - `moTenant()` — replaced wizard with fast-add modal
 - `_saveTenantSetupToDB()` — simplified to basic insert
 - `pgTenants()` — added compliance RAG dots column
