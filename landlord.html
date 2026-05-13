@@ -600,14 +600,14 @@ tr:hover td{background:rgba(246,248,251,.8)}
 // 2355 nav(page, param) — navigate to page
 //
 // ── S5: SECTION 8 GENERATOR ─────────────────────────────────
-// 3036 S8_GROUNDS[] — all 37 RRA 2025 grounds data
+// 3036 S8_GROUNDS[] — all 38 RRA 2025 grounds data (31 + 8 added - 1 omitted Ground 3)
 // 3216 S8_CATS[] — category definitions for guided flow
 // 3219 _s8{} — Section 8 state object
 // 3221 moSection8() — launch generator
 // 3239 s8Render() / s8BodyHtml() / s8FooterHtml()
 // 3267 s8Step1() — pre-conditions checker
 // 3303 s8Step2() — reason/category selection
-// 3321 s8Step3() — ground selection (all 37)
+// 3321 s8Step3() — ground selection (all grounds)
 // 3368 s8Step4() — notice details & auto-calculations
 // 3430 s8Step5() — review screen
 // 3484 s8Nav() / s8ShowConsent() / s8Generate()
@@ -630,7 +630,7 @@ tr:hover td{background:rgba(246,248,251,.8)}
 // - HTTPS "Not secure" — GitHub Pages SSL needs enabling
 // - MX record missing (parked post-launch)
 // - RRA PDF attachment — needs embedding (PDF not yet uploaded)
-// - moFinancials PDF export says "coming soon"
+// - exportFinancialsPDF() — implemented and wired (comment was stale)
 //
 // ══════════════════════════════════════════════════════════════
 const SUPABASE_URL = 'https://mahtcfukgzbonwibtsxz.supabase.co';
@@ -638,6 +638,10 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let currentUser = null;
+
+// ── DEBUG ──
+const RENTSAFE_DEBUG = true; // Set to false to suppress console.error in production
+function _logError(label, err) { if (RENTSAFE_DEBUG) console.error('[' + label + ']', err); }
 
 // ── DATA STORE ──
 const D = {
@@ -656,7 +660,7 @@ PLATFORM FEATURES — tell users exactly where to find things:
 - Maintenance (sidebar): Kanban board, log jobs, contractors, Awaab's Law damp/mould tracking
 - Finance (sidebar > Finance & Tax > Finance): rent payments, insurance, mortgages, profit
 - MTD Tax (sidebar > Finance & Tax > MTD Tax): Making Tax Digital quarterly filings, Section 24 calculator
-- Templates (sidebar > Documents > Templates): 17 AI-generated legal documents — Section 8 notices (all RRA 2025 grounds), Section 13 rent increase, Written Statement of Terms, deposit letters, inspection reports, arrears letters, and more
+- Templates (sidebar > Documents > Templates): 20 AI-generated legal documents — Section 8 notices (all RRA 2025 grounds), Section 13 rent increase, Written Statement of Terms, deposit letters, inspection reports, arrears letters, and more
 - Document Library (sidebar > Documents): upload and store property documents
 - Contractors (sidebar > My Properties > Contractors): contractor directory and job assignments
 - Calendar: date-based view of certificate expiries, rent due dates, insurance/licence renewals
@@ -678,7 +682,7 @@ PRICING (founding member rates — first 100 users locked for life): Starter £4
 
 UK LAW EXPERTISE:
 - Renters Rights Act 2025 (in force 1 May 2026): Section 21 abolished, all tenancies now periodic assured tenancies, Written Statement of Terms replaces AST, pet permission within 42 days, Decent Homes Standard extended to private sector
-- Section 8 grounds: 31 grounds (Housing Act 1988 as amended), mandatory + discretionary, notice periods from immediate to 4 months
+- Section 8 grounds: 38 grounds (Housing Act 1988 as amended), mandatory + discretionary, notice periods from immediate to 4 months
 - Section 13 rent increases: 2 months minimum notice, once per 12 months, tenant can refer to First-tier Tribunal
 - Awaab's Law: damp/mould must be investigated within 14 days, emergency repairs within 24 hours
 - Deposits: must protect in TDS/DPS/MyDeposits within 30 days, serve prescribed information
@@ -928,7 +932,7 @@ async function initApp() {
   document.getElementById('sb-username').textContent = email.split('@')[0];
   document.getElementById('th-av').textContent = email.slice(0,2).toUpperCase();
 
-  try { await loadData(); } catch(e) { console.error('loadData error:', e); }
+  try { await loadData(); } catch(e) { _logError('loadData', e); }
   applyPlanGating();
   updateNavBadges();
   initSbGroups();
@@ -936,7 +940,7 @@ async function initApp() {
     nav('dashboard');
   } catch(err) {
     document.getElementById('main').innerHTML = '<div style="padding:32px;font-family:sans-serif"><h2 style="color:#E53E3E">Dashboard Error</h2><pre style="background:#fff5f5;padding:16px;border-radius:8px;font-size:12px;overflow:auto">'+err.stack+'</pre><p style="margin-top:12px;color:#666">Please share this error with the developer.</p></div>';
-    console.error('Dashboard error:', err);
+    _logError('Dashboard', err);
   }
 }
 
@@ -3112,7 +3116,7 @@ async function _endTenancy(tid) {
     toast('✓ Tenancy ended — data archived for disputes');
     nav('tenant-detail', tid);
   } catch (e) {
-    console.error('[_endTenancy]', e);
+    _logError('_endTenancy', e);
     toast('Error ending tenancy. Try again.', true);
     btn.disabled = false; btn.innerHTML = '✔ End Tenancy';
   }
@@ -4035,7 +4039,7 @@ async function markRentReceived(pid, monthLabel, dueDateStr, amount) {
   );
   if (existing) {
     const {error} = await sb.from('rent_payments').update({status:'Paid', paid_date:today}).eq('id', existing.id);
-    if (error) { console.error('[markRentReceived:update]', error); toast('Error saving — ' + error.message, true); return; }
+    if (error) { _logError('markRentReceived:update', error); toast('Error saving — ' + error.message, true); return; }
     existing.status = 'Paid'; existing.paid_date = today; existing.paid = today;
   } else {
     const payload = {
@@ -4044,7 +4048,7 @@ async function markRentReceived(pid, monthLabel, dueDateStr, amount) {
       amount: parseFloat(amount) || 0, status: 'Paid', paid_date: today
     };
     const {data, error} = await sb.from('rent_payments').insert(payload).select().single();
-    if (error) { console.error('[markRentReceived:insert]', error); toast('Error saving — ' + error.message, true); return; }
+    if (error) { _logError('markRentReceived:insert', error); toast('Error saving — ' + error.message, true); return; }
     D.rent.unshift(data);
   }
   toast('✓ Rent marked as received for ' + monthLabel);
@@ -4205,7 +4209,7 @@ function pdSetTab(pid, tab) {
       <div style="font-size:13px;font-weight:600;color:var(--red);margin-bottom:4px">Error loading ${tab} tab</div>
       <div style="font-size:11px;color:var(--muted);font-family:monospace">${err.message}</div>
     </div>`;
-    console.error('pdTabContent error:', tab, err);
+    _logError('pdTabContent:'+tab, err);
   }
   if (tab === 'tenant') {
     try {
@@ -4508,7 +4512,7 @@ function pdTabContent(pid, tab) {
       </div>
 
       <div class="panel" style="margin-bottom:16px">
-        <div class="ph2"><div><h2>📐 Rooms</h2></div><button class="btn btn-sm" onclick="alert('Add rooms — coming soon')">+ Add</button></div>
+        <div class="ph2"><div><h2>📐 Rooms</h2></div><button class="btn btn-sm" onclick="toast('Add rooms — coming soon')">+ Add</button></div>
         <div style="padding:14px 18px">${(p.rooms||[]).length
           ? `<div class="tw"><table><thead><tr><th>Room</th><th>Floor</th><th>Size (m²)</th></tr></thead><tbody>${(p.rooms||[]).map(r=>`<tr><td class="td-bold">${r.name}</td><td>${r.floor}</td><td>${r.size} m²</td></tr>`).join('')}</tbody></table></div>`
           : `<div style="color:var(--muted);font-size:13px">No rooms added yet</div>`}
@@ -5974,7 +5978,7 @@ async function exportEvidenceBundle(tid) {
     doc.save(filename);
     toast('✓ Evidence bundle downloaded');
   } catch(err) {
-    console.error('Bundle error:', err);
+    _logError('Bundle', err);
     toast('⚠ Could not generate PDF — check console', true);
   }
 }
@@ -7278,7 +7282,7 @@ function exportFinancialsPDF(pid){
     doc.save('PL_Report_'+p.address.replace(/[^a-zA-Z0-9]/g,'_')+'_'+new Date().toISOString().slice(0,10)+'.pdf');
     toast('\u2705 PDF downloaded');
   } catch(err){
-    console.error(err);
+    _logError('exportFinancialsPDF', err);
     toast('PDF error: '+err.message,true);
   }
 }
@@ -7861,7 +7865,7 @@ function nav(page, param){
     main.innerHTML=(PAGES[page]||pgDashboard)(param);
   } catch(err) {
     main.innerHTML='<div style="padding:32px;font-family:sans-serif"><h2 style="color:#E53E3E">Page Error: '+page+'</h2><pre style="background:#fff5f5;padding:16px;border-radius:8px;font-size:12px;overflow:auto;white-space:pre-wrap">'+err.stack+'</pre></div>';
-    console.error('Nav error on page '+page+':', err);
+    _logError('Nav:'+page, err);
   }
   main.scrollTo(0,0);
   // Async post-render hooks
@@ -8638,7 +8642,7 @@ function downloadAsPDF() {
 
     doc.save((title.replace(/[^a-z0-9]/gi,'_').toLowerCase()) + '.pdf');
   } catch(e) {
-    console.error('[downloadAsPDF]', e);
+    _logError('downloadAsPDF', e);
     toast('PDF generation failed. Try again.', true);
   }
 }
@@ -8718,7 +8722,7 @@ async function sendEmailNow() {
     btn.disabled = false;
     btn.innerHTML = '✉ Send email';
     toast('Send failed — check domain verification in Resend', true);
-    console.error('Email send error:', e);
+    _logError('sendEmail', e);
   }
 }
 
@@ -8853,11 +8857,7 @@ const S8_GROUNDS = [
     notice:'2 months', days:61, restrict12:false,
     evidence:'Documentation of the long superior tenancy that ended and evidence of how you became the landlord.',
     fields:[]},
-  { num:'3',   type:'M', cat:'other', label:'Former holiday let',
-    plain:'The tenancy was for 8 months or less and the property was a holiday let in the prior 12 months.',
-    notice:'2 weeks', days:14, restrict12:false,
-    evidence:'Evidence of previous holiday letting.',
-    fields:[]},
+  // Ground 3 (former holiday let) — OMITTED by RRA 2025, no longer available
   { num:'4',   type:'M', cat:'other', label:'Educational institution letting',
     plain:'Let by an educational institution for 12 months or less.',
     notice:'2 weeks', days:14, restrict12:false,
@@ -8872,6 +8872,46 @@ const S8_GROUNDS = [
     plain:'The property is held for occupation by a minister of religion and is required for that purpose.',
     notice:'2 months', days:61, restrict12:false,
     evidence:'Religious organisation documentation.',
+    fields:[]},
+  { num:'5A',  type:'M', cat:'other', label:'Qualifying agricultural worker (social/agricultural)',
+    plain:'A qualifying agricultural worker occupied the dwelling, the landlord wishes to re-let as tied agricultural accommodation. (RRA 2025 — applies to agricultural holdings, not typical private rentals.)',
+    notice:'2 months', days:61, restrict12:false,
+    evidence:'Agricultural occupancy documentation. Evidence that the worker has left the employment.',
+    fields:[]},
+  { num:'5B',  type:'M', cat:'other', label:'Social housing — employment requirements not met (social landlord)',
+    plain:'The tenancy was granted on condition of employment but the requirements are not met. (RRA 2025 — social housing providers only, does not apply to private landlords.)',
+    notice:'2 months', days:61, restrict12:false,
+    evidence:'Employment conditions documentation. Evidence conditions are not being met.',
+    fields:[]},
+  { num:'5C',  type:'M', cat:'other', label:'Employment-related tenancy ended (was old Ground 16)',
+    plain:'The tenancy was granted because the tenant was employed by the landlord, and the employment has ended. (RRA 2025 — renumbered from old discretionary Ground 16 to mandatory Ground 5C.)',
+    notice:'2 months', days:61, restrict12:false,
+    evidence:'Employment contract. Termination documentation.',
+    fields:[]},
+  { num:'5D',  type:'M', cat:'other', label:'Social housing — employment condition breached (social landlord)',
+    plain:'A condition of the tenancy related to employment has been breached by the tenant. (RRA 2025 — social housing providers only, does not apply to private landlords.)',
+    notice:'2 months', days:61, restrict12:false,
+    evidence:'Tenancy agreement showing employment condition. Evidence of breach.',
+    fields:[]},
+  { num:'5E',  type:'M', cat:'other', label:'Landlord needs dwelling for supported accommodation',
+    plain:'The landlord requires the dwelling for occupation as supported accommodation, and suitable alternative accommodation is available. (RRA 2025 — supported accommodation providers only.)',
+    notice:'4 months', days:122, restrict12:false,
+    evidence:'Alternative accommodation details. Evidence of supported accommodation purpose.',
+    fields:[]},
+  { num:'5F',  type:'M', cat:'other', label:'Supported accommodation — support ended or no longer needed',
+    plain:'The tenant no longer needs the level of support provided, or the support package has ended. (RRA 2025 — supported accommodation providers only.)',
+    notice:'2 months', days:61, restrict12:false,
+    evidence:'Care plans showing reduced support needs. Support provider confirmation.',
+    fields:[]},
+  { num:'5G',  type:'M', cat:'other', label:'Homeless duty under s193 HA 1996 discharged by LA (social landlord)',
+    plain:'The main homelessness duty under section 193 of the Housing Act 1996 has been discharged by the local authority. (RRA 2025 — social housing providers only, does not apply to private landlords.)',
+    notice:'2 months', days:61, restrict12:false,
+    evidence:'Local authority confirmation that homelessness duty has been discharged.',
+    fields:[]},
+  { num:'5H',  type:'M', cat:'other', label:'Eligibility conditions no longer met (social/charity landlord)',
+    plain:'The tenant no longer meets the eligibility conditions for the tenancy set by the social or charitable landlord. (RRA 2025 — social housing/charitable providers only, does not apply to private landlords.)',
+    notice:'2 months', days:61, restrict12:false,
+    evidence:'Tenancy eligibility criteria. Evidence that conditions are no longer met.',
     fields:[]},
   { num:'6',   type:'M', cat:'landlord', label:'Landlord intends to demolish or redevelop',
     plain:'You intend to demolish, reconstruct or carry out substantial works requiring vacant possession.',
@@ -8970,6 +9010,11 @@ const S8_GROUNDS = [
     fields:[
       {id:'s8_asb', label:'Describe the incidents', type:'textarea', placeholder:'e.g. Loud music 11pm–3am on 14/03, 21/03, 28/03. Police called. Neighbours have provided statements.', req:true}
     ]},
+  { num:'14ZA',type:'D', cat:'asb', label:'Conviction for indictable offence during a riot',
+    plain:'The tenant or someone living with them has been convicted of an indictable offence committed during a riot. (Inserted by Anti-Social Behaviour, Crime and Policing Act 2014 — specific ground requiring riot-related conviction.)',
+    notice:'Immediate', days:0, restrict12:false,
+    evidence:'Criminal conviction documentation confirming riot-related indictable offence.',
+    fields:[]},
   { num:'14A', type:'D', cat:'other', label:'Domestic violence — social landlord',
     plain:'One partner has left because of violence or threats by the other, and the landlord is a social landlord. (Rarely applies to private landlords.)',
     notice:'2 weeks', days:14, restrict12:false,
@@ -8982,11 +9027,7 @@ const S8_GROUNDS = [
     fields:[
       {id:'s8_furn', label:'Describe the furniture damage', type:'textarea', placeholder:'e.g. Sofa torn, dining table deeply scratched, bed frame broken', req:true}
     ]},
-  { num:'16',  type:'D', cat:'other', label:'Tenant was an employee',
-    plain:'The tenancy was granted because the tenant was employed by the landlord, and the employment has ended.',
-    notice:'2 months', days:61, restrict12:false,
-    evidence:'Employment contract. Termination documentation.',
-    fields:[]},
+  // Ground 16 — renumbered to Ground 5C (Mandatory) by RRA 2025
   { num:'17',  type:'D', cat:'breach', label:'Tenant gave false information',
     plain:'The tenant (or someone acting for them) gave false or misleading information to obtain the tenancy — for example, fake references or forged payslips.',
     notice:'2 weeks', days:14, restrict12:false,
@@ -9411,6 +9452,7 @@ INSTRUCTIONS:
         <div style="display:flex;gap:8px">
           <button class="btn" onclick="s8CopyText()">📋 Copy</button>
           <button class="btn" onclick="s8DownloadPDF()">📄 Download PDF</button>
+          <a href="https://assets.publishing.service.gov.uk/media/69eb1f46ed93f72cf816334e/Form_3A.pdf" target="_blank" class="btn" style="text-decoration:none">📝 Form 3A</a>
           ${t?.email ? `<button class="btn btn-navy" onclick="s8SendToTenant()">✉ Send to ${t.name.split(' ')[0]}</button>` : ''}
         </div>
       </div>`;
@@ -9471,7 +9513,7 @@ function s8DownloadPDF() {
 
     doc.save('section8_notice_draft.pdf');
   } catch(e) {
-    console.error('[s8DownloadPDF]', e);
+    _logError('s8DownloadPDF', e);
     toast('PDF generation failed. Try again.', true);
   }
 }
@@ -9731,7 +9773,7 @@ Keep it under 200 words. Professional but warm. Plain text, no markdown.`;
   } catch(e) {
     if (btn) { btn.disabled = false; btn.innerHTML = '✉ Send'; }
     toast('Send failed — check Resend domain verification', true);
-    console.error(e);
+    _logError('sendRRASheet', e);
   }
 }
 
@@ -9998,7 +10040,7 @@ async function invDownloadPDF(){
     doc.text(footer,16,y);
     doc.save((type.replace(/[^a-z0-9]/gi,'_').toLowerCase())+'.pdf');
   }catch(e){
-    console.error('[invDownloadPDF]',e);
+    _logError('invDownloadPDF', e);
     toast('PDF generation failed — please try again',true);
   }
 }

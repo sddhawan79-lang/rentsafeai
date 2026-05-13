@@ -605,8 +605,8 @@ Session 8 introduced a 3-checkbox pre-generation consent gate for 4 legal docume
 |---|---|---|---|
 | 1 | HTTPS "Not secure" on rentsafeai.co.uk | GitHub Pages SSL | Pending |
 | 2 | Resend SPF/DKIM records not set | Email delivery | Pending — emails unreliable |
-| 3 | RRA PDF (GOV.UK Form 3A) not attached | Section 8 notices | Pending |
-| 4 | Section 8 output is draft text only — handoff to Form 3A UI | UX | Pending |
+| 3 | RRA PDF (GOV.UK Form 3A) not attached | Section 8 notices | **IMPROVED Session 13** — direct Form 3A download link added to review screen; actual PDF bundle pending |
+| 4 | Section 8 output is draft text only — handoff to Form 3A UI | UX | **IMPROVED Session 13** — Form 3A link added, instructions clear; complete Form 3A auto-fill pending |
 | 5 | Email sending via `super-processor` (not dedicated function) | Architecture | **FIXED Session 6** — replaced with `ai-proxy` |
 | 6 | PDF export via `window.print()` (not jsPDF) | Landlord dashboard | **FIXED Session 9** — `downloadAsPDF()`, `s8DownloadPDF()`, `invDownloadPDF()` all rewritten to jsPDF with A4 auto-pagination |
 | 7 | No tenant data input validation | Tenant portal | Technical debt |
@@ -616,17 +616,23 @@ Session 8 introduced a 3-checkbox pre-generation consent gate for 4 legal docume
 | 11 | `parseInt()` on UUID `prop_id`/`tenant_id` values — produces NaN | Data integrity | **FIXED Session 7** — replaced with `String()` (22 locations) |
 | 12 | `tenant_documents` table missing from DB — KYC scanning fails silently | Database | **SQL created** — run `session7_tenant_documents.sql` in Supabase SQL Editor |
 | 13 | `tenant-documents` Storage bucket not created | Storage | Pending — create in Supabase Dashboard → Storage |
-| 14 | Section 8 missing RRA 2025 grounds (1B, 2ZA, 2ZB, 2ZC, 2ZD) | Legal compliance | **FIXED Session 7** — added with social housing notes |
-| 15 | Landlord name derived from email username instead of `user_profiles.full_name` | Document generation | **FIXED Session 8** — added `_profileName()` helper, hits `user_profiles` in `loadData()` |
-| 16 | Footer links on `index.html` — 6 dead `href="#"` links (Privacy, Terms, Cookies, GDPR) | Marketing page | **FIXED Session 8** — all now point to real `.html` files; added Complaints link |
-| 17 | No complaints policy page | Legal compliance | **FIXED Session 8** — created `complaints.html` (UK-compliant: ICO reference, ADR, 2/10 day timelines) |
-| 18 | Rent "Mark received" errors on save — `month` column removed, `prop_id` String()-wrapped, calendar amount bug | Rent module | **FIXED Session 9** — 3 functions updated (`markRentReceived`, `buildRentSchedule`, `getCalEvents`) |
-| 19 | Property detail tabs unresponsive — `pdSetTab` silently returns if content div missing | Property detail | **FIXED Session 9** — added re-render fallback when `#pd-tab-content` not in DOM |
-| 20 | Generated document output shrunk to 360px — only ~10 lines visible | Document gen | **FIXED Session 9** — gen-text/s8-output/s13-preview `max-height` → vh units (50-55vh) |
-| 21 | Calendar "Mark received" parsed rent amount from display label (address digits contaminated value) | Calendar | **FIXED Session 9** — `rentAmt` passed directly from calendar event object |
-| 22 | `rent_payments` table has no SQL migration file in repo | Database docs | Pending — Saby to document actual schema or create SQL file |
-| 23 | Inventory report: file input destroyed by `innerHTML` replacement — always says "upload at least one photo" | Inventory | **FIXED Session 9** — files saved to `window._invFiles`, input stays in DOM, PDF now jsPDF |
-| 24 | No subscription plan gating — all features available to all users regardless of plan | Architecture | **FIXED Session 9** — tiered access: Starter (2 props, core), Landlord (10 props, +rent/insurance/bulk), Portfolio (unlimited, all features incl. MTD + Inventory) |
+| 14 | Section 8 missing RRA 2025 grounds (1B, 2ZA, 2ZB, 2ZC, 2ZD) | Legal compliance | **FIXED Session 7** |
+| 15 | Landlord name derived from email username instead of `user_profiles.full_name` | Document generation | **FIXED Session 8** — added `_profileName()` helper |
+| 16 | Footer links on `index.html` — 6 dead `href="#"` links | Marketing page | **FIXED Session 8** — all now point to real `.html` files; added Complaints link |
+| 17 | No complaints policy page | Legal compliance | **FIXED Session 8** — created `complaints.html` |
+| 18 | Rent "Mark received" errors on save | Rent module | **FIXED Session 9** |
+| 19 | Property detail tabs unresponsive | Property detail | **FIXED Session 9** |
+| 20 | Generated document output shrunk to 360px | Document gen | **FIXED Session 9** |
+| 21 | Calendar "Mark received" parsed rent amount from display label | Calendar | **FIXED Session 9** |
+| 22 | `rent_payments` table has no SQL migration file in repo | Database docs | Pending |
+| 23 | Inventory report: file input destroyed by `innerHTML` replacement | Inventory | **FIXED Session 9** |
+| 24 | No subscription plan gating | Architecture | **FIXED Session 9** |
+| 25 | S8_GROUNDS had 31 entries, comment said "37" | Documentation | **FIXED Session 13** — expanded to 38 grounds, all comments updated |
+| 26 | Template count comment said "17 AI-generated" (actual: 20) | Documentation | **FIXED Session 13** |
+| 27 | 14 bare `console.error` calls in production code | Code quality | **FIXED Session 13** — wrapped in `_logError()` behind `RENTSAFE_DEBUG` flag |
+| 28 | Stray `alert('Add rooms — coming soon')` | UX | **FIXED Session 13** — replaced with `toast()` |
+| 29 | `esign_requests` table has no SQL migration file | Database | **FIXED Session 13** — `session10_esign_requests.sql` created |
+| 30 | `moFinancials` PDF marked "coming soon" but actually implemented | Documentation | **FIXED Session 13** — comment corrected |
 
 ---
 
@@ -1306,6 +1312,47 @@ When **touching any of these files for a new feature or bug fix**, follow this p
 - **`C:\Dev\rentsafeai\session_archive.sql`** — DB migration for archived tenants + account soft-delete
 - **`C:\Dev\rentsafeai\sprint10_fix_cron_key.sql`** — re-creates pg_cron jobs with real service role key
 - **`C:\Dev\rentsafeai\supabase\functions\email-alerts\`** — deployed edge function directory
+
+---
+
+### Session 13 — May 2026 — S8 Grounds Update & Code Quality Fixes
+**Date:** May 2026
+
+#### Section 8 Grounds — Updated to Full 38 Grounds
+- **Before:** 31 grounds with outdated comment claiming "37"
+- **After:** 38 grounds (full RRA 2025 Schedule 2 as amended 1 May 2026)
+- **Removed:** Ground 3 (Former holiday let) — OMITTED by RRA 2025, commented out with note
+- **Removed:** Ground 16 (Tenant was employee) — renumbered to Ground 5C, moved from Discretionary to Mandatory
+- **Added 9 new grounds (all RRA 2025):**
+  - 5A — Qualifying agricultural worker (Mandatory)
+  - 5B — Social housing — employment requirements not met (Mandatory)
+  - 5C — Employment-related tenancy ended / was old Ground 16 (Mandatory)
+  - 5D — Social housing — employment condition breached (Mandatory)
+  - 5E — Landlord needs dwelling for supported accommodation (Mandatory)
+  - 5F — Supported accommodation — support ended/no longer needed (Mandatory)
+  - 5G — Homeless duty under s193 HA 1996 discharged (Mandatory)
+  - 5H — Eligibility conditions no longer met (Mandatory)
+  - 14ZA — Conviction for indictable offence during a riot (Discretionary)
+- **Note:** 5A-5H and 14ZA are niche/social-housing grounds — marked with appropriate disclaimers
+- **Ground 8A** (Persistent rent arrears) — retained pending legislative verification
+- Updated all comment counts: "all 37 RRA 2025 grounds" → correct count
+- Updated AI system prompt reference from "31 grounds" → "38 grounds"
+
+#### Code Quality Fixes
+- **`alert()` replaced:** Stray `alert('Add rooms — coming soon')` at Rooms button → `toast()`
+- **`console.error` wrapped:** 14 bare `console.error` calls replaced with `_logError()` helper behind `RENTSAFE_DEBUG` flag — can be toggled off for production
+- **Template count fixed:** Comment said "17 AI-generated legal documents" → corrected to "20"
+- **Section 8 Form 3A link:** Added direct GOV.UK Form 3A PDF download button to Section 8 review screen
+- **moFinancials PDF:** Comment was stale — `exportFinancialsPDF()` already implemented and wired; comment corrected
+
+#### Database
+- **`esign_requests` SQL migration:** Created `session10_esign_requests.sql` with full table schema and RLS policies. Ready to run in Supabase SQL Editor.
+
+#### Infrastructure Items Noted (manual-only, not code-fixable)
+- Resend DKIM/SPF records — need DNS configuration
+- GitHub Pages HTTPS/SSL — needs enabling
+- MX record for `rentsafeai.co.uk` — DNS
+- `tenant-documents` Storage bucket — create in Supabase Dashboard
 
 ---
 
