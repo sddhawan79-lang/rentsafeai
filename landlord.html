@@ -5414,9 +5414,12 @@ function pgTenantDetail(tid) {
         </span>
         ${missing.map(s=>`<span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:100px;background:rgba(229,62,62,0.08);color:var(--red);border:1px solid rgba(229,62,62,0.18)">${s.label}</span>`).join('')}
       </div>
-      <button class="btn btn-sm btn-navy" onclick="document.getElementById('kyc-docs-section').scrollIntoView({behavior:'smooth'})">
-        ${allDone ? '✓ All uploaded' : 'Upload documents ↓'}
-      </button>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        ${totalDocs > 0 ? `<button class="btn btn-sm" onclick="viewAllDocs('${tid}')">🖼 View all docs</button>` : ''}
+        <button class="btn btn-sm btn-navy" onclick="document.getElementById('kyc-docs-section').scrollIntoView({behavior:'smooth'})">
+          ${allDone ? '✓ All uploaded' : 'Upload documents ↓'}
+        </button>
+      </div>
     </div>`;
 
   // ── Tenancy info ──
@@ -5490,7 +5493,7 @@ function pgTenantDetail(tid) {
             <div style="font-size:10px;color:var(--muted)">${uploadedDate}${doc.doc_type_extracted?' · '+doc.doc_type_extracted:''}</div>
           </div>
           <div style="display:flex;gap:4px;flex-shrink:0">
-            <a href="${url}" target="_blank" class="btn btn-sm" style="font-size:10px;padding:3px 8px">View</a>
+            <a href="#" onclick="viewDocInline('${url}','${(doc.doc_label||doc.file_name||'File').replace(/'/g,"\\'")}');return false" class="btn btn-sm" style="font-size:10px;padding:3px 8px;text-decoration:none">View</a>
             <button class="btn btn-sm" style="font-size:10px;padding:3px 8px;color:var(--red);border-color:rgba(229,62,62,0.3)" onclick="deleteTenantDoc('${doc.id}','${tid}')">✕</button>
           </div>
         </div>
@@ -5800,6 +5803,84 @@ async function deleteTenantDoc(docId, tid) {
   D.tenantDocs = D.tenantDocs.filter(d => String(d.id) !== String(docId));
   toast('✓ Document removed');
   nav('tenant-detail', tid);
+}
+
+// ── In-app document viewer ──
+function viewDocInline(url, label) {
+  const isPDF = url.toLowerCase().endsWith('.pdf');
+  const isImg = /\.(jpe?g|png|gif|webp|bmp)$/i.test(url);
+  const title = label || 'Document';
+
+  if (isImg) {
+    openMo(title, '', `
+      <div style="display:flex;justify-content:center;align-items:center;min-height:50vh;background:var(--off);border-radius:8px">
+        <img src="${url}" alt="${title}" style="max-width:100%;max-height:75vh;object-fit:contain;border-radius:6px">
+      </div>
+    `, `<button class="btn" onclick="closeMo()">Close</button>
+      <a href="${url}" download class="btn btn-navy">⬇ Download</a>`);
+    document.getElementById('mo-x').style.width = 'min(95vw, 900px)';
+    return;
+  }
+
+  openMo(title, '', `
+    <iframe src="${url}" style="width:100%;height:75vh;border:none;border-radius:8px;background:var(--off)"></iframe>
+  `, `<button class="btn" onclick="closeMo()">Close</button>
+    <a href="${url}" target="_blank" class="btn btn-navy">🔗 Open in new tab</a>`);
+  document.getElementById('mo-x').style.width = 'min(95vw, 1000px)';
+}
+
+function viewAllDocs(tid) {
+  const t = D.tenants.find(x => String(x.id) === String(tid));
+  const docs = D.tenantDocs.filter(d => String(d.tenant_id) === String(tid));
+  const SUPABASE_URL = 'https://mahtcfukgzbonwibtsxz.supabase.co';
+  const getUrl = d => d?.file_name ? `${SUPABASE_URL}/storage/v1/object/public/tenant-documents/${d.file_name}` : '#';
+
+  if (!docs.length) { toast('No documents uploaded yet', true); return; }
+
+  const KYC = {
+    passport:'🪪 Passport / ID', right_to_rent:'✅ Right to Rent',
+    address_1:'📬 Address Proof 1', address_2:'📬 Address Proof 2',
+    reference:'📋 Reference', guarantor:'🤝 Guarantor', other:'📎 Other'
+  };
+
+  const grouped = {};
+  docs.forEach(d => {
+    const slot = d.slot || 'other';
+    if (!grouped[slot]) grouped[slot] = [];
+    grouped[slot].push(d);
+  });
+
+  const galleryHtml = Object.entries(grouped).map(([slot, slotDocs]) => {
+    const label = KYC[slot] || slot;
+    return `
+      <div style="margin-bottom:14px">
+        <div style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--txt)">${label} (${slotDocs.length})</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px">
+          ${slotDocs.map(d => {
+            const url = getUrl(d);
+            const isImg = /\.(jpe?g|png|gif|webp|bmp)$/i.test(d.file_name||'');
+            const uploaded = d.uploaded_at ? new Date(d.uploaded_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '';
+            return `
+              <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--white);cursor:pointer" onclick="viewDocInline('${url}','${(d.doc_label||d.file_name||'File').replace(/'/g,"\\'")}')">
+                ${isImg
+                  ? `<img src="${url}" style="width:100%;height:140px;object-fit:cover;display:block" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 200 140%22><rect fill=%22%23f0f2f5%22 width=%22200%22 height=%22140%22/><text x=%22100%22 y=%2275%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2214%22>📄</text></svg>'">`
+                  : `<div style="width:100%;height:140px;background:var(--off);display:flex;align-items:center;justify-content:center;font-size:32px">📄</div>`}
+                <div style="padding:8px 10px">
+                  <div style="font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.doc_label||d.file_name||'File'}</div>
+                  <div style="font-size:10px;color:var(--muted)">${uploaded}${d.verified?' · ✓ Verified':''}</div>
+                </div>
+              </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+  }).join('');
+
+  openMo(`All Documents · ${t?.name||'Tenant'}`, `${docs.length} document${docs.length!==1?'s':''} uploaded`, `
+    <div style="max-height:72vh;overflow-y:auto;padding-right:4px">
+      ${galleryHtml}
+    </div>
+  `, `<button class="btn" onclick="closeMo()">Close</button>`);
+  document.getElementById('mo-x').style.width = 'min(95vw, 900px)';
 }
 
 // ── Communications Hub modal ──
@@ -7386,7 +7467,9 @@ function pgDocLibrary(){
               <div style="font-size:13px;font-weight:600;color:var(--txt)">${name}</div>
               <div style="font-size:11px;color:var(--muted)">${prop?prop.address:'All properties'} · Uploaded ${date}</div>
             </div>
-            ${d.engineer?`<a href="${d.engineer}" target="_blank" class="btn btn-sm">Download</a>`:''}
+            ${d.engineer ? `
+              <button class="btn btn-sm" onclick="viewDocInline('${d.engineer}','${name.replace(/'/g,"\\'")}')">👁 View</button>
+              <a href="${d.engineer}" target="_blank" class="btn btn-sm">Download</a>` : ''}
             <button class="btn btn-sm" style="color:var(--red);border-color:var(--red)" onclick="dlDelete('${d.id}')">Delete</button>
           </div>`;
         }).join('')}
