@@ -1455,6 +1455,14 @@ When **touching any of these files for a new feature or bug fix**, follow this p
 - `pgTenants()` — added compliance RAG dots column
 - `pgTenantDetail()` — added compliance checklist panel
 
+#### Payment Save Refactor (May 2026)
+- **`savePayment()`** refactored into 3 functions:
+  - `savePaymentRecord(payload, editId)` — writes to `rent_payments` only, returns `{success, error, data}`. Wrapped in try/catch. On failure: error inline, modal stays open, button re-enabled for retry.
+  - `sendPaymentReceipt({prop_id, month, amount, paid, ...})` — fire-and-forget email. Sent after `closeMo()`. Failures logged via `_logError` but never block save or close.
+  - `savePayment(editId)` — orchestrator: disables button → shows "Saving..." → calls `savePaymentRecord` → on success shows "✓ Payment recorded" → closes modal → fires `sendPaymentReceipt` in background.
+- **`markRentReceived()`** wrapped in try/catch. Console.log calls removed, replaced with `_logError` behind debug flag.
+- **No plan gating** in either function — payment recording works for all tiers.
+
 ---
 
 ## 14. Stripe Integration Guide

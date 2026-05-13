@@ -3699,26 +3699,31 @@ function buildRentSchedule(pid) {
 
 async function markRentReceived(pid, monthLabel, dueDateStr, amount) {
   const today = new Date().toISOString().slice(0, 10);
-  const existing = D.rent.find(r =>
-    String(r.prop_id) === String(pid) &&
-    r.due_date && r.due_date.slice(0,7) === dueDateStr.slice(0,7)
-  );
-  if (existing) {
-    const {error} = await sb.from('rent_payments').update({status:'Paid', paid_date:today}).eq('id', existing.id);
-    if (error) { _logError('markRentReceived:update', error); toast('Error saving — ' + error.message, true); return; }
-    existing.status = 'Paid'; existing.paid_date = today; existing.paid = today;
-  } else {
-    const payload = {
-      prop_id: String(pid), user_id: currentUser.id,
-      due_date: dueDateStr,
-      amount: parseFloat(amount) || 0, status: 'Paid', paid_date: today
-    };
-    const {data, error} = await sb.from('rent_payments').insert(payload).select().single();
-    if (error) { _logError('markRentReceived:insert', error); toast('Error saving — ' + error.message, true); return; }
-    D.rent.unshift(data);
+  try {
+    const existing = D.rent.find(r =>
+      String(r.prop_id) === String(pid) &&
+      r.due_date && r.due_date.slice(0,7) === dueDateStr.slice(0,7)
+    );
+    if (existing) {
+      const {error} = await sb.from('rent_payments').update({status:'Paid', paid_date:today}).eq('id', existing.id);
+      if (error) { toast('Error saving — ' + error.message, true); return; }
+      existing.status = 'Paid'; existing.paid_date = today; existing.paid = today;
+    } else {
+      const payload = {
+        prop_id: String(pid), user_id: currentUser.id,
+        due_date: dueDateStr,
+        amount: parseFloat(amount) || 0, status: 'Paid', paid_date: today
+      };
+      const {data, error} = await sb.from('rent_payments').insert(payload).select().single();
+      if (error) { toast('Error saving — ' + error.message, true); return; }
+      D.rent.unshift(data);
+    }
+    toast('✓ Rent marked as received for ' + monthLabel);
+    pdSetTab(pid, 'financials');
+  } catch(e) {
+    _logError('markRentReceived', e);
+    toast('Error saving — please try again', true);
   }
-  toast('✓ Rent marked as received for ' + monthLabel);
-  pdSetTab(pid, 'financials');
 }
 
 function propRentHtml(pid) {
@@ -5805,6 +5810,9 @@ function moAddPayment(prefPropId, editId) {
 }
 
 async function savePayment(editId) {
+  const btn = document.querySelector('#mo-f .btn-navy');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Saving…'; }
+
   const prop_id = String(document.getElementById('pay-prop')?.value || '');
   const month   = document.getElementById('pay-month')?.value;
   const amount  = parseFloat(document.getElementById('pay-amount')?.value)||0;
@@ -5813,40 +5821,78 @@ async function savePayment(editId) {
   const status  = document.getElementById('pay-status')?.value||'Paid';
   const notes   = document.getElementById('pay-notes')?.value.trim()||null;
   const sendReceipt = document.getElementById('pay-receipt')?.checked;
-  if (!prop_id||!month||!amount) { toast('Property, month and amount required',true); return; }
-  const payload = {prop_id, month, amount, due_date:due, paid_date:paid, status, notes};
-  if (editId) {
-    const {error} = await sb.from('rent_payments').update(payload).eq('id',editId);
-    if (error) { toast('Save failed',true); return; }
-    const idx = D.rent.findIndex(r=>String(r.id)===String(editId));
-    if (idx>-1) D.rent[idx]={...D.rent[idx],...payload};
-  } else {
-    const {data,error} = await sb.from('rent_payments').insert({...payload,user_id:currentUser.id}).select().single();
-    if (error||!data) { toast('Save failed',true); return; }
-    D.rent.unshift(data);
-  }
-  if (sendReceipt && status==='Paid') {
-    const p = P(prop_id);
-    const tenant = D.tenants.find(t=>String(t.prop_id)===String(prop_id)&&t.status==='Active');
-    if (tenant?.email && p) {
-      const paidStr = paid ? new Date(paid).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) : 'N/A';
-      const html = emailWrap(`💷 Rent receipt — ${p.address}`,`Payment confirmed for ${month}`,`
-        <p style="font-size:13px">Dear ${tenant.name},</p>
-        <p style="font-size:13px;margin-top:10px">This is to confirm receipt of your rent payment for <strong>${p.address}${p.city?', '+p.city:''}</strong>.</p>
-        <div style="background:#f0fdf9;border:1px solid #00C896;border-radius:8px;padding:16px;margin:16px 0;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center">
-          <div><div style="font-size:9px;color:#7A8FA6;font-weight:700;text-transform:uppercase;margin-bottom:3px">Amount</div><div style="font-size:15px;font-weight:700;color:#00A87A">£${amount.toLocaleString()}</div></div>
-          <div><div style="font-size:9px;color:#7A8FA6;font-weight:700;text-transform:uppercase;margin-bottom:3px">Month</div><div style="font-size:13px;font-weight:600">${month}</div></div>
-          <div><div style="font-size:9px;color:#7A8FA6;font-weight:700;text-transform:uppercase;margin-bottom:3px">Received</div><div style="font-size:13px;font-weight:600">${paidStr}</div></div>
-        </div>
-        <p style="font-size:12px;color:#7A8FA6">Please keep this email as your receipt. Thank you.</p>`);
-      await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/ai-proxy',{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({type:'send_email',to:tenant.email,subject:`Rent receipt — ${month} — ${p.address}`,html})
-      }).catch(()=>{});
-      await logAudit('RENT_RECEIPT_SENT','rent_payments',editId||'new',`Receipt sent to ${tenant.email} for ${month}`);
+  if (!prop_id||!month||!amount) { toast('Property, month and amount required',true); if(btn){btn.disabled=false;btn.textContent='💾 Save payment';} return; }
+
+  try {
+    const result = await savePaymentRecord({ prop_id, month, amount, due, paid, status, notes }, editId);
+    if (!result.success) {
+      toast('Save failed: ' + (result.error||'Unknown error'), true);
+      if (btn) { btn.disabled = false; btn.textContent = '💾 Save payment'; }
+      return;
     }
+  } catch(err) {
+    toast('Save failed — please try again', true);
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save payment'; }
+    return;
   }
-  closeMo(); toast('✓ Payment saved'); nav('rent');
+
+  if (btn) btn.textContent = '✓ Payment recorded';
+  toast('✓ Payment saved');
+  closeMo();
+  nav('rent');
+
+  // Send receipt in background — never blocks save
+  if (sendReceipt && status === 'Paid') {
+    sendPaymentReceipt({ prop_id, month, amount, paid, editId, status });
+  }
+}
+
+/** Writes payment to rent_payments only. Returns { success, error?, data? } */
+async function savePaymentRecord(payload, editId) {
+  const { prop_id, month, amount, due, paid, status, notes } = payload;
+  const dbPayload = { prop_id, month, amount, due_date:due, paid_date:paid, status, notes };
+  try {
+    if (editId) {
+      const { error } = await sb.from('rent_payments').update(dbPayload).eq('id', editId);
+      if (error) return { success: false, error: error.message };
+      const idx = D.rent.findIndex(r => String(r.id) === String(editId));
+      if (idx > -1) D.rent[idx] = { ...D.rent[idx], ...dbPayload };
+      return { success: true, data: { id: editId } };
+    } else {
+      const { data, error } = await sb.from('rent_payments').insert({ ...dbPayload, user_id: currentUser.id }).select().single();
+      if (error || !data) return { success: false, error: (error||{}).message || 'No data returned' };
+      D.rent.unshift(data);
+      return { success: true, data };
+    }
+  } catch(e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/** Sends email receipt. Fire-and-forget — failures logged but never thrown. */
+async function sendPaymentReceipt({ prop_id, month, amount, paid, editId, status }) {
+  try {
+    const p = P(prop_id);
+    const tenant = D.tenants.find(t => String(t.prop_id) === String(prop_id) && t.status === 'Active');
+    if (!tenant?.email || !p) return;
+    const paidStr = paid ? new Date(paid).toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' }) : 'N/A';
+    const html = emailWrap(`💷 Rent receipt — ${p.address}`, `Payment confirmed for ${month}`, `
+      <p style="font-size:13px">Dear ${tenant.name},</p>
+      <p style="font-size:13px;margin-top:10px">This is to confirm receipt of your rent payment for <strong>${p.address}${p.city ? ', ' + p.city : ''}</strong>.</p>
+      <div style="background:#f0fdf9;border:1px solid #00C896;border-radius:8px;padding:16px;margin:16px 0;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center">
+        <div><div style="font-size:9px;color:#7A8FA6;font-weight:700;text-transform:uppercase;margin-bottom:3px">Amount</div><div style="font-size:15px;font-weight:700;color:#00A87A">£${amount.toLocaleString()}</div></div>
+        <div><div style="font-size:9px;color:#7A8FA6;font-weight:700;text-transform:uppercase;margin-bottom:3px">Month</div><div style="font-size:13px;font-weight:600">${month}</div></div>
+        <div><div style="font-size:9px;color:#7A8FA6;font-weight:700;text-transform:uppercase;margin-bottom:3px">Received</div><div style="font-size:13px;font-weight:600">${paidStr}</div></div>
+      </div>
+      <p style="font-size:12px;color:#7A8FA6">Please keep this email as your receipt. Thank you.</p>`);
+    await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/ai-proxy', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ type:'send_email', to: tenant.email, subject: `Rent receipt — ${month} — ${p.address}`, html })
+    });
+    await logAudit('RENT_RECEIPT_SENT', 'rent_payments', editId || 'new', `Receipt sent to ${tenant.email} for ${month}`);
+  } catch(e) {
+    _logError('sendPaymentReceipt', e);
+  }
 }
 
 async function deletePayment(id) {
