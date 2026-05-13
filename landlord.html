@@ -5850,7 +5850,7 @@ async function savePayment(editId) {
 /** Writes payment to rent_payments only. Returns { success, error?, data? } */
 async function savePaymentRecord(payload, editId) {
   const { prop_id, month, amount, due, paid, status, notes } = payload;
-  const dbPayload = { prop_id, month, amount, due_date:due, paid_date:paid, status, notes };
+  const dbPayload = { prop_id, month, amount, due_date:due||null, paid_date:paid||null, status, notes };
   try {
     if (editId) {
       const { error } = await sb.from('rent_payments').update(dbPayload).eq('id', editId);

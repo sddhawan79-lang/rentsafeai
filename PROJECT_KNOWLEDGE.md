@@ -628,7 +628,7 @@ Session 8 introduced a 3-checkbox pre-generation consent gate for 4 legal docume
 | 19 | Property detail tabs unresponsive | Property detail | **FIXED Session 9** |
 | 20 | Generated document output shrunk to 360px | Document gen | **FIXED Session 9** |
 | 21 | Calendar "Mark received" parsed rent amount from display label | Calendar | **FIXED Session 9** |
-| 22 | `rent_payments` table has no SQL migration file in repo | Database docs | Pending |
+| 22 | `rent_payments` table has no SQL migration file in repo | Database docs | **FIXED** — `session14_rent_payments.sql` created |
 | 23 | Inventory report: file input destroyed by `innerHTML` replacement | Inventory | **FIXED Session 9** |
 | 24 | No subscription plan gating | Architecture | **FIXED Session 9** |
 | 25 | S8_GROUNDS had 31 entries, comment said "37" | Documentation | **FIXED Session 13** — expanded to 38 grounds, all comments updated |
