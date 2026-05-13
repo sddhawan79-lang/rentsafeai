@@ -1,5 +1,5 @@
 # PROJECT_KNOWLEDGE.md
-## RentSafeAI — Agent Initialization Reference
+## NexLet — Agent Initialization Reference
 
 > **Purpose:** Single point of truth for any agentic AI coding agent working on this project.
 > Read this file first before making any changes. Update it as new features are added or
@@ -28,9 +28,9 @@
 
 ## 1. Project Overview & Business Purpose
 
-**RentSafeAI** is a UK landlord SaaS platform designed to help private landlords stay legally compliant, manage properties efficiently, and prepare for upcoming Making Tax Digital (MTD) obligations.
+**NexLet** is a UK landlord SaaS platform designed to help private landlords stay legally compliant, manage properties efficiently, and prepare for upcoming Making Tax Digital (MTD) obligations.
 
-**Live URL:** https://rentsafeai.co.uk
+**Live URL:** https://nexlet.co.uk
 **GitHub:** https://github.com/sddhawan79-lang/rentsafeai
 **Target market:** UK private landlords (particularly those with 1–10 properties)
 
@@ -69,14 +69,14 @@ Saurabh Dhawan (featured on landing page, `index.html` founder story section)
 | Service | Purpose | Config location |
 |---|---|---|
 | **Supabase** | PostgreSQL database, Auth, Edge Functions, Storage, RLS | Hardcoded in HTML files |
-| **Resend** | Transactional email (`documents@rentsafeai.co.uk`) | Edge Function secret `RESEND_API_KEY` |
+| **Resend** | Transactional email (`documents@nexlet.co.uk`) | Edge Function secret `RESEND_API_KEY` |
 | **Stripe** | Subscription billing for Starter/Landlord/Portfolio plans | Edge Function secrets `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, price IDs |
 | **Anthropic Claude** (`claude-sonnet-4-5`) | AI chat assistant + maintenance priority classification | `ai-proxy` edge function |
 | **Formspree** (`xdapbzqv`) | Waitlist email capture on landing page | Inline in `index.html` |
 | **Crisp** (ID: `6a5c5215-3c14-4afa-94a4-f1f8b05e2f62`) | Live chat widget | `index.html`, `login.html`, `tenant.html`, `mtd.html` |
 | **signature_pad** v4.1.7 | E-signature canvas on tenant portal | CDN in `tenant.html` |
 | **jsPDF** v2.5.1 | PDF generation in tenant portal + landlord document downloads (Session 9) | CDN in `tenant.html`, `landlord.html` |
-| **GitHub Pages** | Static hosting with custom domain (`rentsafeai.co.uk`) | `CNAME` file |
+| **GitHub Pages** | Static hosting with custom domain (`nexlet.co.uk`) | `CNAME` file |
 | **Deno** | Runtime for all Supabase Edge Functions | Supabase managed |
 | **pg_cron + pg_net** | Scheduled jobs within Supabase | `sprint10_step2_cron.sql` |
 
@@ -106,7 +106,7 @@ rentsafeai/
 ├── dpa.html                        GDPR / Data Protection Act page
 ├── nav_snippet.html                Dev snippet: MTD nav item code (copy-paste reference)
 ├── og-image.png                    OpenGraph social share image (1200×630)
-├── CNAME                           GitHub Pages custom domain: rentsafeai.co.uk
+├── CNAME                           GitHub Pages custom domain: nexlet.co.uk
 ├── email-alerts-index.ts           Supabase Edge Function source (Sprint 10)
 ├── stripe-checkout-index.ts        Supabase Edge Function source (Sprint 13)
 ├── stripe-webhook-index.ts         Supabase Edge Function source (Sprint 13)
@@ -457,7 +457,7 @@ TRUNCATE email_log;
 ### Static Frontend (GitHub Pages)
 - **Repository:** `github.com/sddhawan79-lang/rentsafeai`
 - **Hosting:** GitHub Pages, `main` branch, files served from root
-- **Custom domain:** `rentsafeai.co.uk` (configured via `CNAME` file)
+- **Custom domain:** `nexlet.co.uk` (configured via `CNAME` file)
 - **Deploy:** `git push origin main` — GitHub Pages auto-serves static files
 - **No CI/CD pipeline** — manual push deploys immediately
 
@@ -499,9 +499,9 @@ All migrations run manually in **Supabase → SQL Editor** (no automated migrati
 | `RESEND_API_KEY` | Copy from `ai-proxy` function — same key (`re_xxxxxxxxxxxxxxxxxxxxxxxx`) |
 
 ### DNS / Domain Configuration
-- **Domain:** `rentsafeai.co.uk`
+- **Domain:** `nexlet.co.uk`
 - **Hosting:** GitHub Pages (CNAME `sddhawan79-lang.github.io`)
-- **Email sender:** `documents@rentsafeai.co.uk` via Resend
+- **Email sender:** `documents@nexlet.co.uk` via Resend
 - **Pending:** SPF/DKIM records for Resend (email unreliable until resolved)
 - **Pending:** GitHub Pages HTTPS / SSL certificate
 
@@ -607,7 +607,7 @@ Session 8 introduced a 3-checkbox pre-generation consent gate for 4 legal docume
 
 | # | Issue | Area | Status |
 |---|---|---|---|
-| 1 | HTTPS "Not secure" on rentsafeai.co.uk | GitHub Pages SSL | Pending |
+| 1 | HTTPS "Not secure" on nexlet.co.uk | GitHub Pages SSL | Pending |
 | 2 | Resend SPF/DKIM records not set | Email delivery | Pending — emails unreliable |
 | 3 | RRA PDF (GOV.UK Form 3A) not attached | Section 8 notices | **IMPROVED Session 13** — direct Form 3A download link added to review screen; actual PDF bundle pending |
 | 4 | Section 8 output is draft text only — handoff to Form 3A UI | UX | **IMPROVED Session 13** — Form 3A link added, instructions clear; complete Form 3A auto-fill pending |
@@ -615,7 +615,7 @@ Session 8 introduced a 3-checkbox pre-generation consent gate for 4 legal docume
 | 6 | PDF export via `window.print()` (not jsPDF) | Landlord dashboard | **FIXED Session 9** — `downloadAsPDF()`, `s8DownloadPDF()`, `invDownloadPDF()` all rewritten to jsPDF with A4 auto-pagination |
 | 7 | No tenant data input validation | Tenant portal | Technical debt |
 | 8 | No offline/error recovery states | General | Technical debt |
-| 9 | MX record missing for `rentsafeai.co.uk` | DNS / Email | Post-launch |
+| 9 | MX record missing for `nexlet.co.uk` | DNS / Email | Post-launch |
 | 10 | Supabase credentials hardcoded in HTML files | Security hygiene | Acceptable — anon key is public-safe |
 | 11 | `parseInt()` on UUID `prop_id`/`tenant_id` values — produces NaN | Data integrity | **FIXED Session 7** — replaced with `String()` (22 locations) |
 | 12 | `tenant_documents` table missing from DB — KYC scanning fails silently | Database | **SQL created** — run `session7_tenant_documents.sql` in Supabase SQL Editor |
@@ -964,7 +964,7 @@ When **touching any of these files for a new feature or bug fix**, follow this p
 - **Secrets required:** `ANTHROPIC_API_KEY`, `RESEND_API_KEY`
 - **Request formats supported:**
   - Claude AI: `{ model, max_tokens, messages, system? }` → proxies to Anthropic, returns full Claude response
-  - Email: `{ type: 'send_email', to, subject, html }` → sends via Resend from `documents@rentsafeai.co.uk`
+  - Email: `{ type: 'send_email', to, subject, html }` → sends via Resend from `documents@nexlet.co.uk`
 - **IMPORTANT:** This replaces `super-processor` entirely. Never reference `super-processor` in new code — always use `ai-proxy`
 
 ### Sprint 13 — User Profile Page & Stripe Subscription Billing
@@ -1375,7 +1375,7 @@ When **touching any of these files for a new feature or bug fix**, follow this p
 #### Infrastructure Items Noted (manual-only, not code-fixable)
 - Resend DKIM/SPF records — need DNS configuration
 - GitHub Pages HTTPS/SSL — needs enabling
-- MX record for `rentsafeai.co.uk` — DNS
+- MX record for `nexlet.co.uk` — DNS
 - `tenant-documents` Storage bucket — create in Supabase Dashboard
 
 ---
@@ -1484,9 +1484,9 @@ stripe-webhook Edge Function upserts stripe_subscriptions table
 
 | Product name | Price | Billing period |
 |---|---|---|
-| RentSafeAI Starter | £9.99 | Monthly |
-| RentSafeAI Landlord | £19.99 | Monthly |
-| RentSafeAI Portfolio | £39.99 | Monthly |
+| NexLet Starter | £9.99 | Monthly |
+| NexLet Landlord | £19.99 | Monthly |
+| NexLet Portfolio | £39.99 | Monthly |
 
 3. After creating each, click on the price row and copy the **Price ID** (`price_...`)
 

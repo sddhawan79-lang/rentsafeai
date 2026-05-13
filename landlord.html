@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rent Safe AI — Dashboard</title>
+<title>NexLet — Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -656,9 +656,9 @@ const D = {
   emailLog: [], customTemplates: [], contractors: [], jobAssignments: [], tenantDocs: [],
   _invReports: [],
   userProfile: null,
-  chat: [{role:'ai', text:'Hello! I\'m your RentSafe AI assistant. I can help with UK landlord law (RRA 2025, Section 8/13, deposits, Awaab\'s Law, MTD tax) and the RentSafe platform itself — ask me where to find a feature, how to generate a document, or anything about your compliance obligations.'}]
+  chat: [{role:'ai', text:'Hello! I\'m your NexLet assistant. I can help with UK landlord law (RRA 2025, Section 8/13, deposits, Awaab\'s Law, MTD tax) and the NexLet platform itself — ask me where to find a feature, how to generate a document, or anything about your compliance obligations.'}]
 };
-const SYSTEM_PROMPT = `You are the RentSafe AI assistant for rentsafeai.co.uk, a UK landlord compliance SaaS platform. You help UK private landlords with two things: (1) UK landlord/tenancy law, and (2) using the RentSafe platform.
+const SYSTEM_PROMPT = `You are the NexLet assistant for nexlet.co.uk, a UK landlord compliance SaaS platform. You help UK private landlords with two things: (1) UK landlord/tenancy law, and (2) using the NexLet platform.
 
 PLATFORM FEATURES — tell users exactly where to find things:
 - Dashboard: compliance scores, alerts, quick actions
@@ -2583,7 +2583,7 @@ async function _saveTenantSetupToDB() {
     if (s.sendInvite && s.email) {
       const propAddr = P(s.pid)?.address || 'your property';
       const inviteToken = td?.invite_token || tenant.invite_token;
-      const inviteUrl = `https://rentsafeai.co.uk/tenant.html?token=${inviteToken}`;
+      const inviteUrl = `https://nexlet.co.uk/tenant.html?token=${inviteToken}`;
       const inviteHtml = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:28px 24px;color:#1A2B45">
         <div style="border-bottom:2px solid #0B1E3D;padding-bottom:12px;margin-bottom:20px"><span style="font-size:17px;font-weight:700;color:#0B1E3D">Rent<span style="color:#00C896">Safe AI</span></span></div>
         <h2 style="font-size:16px;font-weight:600;margin-bottom:8px">Your tenant portal is ready — ${propAddr}</h2>
@@ -3053,12 +3053,12 @@ async function sendWelcomeKit(pid) {
       <div style="background:#F0FBF7;border:1px solid rgba(0,200,150,0.2);border-radius:8px;padding:14px;margin-bottom:20px">
         <div style="font-size:13px;font-weight:600;color:#009970;margin-bottom:4px">🔗 Your tenant portal</div>
         <div style="font-size:12px;color:#1A2B45;margin-bottom:10px">Report maintenance issues, view your certificates and sign documents — all in one place.</div>
-        ${tenant?.invite_token ? `<a href="https://rentsafeai.co.uk/tenant.html?token=${tenant.invite_token}" style="background:#0B1E3D;color:#fff;padding:10px 20px;border-radius:7px;text-decoration:none;font-weight:600;font-size:13px;display:inline-block">Access your portal →</a>` : ''}
+        ${tenant?.invite_token ? `<a href="https://nexlet.co.uk/tenant.html?token=${tenant.invite_token}" style="background:#0B1E3D;color:#fff;padding:10px 20px;border-radius:7px;text-decoration:none;font-weight:600;font-size:13px;display:inline-block">Access your portal →</a>` : ''}
       </div>
 
       <p style="font-size:12px;color:#7A8FA6;line-height:1.6;margin:0">This document was served on <strong>${today}</strong> as required under the Renters Rights Act 2025. A timestamped record has been created for landlord compliance purposes.</p>
     </div>
-    <div style="padding:16px;text-align:center;font-size:11px;color:#999">Sent via RentSafe AI · rentsafeai.co.uk · documents@rentsafeai.co.uk</div>
+    <div style="padding:16px;text-align:center;font-size:11px;color:#999">Sent via NexLet · nexlet.co.uk · documents@nexlet.co.uk</div>
   </body></html>`;
 
   try {
@@ -4618,7 +4618,7 @@ async function checkAllReminders() {
       <div style="background:#fff;border:1px solid #E4EAF1;border-top:none;border-radius:0 0 10px 10px;padding:24px">
         <h2 style="font-size:16px;font-weight:700;margin:0 0 14px">${title}</h2>
         ${bodyHtml}
-        <p style="font-size:11px;color:#999;margin-top:20px;border-top:1px solid #eee;padding-top:12px">Sent via RentSafe AI · rentsafeai.co.uk · Manage reminders in your dashboard</p>
+        <p style="font-size:11px;color:#999;margin-top:20px;border-top:1px solid #eee;padding-top:12px">Sent via NexLet · nexlet.co.uk · Manage reminders in your dashboard</p>
       </div>
     </div>`;
   }
@@ -4871,9 +4871,9 @@ async function checkAllReminders() {
         ${actionHtml}
 
         <div style="text-align:center;margin-top:20px">
-          <a href="https://rentsafeai.co.uk/landlord.html" style="background:#0B1E3D;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;display:inline-block">Open RentSafe AI dashboard →</a>
+          <a href="https://nexlet.co.uk/landlord.html" style="background:#0B1E3D;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;display:inline-block">Open NexLet dashboard →</a>
         </div>
-        <p style="font-size:11px;color:#999;margin-top:16px;text-align:center;border-top:1px solid #eee;padding-top:12px">Sent weekly by RentSafe AI · Manage reminders in Settings</p>
+        <p style="font-size:11px;color:#999;margin-top:16px;text-align:center;border-top:1px solid #eee;padding-top:12px">Sent weekly by NexLet · Manage reminders in Settings</p>
       </div>
     </div>`;
 
@@ -5730,7 +5730,7 @@ async function exportEvidenceBundle(tid) {
     for (let pg = 1; pg <= totalPages; pg++) {
       doc.setPage(pg);
       doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(150,150,150);
-      doc.text(`RentSafe AI — Evidence Bundle for ${t.name} — Page ${pg} of ${totalPages}`, W/2, 292, { align:'center' });
+      doc.text(`NexLet — Evidence Bundle for ${t.name} — Page ${pg} of ${totalPages}`, W/2, 292, { align:'center' });
     }
 
     const filename = `evidence_bundle_${(t.name||'tenant').replace(/\s+/g,'_')}_${new Date().toISOString().slice(0,10)}.pdf`;
@@ -6091,7 +6091,7 @@ If no response is received within 7 days, the report will be considered accepted
 
 Kind regards,
 ${landlordName}
-RentSafe AI`;
+NexLet`;
 
   const tenantOpts = `<option value="">Select tenant…</option>${D.tenants.filter(x=>String(x.prop_id)===String(r.propId)).map(x=>`<option value="${x.id}">${x.name}${x.email?' — '+x.email:''}</option>`).join('')}`;
 
@@ -6099,7 +6099,7 @@ RentSafe AI`;
     <div class="fg"><label>Send to</label><select id="inv-send-tenant">${tenantOpts}</select></div>
     <div class="fg"><label>Email subject</label><input id="inv-send-subject" value="Inventory Report — ${r.address}"></div>
     <div class="fg"><label>Email body</label><textarea id="inv-send-body" style="min-height:160px;font-size:12px;line-height:1.6">${defaultBody.replace(/`/g,'\\`').replace(/\$/g,'\\$')}</textarea></div>
-    <div style="font-size:11px;color:var(--muted);margin-top:6px">The report PDF will be attached. Sent from documents@rentsafeai.co.uk via Resend.</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px">The report PDF will be attached. Sent from documents@nexlet.co.uk via Resend.</div>
   `,`<button class="btn" onclick="closeMo()">Cancel</button>
     <button class="btn btn-navy" id="inv-send-btn" onclick="sendInventoryNow('${id}')">✉ Send to tenant</button>`);
 }
@@ -6125,7 +6125,7 @@ async function sendInventoryNow(id) {
     const {jsPDF} = window.jspdf;
     const doc = new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
     const W = doc.internal.pageSize.getWidth(); let y = 18;
-    doc.setFontSize(15); doc.setTextColor(11,30,61); doc.text('RentSafe AI',16,y);
+    doc.setFontSize(15); doc.setTextColor(11,30,61); doc.text('NexLet',16,y);
     doc.setFontSize(9); doc.setTextColor(153,153,153); doc.text(`${r.type} — ${r.address}`,45,y);
     doc.setDrawColor(11,30,61); doc.line(16,y+4,W-16,y+4); y+=11;
     doc.setFontSize(9); doc.setTextColor(26,43,69);
@@ -6154,7 +6154,7 @@ async function sendInventoryNow(id) {
     }
     y+=6; doc.setDrawColor(238,238,238); doc.line(16,y,W-16,y); y+=6;
     doc.setFontSize(7.5); doc.setTextColor(153,153,153);
-    doc.text(`Generated by RentSafe AI · ${r.date} · AI-generated`,16,y);
+    doc.text(`Generated by NexLet · ${r.date} · AI-generated`,16,y);
     pdfBase64 = doc.output('datauristring').split(',')[1];
   } catch(e) {
     _logError('sendInventoryNow:pdf', e);
@@ -6192,7 +6192,7 @@ function invReportDownloadPDF(id) {
     const {jsPDF} = window.jspdf;
     const doc = new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
     const W = doc.internal.pageSize.getWidth(); let y = 18;
-    doc.setFontSize(15); doc.setTextColor(11,30,61); doc.text('RentSafe AI',16,y);
+    doc.setFontSize(15); doc.setTextColor(11,30,61); doc.text('NexLet',16,y);
     doc.setFontSize(9); doc.setTextColor(153,153,153); doc.text(`${r.type} — ${r.address}`,45,y);
     doc.setDrawColor(11,30,61); doc.line(16,y+4,W-16,y+4); y+=11;
     doc.setFontSize(9); doc.setTextColor(26,43,69);
@@ -6218,7 +6218,7 @@ function invReportDownloadPDF(id) {
     }
     y+=6; doc.setDrawColor(238,238,238); doc.line(16,y,W-16,y); y+=6;
     doc.setFontSize(7.5); doc.setTextColor(153,153,153);
-    doc.text(`Generated by RentSafe AI · ${r.date} · AI-generated — verify against photos`,16,y);
+    doc.text(`Generated by NexLet · ${r.date} · AI-generated — verify against photos`,16,y);
     doc.save((r.type.replace(/[^a-z0-9]/gi,'_').toLowerCase())+'.pdf');
   } catch(e) {
     _logError('invReportDownloadPDF', e);
@@ -6455,7 +6455,7 @@ async function moveStage(id,stage){
           <div style="font-size:12px;font-weight:700;color:#00A87A;margin-bottom:4px">Status update: ${stage}</div>
           <div style="font-size:13px;color:#1A2B45">${stageMsg}</div>
         </div>
-        <div style="font-size:11px;color:#999;margin-top:16px;padding-top:12px;border-top:1px solid #eee">Sent via RentSafe AI · rentsafeai.co.uk · ${new Date().toLocaleString('en-GB')}</div>
+        <div style="font-size:11px;color:#999;margin-top:16px;padding-top:12px;border-top:1px solid #eee">Sent via NexLet · nexlet.co.uk · ${new Date().toLocaleString('en-GB')}</div>
       </div>`;
       try {
         await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/ai-proxy',{
@@ -6650,7 +6650,7 @@ async function deleteInsurance(insId) {
 function pgAssistant(){
   return`<div class="topbar"><span class="tb-title">AI Compliance Assistant</span></div>
   <div class="chat-outer">
-    <div class="chat-msgs" id="cm">${D.chat.map(m=>m.role==='ai'?`<div class="msg ai"><div class="mlbl">Rent Safe AI</div>${m.text}</div>`:`<div class="msg user">${m.text}</div>`).join('')}</div>
+    <div class="chat-msgs" id="cm">${D.chat.map(m=>m.role==='ai'?`<div class="msg ai"><div class="mlbl">NexLet</div>${m.text}</div>`:`<div class="msg user">${m.text}</div>`).join('')}</div>
     <div class="chat-bar">
       <input class="chat-in" id="ci2" placeholder="Ask about law or the app — e.g. where do I generate a Section 8 notice?" onkeydown="if(event.key==='Enter')sendChat()">
       <button class="btn btn-navy" onclick="sendChat()">Send</button>
@@ -6663,15 +6663,15 @@ async function sendChat(){
   const i=document.getElementById('ci2'),q=i.value.trim();if(!q)return;i.value='';
   D.chat.push({role:'user',text:q});
   const cm=document.getElementById('cm');
-  cm.innerHTML+=`<div class="msg user">${q}</div><div class="msg ai" id="at"><div class="mlbl">Rent Safe AI</div><span style="color:var(--muted)">Thinking…</span></div>`;
+  cm.innerHTML+=`<div class="msg user">${q}</div><div class="msg ai" id="at"><div class="mlbl">NexLet</div><span style="color:var(--muted)">Thinking…</span></div>`;
   cm.scrollTop=cm.scrollHeight;
   try{
     const r=await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/ai-proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:800,system:SYSTEM_PROMPT,messages:D.chat.filter(m=>m.role!=='system').map(m=>({role:m.role==='ai'?'assistant':'user',content:m.text}))})});
     const d=await r.json(),reply=d.content?.[0]?.text||'No response.';
     D.chat.push({role:'ai',text:reply});
-    document.getElementById('at').innerHTML=`<div class="mlbl">Rent Safe AI</div>${reply}`;
+    document.getElementById('at').innerHTML=`<div class="mlbl">NexLet</div>${reply}`;
     cm.scrollTop=cm.scrollHeight;
-  }catch(e){document.getElementById('at').innerHTML=`<div class="mlbl">Rent Safe AI</div>Connection error. Please try again.`;}
+  }catch(e){document.getElementById('at').innerHTML=`<div class="mlbl">NexLet</div>Connection error. Please try again.`;}
 }
 
 // ── PAGE: CALENDAR ──
@@ -7209,7 +7209,7 @@ function exportFinancialsPDF(pid){
     doc.setFillColor(0,200,150);
     doc.rect(0,46,W,3,'F');
     doc.setFontSize(20);doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);
-    doc.text('RentSafe AI',15,18);
+    doc.text('NexLet',15,18);
     doc.setFontSize(11);doc.setFont('helvetica','normal');doc.setTextColor(160,205,190);
     doc.text('P&L Financial Report — Real Data',15,27);
     doc.setFontSize(10);doc.setTextColor(180,200,220);
@@ -7301,7 +7301,7 @@ function exportFinancialsPDF(pid){
     doc.setFillColor(246,248,251);doc.rect(15,y,W-30,14,'F');
     doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(130,130,140);
     doc.text('Maintenance costs derived from real job records. Tax figures are indicative only — consult a qualified accountant.',17,y+5,{maxWidth:W-34});
-    doc.text('Generated by RentSafe AI · '+date+' · Confidential — not financial advice',17,y+11,{maxWidth:W-34});
+    doc.text('Generated by NexLet · '+date+' · Confidential — not financial advice',17,y+11,{maxWidth:W-34});
     y+=18;
 
     doc.save('PL_Report_'+p.address.replace(/[^a-zA-Z0-9]/g,'_')+'_'+new Date().toISOString().slice(0,10)+'.pdf');
@@ -7368,7 +7368,7 @@ function exportPortfolioPDF(){
   +'<h2 style="font-size:15px;margin-bottom:12px">Property Breakdown</h2>'
   +'<table><thead><tr><th>Property</th><th>Rent</th><th>Mortgage</th><th>Insurance</th><th>Maintenance</th><th>Net Profit</th><th>Yield</th></tr></thead>'
   +'<tbody>'+propRows+'</tbody></table>'
-  +'<div class="footer">Maintenance costs from real job records &nbsp;·&nbsp; Tax estimates: ~£'+Math.round(Math.max(0,totProfit)*0.2).toLocaleString()+'/mo (basic 20%) &nbsp;·&nbsp; Gross yield: '+totYield+'%<br>Generated by RentSafe AI &middot; Not financial advice &mdash; consult a qualified accountant</div>'
+  +'<div class="footer">Maintenance costs from real job records &nbsp;·&nbsp; Tax estimates: ~£'+Math.round(Math.max(0,totProfit)*0.2).toLocaleString()+'/mo (basic 20%) &nbsp;·&nbsp; Gross yield: '+totYield+'%<br>Generated by NexLet &middot; Not financial advice &mdash; consult a qualified accountant</div>'
   +'<script>window.onload=function(){window.print();}<\/scr'+'ipt></body></html>');
   win.document.close();
 }
@@ -7635,7 +7635,7 @@ function pgMTD() {
 
     <!-- Quarterly submission cards -->
     <div style="margin-bottom:18px">
-      <div style="margin-bottom:14px"><h2 style="font-size:15px;font-weight:700;margin:0">Quarterly submissions — ${taxYearLabel}</h2><p style="font-size:12px;color:var(--muted);margin:3px 0 0">Income & expenses pre-filled from your Rent Safe AI data. Review, adjust, then submit via HMRC Gateway.</p></div>
+      <div style="margin-bottom:14px"><h2 style="font-size:15px;font-weight:700;margin:0">Quarterly submissions — ${taxYearLabel}</h2><p style="font-size:12px;color:var(--muted);margin:3px 0 0">Income & expenses pre-filled from your NexLet data. Review, adjust, then submit via HMRC Gateway.</p></div>
       <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px">
         ${qCards}
       </div>
@@ -7675,7 +7675,7 @@ function pgMTD() {
     </div>
 
     <div style="margin-top:14px;padding:12px 16px;background:var(--off);border-radius:8px;font-size:11px;color:var(--muted)">
-      ⚠ Tax estimates are indicative only based on data in Rent Safe AI. Figures do not account for personal allowance, other income, or HMRC-specific allowable expenses. Always consult a qualified accountant before submitting. RentSafe AI is not a regulated tax adviser.
+      ⚠ Tax estimates are indicative only based on data in NexLet. Figures do not account for personal allowance, other income, or HMRC-specific allowable expenses. Always consult a qualified accountant before submitting. NexLet is not a regulated tax adviser.
     </div>
   </div>`;
 }
@@ -7726,7 +7726,7 @@ function mtdExportCSV() {
   const netTaxDue = Math.max(0, grossTax - financeCredit);
   const quarters = ['Q1 (Apr–Jun)','Q2 (Jul–Sep)','Q3 (Oct–Dec)','Q4 (Jan–Mar)'];
   const rows = [
-    ['RentSafe AI — MTD Summary Export','','',''],
+    ['NexLet — MTD Summary Export','','',''],
     ['Tax Year', taxYearLabel,'',''],
     ['Generated', new Date().toLocaleDateString('en-GB'),'',''],
     ['','','',''],
@@ -7754,7 +7754,7 @@ function mtdExportCSV() {
   const blob = new Blob([csv], { type: 'text/csv' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `rentsafeai_mtd_${taxYearLabel.replace('/','_')}.csv`;
+  a.download = `nexlet_mtd_${taxYearLabel.replace('/','_')}.csv`;
   a.click();
   toast('✓ CSV exported');
 }
@@ -8326,7 +8326,7 @@ function gateGenerate(templateId) {
       </label>
       <label style="display:flex;gap:10px;align-items:flex-start;margin-bottom:12px;cursor:pointer">
         <input type="checkbox" id="ldc_2" style="margin-top:3px;flex-shrink:0;width:16px;height:16px;accent-color:var(--navy)">
-        <span style="font-size:13px;line-height:1.5">I accept <strong>full personal responsibility</strong> for any document I serve on a tenant, rely upon, or use in legal proceedings. <strong>RentSafe AI and its operators accept no liability whatsoever</strong> for any error, omission, financial loss, or legal consequence arising from use of this document.</span>
+        <span style="font-size:13px;line-height:1.5">I accept <strong>full personal responsibility</strong> for any document I serve on a tenant, rely upon, or use in legal proceedings. <strong>NexLet and its operators accept no liability whatsoever</strong> for any error, omission, financial loss, or legal consequence arising from use of this document.</span>
       </label>
       <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer">
         <input type="checkbox" id="ldc_3" style="margin-top:3px;flex-shrink:0;width:16px;height:16px;accent-color:var(--navy)">
@@ -8611,7 +8611,7 @@ function downloadAsPDF() {
 
     // Header
     doc.setFontSize(15); doc.setTextColor(11,30,61);
-    doc.text('RentSafe AI', 16, y);
+    doc.text('NexLet', 16, y);
     doc.setFontSize(9); doc.setTextColor(153,153,153);
     doc.text(title, 45, y);
     doc.setDrawColor(11,30,61);
@@ -8654,7 +8654,7 @@ function downloadAsPDF() {
     doc.line(16, y, W-16, y);
     y += 6;
     doc.setFontSize(7.5); doc.setTextColor(153,153,153);
-    const footer = `Generated by RentSafe AI \u00b7 ${new Date().toLocaleDateString('en-GB')} \u00b7 For reference only \u2014 not legal advice`;
+    const footer = `Generated by NexLet \u00b7 ${new Date().toLocaleDateString('en-GB')} \u00b7 For reference only \u2014 not legal advice`;
     doc.text(footer, 16, y);
     y += 12;
 
@@ -8692,7 +8692,7 @@ function moSendToTenant() {
   ctx.liveContent = liveContent;
   const tenant = D.tenants.find(t => String(t.id) === String(ctx.tenantId));
   const prop = D.properties.find(p => String(p.id) === String(ctx.propId));
-  const defaultSubject = '[RentSafe AI] ' + ctx.templateName + (prop ? ' — ' + prop.address : '');
+  const defaultSubject = '[NexLet] ' + ctx.templateName + (prop ? ' — ' + prop.address : '');
   openMo('Send to Tenant', '✉ Email this document directly to your tenant', `
     <div class="fg"><label>To <span class="req">*</span></label>
       <input type="email" id="send-to" value="${tenant?.email || ''}" placeholder="tenant@example.com">
@@ -8705,7 +8705,7 @@ function moSendToTenant() {
       <div style="background:var(--off);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:12.5px;line-height:1.7;max-height:200px;overflow-y:auto;color:var(--txt)">${liveContent}</div>
     </div>
     <div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--blue)">
-      Sent from: <strong>documents@rentsafeai.co.uk</strong> · A timestamped record will be saved to this tenant's profile
+      Sent from: <strong>documents@nexlet.co.uk</strong> · A timestamped record will be saved to this tenant's profile
     </div>
   `, `<button class="btn" onclick="closeMo()">Cancel</button>
       <button class="btn btn-navy" id="send-btn" onclick="sendEmailNow()">✉ Send email</button>`);
@@ -8727,7 +8727,7 @@ async function sendEmailNow() {
     </div>
     <div style="font-size:13px;line-height:1.8">${(ctx.liveContent || mdToHtml(ctx.rawText)).replace(/var\(--[\w-]+\)/g,'#333')}</div>
     <div style="margin-top:32px;padding-top:14px;border-top:1px solid #eee;font-size:11px;color:#999">
-      Sent via RentSafe AI · documents@rentsafeai.co.uk · This document is for reference only and does not constitute legal advice.
+      Sent via NexLet · documents@nexlet.co.uk · This document is for reference only and does not constitute legal advice.
     </div>
   </div>`;
   try {
@@ -8810,11 +8810,11 @@ function exportAuditTrail(pid) {
   <div class="meta"><strong>Property:</strong> ${p?.address||'—'}, ${p?.city||''} ${p?.postcode||''}<br>
   <strong>Tenant:</strong> ${tenant?.name||'—'} &nbsp;&nbsp; <strong>Email:</strong> ${tenant?.email||'—'}<br>
   <strong>Generated:</strong> ${new Date().toLocaleString('en-GB',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'})}<br>
-  <strong>Reference:</strong> RentSafe AI — Timestamped Compliance Record</div>
-  <p>This document provides a full timestamped record of all communications sent via RentSafe AI for use in legal proceedings, deposit disputes or compliance audits.</p>
+  <strong>Reference:</strong> NexLet — Timestamped Compliance Record</div>
+  <p>This document provides a full timestamped record of all communications sent via NexLet for use in legal proceedings, deposit disputes or compliance audits.</p>
   <table><thead><tr><th>Timestamp</th><th>Document / Event</th><th>Sent to</th><th>Subject</th><th>Status</th></tr></thead>
   <tbody>${rows||'<tr><td colspan="5">No emails logged</td></tr>'}</tbody></table>
-  <p style="margin-top:16px;font-size:10px;color:#999">Generated by RentSafe AI · rentsafeai.co.uk · Records stored securely with full timestamps</p>
+  <p style="margin-top:16px;font-size:10px;color:#999">Generated by NexLet · nexlet.co.uk · Records stored securely with full timestamps</p>
   <script>window.onload=()=>window.print();<\/script>
   </body></html>`;
   const w = window.open('','_blank');
@@ -9375,7 +9375,7 @@ function s8ShowConsent() {
       </label>
       <label style="display:flex;gap:10px;align-items:flex-start;margin-bottom:12px;cursor:pointer">
         <input type="checkbox" id="s8_c2" style="margin-top:3px;flex-shrink:0;width:16px;height:16px;accent-color:var(--navy)">
-        <span style="font-size:13px;line-height:1.5">I accept <strong>full personal responsibility</strong> for the grounds I have selected, the evidence I hold, and any notice I serve. RentSafe AI, its operators and affiliates accept <strong>no liability</strong> for errors, invalid notices, fines (up to <strong>£7,000</strong>), or costs arising from the use of this document.</span>
+        <span style="font-size:13px;line-height:1.5">I accept <strong>full personal responsibility</strong> for the grounds I have selected, the evidence I hold, and any notice I serve. NexLet, its operators and affiliates accept <strong>no liability</strong> for errors, invalid notices, fines (up to <strong>£7,000</strong>), or costs arising from the use of this document.</span>
       </label>
       <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer">
         <input type="checkbox" id="s8_c3" style="margin-top:3px;flex-shrink:0;width:16px;height:16px;accent-color:var(--navy)">
@@ -9442,7 +9442,7 @@ INSTRUCTIONS:
 3. For each ground, include the full legal wording (as required by Form 3A) plus the specific facts stated above.
 4. Calculate and state the notice period and expiry date clearly.
 5. Include a proper signature block at the end.
-6. End with this disclaimer in full: "IMPORTANT: This is a draft particulars statement prepared using RentSafe AI. Before serving, this must be transferred to the official Form 3A available from GOV.UK (published 1 May 2026). This document does not constitute legal advice. The landlord takes full responsibility for serving a valid notice."
+6. End with this disclaimer in full: "IMPORTANT: This is a draft particulars statement prepared using NexLet. Before serving, this must be transferred to the official Form 3A available from GOV.UK (published 1 May 2026). This document does not constitute legal advice. The landlord takes full responsibility for serving a valid notice."
 7. Use plain text formatting. No markdown bold markers in dates or names.`;
 
   try {
@@ -9515,7 +9515,7 @@ function s8DownloadPDF() {
     let y = 18;
 
     doc.setFontSize(15); doc.setTextColor(11,30,61);
-    doc.text('RentSafe AI', 16, y);
+    doc.text('NexLet', 16, y);
     doc.setFontSize(9); doc.setTextColor(153,153,153);
     doc.text(`Section 8 Notice Draft \u2014 ${p?.address||''}`, 45, y);
     doc.setDrawColor(11,30,61);
@@ -9545,7 +9545,7 @@ function s8DownloadPDF() {
     doc.line(16, y, W-16, y);
     y += 6;
     doc.setFontSize(7.5); doc.setTextColor(153,153,153);
-    doc.text(`Generated by RentSafe AI \u00b7 ${new Date().toLocaleDateString('en-GB')} \u00b7 Draft only \u2014 transfer to GOV.UK Form 3A before serving`, 16, y);
+    doc.text(`Generated by NexLet \u00b7 ${new Date().toLocaleDateString('en-GB')} \u00b7 Draft only \u2014 transfer to GOV.UK Form 3A before serving`, 16, y);
 
     doc.save('section8_notice_draft.pdf');
   } catch(e) {
@@ -9567,7 +9567,7 @@ async function s8SendToTenant() {
     </div>
     <pre style="font-family:Georgia,serif;font-size:13px;line-height:1.8;white-space:pre-wrap">${text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
     <div style="margin-top:32px;padding-top:14px;border-top:1px solid #eee;font-size:11px;color:#999">
-      Sent via RentSafe AI · documents@rentsafeai.co.uk · This is a draft. The official Form 3A must also be served in accordance with the Housing Act 1988. Service by email alone may not be sufficient — also serve by first class post.
+      Sent via NexLet · documents@nexlet.co.uk · This is a draft. The official Form 3A must also be served in accordance with the Housing Act 1988. Service by email alone may not be sufficient — also serve by first class post.
     </div>
   </div>`;
 
@@ -9765,7 +9765,7 @@ Keep it under 200 words. Professional but warm. Plain text, no markdown.`;
         <strong>📋 Important:</strong> The official Renters' Rights Act 2025 Information Sheet will be attached to this email or sent separately as a PDF. The official document is available from GOV.UK at: <a href="${PDF_URL}" style="color:#0B1E3D">${PDF_URL}</a>
       </div>
       <div style="margin-top:24px;padding-top:14px;border-top:1px solid #eee;font-size:11px;color:#999">
-        Sent via RentSafe AI · documents@rentsafeai.co.uk
+        Sent via NexLet · documents@nexlet.co.uk
       </div>
     </div>`;
 
@@ -10039,7 +10039,7 @@ async function invDownloadPDF(){
 
     // Header
     doc.setFontSize(15);doc.setTextColor(11,30,61);
-    doc.text('RentSafe AI',16,y);
+    doc.text('NexLet',16,y);
     doc.setFontSize(9);doc.setTextColor(153,153,153);
     doc.text(`${type} \u2014 ${p.address}`,45,y);
     doc.setDrawColor(11,30,61);
@@ -10099,7 +10099,7 @@ async function invDownloadPDF(){
     doc.line(16,y,W-16,y);
     y+=6;
     doc.setFontSize(7.5);doc.setTextColor(153,153,153);
-    const footer=`Generated by RentSafe AI \u00b7 ${new Date().toLocaleDateString('en-GB')} \u00b7 AI-generated \u2014 verify against photos`;
+    const footer=`Generated by NexLet \u00b7 ${new Date().toLocaleDateString('en-GB')} \u00b7 AI-generated \u2014 verify against photos`;
     if(y>278){doc.addPage();y=18;}
     doc.text(footer,16,y);
     doc.save((type.replace(/[^a-z0-9]/gi,'_').toLowerCase())+'.pdf');
@@ -10212,7 +10212,7 @@ async function sendPortalInvite(tenantId) {
       <span style="font-size:17px;font-weight:700;color:#0B1E3D">Rent<span style="color:#00C896">Safe AI</span></span>
     </div>
     <h2 style="font-size:16px;font-weight:600;margin-bottom:8px">You've been invited to your tenant portal</h2>
-    <p style="font-size:13px;color:#7A8FA6;margin-bottom:20px">Hi ${t.name}, your landlord has invited you to manage maintenance requests for <strong>${propAddr}</strong> through RentSafe AI.</p>
+    <p style="font-size:13px;color:#7A8FA6;margin-bottom:20px">Hi ${t.name}, your landlord has invited you to manage maintenance requests for <strong>${propAddr}</strong> through NexLet.</p>
     <p style="font-size:13px;margin-bottom:20px">Click below to set your password and access your portal. This link can only be used once.</p>
     <div style="text-align:center;margin:28px 0">
       <a href="${inviteLink}" style="background:#0B1E3D;color:#fff;padding:13px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;display:inline-block">Access your tenant portal →</a>
@@ -10221,7 +10221,7 @@ async function sendPortalInvite(tenantId) {
     <div style="margin-top:24px;padding:12px 14px;background:#F6F8FB;border-radius:8px;font-size:12px;color:#7A8FA6">
       Through your portal you can: report maintenance issues, track repair progress, and receive completion notifications.
     </div>
-    <div style="margin-top:20px;padding-top:14px;border-top:1px solid #eee;font-size:11px;color:#999">Sent via RentSafe AI · documents@rentsafeai.co.uk</div>
+    <div style="margin-top:20px;padding-top:14px;border-top:1px solid #eee;font-size:11px;color:#999">Sent via NexLet · documents@nexlet.co.uk</div>
   </div>`;
   const emailRes = await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/ai-proxy', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -10490,7 +10490,7 @@ async function _sendEsignRequest(pid, tid, mode) {
     <div style="text-align:center;margin:28px 0"><a href="${signingLink}" style="background:#0B1E3D;color:#fff;padding:13px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;display:inline-block">Review &amp; Sign Document →</a></div>
     <p style="font-size:12px;color:#7A8FA6">Or copy this link: <a href="${signingLink}" style="color:#3B6FE8;word-break:break-all">${signingLink}</a></p>
     <div style="margin-top:20px;background:#FEF3C7;border-radius:8px;padding:12px 14px;font-size:12px;color:#92400E">⏰ This link expires on ${expDate}.</div>
-    <div style="margin-top:20px;padding-top:14px;border-top:1px solid #eee;font-size:11px;color:#999">Sent via RentSafe AI · documents@rentsafeai.co.uk</div>
+    <div style="margin-top:20px;padding-top:14px;border-top:1px solid #eee;font-size:11px;color:#999">Sent via NexLet · documents@nexlet.co.uk</div>
   </div>`;
 
   await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/ai-proxy', {
@@ -10752,7 +10752,7 @@ async function _sendS13() {
           <div style="background:#FFF8F0;border:1px solid #F6AD55;border-radius:8px;padding:12px 14px;font-size:12px;color:#C05621;margin-bottom:16px">
             <strong>Your right to challenge:</strong> If you believe this rent is above market rate, you can refer this notice to the First-tier Tribunal (Property Chamber) before <strong>${eDate}</strong>.
           </div>
-          <p style="font-size:11px;color:#999;margin:0">Sent via RentSafe AI · rentsafeai.co.uk</p>
+          <p style="font-size:11px;color:#999;margin:0">Sent via NexLet · nexlet.co.uk</p>
         </div>
       </div>`;
       await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/ai-proxy', {
@@ -10851,7 +10851,7 @@ async function sendMaintenanceNotify(maintenanceId) {
     <p style="font-size:13px;color:#7A8FA6;margin-bottom:16px">${prop?.address||''}</p>
     <div style="font-size:13px;line-height:1.7;white-space:pre-wrap">${msg}</div>
     <p style="font-size:13px;margin-top:16px">Kind regards,<br><strong>${sig}</strong></p>
-    <div style="font-size:11px;color:#999;margin-top:16px;padding-top:12px;border-top:1px solid #eee">Sent via RentSafe AI · ${new Date().toLocaleString('en-GB')}</div>
+    <div style="font-size:11px;color:#999;margin-top:16px;padding-top:12px;border-top:1px solid #eee">Sent via NexLet · ${new Date().toLocaleString('en-GB')}</div>
   </div>`;
   try {
     await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/ai-proxy',{
@@ -11177,7 +11177,7 @@ async function sendTrialEmail(type) {
   const subjectMap = { day25:'5 days left in your trial', day28:'2 days left', day30:'Last day of your trial', expired:'Your trial has ended' };
   const bodyMap = {
     day25: `Your 30-day free trial ends in 5 days. Upgrade now to lock your founding price.`,
-    day28: `Only 2 days left in your RentSafe AI trial. Choose a plan to keep managing your properties.`,
+    day28: `Only 2 days left in your NexLet trial. Choose a plan to keep managing your properties.`,
     day30: `Today is the last day of your trial. Upgrade now before access is restricted.`,
     expired: `Your trial has ended. Upgrade to a paid plan to restore full access. Your data is safe.`
   };
@@ -11187,7 +11187,7 @@ async function sendTrialEmail(type) {
       body: JSON.stringify({
         type:'send_email', to: currentUser.email,
         subject: subjectMap[type] || 'Trial update',
-        html: `<div style="font-family:sans-serif;max-width:600px"><h2>RentSafe AI</h2><p>${bodyMap[type]}</p><p><a href="https://rentsafeai.co.uk/profile.html">Manage your plan →</a></p><p style="color:#999;font-size:11px">Sent by RentSafe AI</p></div>`
+        html: `<div style="font-family:sans-serif;max-width:600px"><h2>NexLet</h2><p>${bodyMap[type]}</p><p><a href="https://nexlet.co.uk/profile.html">Manage your plan →</a></p><p style="color:#999;font-size:11px">Sent by NexLet</p></div>`
       })
     });
   } catch(e) { /* non-critical */ }
