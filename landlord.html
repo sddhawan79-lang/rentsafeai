@@ -5849,17 +5849,17 @@ async function savePayment(editId) {
 
 /** Writes payment to rent_payments only. Returns { success, error?, data? } */
 async function savePaymentRecord(payload, editId) {
-  const { prop_id, month, amount, due, paid, status, notes } = payload;
-  const dbPayload = { prop_id, month, amount, due_date:due||null, paid_date:paid||null, status, notes };
+  const { prop_id, amount, due, paid, status } = payload;
+  const dp = { prop_id, amount, due_date:due||null, paid_date:paid||null, status };
   try {
     if (editId) {
-      const { error } = await sb.from('rent_payments').update(dbPayload).eq('id', editId);
+      const { error } = await sb.from('rent_payments').update(dp).eq('id', editId);
       if (error) return { success: false, error: error.message };
       const idx = D.rent.findIndex(r => String(r.id) === String(editId));
-      if (idx > -1) D.rent[idx] = { ...D.rent[idx], ...dbPayload };
+      if (idx > -1) D.rent[idx] = { ...D.rent[idx], ...dp };
       return { success: true, data: { id: editId } };
     } else {
-      const { data, error } = await sb.from('rent_payments').insert({ ...dbPayload, user_id: currentUser.id }).select().single();
+      const { data, error } = await sb.from('rent_payments').insert({ ...dp, user_id: currentUser.id }).select().single();
       if (error || !data) return { success: false, error: (error||{}).message || 'No data returned' };
       D.rent.unshift(data);
       return { success: true, data };

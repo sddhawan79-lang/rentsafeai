@@ -122,6 +122,7 @@ rentsafeai/
 ├── session13_inventory_reports.sql  SQL migration: Session 13 (inventory_reports table + RLS for report persistence)
 ├── session14_tenant_checklist.sql   SQL migration: Session 14 (compliance_checklist JSONB column on tenants)
 ├── session14_trial_fields.sql       SQL migration: Session 14 (trial fields on user_profiles — trial_started_at, trial_expires_at, plan, plan_activated_at)
+├── session14_rent_payments.sql       SQL migration: Session 14 (rent_payments table + RLS + ALTER COLUMN month/notes)
 ├── SPRINT10_DEPLOY.md              Sprint 10 deployment guide
 ├── PROJECT_KNOWLEDGE.md            THIS FILE — agent initialization reference
 ├── fix.b64                         Binary patch (base64 encoded)
@@ -1457,11 +1458,13 @@ When **touching any of these files for a new feature or bug fix**, follow this p
 
 #### Payment Save Refactor (May 2026)
 - **`savePayment()`** refactored into 3 functions:
-  - `savePaymentRecord(payload, editId)` — writes to `rent_payments` only, returns `{success, error, data}`. Wrapped in try/catch. On failure: error inline, modal stays open, button re-enabled for retry.
+  - `savePaymentRecord(payload, editId)` — writes to `rent_payments` only using columns: `prop_id`, `amount`, `due_date`, `paid_date`, `status`, `user_id`. Returns `{success, error, data}`. Wrapped in try/catch. On failure: error inline, modal stays open, button re-enabled for retry.
   - `sendPaymentReceipt({prop_id, month, amount, paid, ...})` — fire-and-forget email. Sent after `closeMo()`. Failures logged via `_logError` but never block save or close.
   - `savePayment(editId)` — orchestrator: disables button → shows "Saving..." → calls `savePaymentRecord` → on success shows "✓ Payment recorded" → closes modal → fires `sendPaymentReceipt` in background.
 - **`markRentReceived()`** wrapped in try/catch. Console.log calls removed, replaced with `_logError` behind debug flag.
+- **Column fix:** `month` and `notes` columns removed from DB payload until SQL migration (`session14_rent_payments.sql`) is run, which adds them via `ALTER TABLE ADD COLUMN IF NOT EXISTS`.
 - **No plan gating** in either function — payment recording works for all tiers.
+- **Known issue #22 fixed** — `session14_rent_payments.sql` created with full table schema + RLS.
 
 ---
 
