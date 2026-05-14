@@ -1500,6 +1500,12 @@ When **touching any of these files for a new feature or bug fix**, follow this p
 - **`redirectToCheckout(plan)`** added after `showUpgradeWall()` — calls Supabase edge function `create-checkout-session` with plan, billing cycle, founding member flag. On success redirects to Stripe-hosted checkout. On error shows toast.
 - **Upgrade URL params** handled via async IIFE after `initApp()` call — reads `?upgrade=success` or `?upgrade=cancelled` from URL. On success: reloads profile from `user_profiles`, toasts "Plan activated", cleans URL via `history.replaceState`.
 
+#### Null Profile + Trial Upsert Fixes (May 2026)
+- **`canAccess()` fixed:** `!profile` now returns `true` (full access) instead of `false` — prevents blank "undefined" pages on rent tracker and insurance when profile hasn't loaded yet.
+- **`canAddProperty()` fixed:** Added null check for `profile.trial_ends_at` before `new Date()` comparison.
+- **Trial upsert removed** from `initApp()` — Supabase `user_profiles` table lacks `trial_started_at`/`trial_expires_at`/`plan` columns, causing 400 Bad Request on every page load. Trial state is now entirely in-memory via stubs + inline setup.
+- **`inventory_reports` 404:** Expected — table doesn't exist yet (`session13_inventory_reports.sql` not run). Wrapped in try/catch, non-critical.
+
 ---
 
 ### How the Payment Flow Works

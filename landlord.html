@@ -1046,10 +1046,9 @@ async function initApp() {
     const hasExpired = plan === 'trial' && expiresAt && now >= expiresAt;
     _trialState = { isTrialing, daysLeft, hasExpired, plan, expiresAt };
 
-    // Set trial if not started
+    // Set trial if not started (silent — columns may not exist yet)
     if (up && !up.trial_expires_at) {
       const expiry = new Date(now + 30*864e5);
-      sb.from('user_profiles').upsert({ id: currentUser.id, trial_started_at: new Date().toISOString(), trial_expires_at: expiry.toISOString(), plan:'trial' }, { onConflict:'id' }).then(() => {}).catch(() => {});
       D.userProfile = { ...up, trial_started_at: new Date().toISOString(), trial_expires_at: expiry.toISOString(), plan:'trial' };
       _trialState = { isTrialing:true, daysLeft:30, hasExpired:false, plan:'trial', expiresAt:expiry.getTime() };
     }
