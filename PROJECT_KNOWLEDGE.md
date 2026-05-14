@@ -1482,20 +1482,20 @@ When **touching any of these files for a new feature or bug fix**, follow this p
 
 > **Architecture:** Stripe Checkout (hosted). No Stripe.js SDK needed on the frontend.
 > The browser is redirected to Stripe's own payment page, then back to `profile.html`.
-#### Rent Tracker Rebuild (May 2026)
-- **`pgRent()`** completely rebuilt — per-property card layout replacing flat table
-  - Each card shows: property address, lead tenant name, rent amount, due day, collected/outstanding totals
-  - Auto-generates missing rent schedule records from tenant `rent` + `rent_day` on page load
-  - Monthly rows with status: Paid (green), Due (amber), Late (red with days count), Upcoming
-  - One-click "Mark paid" button per row → `markRentPaid()` inserts to `rent_payments`
-  - Property filter dropdown in topbar — narrows to one property
-  - Top summary metrics: Expected this month, Collected (with %), Overdue (with late count)
-- **`savePaymentRecord`** updated — auto-looks up lead tenant via `is_lead` flag, sets `tenant_id` on insert
-- **`markRentPaid()`** added — handles both existing records (update) and auto-generated placeholders (insert), resolves lead tenant for amount
-- **SQL:** `session14_rent_payments.sql` updated — adds `tenant_id` FK, indexes on `prop_id` + `tenant_id`
-- **Already existed:** Late rent detection (day 1/3/7 emails via `checkAllReminders` §8). Calendar wiring (`getCalEvents` generates 6-month rent due entries). MTD finance (`pgFinancials` reads `D.rent` for P&L).
+---
 
-#### Profile Loading + Stripe Checkout + Upgrade Flow (May 2026)
+#### Rent Tracker UX Redesign (May 2026)
+- **Collapsed cards:** Click to expand — ▶ arrow rotates 90°. Default collapsed, late properties auto-expand.
+- **Monthly pills:** Horizontal color-coded pills (green paid / red late / grey due) replace dense vertical table.
+- **Month selector:** Current month / Last 3 months / All time dropdown.
+- **Vacant properties:** Shown at reduced opacity with "+ Re-let" button → `moTenant(pid)`.
+- **Published filter:** Only properties with active tenancies or rent history appear. Vacant shown separately.
+- **`markRentPaid()` / `savePaymentRecord` / `tenant_id` / calendar + MTD wiring** — all existing from previous build.
+- **End tenancy** via `moEndTenancy` → `_endTenancy` (status → 'Ended', archived). Re-let via `moTenant(pid)`.
+
+---
+
+## 14. Stripe Integration Guide
 - **`window.currentUserProfile`** set in `initApp()` after `loadData()` — populated from `D.userProfile` (Supabase `user_profiles` table). Trial expiry + lapsed subscription check triggers `showUpgradeWall` on load if applicable.
 - **`redirectToCheckout(plan)`** added after `showUpgradeWall()` — calls Supabase edge function `create-checkout-session` with plan, billing cycle, founding member flag. On success redirects to Stripe-hosted checkout. On error shows toast.
 - **Upgrade URL params** handled via async IIFE after `initApp()` call — reads `?upgrade=success` or `?upgrade=cancelled` from URL. On success: reloads profile from `user_profiles`, toasts "Plan activated", cleans URL via `history.replaceState`.
