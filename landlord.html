@@ -559,6 +559,25 @@ function showUpgradeWall(reason) {
   document.getElementById('uw-body').textContent  = m.body;
   document.getElementById('upgrade-wall').style.display = 'flex';
 }
+async function redirectToCheckout(plan) {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return;
+    const profile = window.currentUserProfile;
+    const isFounding = !(profile?.founding_member) && true;
+    const billingCycle = 'monthly';
+    const res = await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/create-checkout-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      body: JSON.stringify({ plan, billing_cycle: billingCycle, is_founding: isFounding })
+    });
+    const { url, error } = await res.json();
+    if (error) throw new Error(error);
+    window.location.href = url;
+  } catch(err) {
+    toast('Could not start checkout — please try again.', true);
+  }
+}
 // ─────────────────────────────────────────────────────────────────
 
 // ══════════════════════════════════════════════════════════════
@@ -1000,6 +1019,20 @@ async function initApp() {
   document.getElementById('th-av').textContent = email.slice(0,2).toUpperCase();
 
   try { await loadData(); } catch(e) { _logError('loadData', e); }
+
+  // Populate window.currentUserProfile for plan gates
+  window.currentUserProfile = D.userProfile;
+
+  // Trial expiry check on load
+  if (window.currentUserProfile) {
+    const plan = window.currentUserProfile.plan || 'trial';
+    const status = window.currentUserProfile.plan_status || 'active';
+    if (plan === 'trial' && new Date() > new Date(window.currentUserProfile.trial_ends_at)) {
+      showUpgradeWall('trial_expired');
+    } else if (['canceled','expired'].includes(status)) {
+      showUpgradeWall('lapsed');
+    }
+  }
 
   // ── TRIAL RESOLUTION (inline — avoids hoisting issues) ──
   (function(){
@@ -11458,6 +11491,23 @@ document.querySelectorAll('.sb-item[data-page]').forEach(btn => {
   btn.addEventListener('click', () => { closeMobSidebar(); nav(btn.dataset.page); });
 });
 initApp();
+
+// Handle Stripe checkout redirect params
+(async function(){
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('upgrade') === 'success') {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      const { data: profile } = await sb.from('user_profiles').select('*').eq('id', session.user.id).maybeSingle();
+      if (profile) window.currentUserProfile = profile;
+    }
+    toast('Plan activated — welcome to NexLet!');
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+  if (urlParams.get('upgrade') === 'cancelled') {
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+})();
 </script>
 
 <!-- COOKIE BANNER -->

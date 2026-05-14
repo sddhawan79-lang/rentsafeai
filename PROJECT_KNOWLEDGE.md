@@ -1495,6 +1495,11 @@ When **touching any of these files for a new feature or bug fix**, follow this p
 - **SQL:** `session14_rent_payments.sql` updated — adds `tenant_id` FK, indexes on `prop_id` + `tenant_id`
 - **Already existed:** Late rent detection (day 1/3/7 emails via `checkAllReminders` §8). Calendar wiring (`getCalEvents` generates 6-month rent due entries). MTD finance (`pgFinancials` reads `D.rent` for P&L).
 
+#### Profile Loading + Stripe Checkout + Upgrade Flow (May 2026)
+- **`window.currentUserProfile`** set in `initApp()` after `loadData()` — populated from `D.userProfile` (Supabase `user_profiles` table). Trial expiry + lapsed subscription check triggers `showUpgradeWall` on load if applicable.
+- **`redirectToCheckout(plan)`** added after `showUpgradeWall()` — calls Supabase edge function `create-checkout-session` with plan, billing cycle, founding member flag. On success redirects to Stripe-hosted checkout. On error shows toast.
+- **Upgrade URL params** handled via async IIFE after `initApp()` call — reads `?upgrade=success` or `?upgrade=cancelled` from URL. On success: reloads profile from `user_profiles`, toasts "Plan activated", cleans URL via `history.replaceState`.
+
 ---
 
 ### How the Payment Flow Works
