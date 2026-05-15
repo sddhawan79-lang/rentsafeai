@@ -32,7 +32,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 const STRIPE_SECRET_KEY   = Deno.env.get('STRIPE_SECRET_KEY')!;
 const SUPABASE_URL        = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const BASE_URL            = 'https://rentsafeai.co.uk';
+const BASE_URL            = 'https://nexlet.co.uk';
 
 /** Maps plan slug → Stripe Price ID (set via Supabase secrets) */
 const PRICE_IDS: Record<string, string> = {
@@ -44,6 +44,7 @@ const PRICE_IDS: Record<string, string> = {
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin':  '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 // ── STRIPE CLIENT ────────────────────────────────────────────────────────────

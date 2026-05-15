@@ -396,6 +396,8 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
 - **Trigger:** HTTP POST from `js/profile.js` via `supabase.functions.invoke('stripe-checkout', { body: { plan } })`
 - **Request body:** `{ plan: 'starter' | 'landlord' | 'portfolio' }`
 - **Response:** `{ url: 'https://checkout.stripe.com/pay/...' }` — frontend redirects to this URL
+- **CORS:** Full headers with `Access-Control-Allow-Origin: *`, `Access-Control-Allow-Headers`, `Access-Control-Allow-Methods: POST, OPTIONS`
+- **BASE_URL:** `https://nexlet.co.uk` (updated from `rentsafeai.co.uk` Session 15)
 - **Full details:** See [Section 14](#14-stripe-integration-guide)
 
 #### `stripe-webhook` (Sprint 13)
@@ -1480,6 +1482,13 @@ When **touching any of these files for a new feature or bug fix**, follow this p
 - **Column fix:** `month` and `notes` columns removed from DB payload until SQL migration (`session14_rent_payments.sql`) is run, which adds them via `ALTER TABLE ADD COLUMN IF NOT EXISTS`.
 - **No plan gating** in either function — payment recording works for all tiers.
 - **Known issue #22 fixed** — `session14_rent_payments.sql` created with full table schema + RLS.
+
+### Session 15 — May 2026 — Stripe Checkout Fixes
+**Date:** May 2026
+- **`stripe-checkout-index.ts:35`** — BASE_URL corrected from `https://rentsafeai.co.uk` to `https://nexlet.co.uk` (post-rebrand fix). The old domain would redirect users to the wrong URL after Stripe checkout.
+- **`stripe-checkout-index.ts:44`** — CORS headers fixed: added `Access-Control-Allow-Methods: POST, OPTIONS` to resolve "Cross-Origin Request Blocked" error when the browser sends a preflight request to the edge function.
+- **Pending:** `stripe-checkout` edge function still needs to be deployed (`supabase/functions/stripe-checkout/` directory does not exist yet). The deploy steps are fully documented in Section 14.
+- **Note:** `stripe-webhook-index.ts` does not need a BASE_URL (it's a webhook receiver, not a session creator).
 
 ---
 
