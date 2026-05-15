@@ -125,12 +125,13 @@ rentsafeai/
 ├── session10_multi_doc.sql          SQL migration: Session 10 (multi-doc KYC — drop slot unique, add columns)
 ├── session10_tenants_columns.sql    SQL migration: Session 10 (add missing tenants columns — rtr, rent_day, scheme_ref, etc.)
 ├── session10_esign_requests.sql     SQL migration: Session 10 (esign_requests table + RLS)
-├── session13_inventory_reports.sql  SQL migration: Session 13 (inventory_reports table + RLS for report persistence)
-├── session14_tenant_checklist.sql   SQL migration: Session 14 (compliance_checklist JSONB column on tenants)
-├── session14_trial_fields.sql       SQL migration: Session 14 (trial fields on user_profiles — trial_started_at, trial_expires_at, plan, plan_activated_at)
-├── session14_rent_payments.sql       SQL migration: Session 14 (rent_payments table + RLS + ALTER COLUMN month/notes)
+├── session11_feedback_table.sql     SQL migration: Session 11 (user_feedback table)
+├── session11_landlord_sig.sql       SQL migration: Session 11 (landlord signature columns on esign_requests)
+├── sprint11_feedback_table.sql      SQL migration: Sprint 11 (feedback table — alternate name)
+├── sprint13_db.sql                  SQL migration: Sprint 13 (user_profiles, stripe_subscriptions)
 ├── SPRINT10_DEPLOY.md              Sprint 10 deployment guide
 ├── PROJECT_KNOWLEDGE.md            THIS FILE — agent initialization reference
+├── fix.py                          Python patching script (landlord.html fixes)
 ├── fix.b64                         Binary patch (base64 encoded)
 └── fix.patch                       Git patch file
 ```
@@ -305,7 +306,7 @@ Deduplication table for all outgoing alerts.
 | `audit_log` | Action audit trail (`action`, `table_name`, `record_id`, `details`) |
 | `checklist_progress` | Inspection checklist state per property |
 | `meter_readings` | Gas/electric meter readings |
-| `esign_requests` | E-signature requests with `token` for tenant portal |
+| `esign_requests` | E-signature requests with `token` for tenant portal. **Requires `session10_esign_requests.sql` + `session11_landlord_sig.sql` migrations.** |
 | `tenant_documents` | Tenant KYC documents — passport, RTR, address proofs, references, guarantor. **Multiple docs per slot** (unique index removed Session 10). AI-scanned via Claude with `issuing_authority` + `doc_type_extracted` fields. **Requires `session7_tenant_documents.sql` + `session10_multi_doc.sql` migrations + `tenant-documents` Storage bucket.** |
 
 ### MTD Tables (from `mtd_tables.sql`)
@@ -497,6 +498,10 @@ All migrations run manually in **Supabase → SQL Editor** (no automated migrati
 | `session7_tenant_documents.sql` | Creates `tenant_documents` table with RLS | Independent |
 | `session10_multi_doc.sql` | Drops `tenant_documents_slot_unique` index; adds `issuing_authority`, `doc_type_extracted` columns | Already run |
 | `session10_tenants_columns.sql` | Adds 13 missing columns to `tenants`: `type`, `rent_day`, `scheme_ref`, `rtr_*` (6), `addr_proof_*` (2), `is_lead`, `invite_used` | Run now |
+| `session11_landlord_sig.sql` | Adds landlord signature columns to `esign_requests`: `landlord_name`, `landlord_signed_at`, `landlord_sig_png` | Independent |
+| `session11_feedback_table.sql` / `sprint11_feedback_table.sql` | Creates `user_feedback` table for in-app feedback | Independent |
+
+> **Note:** `session14_tenant_checklist.sql`, `session14_trial_fields.sql`, `session14_rent_payments.sql`, and `session13_inventory_reports.sql` are referenced in the change log below but do not yet exist as files in the repo. They must be created before the corresponding DB features can be deployed.
 
 **Service role key location:** Supabase → Settings → API → `service_role` (secret key)
 
@@ -635,7 +640,7 @@ Session 8 introduced a 3-checkbox pre-generation consent gate for 4 legal docume
 | 19 | Property detail tabs unresponsive | Property detail | **FIXED Session 9** |
 | 20 | Generated document output shrunk to 360px | Document gen | **FIXED Session 9** |
 | 21 | Calendar "Mark received" parsed rent amount from display label | Calendar | **FIXED Session 9** |
-| 22 | `rent_payments` table has no SQL migration file in repo | Database docs | **FIXED** — `session14_rent_payments.sql` created |
+| 22 | `rent_payments` table has no SQL migration file in repo | Database docs | **PARTIAL** — table exists in DB but `session14_rent_payments.sql` not yet committed to repo |
 | 23 | Inventory report: file input destroyed by `innerHTML` replacement | Inventory | **FIXED Session 9** |
 | 24 | No subscription plan gating | Architecture | **FIXED Session 9** |
 | 25 | S8_GROUNDS had 31 entries, comment said "37" | Documentation | **FIXED Session 13** — expanded to 38 grounds, all comments updated |
@@ -650,6 +655,9 @@ Session 8 introduced a 3-checkbox pre-generation consent gate for 4 legal docume
 | 34 | No compliance checklist per tenant | Feature gap | **FIXED Session 14** — RAG checklist with 5 items, expandable accordion, JSONB persistence |
 | 35 | No free trial system — all users defaulted to portfolio | Feature gap | **FIXED Session 14** — 30-day trial with expiry popup, banner, indicator, email triggers |
 | 36 | No plan gating on inventory-reports page | Plan gating | **FIXED Session 14** — `nav()` now gates `inventory-reports` for non-Portfolio users |
+| 37 | `session13_inventory_reports.sql` referenced in change log but not committed to repo | Database docs | Pending — file must be created |
+| 38 | `session14_tenant_checklist.sql` referenced in change log but not committed to repo | Database docs | Pending — file must be created |
+| 39 | `session14_trial_fields.sql` referenced in change log but not committed to repo | Database docs | Pending — file must be created |
 
 ---
 
@@ -1329,6 +1337,7 @@ When **touching any of these files for a new feature or bug fix**, follow this p
 - **`C:\Dev\rentsafeai\session_archive.sql`** — DB migration for archived tenants + account soft-delete
 - **`C:\Dev\rentsafeai\sprint10_fix_cron_key.sql`** — re-creates pg_cron jobs with real service role key
 - **`C:\Dev\rentsafeai\supabase\functions\email-alerts\`** — deployed edge function directory
+- **`session11_landlord_sig.sql`** — adds landlord signature columns to `esign_requests` table (run in Supabase SQL Editor)
 
 ---
 
