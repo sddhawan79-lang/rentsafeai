@@ -3786,18 +3786,19 @@ function buildRentSchedule(pid) {
 async function markRentReceived(pid, monthLabel, dueDateStr, amount) {
   const today = new Date().toISOString().slice(0, 10);
   try {
+    const lead = D.tenants.find(t => String(t.prop_id) === String(pid) && t.is_lead && t.status === 'Active');
     const existing = D.rent.find(r =>
       String(r.prop_id) === String(pid) &&
       r.due_date && r.due_date.slice(0,7) === dueDateStr.slice(0,7)
     );
     if (existing) {
-      const {error} = await sb.from('rent_payments').update({status:'Paid', paid_date:today}).eq('id', existing.id);
+      const {error} = await sb.from('rent_payments').update({status:'Paid', paid_date:today, month:monthLabel}).eq('id', existing.id);
       if (error) { toast('Error saving — ' + error.message, true); return; }
-      existing.status = 'Paid'; existing.paid_date = today; existing.paid = today;
+      existing.status = 'Paid'; existing.paid_date = today; existing.paid = today; existing.month = monthLabel;
     } else {
       const payload = {
-        prop_id: String(pid), user_id: currentUser.id,
-        due_date: dueDateStr,
+        prop_id: String(pid), tenant_id: lead?.id || null, user_id: currentUser.id,
+        month: monthLabel, due_date: dueDateStr,
         amount: parseFloat(amount) || 0, status: 'Paid', paid_date: today
       };
       const {data, error} = await sb.from('rent_payments').insert(payload).select().single();
@@ -6005,11 +6006,12 @@ function pgRent(){
 async function markRentPaid(idOrPid, dueDate) {
   const rec = D.rent.find(r => String(r.id) === String(idOrPid));
   const today = new Date().toISOString().slice(0,10);
+  const monthLabel = rec?.month || (rec?.due_date ? new Date(rec.due_date).toLocaleString('en-GB',{month:'long',year:'numeric'}) : null);
   try {
     if (rec && !rec._auto) {
-      const { error } = await sb.from('rent_payments').update({ status:'Paid', paid_date:today }).eq('id', rec.id);
+      const { error } = await sb.from('rent_payments').update({ status:'Paid', paid_date:today, month:monthLabel }).eq('id', rec.id);
       if (error) { toast('Error: ' + error.message, true); return; }
-      rec.status = 'Paid'; rec.paid_date = today;
+      rec.status = 'Paid'; rec.paid_date = today; if (monthLabel) rec.month = monthLabel;
     } else {
       // Auto-generated record or by due_date — insert new
       const prop_id = rec?.prop_id || idOrPid;
@@ -6017,7 +6019,7 @@ async function markRentPaid(idOrPid, dueDate) {
       const lead = D.tenants.find(t => String(t.prop_id) === String(prop_id) && t.is_lead && t.status === 'Active');
       const { data, error } = await sb.from('rent_payments').insert({
         prop_id: String(prop_id), tenant_id: lead?.id || null, user_id: currentUser.id,
-        amount, due_date: rec?.due_date || dueDate, status: 'Paid', paid_date: today
+        month: monthLabel, amount, due_date: rec?.due_date || dueDate, status: 'Paid', paid_date: today
       }).select().single();
       if (error) { toast('Error: ' + error.message, true); return; }
       // Remove auto placeholder, add real record
@@ -6102,10 +6104,10 @@ async function savePayment(editId) {
 
 /** Writes payment to rent_payments only. Returns { success, error?, data? } */
 async function savePaymentRecord(payload, editId) {
-  const { prop_id, amount, due, paid, status } = payload;
+  const { prop_id, month, amount, due, paid, status, notes } = payload;
   // Auto-lookup lead tenant for this property
   const lead = D.tenants.find(t => String(t.prop_id) === String(prop_id) && t.is_lead && t.status === 'Active');
-  const dp = { prop_id, amount, due_date:due||null, paid_date:paid||null, status, tenant_id: lead?.id || null };
+  const dp = { prop_id, month: month||null, amount, due_date:due||null, paid_date:paid||null, status, notes: notes||null, tenant_id: lead?.id || null };
   try {
     if (editId) {
       const { error } = await sb.from('rent_payments').update(dp).eq('id', editId);
