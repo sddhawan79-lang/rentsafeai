@@ -535,7 +535,7 @@ All migrations run manually in **Supabase → SQL Editor** (no automated migrati
 - Returns 0–100 rounded to 1 decimal place
 
 ### Section 8 Notice Generator (`moSection8()` in `landlord.html`)
-- All RRA 2025 grounds (31 grounds, Housing Act 1988 Schedule 2 as amended 1 May 2026)
+- All RRA 2025 grounds (38 grounds, Housing Act 1988 Schedule 2 as amended 1 May 2026)
 - Mandatory (`s8-badge-m`) vs Discretionary (`s8-badge-d`) classification
 - 5-step wizard: pre-conditions → reason/category → ground selection → notice details → review
 - Auto-calculates notice periods and court filing dates
@@ -571,8 +571,10 @@ All migrations run manually in **Supabase → SQL Editor** (no automated migrati
 
 The `user_profiles` row is queried by `currentUser.id` via `.maybeSingle()` and stored in `D.userProfile`. Use the `_profileName()` helper (not raw `email.split('@')[0]`) for all landlord name references in AI prompts and legal documents — it resolves `full_name` from the profile, falling back to email username.
 
-### Subscription Plan Gating (Session 9)
-**Plan resolution:** `stripe_subscriptions.plan_name` queried on startup via `loadData()`. Falls back to `'portfolio'` if no row exists (grandfathers existing users). Plan stored in `window._userPlan`.
+### Subscription Plan Gating (Session 9 → Simplified May 2026)
+**Trial state:** All trial functions stubbed to always return full access (`isTrialActive() → true`, `isTrialExpired() → false`, `trialDaysLeft() → 30`). `getTrialState()` returns a safe full-access state with both old (`isTrialing`, `daysLeft`) and new (`isExpired`, `daysRemaining`) key shapes preserved.
+
+**Plan resolution:** `stripe_subscriptions.plan_name` queried on startup via `loadData()`. Falls back to `'trial'` if no row exists. Trial users get full Portfolio access via `effectivePlan()`.
 
 | Plan | Property limit | Features gated |
 |---|---|---|
@@ -580,12 +582,9 @@ The `user_profiles` row is queried by `currentUser.id` via `.maybeSingle()` and 
 | Landlord | 10 | Starter + bulk gen, portfolio health, audit log, rent tracking, insurance. NO MTD Tax, NO AI Inventory, NO Custom Templates. |
 | Portfolio | Unlimited | All features including MTD Tax, AI Inventory Report, Custom Templates. |
 
-**Enforcement:**
-- `nav()` intercepts restricted page routes (`mtd`, `financials`, `rent`, `insurance`, `contractors`) and shows `upgradePrompt()` modal with link to `profile.html`
-- `moAddProp()` blocks property creation at plan limit with upgrade prompt
-- MTD Tax sidebar item shows "PRO" badge for non-Portfolio users, opens upgrade prompt on click
-- Inventory Report banner hidden entirely from property detail page for non-Portfolio users
-- Plan helpers: `getUserPlan()`, `isPortfolio()`, `isLandlordOrAbove()`, `isStarter()`, `getPropLimit()`, `upgradePrompt(feature, targetPlan)`
+**Gating removed from landlord.html (May 2026):** The `PLAN_FEATURES`, `canAccess()`, `canAddProperty()`, `showUpgradeWall()`, and `upgrade-wall` HTML were removed during a git merge. The `redirectToCheckout()` function was recreated with a Stripe checkout fallback (redirects to `profile.html` on failure). Trial modals use `btn-navy btn-sm` for consistent button styling.
+
+**Active plan helpers:** `getUserPlan()`, `isPortfolio()`, `isLandlordOrAbove()`, `isStarter()`, `getPropLimit()`, `upgradePrompt(feature, targetPlan)`, `redirectToCheckout(plan)`.
 
 ### AI Chat Assistant (`sendChat()` in `landlord.html`)
 - Powered by Claude via `ai-proxy` edge function (replaced `super-processor` — Session 6)
@@ -1462,8 +1461,8 @@ When **touching any of these files for a new feature or bug fix**, follow this p
 
 #### Modified Functions (Session 14)
 - **`getUserPlan()`** — stubbed to `return 'trial'` (prevents reference errors from `effectivePlan` hoisting issue)
-- **`isPortfolio()`** — stubbed to `return true` (full access during development)
-- **`isLandlordOrAbove()`** — stubbed to `return true`
+- **`isPortfolio()`** — now plan-gated: `return getUserPlan()==='portfolio'||getUserPlan()==='pro'` (May 2026)
+- **`isLandlordOrAbove()`** — stubbed to `return true` (full access during development)
 - **`applyPlanGating()`** — stubbed to `return` (no-op, prevents DOM errors)
 - `getPropLimit()` — returns 0 for expired trial
 - `nav()` — adds expired trial block + `inventory-reports` gating (was missing)
@@ -1482,6 +1481,16 @@ When **touching any of these files for a new feature or bug fix**, follow this p
 - **Column fix:** `month` and `notes` columns removed from DB payload until SQL migration (`session14_rent_payments.sql`) is run, which adds them via `ALTER TABLE ADD COLUMN IF NOT EXISTS`.
 - **No plan gating** in either function — payment recording works for all tiers.
 - **Known issue #22 fixed** — `session14_rent_payments.sql` created with full table schema + RLS.
+
+### Session 16 — 16 May 2026 — Rebrand Completion & Colour Fixes
+**Date:** 16 May 2026
+- **Rebrand complete:** All remaining `RentSafeAI`, `RentSafe AI`, `rentsafeai.co.uk`, `documents@rentsafeai.co.uk` references purged from active files: `landlord.html`, `js/esign-content.js`, `email-alerts-index.ts`, `supabase/functions/email-alerts/index.ts`, `stripe-checkout-index.ts`, `supabase/functions/ai-proxy/index.ts`.
+- **`RENTSAFE_DEBUG` → `NEXLET_DEBUG`** variable renamed in `landlord.html`.
+- **Colour CSS refactor:** `--navy` changed from teal `#2D6A6A` to `#0B1E3D`, `--navy-mid` from `#1F4D4D` to `#162F5C`. All hardcoded `#00C896` → `var(--green)`, all `rgba(0,200,150,*)` → `var(--green-bg)`. Sidebar, buttons, and nav now use consistent navy blue.
+- **Git remote:** Updated from `rentsafeai.git` to `nexlet.git`.
+- **Merge resolution:** 5 git conflicts in `landlord.html` resolved — plan gates removed (matched remote), `markRentPaid()` and `tenant_id` auto-lookup preserved, upgrade-wall HTML removed.
+- **`js/profile.js`** restored from remote after accidental overwrite — developer's Stripe work preserved.
+- **Edge functions:** `email-alerts/index.ts` and `ai-proxy/index.ts` rebranded — require redeployment to Supabase for live email changes to take effect.
 
 ### Session 15 — May 2026 — Stripe Checkout Fixes & Deploy
 **Date:** 15 May 2026
