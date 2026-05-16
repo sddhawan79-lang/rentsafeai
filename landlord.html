@@ -902,7 +902,7 @@ async function loadData() {
 }
 
 // ── PLAN GATING HELPERS ──
-function getUserPlan(){ return 'trial'; }
+function getUserPlan(){ return window._userPlan || 'trial'; }
 function isPortfolio(){ return getUserPlan()==='portfolio'||getUserPlan()==='pro'; }
 function isLandlordOrAbove(){ return true; }
 function isStarter(){ return getUserPlan()==='starter'; }
