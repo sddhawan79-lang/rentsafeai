@@ -10,7 +10,7 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --navy:#2D6A6A;--navy-mid:#1F4D4D;
+  --navy:#0B1E3D;--navy-mid:#162F5C;
   --green:#E8923A;--green-dark:#B86E20;--green-bg:rgba(232,146,58,0.1);
   --blue:#3B6FE8;--blue-bg:rgba(59,111,232,0.09);
   --red:#E53E3E;--red-bg:rgba(229,62,62,0.09);
@@ -33,7 +33,7 @@ html,body{height:100%;font-family:var(--font);color:var(--txt);background:var(--
 .sb-nav::-webkit-scrollbar{display:none}
 .sb-item{display:flex;align-items:center;gap:11px;padding:10px 16px;font-size:13px;font-weight:500;color:rgba(255,255,255,0.5);cursor:pointer;border:none;background:none;font-family:var(--font);width:100%;text-align:left;transition:all .18s;position:relative}
 .sb-item:hover{color:#fff;background:rgba(255,255,255,0.07)}
-.sb-item.active{color:#fff;background:rgba(0,200,150,0.12)}
+.sb-item.active{color:#fff;background:var(--green-bg)}
 .sb-item.active::before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:3px;background:var(--green);border-radius:0 3px 3px 0}
 .sb-icon{width:17px;height:17px;flex-shrink:0;transition:transform .3s cubic-bezier(.34,1.56,.64,1);opacity:.6}
 .sb-item:hover .sb-icon{opacity:1;transform:scale(1.18) rotate(6deg)}
@@ -48,14 +48,14 @@ html,body{height:100%;font-family:var(--font);color:var(--txt);background:var(--
 .sb-chev.closed{transform:rotate(-90deg)}
 .sb-group-body{overflow:hidden;transition:max-height .25s ease}
 .sb-item[data-page="assistant"]{color:rgba(0,200,150,0.75)}
-.sb-item[data-page="assistant"]:hover{color:var(--green);background:rgba(0,200,150,0.1)}
+.sb-item[data-page="assistant"]:hover{color:var(--green);background:var(--green-bg)}
 .sb-item[data-page="assistant"].active{color:var(--green)}
 .sb-item[data-page="assistant"] .sb-icon{color:var(--green)}
 .sb-footer{padding:14px 16px;border-top:1px solid rgba(255,255,255,0.08)}
 .sb-user{display:flex;align-items:center;gap:10px}
 .sb-profile-link{display:flex;align-items:center;gap:10px;flex:1;min-width:0;text-decoration:none;border-radius:6px;padding:3px 5px;margin:-3px -5px;transition:background .15s}
 .sb-profile-link:hover{background:rgba(255,255,255,0.07)}
-.sb-avatar{width:30px;height:30px;border-radius:50%;background:rgba(0,200,150,0.2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--green);flex-shrink:0}
+.sb-avatar{width:30px;height:30px;border-radius:50%;background:var(--green-bg);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--green);flex-shrink:0}
 .sb-username{font-size:12px;color:rgba(255,255,255,0.5);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sb-logout{font-size:11px;color:rgba(255,255,255,0.3);background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;transition:color .15s}
 .sb-logout:hover{color:rgba(255,255,255,0.7)}
@@ -193,8 +193,8 @@ tr:hover td{background:rgba(246,248,251,.8)}
 .scan-ic{font-size:28px;margin-bottom:8px}
 .scan-t{font-size:13px;font-weight:600;color:var(--txt);margin-bottom:3px}
 .scan-s{font-size:12px;color:var(--muted)}
-.scan-badge{display:inline-flex;align-items:center;gap:5px;background:var(--green-bg);color:var(--green-dark);border:1px solid rgba(0,200,150,0.2);font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px;margin-top:8px}
-.ai-res{background:var(--off);border:1px solid rgba(0,200,150,0.25);border-radius:8px;padding:14px;margin-bottom:14px;display:none}
+.scan-badge{display:inline-flex;align-items:center;gap:5px;background:var(--green-bg);color:var(--green-dark);border:1px solid var(--green-bg);font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px;margin-top:8px}
+.ai-res{background:var(--off);border:1px solid var(--green-bg);border-radius:8px;padding:14px;margin-bottom:14px;display:none}
 .ai-res-hd{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;font-weight:600;color:var(--green-dark)}
 .ai-res-g{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .ai-res-f{font-size:12px}
@@ -983,7 +983,7 @@ async function initApp() {
     // Sidebar chip
     const chip = document.getElementById('sb-trial-chip');
     if (chip) {
-      if (isTrialing) { chip.style.display='block'; chip.innerHTML='<div style="background:linear-gradient(135deg,var(--green-bg),rgba(0,200,150,0.05));border:1px solid var(--green);border-radius:8px;padding:10px;margin:6px 10px;cursor:pointer;font-size:11px;text-align:center" onclick="showTrialUpgradeModal()"><div style="font-weight:700;color:var(--green-dark)">🎁 Founding price — upgrade now</div><div style="color:var(--muted);margin-top:2px">First 100 users lock price for life</div></div>'; }
+      if (isTrialing) { chip.style.display='block'; chip.innerHTML='<div style="background:linear-gradient(135deg,var(--green-bg),var(--green-bg));border:1px solid var(--green);border-radius:8px;padding:10px;margin:6px 10px;cursor:pointer;font-size:11px;text-align:center" onclick="showTrialUpgradeModal()"><div style="font-weight:700;color:var(--green-dark)">🎁 Founding price — upgrade now</div><div style="color:var(--muted);margin-top:2px">First 100 users lock price for life</div></div>'; }
       else if (hasExpired && plan==='trial') { chip.style.display='block'; chip.innerHTML='<div style="background:var(--red-bg);border:1px solid var(--red);border-radius:8px;padding:10px;margin:6px 10px;cursor:pointer;font-size:11px;text-align:center" onclick="showTrialExpiryPopup()"><div style="font-weight:700;color:var(--red)">⚠ Trial expired — upgrade now</div></div>'; }
       else { chip.style.display='none'; }
     }
@@ -1059,7 +1059,7 @@ async function savePropToDB() {
   const pid = data.id;
   openMo('🎉 Property added!', `${prop.address}, ${prop.city}`,`
     <div style="margin-bottom:16px;font-size:13px;color:var(--muted)">Here's what to set up next to be fully compliant:</div>
-    <div onclick="closeMo();moTenant(${pid})" style="display:flex;align-items:center;gap:12px;padding:12px;border:2px solid var(--green);border-radius:8px;cursor:pointer;margin-bottom:8px;background:var(--green-bg)" onmouseover="this.style.background='rgba(0,200,150,0.15)'" onmouseout="this.style.background='var(--green-bg)'">
+    <div onclick="closeMo();moTenant(${pid})" style="display:flex;align-items:center;gap:12px;padding:12px;border:2px solid var(--green);border-radius:8px;cursor:pointer;margin-bottom:8px;background:var(--green-bg)" onmouseover="this.style.background='var(--green-bg)'" onmouseout="this.style.background='var(--green-bg)'">
       <div style="width:36px;height:36px;border-radius:8px;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">👤</div>
       <div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--navy)">Add tenant</div><div style="font-size:12px;color:var(--green-dark)">Name, dates, rent, deposit — fast add in one step</div></div>
       <div style="color:var(--green-dark);font-weight:700">›</div>
@@ -1831,7 +1831,7 @@ function _setupStepHtml(n) {
       <div class="scan-s">PDF or image — AI will extract details</div>
       <div class="scan-badge">✦ AI auto-extraction</div>
     </div>
-    <div id="lic-ai-result" style="display:none;background:var(--off);border:1px solid rgba(0,200,150,0.25);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green-dark);font-weight:600;margin-bottom:14px">✦ AI extracted — confirm the fields below</div>
+    <div id="lic-ai-result" style="display:none;background:var(--off);border:1px solid var(--green-bg);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green-dark);font-weight:600;margin-bottom:14px">✦ AI extracted — confirm the fields below</div>
     <div class="fg"><label>Licence type</label>
       <select id="s-lic-type">
         ${['None required','Mandatory HMO','Additional HMO','Selective Licence','Article 4','Short-term Let'].map(l=>`<option${l===s.licType?' selected':''}>${l}</option>`).join('')}
@@ -1886,7 +1886,7 @@ function _setupStepHtml(n) {
 
     <div style="background:var(--off);border:1px solid var(--border);border-radius:10px;padding:14px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <div style="width:28px;height:28px;border-radius:7px;background:rgba(0,200,150,0.12);display:flex;align-items:center;justify-content:center;font-size:14px">🏷</div>
+        <div style="width:28px;height:28px;border-radius:7px;background:var(--green-bg);display:flex;align-items:center;justify-content:center;font-size:14px">🏷</div>
         <div style="flex:1;font-size:13px;font-weight:600">Energy Performance Certificate (EPC)</div>
         <span style="font-size:10px;font-weight:700;color:var(--blue);background:var(--blue-bg);padding:2px 8px;border-radius:100px">10 year validity</span>
       </div>
@@ -1924,7 +1924,7 @@ function _setupStepHtml(n) {
 
     <div style="background:var(--off);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-        <div style="width:28px;height:28px;border-radius:7px;background:rgba(0,200,150,0.12);display:flex;align-items:center;justify-content:center;font-size:14px">🛡</div>
+        <div style="width:28px;height:28px;border-radius:7px;background:var(--green-bg);display:flex;align-items:center;justify-content:center;font-size:14px">🛡</div>
         <div><div style="font-size:13px;font-weight:600">Landlord contents insurance</div><div style="font-size:11px;color:var(--muted)">Furnishings and fixtures you own</div></div>
       </div>
       <div class="fg-row">
@@ -1977,7 +1977,7 @@ function _setupStepHtml(n) {
     ];
     const filled = items.filter(i => i.val).length;
     const score = Math.round((filled / items.length) * 100);
-    const scoreCol = score >= 75 ? '#00C896' : score >= 40 ? '#D97706' : '#E53E3E';
+    const scoreCol = score >= 75 ? 'var(--green)' : score >= 40 ? '#D97706' : '#E53E3E';
     const scoreLabel = score >= 75 ? 'Great start!' : score >= 40 ? 'Nearly there' : 'More to add later';
     const p = P(s.pid);
     return `
@@ -2001,7 +2001,7 @@ function _setupStepHtml(n) {
       </div>
     </div>
 
-    ${filled > 0 ? `<div style="background:var(--green-bg);border:1px solid rgba(0,200,150,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green-dark);margin-bottom:8px">
+    ${filled > 0 ? `<div style="background:var(--green-bg);border:1px solid var(--green-bg);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green-dark);margin-bottom:8px">
       ✓ ${filled} item${filled!==1?'s':''} will be saved. Updates are merged with any existing records.
     </div>` : ''}
     ${filled < items.length ? `<div style="background:var(--blue-bg);border:1px solid rgba(59,111,232,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--blue)">
@@ -2361,7 +2361,7 @@ async function runBulkScan() {
       scanAndFill(f, (parsed) => {
         results.push({ file:f, parsed, idx:i });
         if (statusEl) statusEl.innerHTML = '<span style="color:var(--green-dark);font-weight:600">✓ Done</span>';
-        if (itemEl) itemEl.style.background = 'rgba(0,200,150,0.07)';
+        if (itemEl) itemEl.style.background = 'var(--green-bg)';
         resolve();
       });
       setTimeout(resolve, 8000); // timeout safety
@@ -2588,7 +2588,7 @@ async function _saveTenantSetupToDB() {
       const inviteToken = td?.invite_token || tenant.invite_token;
       const inviteUrl = `https://nexlet.co.uk/tenant.html?token=${inviteToken}`;
       const inviteHtml = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:28px 24px;color:#1A2B45">
-        <div style="border-bottom:2px solid #0B1E3D;padding-bottom:12px;margin-bottom:20px"><span style="font-size:17px;font-weight:700;color:#0B1E3D">Rent<span style="color:#00C896">Safe AI</span></span></div>
+        <div style="border-bottom:2px solid #0B1E3D;padding-bottom:12px;margin-bottom:20px"><span style="font-size:17px;font-weight:700;color:#0B1E3D">Rent<span style="color:var(--green)">Safe AI</span></span></div>
         <h2 style="font-size:16px;font-weight:600;margin-bottom:8px">Your tenant portal is ready — ${propAddr}</h2>
         <p style="font-size:13px;color:#7A8FA6;margin-bottom:20px">Hi ${s.name}, your landlord has set up your tenant portal. Use the link below to report maintenance issues, view your certificates and sign documents.</p>
         <div style="text-align:center;margin:24px 0"><a href="${inviteUrl}" style="background:#0B1E3D;color:#fff;padding:13px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;display:inline-block">Access your portal →</a></div>
@@ -2616,7 +2616,7 @@ const CHECKLIST_ITEMS = [
   { key:'rent_guarantee', label:'Rent Guarantee Insurance', icon:'🛡️' },
   { key:'insurance',      label:'Buildings/Contents Insurance', icon:'🏠' },
 ];
-const RAG_COLORS = { red:'#E53E3E', amber:'#D97706', green:'#00C896' };
+const RAG_COLORS = { red:'#E53E3E', amber:'#D97706', green:'var(--green)' };
 const RAG_LABELS = { red:'red', amber:'amber', green:'green' };
 
 function _checklistDefault(cl) {
@@ -2912,7 +2912,7 @@ function moWelcomeKit(pid) {
     ${missingMandatory.length ? `<div style="background:rgba(229,62,62,0.07);border:1px solid rgba(229,62,62,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--red);margin-bottom:14px;display:flex;gap:8px">
       <span style="flex-shrink:0;font-size:16px">⚠️</span>
       <div><strong>${missingMandatory.length} mandatory item${missingMandatory.length!==1?'s':''} need attention</strong> — you can still send but these will be flagged. Fix them first for full compliance.</div>
-    </div>` : `<div style="background:var(--green-bg);border:1px solid rgba(0,200,150,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green-dark);margin-bottom:14px">
+    </div>` : `<div style="background:var(--green-bg);border:1px solid var(--green-bg);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green-dark);margin-bottom:14px">
       ✅ All mandatory documents are ready — good to send.
     </div>`}
 
@@ -2998,7 +2998,7 @@ async function sendWelcomeKit(pid) {
 
   const html = `<!DOCTYPE html><html><body style="font-family:DM Sans,Arial,sans-serif;color:#1A2B45;max-width:620px;margin:0 auto;padding:0">
     <div style="background:#0B1E3D;padding:24px 28px;border-radius:12px 12px 0 0">
-      <div style="font-size:20px;font-weight:700;color:#fff">Rent<span style="color:#00C896">Safe AI</span></div>
+      <div style="font-size:20px;font-weight:700;color:#fff">Rent<span style="color:var(--green)">Safe AI</span></div>
       <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-top:4px">Tenancy Welcome Pack</div>
     </div>
     <div style="background:#fff;border:1px solid #E4EAF1;border-top:none;border-radius:0 0 12px 12px;padding:28px">
@@ -3053,7 +3053,7 @@ async function sendWelcomeKit(pid) {
         </div>
       </div>
 
-      <div style="background:#F0FBF7;border:1px solid rgba(0,200,150,0.2);border-radius:8px;padding:14px;margin-bottom:20px">
+      <div style="background:#F0FBF7;border:1px solid var(--green-bg);border-radius:8px;padding:14px;margin-bottom:20px">
         <div style="font-size:13px;font-weight:600;color:#009970;margin-bottom:4px">🔗 Your tenant portal</div>
         <div style="font-size:12px;color:#1A2B45;margin-bottom:10px">Report maintenance issues, view your certificates and sign documents — all in one place.</div>
         ${tenant?.invite_token ? `<a href="https://nexlet.co.uk/tenant.html?token=${tenant.invite_token}" style="background:#0B1E3D;color:#fff;padding:10px 20px;border-radius:7px;text-decoration:none;font-weight:600;font-size:13px;display:inline-block">Access your portal →</a>` : ''}
@@ -3230,7 +3230,7 @@ function pgComplianceSection(){
   html += '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">';
   D.properties.slice(0,4).forEach(function(p){
     var r = calcRAG(p.id);
-    var col = r.rag==='red' ? '#E53E3E' : r.rag==='amber' ? '#D97706' : '#00C896';
+    var col = r.rag==='red' ? '#E53E3E' : r.rag==='amber' ? '#D97706' : 'var(--green)';
     var bg = r.rag==='red' ? '#fff5f5' : r.rag==='amber' ? '#fffbeb' : '#f0fdf9';
     html += '<div style="background:' + bg + ';border:1px solid ' + col + ';border-radius:10px;padding:12px">';
     html += '<div style="font-size:12px;font-weight:600;margin-bottom:4px">' + p.address + '</div>';
@@ -3324,11 +3324,11 @@ function pgDashboard(){
       const props = D.properties;
       if (!props.length) return '';
       const btn = props.length === 1
-        ? `<button class="btn btn-sm" style="background:#00C896;color:#0B1E3D;border:none;font-weight:600" onclick="moSection8('${props[0].id}')">Generate notice →</button>`
-        : `<select id="s8-dash-sel" style="padding:6px 10px;border-radius:7px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:#fff;font-family:var(--font);font-size:12px;cursor:pointer"><option value="" style="color:var(--txt)">Select property…</option>${props.map(p=>`<option value="${p.id}" style="color:var(--txt)">${p.address}</option>`).join('')}</select><button class="btn btn-sm" style="background:#00C896;color:#0B1E3D;border:none;font-weight:600;margin-left:6px" onclick="(function(){var v=document.getElementById('s8-dash-sel').value;if(v)moSection8(v);else toast('Please select a property',true)})()">Go →</button>`;
+        ? `<button class="btn btn-sm" style="background:var(--green);color:#0B1E3D;border:none;font-weight:600" onclick="moSection8('${props[0].id}')">Generate notice →</button>`
+        : `<select id="s8-dash-sel" style="padding:6px 10px;border-radius:7px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:#fff;font-family:var(--font);font-size:12px;cursor:pointer"><option value="" style="color:var(--txt)">Select property…</option>${props.map(p=>`<option value="${p.id}" style="color:var(--txt)">${p.address}</option>`).join('')}</select><button class="btn btn-sm" style="background:var(--green);color:#0B1E3D;border:none;font-weight:600;margin-left:6px" onclick="(function(){var v=document.getElementById('s8-dash-sel').value;if(v)moSection8(v);else toast('Please select a property',true)})()">Go →</button>`;
       return `<div class="s8-dash-card">
         <div>
-          <div style="font-size:10px;font-weight:700;color:#00C896;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px">✦ RRA 2025 — Section 21 abolished 1 May 2026</div>
+          <div style="font-size:10px;font-weight:700;color:var(--green);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px">✦ RRA 2025 — Section 21 abolished 1 May 2026</div>
           <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:4px">Section 8 Notice Generator</div>
           <div style="font-size:12px;color:rgba(255,255,255,0.6)">All RRA 2025 grounds · Auto-filled · PDF download · Email to tenant</div>
         </div>
@@ -3427,7 +3427,7 @@ function pgProperties(){
   const totalRent=allProps.reduce((s,p)=>s+(p.rent||0),0);
   const occupied=allProps.filter(p=>D.tenants.some(t=>String(t.prop_id)===String(p.id)&&t.status==='Active')).length;
   const occupancyPct=allProps.length?Math.round(occupied/allProps.length*100):0;
-  const occColor=occupancyPct===100?'#00C896':occupancyPct>=50?'#D97706':'#E53E3E';
+  const occColor=occupancyPct===100?'var(--green)':occupancyPct>=50?'#D97706':'#E53E3E';
   const attention=[],active=[],archived=[];
   filtered.forEach(p=>{
     if(p.status==='Archived'){archived.push(p);return;}
@@ -3438,7 +3438,7 @@ function pgProperties(){
   function propRow(p){
     const t=D.tenants.find(x=>String(x.prop_id)===String(p.id)&&x.status==='Active');
     const rag=calcRAG(p.id);
-    const ragCol=rag.rag==='green'?'#00C896':rag.rag==='amber'?'#D97706':'#E53E3E';
+    const ragCol=rag.rag==='green'?'var(--green)':rag.rag==='amber'?'#D97706':'#E53E3E';
     const openIssues=D.maintenance.filter(m=>String(m.prop_id)===String(p.id)&&m.status!=='Resolved').length;
     const awaab=D.maintenance.some(m=>String(m.prop_id)===String(p.id)&&m.awaab&&m.status!=='Resolved');
     return '<div style="display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s" onclick="nav(\'prop-detail\',\''+p.id+'\')" onmouseenter="this.style.background=\'var(--off)\'" onmouseleave="this.style.background=\'transparent\'">'
@@ -3558,7 +3558,7 @@ function renderPropChecklist(prefix, pid, mode, saved, meters){
   saved = saved || {};
   var total=ITEMS.length, done=ITEMS.filter(function(i){return saved[i.id];}).length;
   var pct=Math.round(done/total*100);
-  var col=pct===100?'#00C896':pct>=50?'#D97706':'#E53E3E';
+  var col=pct===100?'var(--green)':pct>=50?'#D97706':'#E53E3E';
   setTimeout(function(){var el=document.getElementById(prefix+'-cnt-'+pid);if(el)el.textContent=done+'/'+total;},0);
 
   var groups={};
@@ -3578,7 +3578,7 @@ function renderPropChecklist(prefix, pid, mode, saved, meters){
     var allDone=grpDone===gitems.length;
     var grpId=prefix+'-'+pid+'-'+grpName.replace(/[^a-z0-9]/gi,'-').toLowerCase();
     var borderCol=allDone?'var(--green)':'var(--border)';
-    var headerBg=allDone?'rgba(0,200,150,0.06)':'var(--off)';
+    var headerBg=allDone?'var(--green-bg)':'var(--off)';
 
     html+='<div style="margin-bottom:8px;border:1px solid '+borderCol+';border-radius:10px;overflow:hidden">';
     // Group header
@@ -3763,13 +3763,13 @@ function propMaintHtml(pid){
   const res=pm.filter(m=>m.status==='Resolved').length;
   const aw=pm.filter(m=>m.awaab&&m.status!=='Resolved').length;
   const totalCost=pm.filter(m=>m.cost).reduce((s,m)=>s+(m.cost||0),0);
-  const stageCol={'Reported':'#7A8FA6','Assigned':'#3B6FE8','In Progress':'#D97706','Completed':'#00C896','Closed':'#556678'};
+  const stageCol={'Reported':'#7A8FA6','Assigned':'#3B6FE8','In Progress':'#D97706','Completed':'var(--green)','Closed':'#556678'};
 
   let html=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">
-    <div style="background:${opn?'rgba(229,62,62,0.07)':'rgba(0,200,150,0.07)'};border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--muted)">Open</div><div style="font-size:16px;font-weight:600;color:${opn?'var(--red)':'var(--green-dark)'}">${opn}</div></div>
-    <div style="background:rgba(0,200,150,0.07);border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--muted)">Resolved</div><div style="font-size:16px;font-weight:600;color:var(--green-dark)">${res}</div></div>
+    <div style="background:${opn?'rgba(229,62,62,0.07)':'var(--green-bg)'};border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--muted)">Open</div><div style="font-size:16px;font-weight:600;color:${opn?'var(--red)':'var(--green-dark)'}">${opn}</div></div>
+    <div style="background:var(--green-bg);border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--muted)">Resolved</div><div style="font-size:16px;font-weight:600;color:var(--green-dark)">${res}</div></div>
     <div style="background:${aw?'rgba(229,62,62,0.07)':'var(--off)'};border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--muted)">Awaab</div><div style="font-size:16px;font-weight:600;color:${aw?'var(--red)':'var(--muted)'}">${aw}</div></div>
-    <div style="background:rgba(0,200,150,0.07);border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--muted)">Total costs</div><div style="font-size:16px;font-weight:600;color:var(--green-dark)">£${totalCost.toLocaleString()}</div></div>
+    <div style="background:var(--green-bg);border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--muted)">Total costs</div><div style="font-size:16px;font-weight:600;color:var(--green-dark)">£${totalCost.toLocaleString()}</div></div>
   </div>`;
 
   html+=pm.slice(0,6).map(m=>{
@@ -3809,10 +3809,10 @@ function pgPropDetail(pid) {
 
   // Stat cards
   const stats = [
-    { icon:'💷', bg:'rgba(0,200,150,0.1)', col:'var(--green-dark)', val: p.rent ? `£${p.rent.toLocaleString()}` : 'Vacant', lbl:'Monthly rent' },
+    { icon:'💷', bg:'var(--green-bg)', col:'var(--green-dark)', val: p.rent ? `£${p.rent.toLocaleString()}` : 'Vacant', lbl:'Monthly rent' },
     { icon:'👤', bg:'rgba(59,111,232,0.09)', col:'var(--blue)', val: t ? t.name.split(' ')[0] : 'Vacant', lbl: t ? (t.status||'Active') : 'No tenant' },
-    { icon:'🛡', bg: rag.rag==='red'?'rgba(229,62,62,0.09)':rag.rag==='amber'?'rgba(217,119,6,0.09)':'rgba(0,200,150,0.1)', col:ragCol, val:`${rag.score}/100`, lbl:`Compliance: ${rag.label}` },
-    { icon:'🔧', bg: pm.length ? 'rgba(229,62,62,0.09)' : 'rgba(0,200,150,0.1)', col: pm.length ? 'var(--red)' : 'var(--green-dark)', val: pm.length, lbl: pm.length ? 'Open issue' + (pm.length!==1?'s':'') : 'No open issues' },
+    { icon:'🛡', bg: rag.rag==='red'?'rgba(229,62,62,0.09)':rag.rag==='amber'?'rgba(217,119,6,0.09)':'var(--green-bg)', col:ragCol, val:`${rag.score}/100`, lbl:`Compliance: ${rag.label}` },
+    { icon:'🔧', bg: pm.length ? 'rgba(229,62,62,0.09)' : 'var(--green-bg)', col: pm.length ? 'var(--red)' : 'var(--green-dark)', val: pm.length, lbl: pm.length ? 'Open issue' + (pm.length!==1?'s':'') : 'No open issues' },
   ];
 
   const statHtml = `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px">
@@ -4000,9 +4000,9 @@ function pdTabContent(pid, tab) {
     const profCol = profit >= 0 ? 'var(--green-dark)' : 'var(--red)';
     return `
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px">
-        <div class="mc" style="background:rgba(0,200,150,0.08);border-color:transparent"><div class="mc-top"><span class="mc-label">Monthly income</span></div><div class="mc-val" style="color:var(--green-dark)">£${(p.rent||0).toLocaleString()}</div><div class="mc-sub">Rent</div></div>
+        <div class="mc" style="background:var(--green-bg);border-color:transparent"><div class="mc-top"><span class="mc-label">Monthly income</span></div><div class="mc-val" style="color:var(--green-dark)">£${(p.rent||0).toLocaleString()}</div><div class="mc-sub">Rent</div></div>
         <div class="mc" style="background:rgba(229,62,62,0.07);border-color:transparent"><div class="mc-top"><span class="mc-label">Monthly costs</span></div><div class="mc-val" style="color:var(--red)">£${Math.round(mort+ins).toLocaleString()}</div><div class="mc-sub">Mortgage + insurance</div></div>
-        <div class="mc" style="background:${profit>=0?'rgba(0,200,150,0.08)':'rgba(229,62,62,0.07)'};border-color:transparent"><div class="mc-top"><span class="mc-label">Net profit</span></div><div class="mc-val" style="color:${profCol}">£${Math.round(profit).toLocaleString()}</div><div class="mc-sub">Per month</div></div>
+        <div class="mc" style="background:${profit>=0?'var(--green-bg)':'rgba(229,62,62,0.07)'};border-color:transparent"><div class="mc-top"><span class="mc-label">Net profit</span></div><div class="mc-val" style="color:${profCol}">£${Math.round(profit).toLocaleString()}</div><div class="mc-sub">Per month</div></div>
       </div>
 
       <div class="panel" style="margin-bottom:16px">
@@ -4030,7 +4030,7 @@ function pdTabContent(pid, tab) {
   // ── COMPLIANCE TAB ──
   if (tab === 'compliance') {
     const rag = calcRAG(pid);
-    const ragCol = rag.rag==='red'?'#E53E3E':rag.rag==='amber'?'#D97706':'#00C896';
+    const ragCol = rag.rag==='red'?'#E53E3E':rag.rag==='amber'?'#D97706':'var(--green)';
     const ragBg = rag.rag==='red'?'#fff5f5':rag.rag==='amber'?'#fffbeb':'#f0fdf9';
     const _cgToday = new Date(); _cgToday.setHours(0,0,0,0);
 
@@ -4067,7 +4067,7 @@ function pdTabContent(pid, tab) {
         if (days < 0)   return { lbl:'EXPIRED',      bg:'rgba(229,62,62,0.1)',   col:'#E53E3E', bdr:'rgba(229,62,62,0.25)',  days, overdue:true  };
         if (days <= 14) return { lbl:'URGENT',        bg:'rgba(217,119,6,0.1)',   col:'#D97706', bdr:'rgba(217,119,6,0.25)',  days, overdue:false };
         if (days <= 60) return { lbl:'EXPIRING SOON', bg:'rgba(59,111,232,0.08)', col:'#3B6FE8', bdr:'rgba(59,111,232,0.2)', days, overdue:false };
-        return               { lbl:'VALID',           bg:'rgba(0,200,150,0.08)',  col:'#00A87A', bdr:'rgba(0,200,150,0.2)',  days, overdue:false };
+        return               { lbl:'VALID',           bg:'var(--green-bg)',  col:'#00A87A', bdr:'var(--green-bg)',  days, overdue:false };
       }
       return { lbl:'NO DATE SET', bg:'rgba(229,62,62,0.07)', col:'#E53E3E', bdr:'rgba(229,62,62,0.2)', days:null, overdue:true };
     };
@@ -4137,8 +4137,8 @@ function pdTabContent(pid, tab) {
     const awaab = allM.filter(m => m.awaab && m.status !== 'Resolved');
     return `
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px">
-        <div class="mc" style="background:${open.length?'rgba(229,62,62,0.07)':'rgba(0,200,150,0.08)'};border-color:transparent"><div class="mc-top"><span class="mc-label">Open issues</span></div><div class="mc-val" style="color:${open.length?'var(--red)':'var(--green-dark)'}">${open.length}</div></div>
-        <div class="mc" style="background:rgba(0,200,150,0.08);border-color:transparent"><div class="mc-top"><span class="mc-label">Resolved</span></div><div class="mc-val" style="color:var(--green-dark)">${resolved.length}</div></div>
+        <div class="mc" style="background:${open.length?'rgba(229,62,62,0.07)':'var(--green-bg)'};border-color:transparent"><div class="mc-top"><span class="mc-label">Open issues</span></div><div class="mc-val" style="color:${open.length?'var(--red)':'var(--green-dark)'}">${open.length}</div></div>
+        <div class="mc" style="background:var(--green-bg);border-color:transparent"><div class="mc-top"><span class="mc-label">Resolved</span></div><div class="mc-val" style="color:var(--green-dark)">${resolved.length}</div></div>
         <div class="mc" style="background:${awaab.length?'rgba(229,62,62,0.07)':'var(--off)'};border-color:transparent"><div class="mc-top"><span class="mc-label">Awaab flagged</span></div><div class="mc-val" style="color:${awaab.length?'var(--red)':'var(--muted)'}">${awaab.length}</div></div>
       </div>
 
@@ -4255,9 +4255,9 @@ function buildCertStatusGrid(pid) {
       if (days < 0)   return { label: 'EXPIRED',       bg: 'rgba(229,62,62,0.1)',   color: '#E53E3E', border: 'rgba(229,62,62,0.25)',   days };
       if (days <= 14) return { label: 'URGENT',         bg: 'rgba(217,119,6,0.1)',   color: '#D97706', border: 'rgba(217,119,6,0.25)',   days };
       if (days <= 60) return { label: 'EXPIRING SOON',  bg: 'rgba(59,111,232,0.08)', color: '#3B6FE8', border: 'rgba(59,111,232,0.2)',   days };
-      return                 { label: 'VALID',           bg: 'rgba(0,200,150,0.08)',  color: '#00A87A', border: 'rgba(0,200,150,0.2)',    days };
+      return                 { label: 'VALID',           bg: 'var(--green-bg)',  color: '#00A87A', border: 'var(--green-bg)',    days };
     }
-    return { label: 'VALID', bg: 'rgba(0,200,150,0.08)', color: '#00A87A', border: 'rgba(0,200,150,0.2)', days: null };
+    return { label: 'VALID', bg: 'var(--green-bg)', color: '#00A87A', border: 'var(--green-bg)', days: null };
   }
 
   const items = CERT_TYPES.map(label => {
@@ -4311,7 +4311,7 @@ function pgCompliance(){
   if (!total) score = 0;
 
   // Score colour and label
-  const scoreCol = score >= 80 ? '#00C896' : score >= 50 ? '#D97706' : '#E53E3E';
+  const scoreCol = score >= 80 ? 'var(--green)' : score >= 50 ? '#D97706' : '#E53E3E';
   const scoreLabel = score >= 80 ? 'Healthy' : score >= 50 ? 'Needs attention' : 'At risk';
   const scoreSub = score >= 80 ? 'Your portfolio is well maintained' : score >= 50 ? 'Some items need your attention' : 'Urgent action required';
 
@@ -4416,7 +4416,7 @@ function pgCompliance(){
       if (days < 0)   return { lbl:'EXPIRED',      bg:'rgba(229,62,62,0.1)',   col:'#E53E3E', bdr:'rgba(229,62,62,0.25)',  days, overdue:true  };
       if (days <= 14) return { lbl:'URGENT',        bg:'rgba(217,119,6,0.1)',   col:'#D97706', bdr:'rgba(217,119,6,0.25)',  days, overdue:false };
       if (days <= 60) return { lbl:'EXPIRING SOON', bg:'rgba(59,111,232,0.08)', col:'#3B6FE8', bdr:'rgba(59,111,232,0.2)', days, overdue:false };
-      return               { lbl:'VALID',           bg:'rgba(0,200,150,0.08)',  col:'#00A87A', bdr:'rgba(0,200,150,0.2)',  days, overdue:false };
+      return               { lbl:'VALID',           bg:'var(--green-bg)',  col:'#00A87A', bdr:'var(--green-bg)',  days, overdue:false };
     }
     return { lbl:'NO DATE SET', bg:'rgba(229,62,62,0.07)', col:'#E53E3E', bdr:'rgba(229,62,62,0.2)', days:null, overdue:true };
   };
@@ -4457,7 +4457,7 @@ function pgCompliance(){
     const totalItems = allItems.length;
     const overdueItems = allItems.filter(i=>i.overdue).length;
     const pScore = totalItems ? Math.round(((totalItems-overdueItems)/totalItems)*100) : 0;
-    const pCol = pScore>=80?'#00C896':pScore>=50?'#D97706':'#E53E3E';
+    const pCol = pScore>=80?'var(--green)':pScore>=50?'#D97706':'#E53E3E';
     const pr=22,pcx=28,pcy=28,pCirc=2*Math.PI*pr;
     const pDash=(pCirc-(pScore/100)*pCirc).toFixed(2);
     const miniGauge=`<svg width="56" height="56" viewBox="0 0 56 56"><circle cx="${pcx}" cy="${pcy}" r="${pr}" fill="none" stroke="rgba(0,0,0,0.07)" stroke-width="5"/><circle cx="${pcx}" cy="${pcy}" r="${pr}" fill="none" stroke="${pCol}" stroke-width="5" stroke-dasharray="${pCirc.toFixed(2)}" stroke-dashoffset="${pDash}" stroke-linecap="round" transform="rotate(-90 ${pcx} ${pcy})"/><text x="${pcx}" y="${pcy+4}" text-anchor="middle" fill="${pCol}" font-size="10" font-weight="700" font-family="DM Sans,sans-serif">${pScore}%</text></svg>`;
@@ -4518,7 +4518,7 @@ function pgCompliance(){
           <div style="font-size:11px;color:var(--muted);margin-top:2px">Critical</div>
           ${critical?`<div style="font-size:10px;color:var(--amber);margin-top:4px;font-weight:500">Expiring soon →</div>`:''}
         </div>
-        <div style="background:rgba(0,200,150,0.07);border:1px solid rgba(0,200,150,0.15);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:box-shadow .15s" onclick="filterCompliance('ok')" onmouseenter="this.style.boxShadow='0 2px 12px rgba(0,200,150,0.12)'" onmouseleave="this.style.boxShadow=''">
+        <div style="background:var(--green-bg);border:1px solid var(--green-bg);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:box-shadow .15s" onclick="filterCompliance('ok')" onmouseenter="this.style.boxShadow='0 2px 12px var(--green-bg)'" onmouseleave="this.style.boxShadow=''">
           <div style="font-size:28px;font-weight:700;color:var(--green-dark)">${ok + noExpiry}</div>
           <div style="font-size:11px;color:var(--muted);margin-top:2px">Compliant</div>
           <div style="font-size:10px;color:var(--green-dark);margin-top:4px;font-weight:500">View all →</div>
@@ -4620,7 +4620,7 @@ async function checkAllReminders() {
   function emailWrap(title, subtitle, bodyHtml) {
     return `<div style="font-family:DM Sans,Arial,sans-serif;color:#1A2B45;max-width:600px;margin:0 auto;padding:0">
       <div style="background:#0B1E3D;padding:20px 24px;border-radius:10px 10px 0 0">
-        <div style="font-size:17px;font-weight:700;color:#fff">Rent<span style="color:#00C896">Safe AI</span></div>
+        <div style="font-size:17px;font-weight:700;color:#fff">Rent<span style="color:var(--green)">Safe AI</span></div>
         <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:3px">${subtitle}</div>
       </div>
       <div style="background:#fff;border:1px solid #E4EAF1;border-top:none;border-radius:0 0 10px 10px;padding:24px">
@@ -4798,7 +4798,7 @@ async function checkAllReminders() {
     const portfolioScore = totalCerts > 0
       ? Math.max(0, Math.min(100, Math.round(((totalCerts-expiredCerts)/totalCerts)*100) - (criticalCerts*5)))
       : 0;
-    const scoreCol = portfolioScore>=80?'#00C896':portfolioScore>=50?'#D97706':'#E53E3E';
+    const scoreCol = portfolioScore>=80?'var(--green)':portfolioScore>=50?'#D97706':'#E53E3E';
     const scoreLabel = portfolioScore>=80?'Healthy ✅':portfolioScore>=50?'Needs attention ⚠️':'At risk 🔴';
 
     // Per-property rows
@@ -4844,7 +4844,7 @@ async function checkAllReminders() {
 
     const html = `<div style="font-family:DM Sans,Arial,sans-serif;color:#1A2B45;max-width:620px;margin:0 auto">
       <div style="background:#0B1E3D;padding:20px 24px;border-radius:10px 10px 0 0">
-        <div style="font-size:17px;font-weight:700;color:#fff">Rent<span style="color:#00C896">Safe AI</span></div>
+        <div style="font-size:17px;font-weight:700;color:#fff">Rent<span style="color:var(--green)">Safe AI</span></div>
         <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:3px">Weekly compliance digest · ${today.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div>
       </div>
       <div style="background:#fff;border:1px solid #E4EAF1;border-top:none;border-radius:0 0 10px 10px;padding:24px">
@@ -4958,7 +4958,7 @@ function pgReminders() {
   <div class="content">
     <div class="ph"><h1>Reminder settings</h1><p>Automated emails sent to you when compliance deadlines approach · Runs every login</p></div>
 
-    <div style="background:var(--green-bg);border:1px solid rgba(0,200,150,0.2);border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px">
+    <div style="background:var(--green-bg);border:1px solid var(--green-bg);border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px">
       <span style="font-size:22px">✅</span>
       <div>
         <div style="font-size:13px;font-weight:600;color:var(--green-dark)">Reminders run automatically on every login</div>
@@ -4997,7 +4997,7 @@ async function testReminder(id) {
   if (!rt) return;
   toast(`Sending test reminder for "${rt.label}"…`);
   const html = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#fff;border:1px solid #E4EAF1;border-radius:10px">
-    <div style="font-size:17px;font-weight:700;color:#0B1E3D;margin-bottom:14px">Rent<span style="color:#00C896">Safe AI</span> — Test reminder</div>
+    <div style="font-size:17px;font-weight:700;color:#0B1E3D;margin-bottom:14px">Rent<span style="color:var(--green)">Safe AI</span> — Test reminder</div>
     <p style="font-size:13px;color:#1A2B45;margin:0 0 10px">${rt.icon} <strong>${rt.label}</strong></p>
     <p style="font-size:12px;color:#7A8FA6">${rt.desc}</p>
     <p style="font-size:11px;color:#999;margin-top:16px">This is a test reminder. Real reminders fire automatically when conditions are met.</p>
@@ -5083,7 +5083,7 @@ function pgTenantDetail(tid) {
 
   // ── Sticky summary card ──
   const stickyCard = `
-    <div style="position:sticky;top:0;z-index:50;background:var(--white);border:1px solid ${allDone?'rgba(0,200,150,0.3)':'rgba(229,62,62,0.25)'};border-radius:10px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;box-shadow:0 2px 10px rgba(0,0,0,0.07)">
+    <div style="position:sticky;top:0;z-index:50;background:var(--white);border:1px solid ${allDone?'var(--green-bg)':'rgba(229,62,62,0.25)'};border-radius:10px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;box-shadow:0 2px 10px rgba(0,0,0,0.07)">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <div style="font-size:14px;font-weight:700">🗂 KYC Documents</div>
         <span style="font-size:12px;font-weight:700;padding:3px 11px;border-radius:100px;background:${allDone?'var(--green-bg)':'rgba(229,62,62,0.08)'};color:${allDone?'var(--green-dark)':'var(--red)'}">
@@ -5162,7 +5162,7 @@ function pgTenantDetail(tid) {
           <div style="margin-top:6px;display:flex;align-items:center;gap:8px">
             ${verified
               ? `<span style="font-size:11px;font-weight:700;color:var(--green-dark);background:var(--green-bg);padding:2px 9px;border-radius:100px">✓ Verified</span>`
-              : `<button class="btn btn-sm" style="font-size:11px;padding:3px 10px;background:var(--green-bg);color:var(--green-dark);border-color:rgba(0,200,150,0.3)" onclick="verifyTenantDoc('${doc.id}','${tid}')">✓ Mark as verified</button>
+              : `<button class="btn btn-sm" style="font-size:11px;padding:3px 10px;background:var(--green-bg);color:var(--green-dark);border-color:var(--green-bg)" onclick="verifyTenantDoc('${doc.id}','${tid}')">✓ Mark as verified</button>
                  <span style="font-size:11px;color:var(--muted)">Not yet verified</span>`}
           </div>
         </div>`;
@@ -5170,7 +5170,7 @@ function pgTenantDetail(tid) {
       extractedHtml = `<div style="margin-top:4px;font-size:11px;color:var(--muted)">⏳ Scanning… refresh in a moment</div>`;
     }
     return `
-      <div style="padding:10px 12px;border:1px solid ${doc.name_mismatch?'rgba(229,62,62,0.3)':doc.verified?'rgba(0,200,150,0.3)':'var(--border)'};border-radius:6px;background:var(--white);${isLast?'':'margin-bottom:6px'}">
+      <div style="padding:10px 12px;border:1px solid ${doc.name_mismatch?'rgba(229,62,62,0.3)':doc.verified?'var(--green-bg)':'var(--border)'};border-radius:6px;background:var(--white);${isLast?'':'margin-bottom:6px'}">
         <div style="display:flex;align-items:center;gap:8px">
           <span style="font-size:13px">📎</span>
           <div style="flex:1;min-width:0">
@@ -5907,7 +5907,7 @@ async function sendPaymentReceipt({ prop_id, month, amount, paid, editId, status
     const html = emailWrap(`💷 Rent receipt — ${p.address}`, `Payment confirmed for ${month}`, `
       <p style="font-size:13px">Dear ${tenant.name},</p>
       <p style="font-size:13px;margin-top:10px">This is to confirm receipt of your rent payment for <strong>${p.address}${p.city ? ', ' + p.city : ''}</strong>.</p>
-      <div style="background:#f0fdf9;border:1px solid #00C896;border-radius:8px;padding:16px;margin:16px 0;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center">
+      <div style="background:#f0fdf9;border:1px solid var(--green);border-radius:8px;padding:16px;margin:16px 0;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center">
         <div><div style="font-size:9px;color:#7A8FA6;font-weight:700;text-transform:uppercase;margin-bottom:3px">Amount</div><div style="font-size:15px;font-weight:700;color:#00A87A">£${amount.toLocaleString()}</div></div>
         <div><div style="font-size:9px;color:#7A8FA6;font-weight:700;text-transform:uppercase;margin-bottom:3px">Month</div><div style="font-size:13px;font-weight:600">${month}</div></div>
         <div><div style="font-size:9px;color:#7A8FA6;font-weight:700;text-transform:uppercase;margin-bottom:3px">Received</div><div style="font-size:13px;font-weight:600">${paidStr}</div></div>
@@ -6345,7 +6345,7 @@ let _propSearch = '';
 
 function pgMaintenance(){
   const stages=['Reported','Assigned','In Progress','Completed','Closed'];
-  const stageCol={'Reported':'#7A8FA6','Assigned':'#3B6FE8','In Progress':'#D97706','Completed':'#00C896','Closed':'#556678'};
+  const stageCol={'Reported':'#7A8FA6','Assigned':'#3B6FE8','In Progress':'#D97706','Completed':'var(--green)','Closed':'#556678'};
 
   // Apply filters
   let filtered = D.maintenance.filter(m => {
@@ -6483,13 +6483,13 @@ function pgMaintenance(){
   </div></div>
   <div class="content">
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px">
-      <div class="mc" style="background:${opn.length?'rgba(229,62,62,0.07)':'rgba(0,200,150,0.07)'};border-color:transparent">
+      <div class="mc" style="background:${opn.length?'rgba(229,62,62,0.07)':'var(--green-bg)'};border-color:transparent">
         <div class="mc-top"><span class="mc-label">Open jobs</span></div><div class="mc-val" style="color:${opn.length?'var(--red)':'var(--green-dark)'}">${opn.length}</div></div>
-      <div class="mc" style="background:rgba(0,200,150,0.07);border-color:transparent">
+      <div class="mc" style="background:var(--green-bg);border-color:transparent">
         <div class="mc-top"><span class="mc-label">Resolved</span></div><div class="mc-val" style="color:var(--green-dark)">${res.length}</div></div>
       <div class="mc" style="background:${awaab.length?'rgba(229,62,62,0.07)':'var(--off)'};border-color:transparent">
         <div class="mc-top"><span class="mc-label">Awaab flagged</span></div><div class="mc-val" style="color:${awaab.length?'var(--red)':'var(--muted)'}">${awaab.length}</div></div>
-      <div class="mc" style="background:rgba(0,200,150,0.07);border-color:transparent">
+      <div class="mc" style="background:var(--green-bg);border-color:transparent">
         <div class="mc-top"><span class="mc-label">Total costs</span></div><div class="mc-val" style="color:var(--green-dark)">£${totalCost.toLocaleString()}</div></div>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
@@ -6526,10 +6526,10 @@ async function moveStage(id,stage){
         'Completed':   `Your maintenance request has been completed. Please contact us if you have any concerns.`,
       }[stage];
       const html = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1A2B45">
-        <div style="border-bottom:2px solid #0B1E3D;padding-bottom:10px;margin-bottom:16px"><span style="font-size:16px;font-weight:700;color:#0B1E3D">Rent<span style="color:#00C896">Safe AI</span></span></div>
+        <div style="border-bottom:2px solid #0B1E3D;padding-bottom:10px;margin-bottom:16px"><span style="font-size:16px;font-weight:700;color:#0B1E3D">Rent<span style="color:var(--green)">Safe AI</span></span></div>
         <h2 style="font-size:15px;margin-bottom:8px">Maintenance Update — ${m?.title||'Job'}</h2>
         <p style="font-size:13px;color:#7A8FA6">${prop.address}, ${prop.city}</p>
-        <div style="background:#f0fdf9;border:1px solid #00C896;border-radius:8px;padding:14px;margin:16px 0">
+        <div style="background:#f0fdf9;border:1px solid var(--green);border-radius:8px;padding:14px;margin:16px 0">
           <div style="font-size:12px;font-weight:700;color:#00A87A;margin-bottom:4px">Status update: ${stage}</div>
           <div style="font-size:13px;color:#1A2B45">${stageMsg}</div>
         </div>
@@ -6567,7 +6567,7 @@ function moIssueDetail(id){
   if(!m)return;
   const p=P(m.prop_id)||{address:'—'};
   const stages=['Reported','Assigned','In Progress','Completed','Closed'];
-  const stageCol={'Reported':'#7A8FA6','Assigned':'#3B6FE8','In Progress':'#D97706','Completed':'#00C896','Closed':'#556678'};
+  const stageCol={'Reported':'#7A8FA6','Assigned':'#3B6FE8','In Progress':'#D97706','Completed':'var(--green)','Closed':'#556678'};
   const tenant = D.tenants.find(t=>String(t.prop_id)===String(m.prop_id)&&t.status==='Active');
   const commLogs = D.emailLog.filter(e=>e.template_id==='maintenance_notification'&&D.maintenance.find(x=>String(x.id)===String(id))&&String(e.prop_id)===String(m.prop_id));
   const commLogHtml = commLogs.length ? `<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
@@ -7215,7 +7215,7 @@ function moFinancials(pid){
   </tr>`).join('');
   openMo(`P&L — ${p.address}`,'Real data · Monthly breakdown',`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
-      <div style="background:var(--green-bg);border:1px solid rgba(0,200,150,0.2);border-radius:10px;padding:16px;text-align:center">
+      <div style="background:var(--green-bg);border:1px solid var(--green-bg);border-radius:10px;padding:16px;text-align:center">
         <div style="font-size:11px;color:var(--green-dark);font-weight:600;margin-bottom:4px">MONTHLY INCOME</div>
         <div style="font-size:28px;font-weight:600;color:var(--green-dark)">£${income.toLocaleString()}</div>
       </div>
@@ -7418,7 +7418,7 @@ function exportPortfolioPDF(){
   if(!win){toast('Please allow pop-ups to export PDF',true);return;}
   win.document.write('<!DOCTYPE html><html><head><title>Portfolio P&L Report &mdash; '+date+'</title>'
   +'<style>body{font-family:Arial,sans-serif;padding:32px;color:#1A2B45;max-width:900px;margin:0 auto}'
-  +'.logo{font-size:18px;font-weight:700;color:#0B1E3D;margin-bottom:4px}.logo span{color:#00C896}'
+  +'.logo{font-size:18px;font-weight:700;color:#0B1E3D;margin-bottom:4px}.logo span{color:var(--green)}'
   +'h1{font-size:20px;margin:20px 0 4px}p{color:#7A8FA6;font-size:13px;margin:0 0 20px}'
   +'hr{border:none;border-top:2px solid #0B1E3D;margin:16px 0}'
   +'.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}'
@@ -7702,7 +7702,7 @@ function pgMTD() {
     </div>
 
     <!-- Penalty protection notice -->
-    <div style="background:rgba(0,200,150,0.07);border:1px solid rgba(0,200,150,0.2);border-radius:10px;padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;gap:14px">
+    <div style="background:var(--green-bg);border:1px solid var(--green-bg);border-radius:10px;padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;gap:14px">
       <div style="font-size:24px">🛡</div>
       <div style="flex:1">
         <div style="font-size:13px;font-weight:600;color:var(--txt);margin-bottom:2px">Penalty protection: Soft landing in force</div>
@@ -8799,7 +8799,7 @@ async function sendEmailNow() {
   btn.innerHTML = '<span class="spin"></span>Sending…';
   const htmlBody = `<div style="font-family:sans-serif;max-width:680px;margin:0 auto;padding:32px 24px;color:#1A2B45">
     <div style="border-bottom:2px solid #0B1E3D;padding-bottom:14px;margin-bottom:24px">
-      <span style="font-size:18px;font-weight:700;color:#0B1E3D">Rent<span style="color:#00C896">Safe AI</span></span>
+      <span style="font-size:18px;font-weight:700;color:#0B1E3D">Rent<span style="color:var(--green)">Safe AI</span></span>
       <span style="color:#999;font-size:12px;margin-left:8px">${ctx.templateName}</span>
     </div>
     <div style="font-size:13px;line-height:1.8">${(ctx.liveContent || mdToHtml(ctx.rawText)).replace(/var\(--[\w-]+\)/g,'#333')}</div>
@@ -9325,7 +9325,7 @@ function s8Step4() {
   const courtDate = new Date(Date.now() + (maxDays+1) * 864e5).toISOString().slice(0,10);
 
   // Auto-filled info row
-  const autoFill = `<div style="background:var(--green-bg);border:1px solid rgba(0,200,150,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green-dark);margin-bottom:16px">
+  const autoFill = `<div style="background:var(--green-bg);border:1px solid var(--green-bg);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green-dark);margin-bottom:16px">
     ✦ Auto-filled from your data: property address, tenant name, rent amount, tenancy start date
   </div>`;
 
@@ -9639,7 +9639,7 @@ async function s8SendToTenant() {
   const subject = `Section 8 Notice — ${p.address}`;
   const htmlBody = `<div style="font-family:sans-serif;max-width:680px;margin:0 auto;padding:32px 24px;color:#1A2B45">
     <div style="border-bottom:2px solid #0B1E3D;padding-bottom:14px;margin-bottom:24px">
-      <span style="font-size:18px;font-weight:700;color:#0B1E3D">Rent<span style="color:#00C896">Safe AI</span></span>
+      <span style="font-size:18px;font-weight:700;color:#0B1E3D">Rent<span style="color:var(--green)">Safe AI</span></span>
       <span style="color:#999;font-size:12px;margin-left:8px">Section 8 Notice</span>
     </div>
     <pre style="font-family:Georgia,serif;font-size:13px;line-height:1.8;white-space:pre-wrap">${text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
@@ -9834,7 +9834,7 @@ Keep it under 200 words. Professional but warm. Plain text, no markdown.`;
 
     const htmlBody = `<div style="font-family:sans-serif;max-width:680px;margin:0 auto;padding:32px 24px;color:#1A2B45">
       <div style="border-bottom:2px solid #0B1E3D;padding-bottom:14px;margin-bottom:24px">
-        <span style="font-size:18px;font-weight:700;color:#0B1E3D">Rent<span style="color:#00C896">Safe AI</span></span>
+        <span style="font-size:18px;font-weight:700;color:#0B1E3D">Rent<span style="color:var(--green)">Safe AI</span></span>
         <span style="color:#999;font-size:12px;margin-left:8px">Renters' Rights Act 2025 — Important Information</span>
       </div>
       <pre style="font-family:Georgia,serif;font-size:13px;line-height:1.8;white-space:pre-wrap">${letter}</pre>
@@ -10286,7 +10286,7 @@ async function sendPortalInvite(tenantId) {
   const propAddr = P(t.prop_id)?.address || 'your property';
   const html = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:28px 24px;color:#1A2B45">
     <div style="border-bottom:2px solid #0B1E3D;padding-bottom:12px;margin-bottom:20px">
-      <span style="font-size:17px;font-weight:700;color:#0B1E3D">Rent<span style="color:#00C896">Safe AI</span></span>
+      <span style="font-size:17px;font-weight:700;color:#0B1E3D">Rent<span style="color:var(--green)">Safe AI</span></span>
     </div>
     <h2 style="font-size:16px;font-weight:600;margin-bottom:8px">You've been invited to your tenant portal</h2>
     <p style="font-size:13px;color:#7A8FA6;margin-bottom:20px">Hi ${t.name}, your landlord has invited you to manage maintenance requests for <strong>${propAddr}</strong> through NexLet.</p>
@@ -10555,7 +10555,7 @@ async function _sendEsignRequest(pid, tid, mode) {
   const expDate     = new Date(expiresAt).toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'});
 
   const html = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:28px 24px;color:#1A2B45">
-    <div style="border-bottom:2px solid #0B1E3D;padding-bottom:12px;margin-bottom:20px"><span style="font-size:17px;font-weight:700;color:#0B1E3D">Rent<span style="color:#00C896">Safe AI</span></span></div>
+    <div style="border-bottom:2px solid #0B1E3D;padding-bottom:12px;margin-bottom:20px"><span style="font-size:17px;font-weight:700;color:#0B1E3D">Rent<span style="color:var(--green)">Safe AI</span></span></div>
     <h2 style="font-size:16px;font-weight:600;margin-bottom:8px">Action required — please sign your tenancy document</h2>
     <p style="font-size:13px;color:#7A8FA6;margin-bottom:20px">Hi ${t.name}, your landlord has sent a document for you to review and sign electronically.</p>
     <div style="background:#F6F8FB;border-radius:8px;padding:16px;margin-bottom:24px">
@@ -10747,7 +10747,7 @@ function s13Calc(val) {
   if (!el) return;
   if (!nw || nw <= cur) { el.innerHTML = ''; return; }
   const pct = (((nw-cur)/cur)*100).toFixed(1);
-  el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;padding:10px;background:var(--green-bg);border-radius:8px;border:1px solid rgba(0,200,150,0.2)">
+  el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;padding:10px;background:var(--green-bg);border-radius:8px;border:1px solid var(--green-bg)">
     <div style="text-align:center"><div style="font-size:17px;font-weight:700;color:var(--green-dark)">${pct}%</div><div style="font-size:10px;color:var(--muted)">Increase</div></div>
     <div style="text-align:center"><div style="font-size:17px;font-weight:700;color:var(--txt)">+£${(nw-cur).toFixed(0)}/mo</div><div style="font-size:10px;color:var(--muted)">Monthly change</div></div>
     <div style="text-align:center"><div style="font-size:17px;font-weight:700;color:var(--txt)">£${(nw*12).toLocaleString()}/yr</div><div style="font-size:10px;color:var(--muted)">New annual</div></div>
@@ -10814,7 +10814,7 @@ async function _sendS13() {
     if (sendEmail && tenant?.email) {
       const emailHtml = `<div style="font-family:sans-serif;max-width:620px;margin:0 auto">
         <div style="background:#0B1E3D;padding:20px 24px;border-radius:10px 10px 0 0">
-          <div style="font-size:17px;font-weight:700;color:#fff">Rent<span style="color:#00C896">Safe AI</span></div>
+          <div style="font-size:17px;font-weight:700;color:#fff">Rent<span style="color:var(--green)">Safe AI</span></div>
           <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:3px">Section 13 Rent Increase Notice</div>
         </div>
         <div style="background:#fff;border:1px solid #E4EAF1;border-top:none;border-radius:0 0 10px 10px;padding:24px">
@@ -10923,7 +10923,7 @@ async function sendMaintenanceNotify(maintenanceId) {
   if (!tenant?.email) { toast('No tenant email', true); return; }
   const prop = P(m.prop_id);
   const html = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1A2B45">
-    <div style="border-bottom:2px solid #0B1E3D;padding-bottom:10px;margin-bottom:16px"><span style="font-size:16px;font-weight:700;color:#0B1E3D">Rent<span style="color:#00C896">Safe AI</span></span></div>
+    <div style="border-bottom:2px solid #0B1E3D;padding-bottom:10px;margin-bottom:16px"><span style="font-size:16px;font-weight:700;color:#0B1E3D">Rent<span style="color:var(--green)">Safe AI</span></span></div>
     <h2 style="font-size:15px;margin-bottom:8px">Maintenance Update — ${m.title||'Maintenance'}</h2>
     <p style="font-size:13px;color:#7A8FA6;margin-bottom:16px">${prop?.address||''}</p>
     <div style="font-size:13px;line-height:1.7;white-space:pre-wrap">${msg}</div>
@@ -11191,7 +11191,7 @@ function renderTrialUpgradeChip() {
   const s = getTrialState();
   if (s.isTrialing) {
     chip.style.display = 'block';
-    chip.innerHTML = `<div style="background:linear-gradient(135deg,var(--green-bg),rgba(0,200,150,0.05));border:1px solid var(--green);border-radius:8px;padding:10px;margin:6px 10px;cursor:pointer;font-size:11px;text-align:center" onclick="showTrialUpgradeModal()">
+    chip.innerHTML = `<div style="background:linear-gradient(135deg,var(--green-bg),var(--green-bg));border:1px solid var(--green);border-radius:8px;padding:10px;margin:6px 10px;cursor:pointer;font-size:11px;text-align:center" onclick="showTrialUpgradeModal()">
       <div style="font-weight:700;color:var(--green-dark)">🎁 Founding price — upgrade now</div>
       <div style="color:var(--muted);margin-top:2px">First 100 users lock price for life</div>
     </div>`;
@@ -11322,7 +11322,7 @@ initApp();
   </div>
   <div style="display:flex;gap:10px;flex-shrink:0">
     <button onclick="declineCookies()" style="padding:8px 16px;border-radius:7px;border:1px solid rgba(255,255,255,0.2);background:none;color:rgba(255,255,255,0.6);font-family:var(--font,sans-serif);font-size:13px;cursor:pointer">Essential only</button>
-    <button onclick="acceptCookies()" style="padding:8px 16px;border-radius:7px;border:none;background:#00C896;color:#0B1E3D;font-family:var(--font,sans-serif);font-size:13px;font-weight:600;cursor:pointer">Accept & continue</button>
+    <button onclick="acceptCookies()" style="padding:8px 16px;border-radius:7px;border:none;background:var(--green);color:#0B1E3D;font-family:var(--font,sans-serif);font-size:13px;font-weight:600;cursor:pointer">Accept & continue</button>
   </div>
 </div>
 <script>
