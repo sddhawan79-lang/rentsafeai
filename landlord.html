@@ -3566,10 +3566,21 @@ function getPropCheckItems(mode){
 function toggleGrp(grpId){
   var body=document.getElementById(grpId+'-body');
   var arr=document.getElementById(grpId+'-arr');
+  var closeBtn=document.getElementById(grpId+'-close');
   if(!body) return;
-  var open=body.style.display!=='none';
-  body.style.display=open?'none':'block';
-  if(arr) arr.style.transform=open?'rotate(-90deg)':'rotate(0deg)';
+  body.style.display='block';
+  if(arr) arr.style.transform='rotate(0deg)';
+  if(closeBtn) closeBtn.style.display='inline';
+}
+
+function closeGrp(grpId){
+  var body=document.getElementById(grpId+'-body');
+  var arr=document.getElementById(grpId+'-arr');
+  var closeBtn=document.getElementById(grpId+'-close');
+  if(!body) return;
+  body.style.display='none';
+  if(arr) arr.style.transform='rotate(-90deg)';
+  if(closeBtn) closeBtn.style.display='none';
 }
 
 function renderPropChecklist(prefix, pid, mode, saved, meters){
@@ -3610,6 +3621,7 @@ function renderPropChecklist(prefix, pid, mode, saved, meters){
       html+='<span style="font-size:11px;color:var(--muted)">'+grpDone+'/'+gitems.length+'</span>';
     }
     html+='<span id="'+grpId+'-arr" style="font-size:10px;color:var(--muted);transition:transform .2s;display:inline-block;transform:rotate(-90deg)">▾</span>';
+    html+='<span id="'+grpId+'-close" onclick="event.stopPropagation();closeGrp(\''+grpId+'\')" style="display:none;font-size:14px;color:var(--muted);cursor:pointer;padding:0 4px;line-height:1" title="Collapse">×</span>';
     html+='</div></div>';
 
     // Group body (closed by default)
@@ -8004,10 +8016,6 @@ function nav(page, param){
   if (page === 'dashboard') { loadSetupBanner(); }
   if (page === 'prop-detail' && param) {
     const activeTab = window._pdTab && window._pdTab[param] || 'tenant';
-    if (activeTab === 'tenant') {
-      initPropChecklist('ob', param, 'onboard');
-      initPropChecklist('db', param, 'deboard');
-    }
   }
 }
 // ── PAGE: TEMPLATES ──
