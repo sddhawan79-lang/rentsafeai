@@ -1074,31 +1074,15 @@ async function savePropToDB() {
   closeMo();
   toast('✓ Property saved!');
 
-  // Show "what's next" guided prompt
+  // Post-save prompt — ask about adding a tenant
   const pid = data.id;
   openMo('🎉 Property added!', `${prop.address}, ${prop.city}`,`
-    <div style="margin-bottom:16px;font-size:13px;color:var(--muted)">Here's what to set up next to be fully compliant:</div>
-    <div onclick="closeMo();moTenant(${pid})" style="display:flex;align-items:center;gap:12px;padding:12px;border:2px solid var(--green);border-radius:8px;cursor:pointer;margin-bottom:8px;background:var(--green-bg)" onmouseover="this.style.background='var(--green-bg)'" onmouseout="this.style.background='var(--green-bg)'">
-      <div style="width:36px;height:36px;border-radius:8px;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">👤</div>
-      <div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--navy)">Add tenant</div><div style="font-size:12px;color:var(--green-dark)">Name, dates, rent, deposit — fast add in one step</div></div>
-      <div style="color:var(--green-dark);font-weight:700">›</div>
+    <div style="font-size:14px;color:var(--txt);margin-bottom:20px;text-align:center">Would you like to add a tenant to this property?</div>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button class="btn btn-navy" onclick="closeMo();nav('prop-detail','${pid}')" style="min-width:140px">Add tenant</button>
+      <button class="btn" onclick="closeMo();nav(window._addPropOrigin||'properties')" style="min-width:140px">Not yet</button>
     </div>
-    <div onclick="closeMo();moCert(${pid})" style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:8px;transition:background .15s" onmouseover="this.style.background='var(--off)'" onmouseout="this.style.background=''">
-      <div style="width:36px;height:36px;border-radius:8px;background:var(--green-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📋</div>
-      <div style="flex:1"><div style="font-size:13px;font-weight:600">Upload compliance documents</div><div style="font-size:12px;color:var(--muted)">Gas Safety, EICR, EPC, Licence — AI scans and fills details</div></div>
-      <div style="color:var(--muted)">›</div>
-    </div>
-    <div onclick="closeMo();moMortgage(${pid})" style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:8px;transition:background .15s" onmouseover="this.style.background='var(--off)'" onmouseout="this.style.background=''">
-      <div style="width:36px;height:36px;border-radius:8px;background:var(--amber-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🏦</div>
-      <div style="flex:1"><div style="font-size:13px;font-weight:600">Add mortgage details</div><div style="font-size:12px;color:var(--muted)">Lender, rate, monthly payment and end date</div></div>
-      <div style="color:var(--muted)">›</div>
-    </div>
-    <div onclick="closeMo();nav('prop-detail','${pid}')" style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:8px;transition:background .15s" onmouseover="this.style.background='var(--off)'" onmouseout="this.style.background=''">
-      <div style="width:36px;height:36px;border-radius:8px;background:var(--off);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🏠</div>
-      <div style="flex:1"><div style="font-size:13px;font-weight:600">View property page</div><div style="font-size:12px;color:var(--muted)">See full details, compliance score and all documents</div></div>
-      <div style="color:var(--muted)">›</div>
-    </div>
-  `, `<button class="btn" onclick="closeMo();nav('properties')">Go to properties</button>`);
+  `, `<button class="btn" onclick="closeMo()">Close</button>`);
 }
 
 // ── SAVE: CERTIFICATE ──
@@ -1477,6 +1461,7 @@ async function scanDoc(input){
 
 // ── MODAL: ADD PROPERTY (5-step guided flow) ──
 function moAddProp(){
+  window._addPropOrigin = 'properties';
   const limit=getPropLimit();
   if(D.properties.length >= limit){ upgradePrompt('Add more properties','portfolio'); return; }
   document.getElementById('mo-t').textContent = 'Add property';
