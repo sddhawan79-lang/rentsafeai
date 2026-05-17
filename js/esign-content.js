@@ -280,18 +280,22 @@
           y += 5;
         }
       } else if (req.document_pdf_url) {
-        // For uploaded PDFs, note the reference and provide the URL
         doc.addPage();
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
-        doc.setTextColor(40, 40, 40);
-        doc.text('The original uploaded document is available at:', 20, 30);
-        doc.setTextColor(59, 111, 232);
-        doc.setFontSize(9);
-        var docUrlLines = doc.splitTextToSize(req.document_pdf_url, 170);
-        docUrlLines.forEach(function (l, i) { doc.text(l, 20, 42 + i * 6); });
-        doc.setTextColor(100, 100, 100);
-        doc.setFontSize(10);
-        doc.text('The landlord uploaded this document as a PDF. It is stored securely and available for download separately. This signature page confirms the tenant electronically signed the referenced document.', 20, 60, { maxWidth: 170 });
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
+        doc.setTextColor(11, 30, 61);
+        doc.text('Uploaded Document Reference', 20, 20);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+        doc.setTextColor(80, 80, 80);
+        var refLines = [
+          'The landlord uploaded a PDF document for signing.',
+          'This signed confirmation page serves as proof of electronic signature.',
+          '',
+          'Original document URL: ' + req.document_pdf_url,
+          '',
+          'The tenant has reviewed and signed this document electronically.',
+          'Both this confirmation page and the original PDF should be retained together.'
+        ];
+        refLines.forEach(function (l, i) { doc.text(l, 20, 36 + i * 8); });
       }
 
       // ── Landlord signature (pre-existing, from send time) ──
@@ -359,7 +363,7 @@
       var signedTimeStr = signedAt.toLocaleString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
       var tenantEmailHtml = '<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:28px 24px;color:#1A2B45">' +
-        '<div style="border-bottom:2px solid #0B1E3D;padding-bottom:12px;margin-bottom:20px"><span style="font-size:17px;font-weight:700;color:#0B1E3D">Rent<span style="color:#00C896">Safe AI</span></span></div>' +
+        '<div style="border-bottom:2px solid #0B1E3D;padding-bottom:12px;margin-bottom:20px"><span style="font-size:17px;font-weight:700;color:#0B1E3D">NexLet</span></div>' +
         '<h2 style="font-size:16px;font-weight:600;margin-bottom:8px">Your signed document — ' + propAddr + '</h2>' +
         '<p style="font-size:13px;color:#7A8FA6;margin-bottom:20px">Hi ' + tenantName + ', thank you for signing your tenancy document.</p>' +
         '<div style="background:#F6F8FB;border-radius:8px;padding:16px;margin-bottom:24px">' +
@@ -368,7 +372,7 @@
         '<div style="margin-top:20px;padding-top:14px;border-top:1px solid #eee;font-size:11px;color:#999">Sent via NexLet · documents@nexlet.co.uk</div></div>';
 
       var landlordEmailHtml = '<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:28px 24px;color:#1A2B45">' +
-        '<div style="border-bottom:2px solid #0B1E3D;padding-bottom:12px;margin-bottom:20px"><span style="font-size:17px;font-weight:700;color:#0B1E3D">Rent<span style="color:#00C896">Safe AI</span></span></div>' +
+        '<div style="border-bottom:2px solid #0B1E3D;padding-bottom:12px;margin-bottom:20px"><span style="font-size:17px;font-weight:700;color:#0B1E3D">NexLet</span></div>' +
         '<h2 style="font-size:16px;font-weight:600;margin-bottom:8px">Tenant has signed — ' + tenantName + ', ' + propAddr + '</h2>' +
         '<div style="background:#F6F8FB;border-radius:8px;padding:16px;margin-bottom:20px">' +
         '<div style="font-size:12px;color:#7A8FA6;margin-bottom:2px">Tenant</div><div style="font-size:13px;font-weight:600;margin-bottom:10px">' + tenantName + '</div>' +
@@ -379,16 +383,16 @@
         '<div style="margin-top:20px;padding-top:14px;border-top:1px solid #eee;font-size:11px;color:#999">Sent via NexLet · documents@nexlet.co.uk</div></div>';
 
       if (tenant?.email) {
-        await fetch(EDGE_URL, {
+        fetch(EDGE_URL, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ type: 'send_email', to: tenant.email, subject: 'Your signed document — ' + propAddr, html: tenantEmailHtml })
-        }).catch(function () {});
+        }).catch(function (e) { console.error('[esign] Tenant email failed:', e); });
       }
       if (tenant?.landlord_email) {
-        await fetch(EDGE_URL, {
+        fetch(EDGE_URL, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ type: 'send_email', to: tenant.landlord_email, subject: 'Tenant has signed — ' + tenantName + ', ' + propAddr, html: landlordEmailHtml })
-        }).catch(function () {});
+        }).catch(function (e) { console.error('[esign] Landlord email failed:', e); });
       }
 
       document.getElementById('esign-sign-flow').style.display = 'none';

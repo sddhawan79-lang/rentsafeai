@@ -655,6 +655,7 @@ const D = {
   properties: [], tenants: [], certs: [], maintenance: [], rent: [], insurance: [],
   emailLog: [], customTemplates: [], contractors: [], jobAssignments: [], tenantDocs: [],
   _invReports: [],
+  esignReq: [],
   userProfile: null,
   chat: [{role:'ai', text:'Hello! I\'m your NexLet assistant. I can help with UK landlord law (RRA 2025, Section 8/13, deposits, Awaab\'s Law, MTD tax) and the NexLet platform itself — ask me where to find a feature, how to generate a document, or anything about your compliance obligations.'}]
 };
@@ -822,7 +823,7 @@ async function logout() {
 
 // ── LOAD DATA ──
 async function loadData() {
-  const [p, t, c, m, r, i, el, ct, con, ja, td, up, sub] = await Promise.all([
+  const [p, t, c, m, r, i, el, ct, con, ja, td, up, sub, er] = await Promise.all([
     sb.from('properties').select('*').order('created_at', {ascending: false}),
     sb.from('tenants').select('*'),
     sb.from('certificates').select('*'),
@@ -836,6 +837,7 @@ async function loadData() {
     sb.from('tenant_documents').select('*').order('uploaded_at', {ascending: false}),
     sb.from('user_profiles').select('*').eq('id', currentUser.id).maybeSingle(),
     sb.from('stripe_subscriptions').select('plan_name').eq('user_id', currentUser.id).maybeSingle(),
+    sb.from('esign_requests').select('*').order('created_at', {ascending: false}),
   ]);
 
   if (p.data?.length) {
@@ -880,6 +882,7 @@ async function loadData() {
   if (up.data) D.userProfile = up.data;
   // Resolve user plan from Stripe subscription, fallback to portfolio (grandfather existing users)
   window._userPlan = (sub.data && sub.data.plan_name) ? sub.data.plan_name : 'portfolio';
+  if (er.data?.length) D.esignReq = er.data;
   await checkComplianceReminders();
   checkAllReminders(); // fire-and-forget weekly digest + reminders on login
 
@@ -4335,6 +4338,15 @@ function pdTabContent(pid, tab) {
         <div class="ph2"><div><h2>✉ Email log</h2><p>Documents sent to this tenant</p></div><button class="btn btn-sm" onclick="nav('templates')">+ Send document</button></div>
         <div style="padding:14px 18px">${propEmailLogHtml(pid)}</div>
       </div>
+
+      ${(() => {
+        const signed = (D.esignReq||[]).filter(r => String(r.property_id) === String(pid) && r.status === 'signed');
+        if (!signed.length) return '';
+        return '<div class="panel" style="margin-bottom:16px"><div class="ph2"><div><h2>📄 Signed Documents</h2><p>Completed e-signatures</p></div></div><div style="padding:8px 18px 14px">'
+          + signed.map(r => '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);gap:10px"><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;color:var(--txt)">'+(r.document_type==='written_statement'?'Written Statement':'Uploaded PDF')+'</div><div style="font-size:10px;color:var(--muted)">Signed '+new Date(r.signed_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+' · '+(r.tenant_name||'Tenant')+'</div></div>'+(r.signed_pdf_url?'<a href="'+r.signed_pdf_url+'" target="_blank" class="btn btn-sm" style="font-size:11px;text-decoration:none;flex-shrink:0">⬇ Download</a>':'<span style="font-size:10px;color:var(--muted)">No file</span>')+'</div>').join('')
+          + '</div></div>';
+      })()}
+
     : `<div class="panel"><div style="padding:36px 28px;text-align:center">
         <div style="font-size:38px;margin-bottom:12px">🏠</div>
         <div style="font-size:16px;font-weight:700;color:var(--navy);margin-bottom:6px">Ready to start a tenancy?</div>
@@ -10954,9 +10966,13 @@ function moEsign(pid, tid) {
       <div id="esign-preview-a" style="display:none;margin-top:4px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
           <div style="font-size:12px;font-weight:600;color:var(--txt)">Generated document preview</div>
-          <button onclick="document.getElementById('esign-preview-a').style.display='none';document.getElementById('esign-generate-row').style.display='block';document.getElementById('esign-send-row-a').style.display='none';document.getElementById('esign-gen-btn').disabled=false;document.getElementById('esign-gen-btn').innerHTML='✦ Generate Document'" style="font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer">✎ Regenerate</button>
+          <div style="display:flex;gap:8px">
+            <button onclick="_esignToggleEdit()" id="esign-edit-btn" style="font-size:11px;color:var(--blue);background:none;border:none;cursor:pointer">✏️ Edit</button>
+            <button onclick="document.getElementById('esign-preview-a').style.display='none';document.getElementById('esign-generate-row').style.display='block';document.getElementById('esign-send-row-a').style.display='none';document.getElementById('esign-gen-btn').disabled=false;document.getElementById('esign-gen-btn').innerHTML='✦ Generate Document'" style="font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer">✎ Regenerate</button>
+          </div>
         </div>
         <div id="esign-doc-preview" style="border:1px solid var(--border);border-radius:8px;max-height:260px;overflow:auto;padding:14px 16px;font-size:12px;line-height:1.6;background:var(--white);contain:strict;width:100%"></div>
+        <textarea id="esign-doc-editor" style="display:none;width:100%;height:260px;border:1px solid var(--blue);border-radius:8px;padding:14px 16px;font-size:12px;line-height:1.6;font-family:var(--font);background:var(--white);color:var(--txt);resize:vertical;outline:none"></textarea>
       </div>
       <div id="esign-generate-row" style="margin-top:14px">
         <button class="btn btn-navy" style="width:100%" id="esign-gen-btn" onclick="esignGenerateDoc('${pid}','${tid}')">✦ Generate Document</button>
@@ -10997,6 +11013,28 @@ function moEsign(pid, tid) {
 }
 
 function esignShowOptionA() {
+
+// ── E-SIGN: EDIT TOGGLE ──
+function _esignToggleEdit() {
+  const preview = document.getElementById('esign-doc-preview');
+  const editor = document.getElementById('esign-doc-editor');
+  const btn = document.getElementById('esign-edit-btn');
+  if (!preview || !editor) return;
+  if (editor.style.display === 'none') {
+    // Switch to edit mode
+    editor.value = _esignDocHtml;
+    preview.style.display = 'none';
+    editor.style.display = 'block';
+    btn.textContent = '✓ Done';
+  } else {
+    // Save edits and switch back to preview
+    _esignDocHtml = editor.value;
+    preview.innerHTML = '<div style="all:initial;font-family:inherit;font-size:inherit;line-height:inherit;color:inherit">' + _esignDocHtml + '</div>';
+    editor.style.display = 'none';
+    preview.style.display = 'block';
+    btn.textContent = '✏️ Edit';
+  }
+}
   document.getElementById('esign-chooser').style.display = 'none';
   document.getElementById('esign-form-a').style.display = 'block';
 }
@@ -11055,6 +11093,7 @@ async function esignGenerateDoc(pid, tid) {
     const data = await res.json();
     _esignDocHtml = data.content?.[0]?.text || '';
     document.getElementById('esign-doc-preview').innerHTML = '<div style="all:initial;font-family:inherit;font-size:inherit;line-height:inherit;color:inherit">' + _esignDocHtml + '</div>';
+    document.getElementById('esign-doc-editor').value = _esignDocHtml;
     document.getElementById('esign-doc-preview').scrollTop = 0;
     document.getElementById('esign-preview-a').style.display = 'block';
     document.getElementById('esign-generate-row').style.display = 'none';
@@ -11156,7 +11195,7 @@ async function _sendEsignRequest(pid, tid, mode) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ type: 'send_email', to: t.email, subject: 'Action required — please sign your tenancy document', html })
-  }).catch(() => {});
+  }).catch(e => { console.error('[esign] Send email failed:', e); });
 
   await logAudit('esign_request_sent', 'esign_requests', pid, `E-sign sent to ${t.email} for ${p.address} — landlord signed by ${landlordName}`);
   closeMo();
