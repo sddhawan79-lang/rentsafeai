@@ -1104,16 +1104,22 @@ async function scanAndFill(file, onResult, customPrompt){
   if(!file) return;
   const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});
   const isImg=file.type.startsWith('image/');
-  const defaultPrompt = 'UK property compliance certificate. Extract: certificate type, issue date (YYYY-MM-DD), expiry date (YYYY-MM-DD), engineer or provider name, issuing_authority (the company or organisation that issued the certificate), address. Return JSON only, keys: type, issued, expiry, engineer, issuing_authority, address.';
+  const defaultPrompt = 'UK property compliance certificate. Extract: certificate type, issue date (YYYY-MM-DD), expiry date (YYYY-MM-DD), engineer or provider name, issuing_authority (the company or organisation that issued the certificate), address, reference number (certificate/report serial number), amount/cost in GBP (number only). Return JSON only, keys: type, issued, expiry, engineer, issuing_authority, address, ref, amount. For each key, if you cannot determine the value with confidence, use null. Do not guess dates or numbers.';
   const prompt = customPrompt || defaultPrompt;
   const msgContent=isImg
     ?[{type:'image',source:{type:'base64',media_type:file.type,data:b64}},{type:'text',text:prompt}]
     :[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:prompt}];
-  const res=await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/ai-proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:300,messages:[{role:'user',content:msgContent}]})});
+  const res=await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/ai-proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:500,messages:[{role:'user',content:msgContent}]})});
   const data=await res.json();
   const txt=data.content?.[0]?.text||'{}';
   try {
-    const parsed=JSON.parse(txt.replace(/```json|```/g,'').trim());
+    const cleaned=txt.replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(cleaned);
+    // Flag missing/weak values
+    const missing=[];
+    const keyLabels={type:'Certificate type',issued:'Issue date',expiry:'Expiry date',engineer:'Engineer/Provider',issuing_authority:'Issuing authority',address:'Address',ref:'Reference number',amount:'Amount',scheme:'Deposit scheme',policy_number:'Policy number',premium:'Premium',provider:'Provider'};
+    ['type','issued','expiry','engineer','address','ref'].forEach(k=>{if(!parsed[k]||parsed[k]==='null'||parsed[k]==='unknown')missing.push(keyLabels[k]||k);});
+    if(missing.length) parsed._warnings=missing;
     onResult(parsed);
   } catch(e) {
     onResult({});
@@ -1421,6 +1427,7 @@ function moCert(pid){
           <option>How to Rent Guide</option>
           <option>Smoke Alarm Test Record</option>
           <option>CO Alarm Check Record</option>
+          <option>Boiler Service Certificate</option>
         </optgroup>
         <optgroup label="Deposit & Tenancy">
           <option>Deposit Protection Certificate</option>
@@ -1435,6 +1442,8 @@ function moCert(pid){
           <option>HMO Licence</option>
           <option>Selective Licence</option>
           <option>Planning Permission / Article 4</option>
+          <option>Fire Extinguisher Service Record</option>
+          <option>Emergency Lighting Test Record</option>
         </optgroup>
         <optgroup label="Property documents">
           <option>Inventory / Schedule of Condition</option>
@@ -1442,6 +1451,7 @@ function moCert(pid){
           <option>Contents Insurance Schedule</option>
           <option>Rent Guarantee Insurance</option>
           <option>Section 48 Notice (Landlord Address)</option>
+          <option>Pest Control Report</option>
         </optgroup>
         <optgroup label="Other">
           <option>Other</option>
@@ -1475,7 +1485,9 @@ async function scanDoc(input){
       if(parsed.engineer)document.getElementById('ceng').value=parsed.engineer;
       if(parsed.reference||parsed.ref||parsed.cert_number){const el=document.getElementById('cref');if(el)el.value=parsed.reference||parsed.ref||parsed.cert_number||'';}
       if(parsed.amount||parsed.premium||parsed.cost){const el=document.getElementById('camt');if(el){const amt=parseFloat(parsed.amount||parsed.premium||parsed.cost)||0;if(amt>0)el.value=amt;}}
-      document.getElementById('arg').innerHTML=[['Type',parsed.type],['Issue date',parsed.issued],['Expiry',parsed.expiry],['Engineer',parsed.engineer],['Reference',parsed.reference||parsed.ref||parsed.cert_number],['Amount',parsed.amount||parsed.premium||parsed.cost],['Address',parsed.address]].map(([l,v])=>`<div class="ai-res-f"><span>${l}</span><strong>${v||'Not detected'}</strong></div>`).join('');
+      const warnings=parsed._warnings||[];
+      const warnHtml=warnings.length?`<div style="background:var(--amber-bg);border:1px solid rgba(217,119,6,0.25);border-radius:6px;padding:8px 10px;margin-bottom:8px;font-size:11px;color:var(--amber)">⚠ Could not determine: ${warnings.join(', ')} — please review</div>`:'';
+      document.getElementById('arg').innerHTML=warnHtml+[['Type',parsed.type],['Issue date',parsed.issued],['Expiry',parsed.expiry],['Engineer',parsed.engineer],['Reference',parsed.reference||parsed.ref||parsed.cert_number],['Amount',parsed.amount||parsed.premium||parsed.cost],['Address',parsed.address]].map(([l,v])=>`<div class="ai-res-f"><span>${l}</span><strong style="color:${v&&v!=='Not detected'?'var(--txt)':'var(--amber)'}">${v||'Not detected'}</strong></div>`).join('');
       document.getElementById('ar').style.display='block';
       sb2.innerHTML=`<div style="font-size:13px;color:var(--green-dark);font-weight:600">✓ Scanned — fields filled below</div><div style="font-size:12px;color:var(--muted);margin-top:4px">${file.name}</div>`;
     }, 'UK property compliance certificate or document. Extract: certificate type, certificate/reference number, issue date (YYYY-MM-DD), expiry date (YYYY-MM-DD), engineer/provider name, amount/cost in GBP if present (number only), property address. Return JSON only, keys: type, ref, issued, expiry, engineer, amount, address.');
@@ -4495,9 +4507,9 @@ function pdTabContent(pid, tab) {
       </div>`;
     };
 
-    const _GD = ['Gas Safety Certificate','EICR (Electrical Installation)','EPC (Energy Performance)','Smoke Alarm Test Record','CO Alarm Check Record','Legionella Risk Assessment','Fire Risk Assessment','Asbestos Survey','PAT Testing Certificate','HMO Licence','Selective Licence','Planning Permission / Article 4','Buildings Insurance Schedule','Contents Insurance Schedule','Rent Guarantee Insurance'];
+    const _GD = ['Gas Safety Certificate','EICR (Electrical Installation)','EPC (Energy Performance)','Smoke Alarm Test Record','CO Alarm Check Record','Boiler Service Certificate','Legionella Risk Assessment','Fire Risk Assessment','Asbestos Survey','PAT Testing Certificate','HMO Licence','Selective Licence','Planning Permission / Article 4','Fire Extinguisher Service Record','Emergency Lighting Test Record','Buildings Insurance Schedule','Contents Insurance Schedule','Rent Guarantee Insurance'];
     const _GN = ['Deposit Protection Certificate','Right to Rent Record','Section 48 Notice (Landlord Address)'];
-    const _GS = ['How to Rent Guide','Written Statement of Terms','Inventory / Schedule of Condition'];
+    const _GS = ['How to Rent Guide','Written Statement of Terms','Inventory / Schedule of Condition','Pest Control Report'];
 
     return `
       <div style="background:${ragBg};border:1px solid ${ragCol};border-radius:10px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:14px">
@@ -4600,6 +4612,7 @@ function pdTabContent(pid, tab) {
 function buildCertStatusGrid(pid) {
   const today = new Date(); today.setHours(0,0,0,0);
   const pc = CF(pid);
+  const p = P(pid);
   const CERT_TYPES = [
     // MANDATORY — legal requirement
     'Gas Safety Certificate',
@@ -4608,6 +4621,7 @@ function buildCertStatusGrid(pid) {
     'How to Rent Guide',
     'Smoke Alarm Test Record',
     'CO Alarm Check Record',
+    'Boiler Service Certificate',
     // DEPOSIT & TENANCY
     'Deposit Protection Certificate',
     'Written Statement of Terms',
@@ -4620,12 +4634,15 @@ function buildCertStatusGrid(pid) {
     'HMO Licence',
     'Selective Licence',
     'Planning Permission / Article 4',
+    'Fire Extinguisher Service Record',
+    'Emergency Lighting Test Record',
     // PROPERTY DOCUMENTS
     'Inventory / Schedule of Condition',
     'Buildings Insurance Schedule',
     'Contents Insurance Schedule',
     'Rent Guarantee Insurance',
     'Section 48 Notice (Landlord Address)',
+    'Pest Control Report',
     // CUSTOM
     'Other',
   ];
@@ -4634,13 +4651,33 @@ function buildCertStatusGrid(pid) {
     const lo = label.toLowerCase();
     return pc.find(c => {
       const t = (c.type || '').toLowerCase();
-      if (lo === 'gas safety certificate') return t.includes('gas');
-      if (lo === 'eicr') return t.includes('eicr') || t.includes('electrical installation');
-      if (lo === 'epc') return t.includes('epc') || t.includes('energy performance');
-      if (lo === 'how to rent guide') return t.includes('how to rent');
-      if (lo === 'deposit certificate') return t.includes('deposit');
-      if (lo === 'tenancy agreement') return t.includes('tenancy agreement');
-      return false;
+      if (t === lo) return true;
+      if (lo.includes('gas safety')) return t.includes('gas');
+      if (lo.includes('eicr') || lo.includes('electrical')) return t.includes('eicr') || t.includes('electrical');
+      if (lo.includes('epc') || lo.includes('energy')) return t.includes('epc') || t.includes('energy');
+      if (lo.includes('how to rent')) return t.includes('how to rent');
+      if (lo.includes('deposit')) return t.includes('deposit');
+      if (lo.includes('written statement')) return t.includes('written statement')||t.includes('tenancy');
+      if (lo.includes('right to rent')) return t.includes('right to rent');
+      if (lo.includes('smoke alarm')) return t.includes('smoke alarm');
+      if (lo.includes('co alarm')) return t.includes('co alarm');
+      if (lo.includes('boiler')) return t.includes('boiler');
+      if (lo.includes('legionella')) return t.includes('legionella');
+      if (lo.includes('fire risk')) return t.includes('fire risk');
+      if (lo.includes('asbestos')) return t.includes('asbestos');
+      if (lo.includes('pat testing')) return t.includes('pat testing');
+      if (lo.includes('hmo licence')) return t.includes('hmo licence');
+      if (lo.includes('selective licence')) return t.includes('selective');
+      if (lo.includes('planning')) return t.includes('planning');
+      if (lo.includes('fire extinguisher')) return t.includes('fire extinguisher');
+      if (lo.includes('emergency lighting')) return t.includes('emergency lighting');
+      if (lo.includes('inventory')) return t.includes('inventory');
+      if (lo.includes('buildings insurance')) return t.includes('buildings insurance');
+      if (lo.includes('contents insurance')) return t.includes('contents insurance');
+      if (lo.includes('rent guarantee')) return t.includes('rent guarantee');
+      if (lo.includes('section 48')) return t.includes('section 48');
+      if (lo.includes('pest control')) return t.includes('pest');
+      return t.includes(lo) || lo.includes(t);
     });
   }
 
@@ -4656,20 +4693,30 @@ function buildCertStatusGrid(pid) {
     return { label: 'VALID', bg: 'var(--green-bg)', color: '#00A87A', border: 'var(--green-bg)', days: null };
   }
 
+  const NO_EXPIRY = ['How to Rent Guide','Written Statement of Terms','Right to Rent Record','Section 48 Notice (Landlord Address)','Inventory / Schedule of Condition','Pest Control Report','RRA Information Sheet 2026'];
+  const HMO_ONLY = ['HMO Licence','Fire Extinguisher Service Record','Emergency Lighting Test Record'];
+  const isHMO = p ? (p.type === 'HMO' || (p.licence_type||'').toLowerCase().includes('hmo') || (p.licence_type||'').toLowerCase().includes('mandatory')) : false;
+
   const items = CERT_TYPES.map(label => {
+    // Skip HMO-only certs if property is not HMO
+    if (HMO_ONLY.includes(label) && !isHMO) return '';
     const cert = findCert(label);
     const st = getCertStatus(cert);
-    const dayStr = st.days !== null
-      ? (st.days < 0 ? `${Math.abs(st.days)}d overdue` : `${st.days}d left`)
-      : (cert && !cert.expiry ? 'No expiry' : '');
-    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 11px;background:${st.bg};border:1px solid ${st.border};border-radius:7px;gap:8px">
+    const noExpiry = NO_EXPIRY.includes(label);
+    const served = cert && cert.served;
+    const displayLabel = noExpiry ? (cert ? (served ? '✓ SERVED' : '⚠ NOT SERVED') : 'MISSING') : st.label;
+    const displayColor = noExpiry ? (cert ? (served ? '#00A87A' : '#D97706') : '#7A8FA6') : st.color;
+    const displayBg = noExpiry ? (cert ? (served ? 'var(--green-bg)' : 'rgba(217,119,6,0.1)') : '#E4EAF1') : st.bg;
+    const displayBorder = noExpiry ? (cert ? (served ? 'var(--green-bg)' : 'rgba(217,119,6,0.25)') : 'transparent') : st.border;
+    const dayStr = noExpiry ? '' : (st.days !== null ? (st.days < 0 ? `${Math.abs(st.days)}d overdue` : `${st.days}d left`) : (cert && !cert.expiry ? 'No expiry' : ''));
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 11px;background:${displayBg};border:1px solid ${displayBorder};border-radius:7px;gap:8px">
       <span style="font-size:12px;font-weight:500;color:var(--txt);flex:1;min-width:0">${label}</span>
       <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-        ${dayStr ? `<span style="font-size:10px;color:${st.color}">${dayStr}</span>` : ''}
-        <span style="font-size:10px;font-weight:700;color:${st.color};letter-spacing:.3px;white-space:nowrap">${st.label}</span>
+        ${dayStr ? `<span style="font-size:10px;color:${displayColor}">${dayStr}</span>` : ''}
+        <span style="font-size:10px;font-weight:700;color:${displayColor};letter-spacing:.3px;white-space:nowrap">${displayLabel}</span>
       </div>
     </div>`;
-  }).join('');
+  }).filter(Boolean).join('');
 
   return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">${items}</div>`;
 }
@@ -4775,9 +4822,9 @@ function pgCompliance(){
   </div>`;
 
   // Property breakdown — 3 collapsible groups per property
-  const _pgGD = ['Gas Safety Certificate','EICR (Electrical Installation)','EPC (Energy Performance)','Smoke Alarm Test Record','CO Alarm Check Record','Legionella Risk Assessment','Fire Risk Assessment','Asbestos Survey','PAT Testing Certificate','HMO Licence','Selective Licence','Planning Permission / Article 4','Buildings Insurance Schedule','Contents Insurance Schedule','Rent Guarantee Insurance'];
+  const _pgGD = ['Gas Safety Certificate','EICR (Electrical Installation)','EPC (Energy Performance)','Smoke Alarm Test Record','CO Alarm Check Record','Boiler Service Certificate','Legionella Risk Assessment','Fire Risk Assessment','Asbestos Survey','PAT Testing Certificate','HMO Licence','Selective Licence','Planning Permission / Article 4','Fire Extinguisher Service Record','Emergency Lighting Test Record','Buildings Insurance Schedule','Contents Insurance Schedule','Rent Guarantee Insurance'];
   const _pgGN = ['RRA Information Sheet 2026','Deposit Protection Certificate','Prescribed Information (Deposit)','Right to Rent Record','Section 48 Notice (Landlord Address)','Section 13 Rent Increase Notice','Pet Policy / Addendum'];
-  const _pgGS = ['How to Rent Guide','Written Statement of Terms','Inventory / Schedule of Condition'];
+  const _pgGS = ['How to Rent Guide','Written Statement of Terms','Inventory / Schedule of Condition','Pest Control Report'];
 
   const _pgGetSt = (pc, label) => {
     const lo = label.toLowerCase();
