@@ -3626,6 +3626,16 @@ function renderPropChecklist(prefix, pid, mode, saved, meters){
   });
 
   html+='<p style="font-size:10px;color:var(--muted);margin-top:10px;line-height:1.5">⚠️ Guide only — not legal advice. Consult a qualified solicitor for your circumstances.</p>';
+  // "Add Tenant" button — enabled only when all items checked (onboard only)
+  if (mode === 'onboard') {
+    const allChecked = ITEMS.every(function(i){ return saved[i.id]; });
+    html+='<div style="margin-top:12px;text-align:center">';
+    html+='<button class="btn btn-navy" id="pt-add-tenant-btn" onclick="completePretenancyChecklist(\''+pid+'\')" style="min-width:160px;font-size:13px" '+(allChecked?'':'disabled')+'>'+(allChecked?'Add tenant':'Complete all checks to add tenant')+'</button>';
+    html+='</div>';
+    html+='<div style="text-align:center;margin-top:8px">';
+    html+='<a href="#" onclick="event.preventDefault();bypassPretenancyChecklist(\''+pid+'\')" style="font-size:11px;color:var(--muted);text-decoration:underline">Skip checks — I take full responsibility</a>';
+    html+='</div>';
+  }
   html+='</div>';
   return html;
 }
@@ -3635,10 +3645,119 @@ async function togglePropCheck(prefix,pid,itemId){
   const saved = await sbLoadChecklist(pid, prefix);
   if(saved[itemId]) delete saved[itemId]; else saved[itemId]=true;
   _checkCache[cacheKey] = saved;
+
+  // Track in pretenancy record with timestamps (onboard only)
+  if (prefix === 'ob') {
+    if (!window._pretenancyRecord) window._pretenancyRecord = {};
+    if (!window._pretenancyRecord[pid]) window._pretenancyRecord[pid] = {};
+    if (saved[itemId]) {
+      window._pretenancyRecord[pid][itemId] = { checkedAt: new Date().toISOString(), landlordId: currentUser.id };
+    } else {
+      delete window._pretenancyRecord[pid][itemId];
+    }
+  }
+
   const meters = _meterCache[pid] || {};
   const el=document.getElementById('cb-'+prefix+'-'+pid);
   if(el) el.innerHTML=renderPropChecklist(prefix,pid,prefix==='ob'?'onboard':'deboard',saved,meters);
   await sbSaveChecklist(pid, prefix, saved);
+}
+
+// ── PRETENANCY CHECKLIST COMPLETION ──
+async function completePretenancyChecklist(pid) {
+  const record = (window._pretenancyRecord || {})[pid] || {};
+  const items = getPropCheckItems('onboard');
+  const allChecked = items.every(function(i){ return record[i.id]; });
+  if (!allChecked) { toast('Complete all checks before proceeding.',true); return; }
+
+  try {
+    const payload = {
+      prop_id: String(pid),
+      tenant_id: null,
+      landlord_id: currentUser.id,
+      checks: record,
+      completed_at: new Date().toISOString(),
+      bypassed: false,
+      bypass_reason: null
+    };
+    await sb.from('pretenancy_checks').insert(payload);
+    await generatePretenancyPDF(pid, record, false);
+    toast('✓ Pre-tenancy audit trail saved');
+    closeMo();
+    moTenant(pid);
+  } catch(e) { _logError('completePretenancyChecklist',e); toast('Error saving checklist — please try again',true); }
+}
+
+async function bypassPretenancyChecklist(pid) {
+  openMo('⚠️ Skip pre-tenancy checks', 'Accept responsibility', `
+    <div style="font-size:13px;color:var(--txt);line-height:1.6;margin-bottom:18px">
+      By proceeding you confirm you have conducted all required pre-tenancy checks and accept full personal and legal responsibility. NexLet records this decision with a timestamp.
+    </div>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button class="btn btn-navy" onclick="closeMo();doBypassPretenancy('${pid}')">I accept — proceed</button>
+      <button class="btn" onclick="closeMo()">Go back</button>
+    </div>
+  `, '');
+}
+
+async function doBypassPretenancy(pid) {
+  try {
+    const bypassReason = 'Landlord accepted responsibility at ' + new Date().toISOString();
+    const payload = {
+      prop_id: String(pid),
+      tenant_id: null,
+      landlord_id: currentUser.id,
+      checks: (window._pretenancyRecord || {})[pid] || {},
+      completed_at: new Date().toISOString(),
+      bypassed: true,
+      bypass_reason: bypassReason
+    };
+    await sb.from('pretenancy_checks').insert(payload);
+    await generatePretenancyPDF(pid, (window._pretenancyRecord || {})[pid] || {}, true);
+    toast('✓ Bypass recorded — audit trail saved');
+    closeMo();
+    moTenant(pid);
+  } catch(e) { _logError('doBypassPretenancy',e); toast('Error saving bypass — please try again',true); }
+}
+
+async function generatePretenancyPDF(pid, record, bypassed) {
+  const p = P(pid);
+  if (!p) return;
+  const items = getPropCheckItems('onboard');
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const W = doc.internal.pageSize.getWidth();
+  let y = 40;
+  doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.setTextColor(11,30,61);
+  doc.text('Pre-Tenancy Compliance Audit', 16, y); y += 24;
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(100,100,100);
+  doc.text('Property: ' + (p.address || '') + (p.city ? ', ' + p.city : '') + (p.postcode ? ', ' + p.postcode : ''), 16, y); y += 14;
+  doc.text('Landlord: ' + (currentUser.email || ''), 16, y); y += 18;
+  doc.setDrawColor(220); doc.line(16, y, W - 16, y); y += 14;
+
+  items.forEach(function(item) {
+    const rec = record[item.id];
+    doc.setFont('helvetica','bold'); doc.setFontSize(9);
+    doc.setTextColor(rec ? 0 : 200, rec ? 150 : 60, rec ? 0 : 60);
+    const status = bypassed ? 'BYPASSED' : (rec ? 'DONE' : 'NOT DONE');
+    doc.text(status + '  ' + item.label, 16, y);
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(120,120,120);
+    const ts = rec ? new Date(rec.checkedAt).toLocaleString('en-GB') : '';
+    doc.text(ts, 16, y + 11);
+    y += 22;
+    if (y > 790) { doc.addPage(); y = 40; }
+  });
+
+  y += 10;
+  doc.setDrawColor(220); doc.line(16, y, W - 16, y); y += 14;
+  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(140,140,140);
+  doc.text('Generated by NexLet \u00b7 ' + new Date().toLocaleDateString('en-GB') + ' \u00b7 Timestamped compliance record', 16, y);
+
+  const pdfBlob = doc.output('blob');
+  const path = 'pretenancy-audits/' + pid + '-' + Date.now() + '.pdf';
+  try {
+    await sb.storage.from('pretenancy-audits').upload(path, pdfBlob, { contentType: 'application/pdf', upsert: true });
+  } catch(e) { _logError('generatePretenancyPDF:upload', e); }
 }
 
 async function saveMeterReading(pid,mkey,val){
@@ -3664,6 +3783,18 @@ async function initPropChecklist(prefix, pid, mode) {
     sbLoadChecklist(pid, prefix),
     sbLoadMeters(pid)
   ]);
+
+  // Initialise pretenancy record from saved data (onboard only)
+  if (prefix === 'ob') {
+    if (!window._pretenancyRecord) window._pretenancyRecord = {};
+    if (!window._pretenancyRecord[pid]) window._pretenancyRecord[pid] = {};
+    Object.keys(saved).forEach(function(key) {
+      if (!window._pretenancyRecord[pid][key]) {
+        window._pretenancyRecord[pid][key] = { checkedAt: new Date().toISOString(), landlordId: currentUser.id };
+      }
+    });
+  }
+
   const el = document.getElementById('cb-'+prefix+'-'+pid);
   if (el) el.innerHTML = renderPropChecklist(prefix, pid, mode, saved, meters);
 }
