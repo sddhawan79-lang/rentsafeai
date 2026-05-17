@@ -5843,7 +5843,7 @@ async function uploadTenantDoc(tid, slot, input) {
   const t     = D.tenants.find(x => String(x.id) === String(tid));
 
   const { error: upErr } = await sb.storage.from('tenant-documents').upload(path, file, { contentType: file.type });
-  if (upErr) { toast('Upload failed — ' + upErr.message, true); nav('tenant-detail', tid); return; }
+  if (upErr) { toast('Upload failed — ' + upErr.message, true); if (lbl) { lbl.style.pointerEvents = ''; lbl.textContent = 'Upload failed'; } return; }
 
   const record = {
     tenant_id:   tid,
@@ -5857,13 +5857,11 @@ async function uploadTenantDoc(tid, slot, input) {
   };
 
   const { data, error: insErr } = await sb.from('tenant_documents').insert(record).select().single();
-  if (insErr) { toast('Save failed — ' + insErr.message, true); nav('tenant-detail', tid); return; }
+  if (insErr) { toast('Save failed — ' + insErr.message, true); return; }
   if (data) D.tenantDocs.push(data);
 
-  // Get saved doc ID for scan
   const savedDoc = D.tenantDocs.find(d => String(d.tenant_id) === String(tid) && d.slot === slot && d.file_name === path);
-  toast('✓ Uploaded — scanning document…');
-  nav('tenant-detail', tid);
+  toast('✓ Uploaded' + (savedDoc?.id ? ' — scanning document…' : ''));
 
   // Trigger AI scan in background
   if (savedDoc?.id) scanTenantDoc(savedDoc.id, tid, slot, file, t?.name || '');
@@ -6012,7 +6010,11 @@ function moTenantDocs(tenantId, propId) {
 async function moTenantDocsUpload(tid, slot, input) {
   await uploadTenantDoc(tid, slot, input);
   const t = D.tenants.find(x => String(x.id) === String(tid));
-  if (t) moTenantDocs(tid, t.prop_id);
+  if (t) {
+    moTenantDocs(tid, t.prop_id);
+    // Refresh checklist if open (auto-detection re-runs on new docs)
+    try { initPropChecklist('ob', t.prop_id, 'onboard'); } catch(_) {}
+  }
 }
 
 async function moTenantDocsScan(tid, slot) {
