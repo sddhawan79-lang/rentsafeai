@@ -1711,10 +1711,15 @@ function moEditProp(pid){
 
 async function archiveProperty(pid) {
   if (!confirm('Mark this property as sold? It will be archived and removed from your active portfolio. You can restore it from your database if needed.')) return;
-  const { error } = await sb.from('properties').update({ status: 'archived' }).eq('id', pid);
-  if (error) { toast('Error: ' + error.message, true); return; }
+  const now = new Date().toISOString();
+  try {
+    const { error } = await sb.from('properties').update({ status: 'archived', archived_at: now }).eq('id', pid);
+    if (error) throw error;
+  } catch (e) {
+    try { await sb.from('properties').update({ status: 'archived' }).eq('id', pid); } catch (_) {}
+  }
   const p = D.properties.find(p => String(p.id) === String(pid));
-  if (p) p.status = 'archived';
+  if (p) { p.status = 'archived'; p.archived_at = now; }
   await logAudit('ARCHIVE_PROPERTY', 'properties', pid, 'Property archived / marked as sold');
   closeMo(); toast('✓ Property archived'); nav('properties');
 }
@@ -1744,10 +1749,20 @@ function moPropertyStatus(pid) {
 async function changePropertyStatus(pid, newStatus) {
   const info = PROPERTY_STATUS[newStatus];
   if (!info) return;
-  const { error } = await sb.from('properties').update({ status: newStatus }).eq('id', pid);
-  if (error) { toast('Error: ' + error.message, true); return; }
-  const p = P(pid);
-  if (p) p.status = newStatus;
+  const p = P(pid); if (!p) return;
+  const oldStatus = p.status || 'active';
+  const now = new Date().toISOString();
+  const payload = { status: newStatus };
+  if (newStatus === 'archived')       { payload.archived_at = now; }
+  if (newStatus === 'vacant')         { payload.vacant_since = now; if (oldStatus === 'active') payload.tenancy_ended_at = now; }
+  if (newStatus === 'active')         { payload.tenancy_started_at = now; payload.vacant_since = null; }
+  try {
+    const { error } = await sb.from('properties').update(payload).eq('id', pid);
+    if (error) throw error;
+    Object.assign(p, payload);
+  } catch (e) {
+    try { await sb.from('properties').update({ status: newStatus }).eq('id', pid); if (p) p.status = newStatus; } catch (_) {}
+  }
   await logAudit('PROPERTY_STATUS_CHANGE', 'properties', pid, `Status changed to: ${info.label}`);
   closeMo(); toast(`Status updated to ${info.label}`); nav('properties');
 }
