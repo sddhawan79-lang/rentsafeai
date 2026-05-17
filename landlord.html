@@ -2898,9 +2898,18 @@ async function _endTenancy(tid) {
     }
 
     await logAudit('END_TENANCY', 'tenants', tid, `Ended: ${reason}`);
+
+    // Reset property to vacant
+    const propId = t.prop_id;
+    const today = new Date().toISOString().slice(0, 10);
+    await sb.from('properties').update({ status: 'vacant', vacant_since: today }).eq('id', propId);
+    const prop = P(propId);
+    if (prop) { prop.status = 'vacant'; prop.vacant_since = today; }
+    await logAudit('PROPERTY_STATUS_CHANGE', 'properties', propId, 'Property reset to vacant after tenancy end');
+
     closeMo();
     toast('✓ Tenancy ended — data archived for disputes');
-    nav('tenant-detail', tid);
+    nav('prop-detail', String(propId));
   } catch (e) {
     _logError('_endTenancy', e);
     toast('Error ending tenancy. Try again.', true);
