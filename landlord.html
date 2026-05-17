@@ -1248,7 +1248,17 @@ async function saveCertToDB() {
   };
 
   const { data, error } = await sb.from('certificates').insert(cert).select().single();
-  if (error) { toast('Error: ' + error.message, true); return; }
+  if (error) {
+    if (error.message.includes('amount') || error.message.includes('cert_ref')) {
+      const { amount, cert_ref, ...safeCert } = cert;
+      const { data: d2, error: e2 } = await sb.from('certificates').insert(safeCert).select().single();
+      if (e2) { toast('Error: ' + e2.message, true); return; }
+      D.certs.push({...d2, file: true});
+      await logAudit('ADD_CERT', 'certificates', d2.id, `Added ${certType}`);
+      closeMo(); toast('✓ Certificate saved!'); nav('compliance'); return;
+    }
+    toast('Error: ' + error.message, true); return;
+  }
 
   D.certs.push({...data, file: true});
   await logAudit('ADD_CERT', 'certificates', data.id, `Added ${certType}`);
@@ -5803,7 +5813,8 @@ async function uploadTenantDoc(tid, slot, input) {
     uploaded_at: new Date().toISOString(),
   };
 
-  const { data } = await sb.from('tenant_documents').insert(record).select().single();
+  const { data, error: insErr } = await sb.from('tenant_documents').insert(record).select().single();
+  if (insErr) { toast('Save failed — ' + insErr.message, true); nav('tenant-detail', tid); return; }
   if (data) D.tenantDocs.push(data);
 
   // Get saved doc ID for scan
@@ -8468,9 +8479,68 @@ function nav(page, param){
   // Trial expiry — hard block all non-profile pages
   if (isExpired() && page !== 'dashboard') {
     upgradePrompt('Trial expired — upgrade to restore access', 'landlord');
-    // UI updates handled inline in initApp
     return;
   }
+  // Plan gating — intercept restricted pages
+  if(page==='mtd' && !isPortfolio()){ upgradePrompt('MTD Tax Reporting','portfolio'); return; }
+  if((page==='financials'||page==='rent'||page==='insurance') && isStarter()){ upgradePrompt('Rent Tracking & Insurance','landlord'); return; }
+  if(page==='contractors' && isStarter()){ upgradePrompt('Contractor Book','landlord'); return; }
+  if(page==='inventory-reports' && !isPortfolio()){ upgradePrompt('AI Inventory Reports','portfolio'); return; }
+  const pageMap = {
+    'prop-detail': 'properties',
+    'tenant-detail': 'tenants',
+    'tenants': 'tenants',
+    'rent': 'financials',
+    'insurance': 'financials',
+    'calendar': 'dashboard',
+    'doclibrary': 'doclibrary',
+    'inventory-report': 'inventory-reports',
+  };
+  const activeTab = pageMap[page] || page;
+  document.querySelectorAll('.sb-item[data-page]').forEach(el=>{
+    el.classList.toggle('active', el.dataset.page === activeTab);
+  });
+  const state = { page, param };
+  const url = '#' + page + (param ? '/' + param : '');
+  if (window._navInit) {
+    history.pushState(state, '', url);
+  } else {
+    window._navInit = true;
+    history.replaceState(state, '', url);
+  }
+  try {
+    main.innerHTML=(PAGES[page]||pgDashboard)(param);
+  } catch(err) {
+    main.innerHTML='<div style="padding:32px;font-family:sans-serif"><h2 style="color:#E53E3E">Page Error: '+page+'</h2><pre style="background:#fff5f5;padding:16px;border-radius:8px;font-size:12px;overflow:auto;white-space:pre-wrap">'+err.stack+'</pre></div>';
+  }
+}
+
+window.addEventListener('popstate', function(e) {
+  const state = e.state;
+  if (state && state.page) {
+    const page = state.page;
+    const param = state.param;
+    const pageMap = {
+      'prop-detail': 'properties',
+      'tenant-detail': 'tenants',
+      'tenants': 'tenants',
+      'rent': 'financials',
+      'insurance': 'financials',
+      'calendar': 'dashboard',
+      'doclibrary': 'doclibrary',
+      'inventory-report': 'inventory-reports',
+    };
+    const activeTab = pageMap[page] || page;
+    document.querySelectorAll('.sb-item[data-page]').forEach(el=>{
+      el.classList.toggle('active', el.dataset.page === activeTab);
+    });
+    try {
+      main.innerHTML=(PAGES[page]||pgDashboard)(param);
+    } catch(err) {
+      main.innerHTML='<div style="padding:32px;font-family:sans-serif"><h2 style="color:#E53E3E">Page Error</h2></div>';
+    }
+  }
+});
   // Plan gating — intercept restricted pages
   if(page==='mtd' && !isPortfolio()){ upgradePrompt('MTD Tax Reporting','portfolio'); return; }
   if((page==='financials'||page==='rent'||page==='insurance') && isStarter()){ upgradePrompt('Rent Tracking & Insurance','landlord'); return; }
