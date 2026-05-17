@@ -1559,6 +1559,73 @@ When **touching any of these files for a new feature or bug fix**, follow this p
   ```
 - **Note:** `stripe-webhook` also not yet deployed — same login needed first.
 
+### Session 18 — 17 May 2026 — Property Status System & Tenancy Flows
+**Date:** 17 May 2026
+
+#### Property Status System
+- Added `PROPERTY_STATUS` constant (`landlord.html:914-920`): 4 states — `vacant`, `active`, `refurbishment`, `archived` — with label, colour, and emoji badge
+- Added `_statusPillClr()` helper for status background colours (`landlord.html:921`)
+- Added `moPropertyStatus(pid)` modal — 4 status cards (archived excluded), current disabled/highlighted, opens via `openMo()` (`landlord.html:1742`)
+- Added `changePropertyStatus(pid, newStatus)` — updates DB + in-memory, writes timestamp columns, logs audit, refreshes list (`landlord.html:1765`)
+- New `properties` columns written on status change: `archived_at`, `vacant_since`, `tenancy_started_at`, `tenancy_ended_at`
+- `savePropToDB()` now inserts `status: 'active'` for new properties (`landlord.html:1071`)
+- Status badge pills on property list rows (`propRow` — clickable, opens `moPropertyStatus`)
+- Status badge on property detail header (`pgPropDetail` — clickable)
+- `pgProperties()` grouping restructured: Needs attention, Active Tenancy, Vacant, Refurbishment, Archived
+
+#### Contextual Action Buttons
+- Property detail header renders status-driven buttons (`landlord.html:4178-4186`):
+  - **vacant** → "Start Tenancy" + "Archive"
+  - **active** → "End Tenancy" + "Archive"
+  - **refurbishment** → "Mark Ready" + "Archive"
+  - **archived** → "View History" label only
+
+#### Archive Flow
+- `archiveProperty(pid)` replaced with proper modal + reason picker dropdown (Sold, No longer letting, Long-term vacant, Major refurbishment, Other) (`landlord.html:1712`)
+- `_archivePropertyConfirm(pid)` writes `archive_reason` + `archived_at` to DB (`landlord.html:1733`)
+- Archived properties hidden from main list by default; toggle "Show archived (X)" at page bottom (`landlord.html:3609-3618`)
+- Archived rows render greyed-out (opacity 0.55) with "🔒 Read only" badge
+
+#### Tenancy Flow Functions
+- `startTenancy(pid)` — opens `mo-wide` modal with pre-tenancy checklist loaded inside via `initPropChecklist('ob', pid, 'onboard')` (`landlord.html:1789`)
+- `endTenancy(pid)` — finds active tenant, bridges to `moEndTenancy(t.id)` (`landlord.html:1805`)
+- `markRefurbReady(pid)` — confirmation modal, calls `changePropertyStatus(pid, 'vacant')` (`landlord.html:1810`)
+- `_endTenancy(tid)` — after ending tenancy, resets property to `vacant` + sets `vacant_since`, navigates to `prop-detail` (`landlord.html:2903-2910`)
+- Removed always-on loading panels (Tenancy start/end guides) from `pdTabContent`
+- Removed `initPropChecklist('ob'/'db')` calls from `pdSetTab`
+- Replaced tenant tab empty state with "Ready to start a tenancy?" CTA calling `startTenancy(pid)`
+
+#### Void Period Nudges
+- Property list (`propRow`): compact one-line amber strip inside address block if vacant ≥ 30 days (`landlord.html:3601-3606`)
+- Property detail (`pgPropDetail`): full amber banner with day count + "Start Tenancy →" button if vacant ≥ 30 days (`landlord.html:4193-4204`)
+
+#### Bug Fixes
+- **EICR amount column:** `saveCertToDB()` wraps insert in try/catch; falls back to insert without `amount` + `cert_ref` columns if schema mismatch (`landlord.html:1250-1262`)
+- **Documents upload error handling:** `uploadTenantDoc()` now checks `insErr` on DB insert with proper toast feedback (`landlord.html:5816-5817`). **Pending Supabase fix:** Storage bucket `tenant-documents` needs RLS INSERT policy.
+- **Back button navigation:** `nav()` now uses `history.pushState`/`replaceState` + `#page/param` hash URLs. `popstate` listener re-renders correct page on browser back/forward (`landlord.html:8498-8535`)
+
+#### Storage RLS Fix — Step-by-Step (Supabase Dashboard)
+1. Go to https://supabase.com/dashboard/project/mahtcfukgzbonwibtsxz
+2. **Storage → Buckets → `tenant-documents`** (create if missing via "New bucket", name `tenant-documents`, public bucket unchecked)
+3. Click **Policies** tab → **New policy**
+4. Choose **For full customization** → paste:
+   ```sql
+   -- Allow authenticated users to upload their own documents
+   CREATE POLICY "Users can upload tenant documents"
+   ON storage.objects FOR INSERT
+   TO authenticated
+   WITH CHECK (bucket_id = 'tenant-documents' AND (storage.foldername(name))[1] = auth.uid()::text);
+   ```
+5. Also create a SELECT policy so docs can be viewed:
+   ```sql
+   CREATE POLICY "Users can view their tenant documents"
+   ON storage.objects FOR SELECT
+   TO authenticated
+   USING (bucket_id = 'tenant-documents' AND (storage.foldername(name))[1] = auth.uid()::text);
+   ```
+6. Click **Review** → **Save policy**
+7. Verify in **SQL Editor**: `SELECT * FROM tenant_documents;` and `SELECT * FROM storage.objects WHERE bucket_id = 'tenant-documents';`
+
 ---
 
 ## 14. Stripe Integration Guide
