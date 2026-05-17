@@ -1752,6 +1752,11 @@ async function changePropertyStatus(pid, newStatus) {
   closeMo(); toast(`Status updated to ${info.label}`); nav('prop-detail', pid);
 }
 
+// ── TENANCY FLOW STUBS ──
+function startTenancy(pid) { toast('Coming soon'); }
+function endTenancy(pid) { toast('Coming soon'); }
+function markRefurbReady(pid) { toast('Coming soon'); }
+
 // ── MODAL: LICENCE ──
 function moLicence(pid){
   const p=P(pid);
@@ -4089,6 +4094,17 @@ function pgPropDetail(pid) {
         ${p.licence_type&&p.licence_type!=='None'?`<span class="badge b-amber">${p.licence_type}</span>`:''}
       </div>
     </div>
+
+    ${(() => {
+      const sk = p.status || 'vacant';
+      const btn = (label, cls, fn) => `<button class="btn ${cls}" style="font-size:12px;padding:7px 14px" onclick="${fn}">${label}</button>`;
+      let btns = '';
+      if (sk === 'vacant')       btns = btn('Start Tenancy', 'btn-navy', `startTenancy('${pid}')`) + btn('Archive', '', `archiveProperty('${pid}')`);
+      else if (sk === 'active')   btns = btn('End Tenancy', '', `endTenancy('${pid}')`) + btn('Archive', '', `archiveProperty('${pid}')`);
+      else if (sk === 'refurbishment') btns = btn('Mark Ready', 'btn-navy', `markRefurbReady('${pid}')`) + btn('Archive', '', `archiveProperty('${pid}')`);
+      else if (sk === 'archived') btns = '<span style="font-size:12px;color:var(--muted);font-weight:500;padding:7px 0">📋 View History</span>';
+      return btns ? `<div style="display:flex;align-items:center;gap:8px;margin-bottom:18px">${btns}</div>` : '';
+    })()}
 
     ${statHtml}
     ${tabBar}
