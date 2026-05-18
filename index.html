@@ -500,7 +500,7 @@ footer { background:var(--teal-dark); border-top:1px solid rgba(255,255,255,0.05
 
 <!-- FOUNDER CREDIBILITY STRIP -->
 <div id="whats-changing" style="background:var(--teal);color:var(--white);text-align:center;padding:16px 20px;font-size:14px;font-weight:500;letter-spacing:.1px">
-  Built by <strong>Saby</strong> — landlord, managing agent, and developer. 115+ compliance checks run. Real properties. Real experience.
+  Built by a UK landlord and managing agent — 115+ compliance checks run across real properties. Built from experience, not theory.
 </div>
 
 <section id="showcase">
@@ -853,13 +853,14 @@ footer { background:var(--teal-dark); border-top:1px solid rgba(255,255,255,0.05
 <!-- NEXT PHASE BAND -->
 <div id="npb">
   <div class="npb-in">
-    <div class="npb-txt"><h4>HMO &amp; Management Agent — register early interest</h4><p>Be first to know when it launches.</p></div>
-    <div class="npb-chips"><div class="npb-chip">🏘️ HMO Licence Mgmt</div><div class="npb-chip">🏢 Agent Portal</div></div>
+    <div class="npb-txt"><h4>HMO &amp; Management Agent — register early interest</h4><p>Be first to know when it launches. Plus free compliance tips and RRA updates in the meantime.</p></div>
+    <div class="npb-chips"><div class="npb-chip">🏘️ HMO Licence Mgmt</div><div class="npb-chip">🏢 Agent Portal</div><div class="npb-chip">📬 Compliance tips</div></div>
     <div class="npb-form">
       <input type="email" id="npb-email" placeholder="your@email.com">
       <button onclick="submitNPB()">Notify Me</button>
     </div>
-    <div id="npb-ok">✅ You're on the list.</div>
+    <div id="npb-ok" style="display:none"></div>
+    <div style="font-size:10px;color:rgba(255,255,255,0.45);margin-top:8px;text-align:center">By entering your email you agree to receive free compliance updates from NexLet. Unsubscribe anytime.</div>
   </div>
 </div>
 
@@ -976,11 +977,25 @@ function toggleCT() {
 }
 
 // FORMS
-function submitNPB() {
+async function submitNPB() {
   const e = document.getElementById('npb-email').value.trim();
   if (!e || !e.includes('@')) { document.getElementById('npb-email').focus(); return; }
+
+  const btn = document.querySelector('.npb-form button');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+
+  try {
+    await fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/resend-audience-sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'subscribe', email: e, source: 'landing_page' })
+    });
+  } catch(err) { console.warn('NPB subscribe error:', err); }
+
   document.querySelector('.npb-form').style.display = 'none';
-  document.getElementById('npb-ok').style.display = 'block';
+  const ok = document.getElementById('npb-ok');
+  ok.style.display = 'block';
+  ok.textContent = '✅ You\'re on the list — we\'ll be in touch.';
 }
 function submitFC() {
   const n = document.getElementById('fc-name').value.trim();
