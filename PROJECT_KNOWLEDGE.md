@@ -131,7 +131,8 @@ rentsafeai/
 ├── session11_landlord_sig.sql       SQL migration: Session 11 (landlord signature columns on esign_requests)
 ├── sprint11_feedback_table.sql      SQL migration: Sprint 11 (feedback table — alternate name)
 ├── sprint13_db.sql                  SQL migration: Sprint 13 (user_profiles, stripe_subscriptions)
-├── session18_feedback_v2.sql        SQL migration: Session 18 (urgency + files columns on feedback table)
+├── session18_feedback_v2.sql        SQL migration: Session 18 (urgency + files columns on feedback table — replaced by session19_user_reports.sql)
+├── session19_user_reports.sql       SQL migration: Session 19 (user_reports table — standalone bug/feature reporting)
 ├── SPRINT10_DEPLOY.md              Sprint 10 deployment guide
 ├── PROJECT_KNOWLEDGE.md            THIS FILE — agent initialization reference
 ├── fix.py                          Python patching script (landlord.html fixes)
@@ -321,6 +322,7 @@ Deduplication table for all outgoing alerts.
 | `esign_requests` | E-signature requests with `token` for tenant portal. **Requires `session10_esign_requests.sql` + `session11_landlord_sig.sql` migrations.** |
 | `tenant_documents` | Tenant KYC documents — passport, RTR, address proofs, references, guarantor. **Multiple docs per slot** (unique index removed Session 10). AI-scanned via Claude with `issuing_authority` + `doc_type_extracted` fields. **Requires `session7_tenant_documents.sql` + `session10_multi_doc.sql` migrations + `tenant-documents` Storage bucket.** |
 | `pretenancy_checks` | Session 18. Pre-tenancy checklist audit records: `prop_id`, `tenant_id` (nullable), `landlord_id`, `checks` (JSONB), `completed_at`, `bypassed`, `bypass_reason`. PDF audit trails stored in `pretenancy-audits` Storage bucket. |
+| `user_reports` | Session 19. Bug reports and feature suggestions: `user_id`, `type` (bug/feature), `title`, `description`, `urgency` (low/medium/high/critical), `files` (TEXT[]), `status` (open/reviewed/in_progress/completed/declined), `created_at`, `updated_at`. Files uploaded to `documents` Storage bucket. **Requires `session19_user_reports.sql` migration.** |
 
 ### MTD Tables (from `mtd_tables.sql`)
 | Table | Purpose |
@@ -1726,14 +1728,14 @@ When **touching any of these files for a new feature or bug fix**, follow this p
 
 #### New Feature: Feedback Page
 - **Created `feedback.html`** — standalone page for bug reports and feature suggestions, matching `profile.html` styling
-- **Created `js/feedback.js`** — IIFE module with auth guard, file upload, and DB insert
-- **Created `session18_feedback_v2.sql`** — migration adding `urgency` (low/medium/high/critical) and `files` (TEXT[]) columns to the existing `feedback` table
+- **Created `js/feedback.js`** — IIFE module with auth guard, file upload, and DB insert to `user_reports` table
+- **Created `session19_user_reports.sql`** — fresh table with all columns: `type` (bug/feature), `title`, `description`, `urgency` (low/medium/high/critical), `files` (TEXT[]), `status` (open/reviewed/in_progress/completed/declined)
 - **Type toggle:** Two card selector — Bug Report / Feature Suggestion
 - **Form fields:** Title (single line, 120 char max), Urgency dropdown, Description textarea (2000 char max)
 - **File upload:** Multi-file (max 5, 5 MB each, PNG/JPG/PDF), drag-and-drop, live thumbnail preview with ✕ remove, uploaded to `documents` bucket under `feedback/{userId}/`
-- **Submit flow:** Validates fields → uploads files → inserts row into `feedback` table → shows success state with "Back to Dashboard" button
-- **Sidebar:** Added "Feedback" sidebar item in `landlord.html` (between AI Assistant and footer) with chat-bubble SVG icon
-- **Database:** Depends on `feedback` table (created by `sprint11_feedback_table.sql`). Urgency and files columns are additive — existing rows fall back to `medium` / `{}`
+- **Submit flow:** Validates fields → uploads files → inserts row into `user_reports` table → shows success state with "Back to Dashboard" button
+- **Sidebar:** Added "Feedback" sidebar item in `landlord.html` (between AI Assistant and footer)
+- **Note:** Replaces `session18_feedback_v2.sql` (which altered legacy `feedback` table). The `user_reports` table is standalone — no dependency on the old `feedback` schema.
 
 #### Rebrand Fix
 - **`profile.html:266`** — Logo corrected from `Rent SafeAI` to `NexLet` (was missed in Session 14 rebrand)

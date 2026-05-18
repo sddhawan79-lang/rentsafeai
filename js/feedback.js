@@ -253,7 +253,7 @@
         created_at:  new Date().toISOString(),
       };
 
-      var result = await sb.from('feedback').insert(payload).select().single();
+      var result = await sb.from('user_reports').insert(payload).select().single();
 
       if (result.error) {
         console.error('[feedback:insert]', result.error);
