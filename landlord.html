@@ -5426,288 +5426,757 @@ function buildCertStatusGrid(pid) {
 }
 
 function pgCompliance(){
-  if (window._compView === undefined) window._compView = 'action';
+  if (window._compView === undefined)
+    window._compView = 'action';
   const today = new Date(); today.setHours(0,0,0,0);
 
-  // Build enriched cert list with days-to-expiry
-  const allCerts = D.certs.map(c => {
-    const p = P(c.prop_id) || { address: '—', city: '' };
-    const daysLeft = c.expiry ? Math.round((new Date(c.expiry) - today) / 864e5) : null;
-    const urgency = !c.expiry ? 'none'
-      : daysLeft < 0 ? 'expired'
-      : daysLeft <= 14 ? 'critical'
-      : daysLeft <= 60 ? 'soon'
-      : 'ok';
-    return { ...c, p, daysLeft, urgency };
+  // ── PORTFOLIO HEALTH SCORE ──
+  // Based on mandatory docs across all properties
+  // Uses COMPLIANCE_DOCS master — not raw cert count
+  const allProps = D.properties.filter(
+    p => p.status !== 'archived'
+  );
+
+  let totalSlots = 0;
+  let totalOk = 0;
+  let totalOverdue = 0;
+
+  allProps.forEach(p => {
+    const propDocs = getDocsForProperty(p.id);
+    const certList = CF(p.id);
+    const insList = D.insurance.filter(
+      i => String(i.prop_id) === String(p.id)
+    );
+    // Only score mandatory groups 1-4
+    // Insurance and Recommended excluded from score
+    ['safety','licensing','tenancy','movein']
+    .forEach(gk => {
+      const group = propDocs[gk];
+      if (!group) return;
+      group.docs.forEach(doc => {
+        if (!doc.mandatory) return;
+        totalSlots++;
+        const st = getDocStatus(doc, certList, insList);
+        if (st.overdue) totalOverdue++;
+        else totalOk++;
+      });
+    });
   });
 
-  // Portfolio health score — weighted calculation
-  const total = allCerts.length;
-  const expired = allCerts.filter(c => c.urgency === 'expired').length;
-  const critical = allCerts.filter(c => c.urgency === 'critical').length;
-  const soon = allCerts.filter(c => c.urgency === 'soon').length;
-  const ok = allCerts.filter(c => c.urgency === 'ok').length;
-  const noExpiry = allCerts.filter(c => c.urgency === 'none').length;
+  let score = totalSlots
+    ? Math.round((totalOk / totalSlots) * 100)
+    : 0;
+  score = Math.min(100, Math.max(0, score));
 
-  let score = 100;
-  if (total > 0) {
-    score = Math.round(((ok + noExpiry * 0.8) / total) * 100);
-    score = Math.max(0, score - (expired * 15) - (critical * 5));
-    score = Math.min(100, Math.max(0, score));
-  }
-  if (!total) score = 0;
+  const scoreCol = score >= 80
+    ? 'var(--green)'
+    : score >= 50 ? '#D97706'
+    : '#E53E3E';
+  const scoreLabel = score >= 80
+    ? 'Healthy'
+    : score >= 50 ? 'Needs attention'
+    : 'At risk';
+  const scoreSub = score >= 80
+    ? 'Your portfolio is well maintained'
+    : score >= 50
+    ? 'Some items need your attention'
+    : 'Urgent action required';
 
-  // Score colour and label
-  const scoreCol = score >= 80 ? 'var(--green)' : score >= 50 ? '#D97706' : '#E53E3E';
-  const scoreLabel = score >= 80 ? 'Healthy' : score >= 50 ? 'Needs attention' : 'At risk';
-  const scoreSub = score >= 80 ? 'Your portfolio is well maintained' : score >= 50 ? 'Some items need your attention' : 'Urgent action required';
-
-  // SVG circular gauge
-  const r = 54, cx = 70, cy = 70;
-  const circumference = 2 * Math.PI * r;
-  const dashOffset = circumference - (score / 100) * circumference;
-  const gauge = `<svg width="140" height="140" viewBox="0 0 140 140">
-    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="10"/>
-    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${scoreCol}" stroke-width="10"
-      stroke-dasharray="${circumference}" stroke-dashoffset="${dashOffset}"
-      stroke-linecap="round" transform="rotate(-90 ${cx} ${cy})"
-      style="transition:stroke-dashoffset 1s ease,stroke .5s ease"/>
-    <text x="${cx}" y="${cy - 8}" text-anchor="middle" fill="#fff" font-size="28" font-weight="700" font-family="DM Sans,sans-serif">${score}</text>
-    <text x="${cx}" y="${cy + 12}" text-anchor="middle" fill="${scoreCol}" font-size="11" font-weight="600" font-family="DM Sans,sans-serif">${scoreLabel.toUpperCase()}</text>
-    <text x="${cx}" y="${cy + 26}" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="9" font-family="DM Sans,sans-serif">out of 100</text>
+  // SVG gauge
+  const r=54, cx=70, cy=70;
+  const circ = 2*Math.PI*r;
+  const dash = circ - (score/100)*circ;
+  const gauge = `<svg width="140" height="140"
+    viewBox="0 0 140 140">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none"
+      stroke="rgba(255,255,255,0.06)" stroke-width="10"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none"
+      stroke="${scoreCol}" stroke-width="10"
+      stroke-dasharray="${circ.toFixed(2)}"
+      stroke-dashoffset="${dash.toFixed(2)}"
+      stroke-linecap="round"
+      transform="rotate(-90 ${cx} ${cy})"
+      style="transition:stroke-dashoffset 1s ease"/>
+    <text x="${cx}" y="${cy-8}" text-anchor="middle"
+      fill="#fff" font-size="28" font-weight="700"
+      font-family="DM Sans,sans-serif">${score}</text>
+    <text x="${cx}" y="${cy+12}" text-anchor="middle"
+      fill="${scoreCol}" font-size="11" font-weight="600"
+      font-family="DM Sans,sans-serif">
+      ${scoreLabel.toUpperCase()}</text>
+    <text x="${cx}" y="${cy+26}" text-anchor="middle"
+      fill="rgba(255,255,255,0.4)" font-size="9"
+      font-family="DM Sans,sans-serif">out of 100</text>
   </svg>`;
 
-  // Action items — filtered by stat card click, sorted by urgency then days
-  const activeFilter = window._compFilter || 'all';
-  const actionItems = allCerts
-    .filter(c => {
-      if (activeFilter === 'expired') return c.urgency === 'expired';
-      if (activeFilter === 'critical') return c.urgency === 'critical' || c.urgency === 'soon';
-      if (activeFilter === 'ok') return c.urgency === 'ok' || c.urgency === 'none';
-      return c.urgency === 'expired' || c.urgency === 'critical' || c.urgency === 'soon';
-    })
-    .sort((a,b) => (a.daysLeft ?? 999) - (b.daysLeft ?? 999));
+  // ── STAT CARDS ──
+  // Count from COMPLIANCE_DOCS across all properties
+  let statExpired=0, statCritical=0,
+      statOkCount=0, statMissing=0;
 
-  const filterLabel = activeFilter === 'expired' ? 'Expired certificates'
-    : activeFilter === 'critical' ? 'Expiring soon (critical)'
-    : activeFilter === 'ok' ? 'Compliant certificates'
-    : 'Action required';
-
-  const actionHtml = actionItems.length ? actionItems.map(c => {
-    const isExpired = c.urgency === 'expired';
-    const isCritical = c.urgency === 'critical';
-    const dayStr = isExpired
-      ? `${Math.abs(c.daysLeft)} day${Math.abs(c.daysLeft)!==1?'s':''} overdue`
-      : c.daysLeft === 0 ? 'Expires today'
-      : `${c.daysLeft} day${c.daysLeft!==1?'s':''} left`;
-    const urgCol = isExpired ? 'var(--red)' : isCritical ? '#D97706' : 'var(--blue)';
-    const urgBg = isExpired ? 'rgba(229,62,62,0.07)' : isCritical ? 'rgba(217,119,6,0.07)' : 'rgba(59,111,232,0.07)';
-
-    return `<div style="display:flex;align-items:center;gap:14px;padding:12px 18px;border-bottom:1px solid var(--border);background:${urgBg};transition:background .15s" onmouseenter="this.style.background='rgba(0,0,0,0.02)'" onmouseleave="this.style.background='${urgBg}'">
-      <div style="flex:1">
-        <div style="font-size:13px;font-weight:600;color:var(--txt)">${c.type}</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px">${c.p.address}, ${c.p.city}</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0">
-        <div style="font-size:13px;font-weight:700;color:${urgCol}">${dayStr}</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:1px">${c.expiry ? FMT(c.expiry) : '—'}</div>
-      </div>
-      <div style="flex-shrink:0">
-        ${!(c.file||c.has_file)
-          ? `<label style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--blue);padding:5px 10px;border:1px solid var(--blue);border-radius:6px;background:var(--blue-bg)">✦ Upload<input type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="uploadScanCert(${c.id},this)"></label>`
-          : `<button onclick="nav('prop-detail','${c.prop_id}')" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--white);color:var(--muted);cursor:pointer;font-family:var(--font)">View →</button>`
-        }
-      </div>
-    </div>`;
-  }).join('') : `<div style="padding:28px;text-align:center">
-    <div style="font-size:28px;margin-bottom:8px">✅</div>
-    <div style="font-size:14px;font-weight:600;color:var(--txt);margin-bottom:4px">All clear</div>
-    <div style="font-size:12px;color:var(--muted)">No certificates expiring in the next 60 days</div>
-  </div>`;
-
-  // Property breakdown — 3 collapsible groups per property
-  const _pgGD = ['Gas Safety Certificate','EICR (Electrical Installation)','EPC (Energy Performance)','Smoke Alarm Test Record','CO Alarm Check Record','Boiler Service Certificate','Legionella Risk Assessment','Fire Risk Assessment','Asbestos Survey','PAT Testing Certificate','HMO Licence','Selective Licence','Planning Permission / Article 4','Fire Extinguisher Service Record','Emergency Lighting Test Record','Buildings Insurance Schedule','Contents Insurance Schedule','Rent Guarantee Insurance'];
-  const _pgGN = ['RRA Information Sheet 2026','Deposit Protection Certificate','Prescribed Information (Deposit)','Right to Rent Record','Section 48 Notice (Landlord Address)','Section 13 Rent Increase Notice','Pet Policy / Addendum'];
-  const _pgGS = ['How to Rent Guide','Written Statement of Terms','Inventory / Schedule of Condition','Pest Control Report'];
-
-  const _pgGetSt = (pc, label) => {
-    const lo = label.toLowerCase();
-    const cert = pc.find(c => {
-      const t = (c.type||'').toLowerCase();
-      if (lo.includes('gas safety')) return t.includes('gas');
-      if (lo.includes('eicr')||lo.includes('electrical installation')) return t.includes('eicr')||t.includes('electrical installation');
-      if (lo.includes('epc')||lo.includes('energy performance')) return t.includes('epc')||t.includes('energy performance');
-      if (lo.includes('how to rent')) return t.includes('how to rent');
-      if (lo.includes('deposit protection')) return t.includes('deposit');
-      if (lo.includes('written statement')) return t.includes('written statement')||t.includes('tenancy agreement');
-      if (lo.includes('right to rent')) return t.includes('right to rent');
-      if (lo.includes('smoke alarm')) return t.includes('smoke alarm');
-      if (lo.includes('co alarm')) return t.includes('co alarm');
-      if (lo.includes('legionella')) return t.includes('legionella');
-      if (lo.includes('fire risk')) return t.includes('fire risk');
-      if (lo.includes('asbestos')) return t.includes('asbestos');
-      if (lo.includes('pat testing')) return t.includes('pat');
-      if (lo.includes('hmo licence')) return t.includes('hmo');
-      if (lo.includes('selective licence')) return t.includes('selective');
-      if (lo.includes('planning permission')) return t.includes('planning')||t.includes('article 4');
-      if (lo.includes('inventory')) return t.includes('inventory');
-      if (lo.includes('buildings insurance')) return t.includes('buildings insurance');
-      if (lo.includes('contents insurance')) return t.includes('contents insurance');
-      if (lo.includes('rent guarantee')) return t.includes('rent guarantee');
-      if (lo.includes('section 48')) return t.includes('section 48')||t.includes('s48');
-      return t.includes(lo.substring(0,8));
+  allProps.forEach(p => {
+    const propDocs = getDocsForProperty(p.id);
+    const certList = CF(p.id);
+    const insList = D.insurance.filter(
+      i => String(i.prop_id) === String(p.id)
+    );
+    ['safety','licensing','tenancy','movein']
+    .forEach(gk => {
+      const group = propDocs[gk];
+      if (!group) return;
+      group.docs.forEach(doc => {
+        if (!doc.mandatory) return;
+        const st = getDocStatus(doc, certList, insList);
+        if (st.lbl === 'EXPIRED') statExpired++;
+        else if (st.lbl === 'URGENT') statCritical++;
+        else if (st.lbl === 'MISSING' ||
+          st.lbl === 'NOT UPLOADED' ||
+          st.lbl === 'NOT SERVED') statMissing++;
+        else statOkCount++;
+      });
     });
-    if (!cert) return { lbl:'MISSING', bg:'#E4EAF1', col:'#7A8FA6', bdr:'transparent', days:null, overdue:true };
-    if (cert.expiry) {
-      const days = Math.round((new Date(cert.expiry)-today)/864e5);
-      if (days < 0)   return { lbl:'EXPIRED',      bg:'rgba(229,62,62,0.1)',   col:'#E53E3E', bdr:'rgba(229,62,62,0.25)',  days, overdue:true  };
-      if (days <= 14) return { lbl:'URGENT',        bg:'rgba(217,119,6,0.1)',   col:'#D97706', bdr:'rgba(217,119,6,0.25)',  days, overdue:false };
-      if (days <= 60) return { lbl:'EXPIRING SOON', bg:'rgba(59,111,232,0.08)', col:'#3B6FE8', bdr:'rgba(59,111,232,0.2)', days, overdue:false };
-      return               { lbl:'VALID',           bg:'var(--green-bg)',  col:'#00A87A', bdr:'var(--green-bg)',  days, overdue:false };
-    }
-    return { lbl:'NO DATE SET', bg:'rgba(229,62,62,0.07)', col:'#E53E3E', bdr:'rgba(229,62,62,0.2)', days:null, overdue:true };
-  };
+  });
 
-  const _pgGroup = (gid, pc, icon, title, types, addBtn, expanded=false) => {
-    const items = types.map(label => ({ label, st: _pgGetSt(pc, label) }));
-    items.sort((a,b) => (b.st.overdue?1:0)-(a.st.overdue?1:0));
-    const overdueCount = items.filter(i=>i.st.overdue).length;
-    const rows = items.map(({label,st}) => {
-      const dayStr = st.days!==null ? (st.days<0?`${Math.abs(st.days)}d overdue`:`${st.days}d left`) : '';
-      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 11px;background:${st.bg};border:1px solid ${st.bdr};border-radius:7px;gap:8px">
-        <span style="font-size:12px;font-weight:500;color:var(--txt);flex:1;min-width:0">${label}</span>
-        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-          ${st.overdue?`<span style="font-size:10px;font-weight:700;color:#fff;background:#E53E3E;padding:2px 7px;border-radius:100px">Action required</span>`:''}
-          ${dayStr?`<span style="font-size:10px;color:${st.col}">${dayStr}</span>`:''}
-          <span style="font-size:10px;font-weight:700;color:${st.col};letter-spacing:.3px;white-space:nowrap">${st.lbl}</span>
+  // ── ACTION LIST ──
+  // Flat list of all overdue mandatory items
+  // across all properties, sorted by urgency
+  const actionRows = [];
+  allProps.forEach(p => {
+    const propDocs = getDocsForProperty(p.id);
+    const certList = CF(p.id);
+    const insList = D.insurance.filter(
+      i => String(i.prop_id) === String(p.id)
+    );
+    ['safety','licensing','tenancy','movein']
+    .forEach(gk => {
+      const group = propDocs[gk];
+      if (!group) return;
+      group.docs.forEach(doc => {
+        if (!doc.mandatory) return;
+        const st = getDocStatus(doc, certList, insList);
+        if (!st.overdue) return;
+        actionRows.push({
+          p, doc, st, group,
+          sortKey: st.days !== null
+            ? st.days
+            : -999
+        });
+      });
+    });
+  });
+  actionRows.sort((a,b) => a.sortKey - b.sortKey);
+
+  const activeFilter = window._compFilter || 'all';
+
+  const filteredRows = actionRows.filter(row => {
+    if (activeFilter === 'expired')
+      return row.st.lbl === 'EXPIRED';
+    if (activeFilter === 'critical')
+      return row.st.lbl === 'URGENT' ||
+             row.st.lbl === 'EXPIRING SOON';
+    if (activeFilter === 'missing')
+      return row.st.lbl === 'MISSING' ||
+             row.st.lbl === 'NOT UPLOADED' ||
+             row.st.lbl === 'NOT SERVED';
+    return true; // 'all'
+  });
+
+  const actionHtml = filteredRows.length
+    ? filteredRows.map(({p, doc, st, group}) => {
+        const dayStr = st.days !== null
+          ? (st.days < 0
+            ? `${Math.abs(st.days)}d overdue`
+            : st.days === 0
+            ? 'Due today'
+            : `${st.days}d left`)
+          : '';
+        const urgCol = st.lbl === 'EXPIRED'
+          ? 'var(--red)'
+          : st.lbl === 'URGENT'
+          ? '#D97706'
+          : st.lbl === 'EXPIRING SOON'
+          ? 'var(--blue)'
+          : 'var(--muted)';
+        const urgBg = st.lbl === 'EXPIRED'
+          ? 'rgba(229,62,62,0.04)'
+          : st.lbl === 'URGENT'
+          ? 'rgba(217,119,6,0.04)'
+          : 'rgba(59,111,232,0.03)';
+
+        return `
+          <div style="display:flex;align-items:center;
+            gap:14px;padding:12px 18px;border-bottom:
+            1px solid var(--border);background:${urgBg}">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:600;
+                color:var(--txt)">${doc.label}</div>
+              <div style="display:flex;align-items:center;
+                gap:6px;margin-top:2px;flex-wrap:wrap">
+                <span style="font-size:11px;
+                  color:var(--muted)">${p.address}
+                  ${p.city ? ', '+p.city : ''}</span>
+                <span style="font-size:10px;
+                  color:var(--muted)">·</span>
+                <span style="font-size:10px;
+                  font-weight:600;color:var(--muted);
+                  background:var(--off);padding:1px 6px;
+                  border-radius:100px">
+                  ${group.icon} ${group.label}</span>
+              </div>
+              <div style="font-size:10.5px;
+                color:var(--muted);margin-top:2px;
+                line-height:1.4">${doc.note}</div>
+            </div>
+            <div style="text-align:right;flex-shrink:0">
+              <div style="font-size:13px;font-weight:700;
+                color:${urgCol}">${dayStr || st.lbl}</div>
+              <div style="font-size:10px;color:var(--muted);
+                margin-top:1px">${st.lbl}</div>
+            </div>
+            <div style="flex-shrink:0">
+              <button onclick="nav('prop-detail','${p.id}');
+                setTimeout(()=>pdSetTab('${p.id}',
+                'compliance'),100)"
+                style="font-size:11px;padding:5px 10px;
+                border-radius:6px;border:1px solid
+                var(--border);background:var(--white);
+                color:var(--navy);cursor:pointer;
+                font-family:var(--font);font-weight:600">
+                View →</button>
+            </div>
+          </div>`;
+      }).join('')
+    : `<div style="padding:32px;text-align:center">
+        <div style="font-size:28px;margin-bottom:8px">
+          ✅</div>
+        <div style="font-size:14px;font-weight:600;
+          color:var(--txt);margin-bottom:4px">
+          All clear</div>
+        <div style="font-size:12px;color:var(--muted)">
+          No mandatory compliance items need
+          attention right now</div>
+      </div>`;
+
+  // ── FULL AUDIT VIEW ──
+  // Per-property breakdown using COMPLIANCE_DOCS
+  function renderPropAudit(p) {
+    const propDocs = getDocsForProperty(p.id);
+    const certList = CF(p.id);
+    const insList = D.insurance.filter(
+      i => String(i.prop_id) === String(p.id)
+    );
+
+    // Mini score for this property
+    let pTotal=0, pOk=0;
+    ['safety','licensing','tenancy','movein']
+    .forEach(gk => {
+      const group = propDocs[gk];
+      if (!group) return;
+      group.docs.forEach(doc => {
+        if (!doc.mandatory) return;
+        pTotal++;
+        const st = getDocStatus(doc, certList, insList);
+        if (!st.overdue) pOk++;
+      });
+    });
+    const pScore = pTotal
+      ? Math.round((pOk/pTotal)*100)
+      : 0;
+    const pCol = pScore>=80
+      ? 'var(--green)'
+      : pScore>=50 ? '#D97706'
+      : '#E53E3E';
+    const pr=22,pcx=28,pcy=28;
+    const pCirc=2*Math.PI*pr;
+    const pDash=(pCirc-(pScore/100)*pCirc).toFixed(2);
+    const miniGauge=`<svg width="56" height="56"
+      viewBox="0 0 56 56">
+      <circle cx="${pcx}" cy="${pcy}" r="${pr}"
+        fill="none" stroke="rgba(0,0,0,0.07)"
+        stroke-width="5"/>
+      <circle cx="${pcx}" cy="${pcy}" r="${pr}"
+        fill="none" stroke="${pCol}" stroke-width="5"
+        stroke-dasharray="${pCirc.toFixed(2)}"
+        stroke-dashoffset="${pDash}"
+        stroke-linecap="round"
+        transform="rotate(-90 ${pcx} ${pcy})"/>
+      <text x="${pcx}" y="${pcy+4}"
+        text-anchor="middle" fill="${pCol}"
+        font-size="10" font-weight="700"
+        font-family="DM Sans,sans-serif">
+        ${pScore}%</text>
+    </svg>`;
+
+    const overdueCount = pTotal - pOk;
+
+    // Render groups for this property
+    const groupsHtml =
+      ['safety','licensing','tenancy','movein',
+       'insurance']
+      .map(gk => {
+        const group = propDocs[gk];
+        if (!group || !group.docs.length) return '';
+
+        const rows = group.docs.map(doc => {
+          const st = getDocStatus(
+            doc, certList, insList
+          );
+          const dayStr = st.days !== null
+            ? (st.days < 0
+              ? `${Math.abs(st.days)}d overdue`
+              : `${st.days}d left`)
+            : '';
+          return `
+            <div style="display:flex;align-items:center;
+              justify-content:space-between;padding:7px 10px;
+              background:${st.bg};border:1px solid ${st.bdr};
+              border-radius:7px;gap:8px">
+              <span style="font-size:12px;font-weight:500;
+                color:var(--txt);flex:1;min-width:0">
+                ${doc.label}</span>
+              <div style="display:flex;align-items:center;
+                gap:5px;flex-shrink:0">
+                ${st.overdue
+                  ? `<span style="font-size:9px;
+                      font-weight:700;color:#fff;
+                      background:#E53E3E;padding:2px 6px;
+                      border-radius:100px">Action</span>`
+                  : ''}
+                ${dayStr
+                  ? `<span style="font-size:10px;
+                      color:${st.col}">${dayStr}</span>`
+                  : ''}
+                <span style="font-size:10px;
+                  font-weight:700;color:${st.col};
+                  letter-spacing:.3px;white-space:nowrap">
+                  ${st.lbl}</span>
+                ${st.action === 'insurance'
+                  ? `<button onclick="nav('insurance')"
+                      style="font-size:9px;padding:2px 6px;
+                      border-radius:4px;border:1px solid
+                      var(--border);background:var(--white);
+                      color:var(--muted);cursor:pointer;
+                      font-family:var(--font)">
+                      Manage →</button>`
+                  : ''}
+              </div>
+            </div>`;
+        }).join('');
+
+        const gOverdue = group.docs.filter(doc => {
+          const st = getDocStatus(
+            doc, certList, insList
+          );
+          return st.overdue;
+        }).length;
+
+        const gid = `pa-${p.id}-${gk}`;
+        const gOpen = gOverdue > 0;
+
+        return `
+          <div style="margin-bottom:8px;border:1px solid
+            var(--border);border-radius:10px;overflow:hidden">
+            <div onclick="(function(el){
+              var b=document.getElementById('${gid}');
+              var open=b.style.display!=='none';
+              b.style.display=open?'none':'block';
+              el.querySelector('.cg-chev').textContent=
+                open?'▸':'▾';
+            })(this)" style="display:flex;align-items:center;
+              justify-content:space-between;padding:9px 14px;
+              cursor:pointer;background:${gOpen
+                ? 'rgba(229,62,62,0.03)'
+                : 'var(--off)'};user-select:none">
+              <span style="font-size:12.5px;font-weight:600;
+                color:var(--txt)">
+                ${group.icon} ${group.label}</span>
+              <div style="display:flex;align-items:center;
+                gap:6px">
+                ${gOverdue
+                  ? `<span style="font-size:10px;
+                      font-weight:700;color:#fff;
+                      background:#E53E3E;padding:2px 6px;
+                      border-radius:100px">
+                      ${gOverdue} action</span>`
+                  : `<span style="font-size:10px;
+                      color:#00A87A;font-weight:600">
+                      ✓</span>`}
+                <span class="cg-chev"
+                  style="font-size:10px;color:var(--muted)">
+                  ${gOpen ? '▾' : '▸'}</span>
+              </div>
+            </div>
+            <div id="${gid}"
+              style="${gOpen ? '' : 'display:none'}">
+              <div style="padding:8px 12px 10px">
+                <div style="display:flex;flex-direction:
+                  column;gap:5px">${rows}</div>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+
+    return `
+      <div class="panel" style="margin-bottom:10px;
+        cursor:pointer;transition:box-shadow .15s"
+        onclick="window._compPropId='${p.id}';
+          window._compView='full';nav('compliance')"
+        onmouseenter="this.style.boxShadow=
+          '0 2px 12px rgba(0,0,0,0.08)'"
+        onmouseleave="this.style.boxShadow=''">
+        <div style="padding:14px 18px;display:flex;
+          align-items:center;gap:14px">
+          ${miniGauge}
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:700;
+              color:var(--txt)">
+              ${p.address}${p.city?', '+p.city:''}</div>
+            <div style="font-size:12px;margin-top:3px;
+              color:${overdueCount
+                ? 'var(--red)'
+                : 'var(--green-dark)'}">
+              ${overdueCount
+                ? overdueCount+' item'+(overdueCount!==1
+                  ?'s':'')+' need attention'
+                : 'All mandatory items compliant'}</div>
+          </div>
+          <span style="font-size:18px;color:var(--muted)">
+            ›</span>
         </div>
       </div>`;
-    }).join('');
-    const hdrBadge = overdueCount
-      ? `<span style="font-size:10px;font-weight:700;color:#fff;background:#E53E3E;padding:2px 7px;border-radius:100px;margin-left:8px">${overdueCount} overdue</span>`
-      : `<span style="font-size:10px;font-weight:700;color:#fff;background:#00A87A;padding:2px 7px;border-radius:100px;margin-left:8px">All good</span>`;
-    return `<div class="panel" style="margin-bottom:8px">
-      <div class="ph2" style="cursor:pointer;user-select:none" onclick="(function(el){var b=document.getElementById('cg-${gid}');var open=b.style.display!=='none';b.style.display=open?'none':'block';el.querySelector('.cg-chev').textContent=open?'▸':'▾';})(this)">
-        <div style="display:flex;align-items:center;gap:4px"><h2>${icon} ${title}</h2>${hdrBadge}</div>
-        <div style="display:flex;align-items:center;gap:8px">${addBtn||''}<span class="cg-chev" style="font-size:13px;color:var(--muted)">${expanded?'▾':'▸'}</span></div>
-      </div>
-      <div id="cg-${gid}" style="${expanded?'':'display:none'}">
-        <div style="padding:12px 18px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">${rows}</div></div>
-      </div>
-    </div>`;
-  };
+  }
 
-  // Step 1 — property overview cards
-  const propOverview = D.properties.map(p => {
-    const pc = CF(p.id);
-    const allItems = [..._pgGD,..._pgGN,..._pgGS].map(label => _pgGetSt(pc, label));
-    const totalItems = allItems.length;
-    const overdueItems = allItems.filter(i=>i.overdue).length;
-    const pScore = totalItems ? Math.round(((totalItems-overdueItems)/totalItems)*100) : 0;
-    const pCol = pScore>=80?'var(--green)':pScore>=50?'#D97706':'#E53E3E';
-    const pr=22,pcx=28,pcy=28,pCirc=2*Math.PI*pr;
-    const pDash=(pCirc-(pScore/100)*pCirc).toFixed(2);
-    const miniGauge=`<svg width="56" height="56" viewBox="0 0 56 56"><circle cx="${pcx}" cy="${pcy}" r="${pr}" fill="none" stroke="rgba(0,0,0,0.07)" stroke-width="5"/><circle cx="${pcx}" cy="${pcy}" r="${pr}" fill="none" stroke="${pCol}" stroke-width="5" stroke-dasharray="${pCirc.toFixed(2)}" stroke-dashoffset="${pDash}" stroke-linecap="round" transform="rotate(-90 ${pcx} ${pcy})"/><text x="${pcx}" y="${pcy+4}" text-anchor="middle" fill="${pCol}" font-size="10" font-weight="700" font-family="DM Sans,sans-serif">${pScore}%</text></svg>`;
-    return `<div class="panel" style="cursor:pointer;margin-bottom:10px;transition:box-shadow .15s" onclick="window._compPropId='${p.id}';nav('compliance')" onmouseenter="this.style.boxShadow='0 2px 12px rgba(0,0,0,0.08)'" onmouseleave="this.style.boxShadow=''">
-      <div style="padding:14px 18px;display:flex;align-items:center;gap:14px">
-        ${miniGauge}
-        <div style="flex:1">
-          <div style="font-size:14px;font-weight:700;color:var(--txt)">${p.address}${p.city?', '+p.city:''}</div>
-          <div style="font-size:12px;margin-top:3px;color:${overdueItems?'var(--red)':'var(--green-dark)'}">${overdueItems?overdueItems+' item'+(overdueItems!==1?'s':'')+' need attention':'All items compliant'}</div>
-        </div>
-        <span style="font-size:18px;color:var(--muted)">›</span>
-      </div>
-    </div>`;
-  }).join('');
+  // Property detail drill-down
+  const selPid = window._compPropId || null;
+  const selProp = selPid ? P(selPid) : null;
 
-  // Step 2 — detail view for selected property
-  const _selPid = window._compPropId || null;
-  const _selProp = _selPid ? P(_selPid) : null;
-  const _selPc = _selProp ? CF(_selPid) : [];
-  const propDetail = _selProp ? `
-    <button class="btn btn-sm" onclick="window._compPropId=null;nav('compliance')" style="margin-bottom:16px">← All properties</button>
-    <div style="font-size:16px;font-weight:700;color:var(--txt);margin-bottom:16px">${_selProp.address}${_selProp.city?', '+_selProp.city:''}</div>
-    ${_pgGroup('det-'+_selPid+'-docs',_selPc,'📄','Documents & Certificates',_pgGD,`<button class="btn btn-sm btn-navy" onclick="event.stopPropagation();moCert('${_selPid}')">+ Add</button>`,true)}
-    ${_pgGroup('det-'+_selPid+'-notices',_selPc,'📋','Tenancy Notices',_pgGN,'',true)}
-    ${_pgGroup('det-'+_selPid+'-starter',_selPc,'🚀','Starter Kit',_pgGS,'',true)}
+  const propDetail = selProp ? `
+    <button class="btn btn-sm"
+      onclick="window._compPropId=null;nav('compliance')"
+      style="margin-bottom:16px">← All properties</button>
+    <div style="font-size:16px;font-weight:700;
+      color:var(--txt);margin-bottom:16px">
+      ${selProp.address}
+      ${selProp.city?', '+selProp.city:''}</div>
+    ${(() => {
+      const propDocs = getDocsForProperty(selPid);
+      const certList = CF(selPid);
+      const insList = D.insurance.filter(
+        i => String(i.prop_id) === String(selPid)
+      );
+      return ['safety','licensing','tenancy',
+              'movein','insurance']
+        .map(gk => {
+          const group = propDocs[gk];
+          if (!group || !group.docs.length) return '';
+          const rows = group.docs.map(doc => {
+            const st = getDocStatus(
+              doc, certList, insList
+            );
+            const dayStr = st.days !== null
+              ? (st.days<0
+                ?`${Math.abs(st.days)}d overdue`
+                :`${st.days}d left`)
+              : '';
+            return `
+              <div style="display:flex;align-items:center;
+                justify-content:space-between;
+                padding:9px 12px;background:${st.bg};
+                border:1px solid ${st.bdr};
+                border-radius:8px;gap:8px">
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:12.5px;
+                    font-weight:500;color:var(--txt)">
+                    ${doc.label}</div>
+                  <div style="font-size:10.5px;
+                    color:var(--muted);margin-top:1px">
+                    ${doc.note}</div>
+                </div>
+                <div style="display:flex;align-items:center;
+                  gap:6px;flex-shrink:0">
+                  ${dayStr
+                    ? `<span style="font-size:10px;
+                        color:${st.col}">${dayStr}</span>`
+                    : ''}
+                  <span style="font-size:10px;
+                    font-weight:700;color:${st.col};
+                    white-space:nowrap">${st.lbl}</span>
+                  ${st.action==='insurance'
+                    ? `<button onclick="nav('insurance')"
+                        style="font-size:10px;padding:3px 8px;
+                        border-radius:5px;border:1px solid
+                        var(--border);background:var(--white);
+                        color:var(--muted);cursor:pointer;
+                        font-family:var(--font)">
+                        Manage →</button>`
+                    : st.overdue
+                    ? `<button onclick="moCert('${selPid}')"
+                        style="font-size:10px;padding:3px 8px;
+                        border-radius:5px;border:1px solid
+                        var(--red);background:rgba(229,62,62,
+                        0.07);color:var(--red);cursor:pointer;
+                        font-family:var(--font);font-weight:600">
+                        + Upload</button>`
+                    : ''}
+                </div>
+              </div>`;
+          }).join('');
+
+          const gOverdue = group.docs.filter(doc => {
+            return getDocStatus(
+              doc, certList, insList
+            ).overdue;
+          }).length;
+          const gid = `pd-det-${selPid}-${gk}`;
+          return `
+            <div class="panel" style="margin-bottom:12px">
+              <div class="ph2" style="cursor:pointer;
+                user-select:none"
+                onclick="(function(el){
+                  var b=document.getElementById('${gid}');
+                  var open=b.style.display!=='none';
+                  b.style.display=open?'none':'block';
+                  el.querySelector('.cg-chev').textContent=
+                    open?'▸':'▾';
+                })(this)">
+                <div>
+                  <div style="display:flex;align-items:center;
+                    gap:6px">
+                    <h2>${group.icon} ${group.label}</h2>
+                    ${gOverdue
+                      ? `<span style="font-size:10px;
+                          font-weight:700;color:#fff;
+                          background:#E53E3E;padding:2px 7px;
+                          border-radius:100px;margin-left:4px">
+                          ${gOverdue} action</span>`
+                      : `<span style="font-size:10px;
+                          font-weight:700;color:#00A87A;
+                          background:var(--green-bg);
+                          padding:2px 7px;border-radius:100px;
+                          margin-left:4px">✓ All good</span>`}
+                  </div>
+                  <p style="font-size:11px;
+                    color:var(--muted);margin-top:2px">
+                    ${group.description}</p>
+                </div>
+                <div style="display:flex;align-items:center;
+                  gap:8px">
+                  ${gk==='safety'
+                    ? `<button class="btn btn-sm btn-navy"
+                        onclick="event.stopPropagation();
+                        moCert('${selPid}')"
+                        style="font-size:11px">
+                        + Add cert</button>`
+                    : ''}
+                  <span class="cg-chev"
+                    style="font-size:13px;color:var(--muted)">
+                    ${gOverdue ? '▾' : '▸'}</span>
+                </div>
+              </div>
+              <div id="${gid}"
+                style="${gOverdue ? '' : 'display:none'}">
+                <div style="padding:10px 16px 14px">
+                  <div style="display:flex;flex-direction:
+                    column;gap:6px">${rows}</div>
+                </div>
+              </div>
+            </div>`;
+        }).join('');
+    })()}
   ` : '';
 
-  return `<div class="topbar"><span class="tb-title">Compliance</span><div class="tb-right">
-    <button class="btn btn-navy" onclick="moBulkScan()">✦ Bulk scan</button>
-    <button class="btn" onclick="moCert()">+ Add certificate</button>
-  </div></div>
-  <div class="content">
+  const propOverview = allProps.map(
+    p => renderPropAudit(p)
+  ).join('');
 
-    ${!D.properties.length ? `<div class="empty"><div class="empty-ic">🛡</div><div class="empty-t">No properties yet</div><div class="empty-s">Add a property to start tracking compliance</div></div>` : `
+  const filterLabel = activeFilter==='expired'
+    ? 'Expired'
+    : activeFilter==='critical' ? 'Urgent / Expiring'
+    : activeFilter==='missing' ? 'Missing documents'
+    : 'All action required';
 
-    <div style="display:grid;grid-template-columns:auto 1fr;gap:18px;margin-bottom:22px;align-items:stretch">
-
-      <!-- Health score card -->
-      <div style="background:var(--navy);border-radius:14px;padding:24px 28px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:200px">
-        ${gauge}
-        <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:8px;text-align:center">${scoreSub}</div>
-      </div>
-
-      <!-- Stats strip -->
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
-        <div style="background:var(--white);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:box-shadow .15s" onclick="filterCompliance('all')" onmouseenter="this.style.boxShadow='0 2px 12px rgba(0,0,0,0.08)'" onmouseleave="this.style.boxShadow=''">
-          <div style="font-size:28px;font-weight:700;color:var(--txt)">${total}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">Total certs</div>
-          <div style="font-size:10px;color:var(--blue);margin-top:4px;font-weight:500">View all →</div>
-        </div>
-        <div style="background:${expired?'rgba(229,62,62,0.07)':'var(--white)'};border:1px solid ${expired?'rgba(229,62,62,0.2)':'var(--border)'};border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:box-shadow .15s" onclick="filterCompliance('expired')" onmouseenter="this.style.boxShadow='0 2px 12px rgba(229,62,62,0.12)'" onmouseleave="this.style.boxShadow=''">
-          <div style="font-size:28px;font-weight:700;color:${expired?'var(--red)':'var(--muted)'}">${expired}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">Expired</div>
-          ${expired?`<div style="font-size:10px;color:var(--red);margin-top:4px;font-weight:500">Action needed →</div>`:''}
-        </div>
-        <div style="background:${critical?'rgba(217,119,6,0.07)':'var(--white)'};border:1px solid ${critical?'rgba(217,119,6,0.2)':'var(--border)'};border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:box-shadow .15s" onclick="filterCompliance('critical')" onmouseenter="this.style.boxShadow='0 2px 12px rgba(217,119,6,0.12)'" onmouseleave="this.style.boxShadow=''">
-          <div style="font-size:28px;font-weight:700;color:${critical?'var(--amber)':'var(--muted)'}">${critical}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">Critical</div>
-          ${critical?`<div style="font-size:10px;color:var(--amber);margin-top:4px;font-weight:500">Expiring soon →</div>`:''}
-        </div>
-        <div style="background:var(--green-bg);border:1px solid var(--green-bg);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:box-shadow .15s" onclick="filterCompliance('ok')" onmouseenter="this.style.boxShadow='0 2px 12px var(--green-bg)'" onmouseleave="this.style.boxShadow=''">
-          <div style="font-size:28px;font-weight:700;color:var(--green-dark)">${ok + noExpiry}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">Compliant</div>
-          <div style="font-size:10px;color:var(--green-dark);margin-top:4px;font-weight:500">View all →</div>
-        </div>
+  return `
+    <div class="topbar">
+      <span class="tb-title">Compliance</span>
+      <div class="tb-right">
+        <button class="btn btn-navy"
+          onclick="moBulkScan()">✦ Bulk scan</button>
+        <button class="btn"
+          onclick="moCert()">+ Add certificate</button>
       </div>
     </div>
+    <div class="content">
 
-    ${(window._compView||'action') === 'action' ? `
-    <!-- Action list -->
-    <div class="panel" style="margin-bottom:18px" id="comp-action-list">
-      <div class="ph2" style="flex-wrap:wrap;gap:8px">
+    ${!allProps.length
+      ? `<div class="empty">
+          <div class="empty-ic">🛡</div>
+          <div class="empty-t">No properties yet</div>
+          <div class="empty-s">Add a property to start
+            tracking compliance</div>
+        </div>`
+      : `
+      <!-- Score + stats strip -->
+      <div style="display:grid;grid-template-columns:
+        auto 1fr;gap:18px;margin-bottom:22px;
+        align-items:stretch">
+
+        <div style="background:var(--navy);
+          border-radius:14px;padding:24px 28px;
+          display:flex;flex-direction:column;
+          align-items:center;justify-content:center;
+          min-width:200px">
+          ${gauge}
+          <div style="font-size:12px;
+            color:rgba(255,255,255,0.5);margin-top:8px;
+            text-align:center">${scoreSub}</div>
+        </div>
+
+        <div style="display:grid;
+          grid-template-columns:repeat(4,1fr);gap:12px">
+          <div style="background:var(--white);
+            border:1px solid var(--border);
+            border-radius:12px;padding:16px;
+            text-align:center;cursor:pointer;
+            transition:box-shadow .15s"
+            onclick="window._compFilter='all';
+              window._compView='action';nav('compliance')"
+            onmouseenter="this.style.boxShadow=
+              '0 2px 12px rgba(0,0,0,0.08)'"
+            onmouseleave="this.style.boxShadow=''">
+            <div style="font-size:28px;font-weight:700;
+              color:var(--txt)">
+              ${statExpired+statCritical+statMissing}</div>
+            <div style="font-size:11px;color:var(--muted);
+              margin-top:2px">Action required</div>
+            <div style="font-size:10px;color:var(--blue);
+              margin-top:4px;font-weight:500">
+              View all →</div>
+          </div>
+          <div style="background:${statExpired
+            ?'rgba(229,62,62,0.07)':'var(--white)'};
+            border:1px solid ${statExpired
+              ?'rgba(229,62,62,0.2)':'var(--border)'};
+            border-radius:12px;padding:16px;
+            text-align:center;cursor:pointer;
+            transition:box-shadow .15s"
+            onclick="window._compFilter='expired';
+              window._compView='action';nav('compliance')"
+            onmouseenter="this.style.boxShadow=
+              '0 2px 12px rgba(229,62,62,0.12)'"
+            onmouseleave="this.style.boxShadow=''">
+            <div style="font-size:28px;font-weight:700;
+              color:${statExpired
+                ?'var(--red)':'var(--muted)'}">
+              ${statExpired}</div>
+            <div style="font-size:11px;color:var(--muted);
+              margin-top:2px">Expired</div>
+            ${statExpired
+              ? `<div style="font-size:10px;
+                  color:var(--red);margin-top:4px;
+                  font-weight:500">Fix now →</div>`
+              : ''}
+          </div>
+          <div style="background:${statCritical
+            ?'rgba(217,119,6,0.07)':'var(--white)'};
+            border:1px solid ${statCritical
+              ?'rgba(217,119,6,0.2)':'var(--border)'};
+            border-radius:12px;padding:16px;
+            text-align:center;cursor:pointer;
+            transition:box-shadow .15s"
+            onclick="window._compFilter='critical';
+              window._compView='action';nav('compliance')"
+            onmouseenter="this.style.boxShadow=
+              '0 2px 12px rgba(217,119,6,0.12)'"
+            onmouseleave="this.style.boxShadow=''">
+            <div style="font-size:28px;font-weight:700;
+              color:${statCritical
+                ?'var(--amber)':'var(--muted)'}">
+              ${statCritical}</div>
+            <div style="font-size:11px;color:var(--muted);
+              margin-top:2px">Urgent</div>
+            ${statCritical
+              ? `<div style="font-size:10px;
+                  color:var(--amber);margin-top:4px;
+                  font-weight:500">Expiring soon →</div>`
+              : ''}
+          </div>
+          <div style="background:var(--green-bg);
+            border:1px solid var(--green-bg);
+            border-radius:12px;padding:16px;
+            text-align:center;cursor:pointer;
+            transition:box-shadow .15s"
+            onclick="window._compView='full';
+              nav('compliance')"
+            onmouseenter="this.style.boxShadow=
+              '0 2px 12px var(--green-bg)'"
+            onmouseleave="this.style.boxShadow=''">
+            <div style="font-size:28px;font-weight:700;
+              color:var(--green-dark)">${statOkCount}</div>
+            <div style="font-size:11px;color:var(--muted);
+              margin-top:2px">Compliant</div>
+            <div style="font-size:10px;
+              color:var(--green-dark);margin-top:4px;
+              font-weight:500">Full audit →</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- View toggle -->
+      <div style="display:flex;gap:6px;margin-bottom:16px">
+        <button onclick="window._compView='action';
+          nav('compliance')"
+          style="font-size:12px;padding:5px 14px;
+          border-radius:7px;cursor:pointer;
+          font-family:var(--font);font-weight:600;
+          border:1px solid var(--navy);
+          background:${(window._compView||'action')
+            ==='action'?'var(--navy)':'transparent'};
+          color:${(window._compView||'action')==='action'
+            ?'#fff':'var(--navy)'}">
+          ⚠️ Action required</button>
+        <button onclick="window._compView='full';
+          window._compPropId=null;nav('compliance')"
+          style="font-size:12px;padding:5px 14px;
+          border-radius:7px;cursor:pointer;
+          font-family:var(--font);font-weight:600;
+          border:1px solid var(--navy);
+          background:${window._compView==='full'
+            ?'var(--navy)':'transparent'};
+          color:${window._compView==='full'
+            ?'#fff':'var(--navy)'}">
+          📋 Full audit</button>
+      </div>
+
+      ${(window._compView||'action')==='action' ? `
+        <div class="panel" id="comp-action-list">
+          <div class="ph2"
+            style="flex-wrap:wrap;gap:8px">
+            <div>
+              <h2>${filterLabel}</h2>
+              <p>${filteredRows.length
+                ? filteredRows.length+' item'
+                  +(filteredRows.length!==1?'s':'')
+                  +' need attention'
+                : 'Nothing to action right now'}</p>
+            </div>
+          </div>
+          ${actionHtml}
+        </div>`
+      : `
         <div>
-          <h2>${filterLabel}</h2>
-          <p>${actionItems.length ? `${actionItems.length} item${actionItems.length!==1?'s':''} ${activeFilter==='ok'?'compliant':'need attention'}` : activeFilter==='ok'?'All compliant':'Nothing to do right now'}</p>
-        </div>
-        <div style="display:flex;gap:6px">
-          <button id="comp-view-action" onclick="window._compView='action';nav('compliance')" style="font-size:12px;padding:5px 12px;border-radius:7px;cursor:pointer;font-family:var(--font);font-weight:600;border:1px solid var(--navy);background:${(window._compView||'action')==='action'?'var(--navy)':'transparent'};color:${(window._compView||'action')==='action'?'#fff':'var(--navy)'}">⚠️ Action required</button>
-          <button id="comp-view-full" onclick="window._compView='full';nav('compliance')" style="font-size:12px;padding:5px 12px;border-radius:7px;cursor:pointer;font-family:var(--font);font-weight:600;border:1px solid var(--navy);background:${window._compView==='full'?'var(--navy)':'transparent'};color:${window._compView==='full'?'#fff':'var(--navy)'}">📋 Full audit</button>
-        </div>
-      </div>
-      ${actionHtml}
-    </div>
-    ` : ''}
-
-    ${window._compView === 'full' ? `<div>
-      <div style="margin-bottom:16px">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
-          <div>
-            <h2 style="font-size:16px;font-weight:700;color:var(--navy);margin:0 0 4px">Full compliance audit</h2>
-            <p style="font-size:12px;color:var(--muted);margin:0">Every certificate slot across all properties — green = present, amber = expiring, red = missing or expired</p>
+          <div style="margin-bottom:14px">
+            <h2 style="font-size:15px;font-weight:700;
+              color:var(--navy);margin:0 0 4px">
+              Full compliance audit</h2>
+            <p style="font-size:12px;color:var(--muted);
+              margin:0">Every mandatory document slot
+              across all properties. Click a property
+              to drill down.</p>
           </div>
-          <div style="display:flex;gap:6px">
-            <button id="comp-view-action2" onclick="window._compView='action';nav('compliance')" style="font-size:12px;padding:5px 12px;border-radius:7px;cursor:pointer;font-family:var(--font);font-weight:600;border:1px solid var(--navy);background:transparent;color:var(--navy)">⚠️ Action required</button>
-            <button id="comp-view-full2" onclick="window._compView='full';nav('compliance')" style="font-size:12px;padding:5px 12px;border-radius:7px;cursor:pointer;font-family:var(--font);font-weight:600;border:1px solid var(--navy);background:var(--navy);color:#fff">📋 Full audit</button>
-          </div>
-        </div>
-      </div>
-      ${_selProp ? propDetail : propOverview}
-    </div>` : ''}
-
-    `}
-  </div>`;
+          ${selProp ? propDetail : propOverview}
+        </div>`}
+      `}
+    </div>`;
 }
 
 // ── REMINDERS SYSTEM ──
