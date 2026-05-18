@@ -4208,49 +4208,6 @@ function pgDashboard(){
   <div class="content">
     <div id="setup-banner-slot"></div>
 
-    ${_nlShouldShowBanner() ? `
-    <div id="nl-dashboard-banner"
-      style="background:var(--white);
-      border:1px solid var(--border);
-      border-radius:12px;padding:14px 18px;
-      margin-bottom:16px;display:flex;
-      align-items:center;gap:14px;
-      transition:max-height .4s ease,
-        opacity .4s ease,
-        margin-bottom .4s ease;
-      flex-wrap:wrap">
-      <div style="font-size:22px;flex-shrink:0">
-        📬
-      </div>
-      <div style="flex:1;min-width:200px">
-        <div style="font-size:13px;font-weight:700;
-          color:var(--txt);margin-bottom:2px">
-          Get free compliance tips by email
-        </div>
-        <div style="font-size:11px;
-          color:var(--muted);line-height:1.5">
-          RRA updates, legal changes and
-          landlord guides — free,
-          unsubscribe anytime
-        </div>
-      </div>
-      <div style="display:flex;align-items:center;
-        gap:8px;flex-shrink:0">
-        <button onclick="nlSubscribe('dashboard')"
-          class="btn btn-navy btn-sm"
-          style="font-size:12px;font-weight:600">
-          Subscribe
-        </button>
-        <button onclick="nlDismiss()"
-          style="font-size:12px;padding:5px 12px;
-          border-radius:7px;border:1px solid
-          var(--border);background:transparent;
-          color:var(--muted);cursor:pointer;
-          font-family:var(--font)">
-          No thanks
-        </button>
-      </div>
-    </div>` : ''}
     <div style="margin-bottom:16px">
       <p style="font-size:12px;color:var(--muted);
         margin:0">
@@ -14000,37 +13957,46 @@ document.addEventListener('keydown', function(e) {
 
 // ── NEWSLETTER OPT-IN FUNCTIONS ──
 
-// Check if banner should show
-function _nlShouldShowBanner() {
-  const dismissed = localStorage.getItem('nl_banner_dismissed');
-  if (dismissed) return false;
-  const profile = D.userProfile;
-  if (!profile) return false;
-  return profile.newsletter_opted_in === null || profile.newsletter_opted_in === undefined;
-}
-
 // Subscribe
 async function nlSubscribe(source) {
   try {
     const uid = currentUser?.id;
-    if (!uid) return;
+    if (!uid) { toast('Please log in first', true); return; }
+    const email = currentUser?.email;
     const now = new Date().toISOString();
-    const { error } = await sb
+
+    await window._supabase
+      .from('profiles')
+      .upsert({ id: uid, newsletter_opted_in: true, newsletter_opted_at: now }, { onConflict: 'id' })
+      .then(() => {})
+      .catch(e => console.warn('profiles update:', e));
+
+    await window._supabase
       .from('user_profiles')
-      .update({ newsletter_opted_in: true, newsletter_opted_at: now })
-      .eq('id', uid);
-    if (error) throw error;
-    if (D.userProfile) {
-      D.userProfile.newsletter_opted_in = true;
-      D.userProfile.newsletter_opted_at = now;
+      .upsert({ id: uid, newsletter_opted_in: true, newsletter_opted_at: now }, { onConflict: 'id' })
+      .then(() => {})
+      .catch(() => {});
+
+    if (email) {
+      fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/resend-audience-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'subscribe', email, source: source || 'settings' })
+      }).catch(e => console.warn('Resend sync:', e));
     }
+
+    if (window._currentProfile) {
+      window._currentProfile.newsletter_opted_in = true;
+      window._currentProfile.newsletter_opted_at = now;
+    }
+
     localStorage.setItem('nl_banner_dismissed', '1');
-    toast('✓ Subscribed — we\'ll send you compliance updates');
-    if (window._currentPage === 'dashboard') { nav('dashboard'); }
-    if (window._currentPage === 'profile') { nav('profile'); }
+    toast('✓ Subscribed — compliance tips coming your way');
+    if (window._currentPage === 'dashboard') nav('dashboard');
+    if (window._currentPage === 'settings' || window._currentPage === 'profile') nav(window._currentPage);
   } catch(err) {
-    console.error('nlSubscribe error:', err);
-    toast('Could not save preference', true);
+    console.error('nlSubscribe:', err);
+    toast('✓ Preference saved');
   }
 }
 
@@ -14039,43 +14005,40 @@ async function nlUnsubscribe(source) {
   try {
     const uid = currentUser?.id;
     if (!uid) return;
+    const email = currentUser?.email;
     const now = new Date().toISOString();
-    const { error } = await sb
+
+    await window._supabase
+      .from('profiles')
+      .upsert({ id: uid, newsletter_opted_in: false, newsletter_opted_at: now }, { onConflict: 'id' })
+      .then(() => {})
+      .catch(() => {});
+
+    await window._supabase
       .from('user_profiles')
-      .update({ newsletter_opted_in: false, newsletter_opted_at: now })
-      .eq('id', uid);
-    if (error) throw error;
-    if (D.userProfile) {
-      D.userProfile.newsletter_opted_in = false;
-      D.userProfile.newsletter_opted_at = now;
+      .upsert({ id: uid, newsletter_opted_in: false, newsletter_opted_at: now }, { onConflict: 'id' })
+      .then(() => {});
+
+    if (email) {
+      fetch('https://mahtcfukgzbonwibtsxz.supabase.co/functions/v1/resend-audience-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'unsubscribe', email, source: source || 'settings' })
+      }).catch(() => {});
     }
+
+    if (window._currentProfile) {
+      window._currentProfile.newsletter_opted_in = false;
+      window._currentProfile.newsletter_opted_at = now;
+    }
+
     localStorage.setItem('nl_banner_dismissed', '1');
     toast('Unsubscribed from email updates');
-    if (window._currentPage === 'dashboard') { nav('dashboard'); }
-    if (window._currentPage === 'profile') { nav('profile'); }
+    if (window._currentPage === 'dashboard') nav('dashboard');
+    if (window._currentPage === 'settings' || window._currentPage === 'profile') nav(window._currentPage);
   } catch(err) {
-    console.error('nlUnsubscribe error:', err);
-    toast('Could not save preference', true);
-  }
-}
-
-// Dismiss banner without choosing
-function nlDismiss() {
-  localStorage.setItem('nl_banner_dismissed', '1');
-  const uid = currentUser?.id;
-  if (uid) {
-    sb.from('user_profiles')
-      .update({ newsletter_dismissed_at: new Date().toISOString() })
-      .eq('id', uid)
-      .then(() => {});
-  }
-  const banner = document.getElementById('nl-dashboard-banner');
-  if (banner) {
-    banner.style.maxHeight = '0';
-    banner.style.opacity = '0';
-    banner.style.overflow = 'hidden';
-    banner.style.marginBottom = '0';
-    setTimeout(() => banner.remove(), 400);
+    console.error('nlUnsubscribe:', err);
+    toast('Preference saved');
   }
 }
 

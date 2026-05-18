@@ -30,6 +30,7 @@
 13. [Feature Change Log](#13-feature-change-log)
 14. [Stripe Integration Guide](#14-stripe-integration-guide)
 15. [COMPLIANCE_DOCS Reference](#15-compliance_docs-reference)
+16. [Recent Features (May 2026)](#16-recent-features-may-2026)
 
 ---
 
@@ -1739,6 +1740,95 @@ When **touching any of these files for a new feature or bug fix**, follow this p
 
 #### Rebrand Fix
 - **`profile.html:266`** — Logo corrected from `Rent SafeAI` to `NexLet` (was missed in Session 14 rebrand)
+### UX Fixes 1 — 18 May 2026 — Properties Page & Property Detail UX Polish
+
+**Date:** 18 May 2026 — 7 small fixes across `landlord.html`
+
+- **Fix A:** Removed duplicate `voidLine` calculation in `propRow()` — vacant nudge now only via single `voidNudge` banner below row with `Start Tenancy →` button
+- **Fix B:** Replaced clickable `›` button at end of property rows with non-clickable visual indicator — whole row already clickable
+- **Fix C:** Group count badges in `groupBlock()` changed from navy filled pills to light muted style with border
+- **Fix D:** Property detail topbar now shows breadcrumb "Properties / 123 High Street" instead of just "Properties" — "Properties" is clickable
+- **Fix E:** Last tab renamed "Property" → "Details" with 📋 icon
+- **Fix F:** Compliance tab badge now shows count of overdue mandatory items via `getDocsForProperty` + `getDocStatus` instead of raw cert count
+- **Fix G:** Maintenance tab badge shows open issues only (excludes Resolved); Financials badge set to 0 (rent record count was meaningless)
+
+### UX Fixes 2 — 18 May 2026 — Dashboard UX Polish
+
+**Date:** 18 May 2026 — 3 fixes in `pgDashboard()`, `landlord.html`
+
+- **Fix A:** Removed duplicate "Dashboard" h1 — replaced with compact inline summary: `N urgent · M due soon · X properties · Y active tenants` — only non-zero counts shown
+- **Fix B:** Section 8 promo card now **context-conditional** — compact single-line strip shown by default (no triggers). Full dark card only appears when: late rent detected, arrears, Awaab issue open, or post-RRA deadline (1 June 2026+). Trigger subheading changes to match context.
+- **Fix C:** Quick actions dropdown trimmed to 2 items — "Report issue" removed. "Add certificate" gets correct bottom border-radius.
+
+### UX Fixes 3 — 18 May 2026 — Sidebar Navigation UX Polish
+
+**Date:** 18 May 2026 — 4 fixes in sidebar HTML + `initSbGroups()`, `landlord.html`
+
+- **Fix A:** Insurance icon changed from shield-with-checkmark to document-with-tick SVG — visually distinct from Compliance shield
+- **Fix B:** Inventory Reports emoji 📋 replaced with clipboard SVG matching nav icon style
+- **Fix C:** Maintenance and Calendar moved into new **Activity** group with collapsible header — no more orphaned standalone nav items between Compliance and Finance groups
+- **Fix D:** `initSbGroups()` updated to include `'activity'` in its init array — new group starts expanded. `toggleSbGroup('activity')` works via existing generic handler.
+
+### Feature 1 — 18 May 2026 — Global Document Viewer Overlay
+
+**Date:** 18 May 2026  
+**Scope:** `landlord.html` — single overlay + View buttons in 3 places
+
+- **Part A:** Document viewer overlay HTML inserted before `</body>` — dark backdrop with title bar (document name + meta), Download and Close buttons, iframe for PDFs, img tag for images, fallback panel for unsupported formats
+- **Part B:** JS functions (`dvoOpen`, `dvoClose`, `dvoDownload`, `_dvoType`, `_dvoIsPrivate`, `_dvoExt`) inserted before main `</script>`
+  - `dvoOpen(url, title, meta)` — main entry point, handles private bucket signed URLs, PDF fallback to Google Docs viewer after 4s, image display in img tag
+  - `dvoClose()` — closes overlay, clears iframe, removes body overflow lock
+  - `dvoDownload()` — triggers browser download of current document
+  - Escape key closes overlay; backdrop click closes overlay
+- **Part C:** View buttons added in 3 locations:
+  - Property detail compliance tab (`renderCompGroup`) — `👁 View` button on cert rows with URL
+  - Compliance page drill-down (`pgCompliance` selProp) — `👁 View` via IIFE using `findCertForDoc`
+  - Document Library (`pgDocLibrary`) — View button calls `dvoOpen()` instead of `viewDocInline()`
+- **Supabase buckets:** All buckets are public except `user-feedback-documents` (private — uses signed URL)
+
+### Feature 2 — 18 May 2026 — Newsletter Opt-In
+
+**Date:** 18 May 2026  
+**Scope:** `landlord.html`, `profile.html`, `signup.html`, `js/signup.js`
+
+- **Part A:** Newsletter helper functions inserted before main `</script>` in `landlord.html`:
+  - `_nlShouldShowBanner()` — shows when `newsletter_opted_in` is null and not dismissed
+  - `nlSubscribe(source)` — sets `newsletter_opted_in: true` on `user_profiles`, updates `D.userProfile` cache
+  - `nlUnsubscribe(source)` — sets `newsletter_opted_in: false`
+  - `nlDismiss()` — sets `localStorage` dismissal, records `dismissed_at` on profile, animates banner out
+  - `nlToggleHtml()` — returns toggle switch HTML for settings page
+- **Part B:** Dashboard banner in `pgDashboard()` shows when appropriate — "Get free compliance tips by email" with Subscribe + No thanks buttons
+- **Part C:** Communication preferences panel added to `profile.html` between Personal Details and Subscription sections — toggle switch wired via inline script reading/writing `user_profiles.newsletter_opted_in`
+- **Part D:** `D.userProfile` already loaded with `select('*')` on login — no change needed. Added sync of `newsletter_opted_in` from auth `user_metadata` (set during signup) to `user_profiles` on first login.
+- **Part E:** Newsletter checkbox added to `signup.html` before Create account button. `signUp()` in `signup.js` passes checkbox value as `options.data.newsletter_opted_in`.
+- **Required DB columns:** `user_profiles.newsletter_opted_in` (boolean), `newsletter_opted_at` (timestamptz), `newsletter_dismissed_at` (timestamptz)
+
+### Feature 3 — 18 May 2026 — Trial Expiry UX Overhaul
+
+**Date:** 18 May 2026  
+**Scope:** `landlord.html` — 6 parts
+
+- **Part A:** No duplicate `showTrialExpiryPopup` found (only one definition existed)
+- **Part B:** `showTrialExpiryPopup()` rewritten — shows 3 plan cards with founding/standard pricing, "Continue read-only" + "Delete my account" footer links. Hard popup close button removal removed — user can close the modal.
+- **Part C:** Nav guard (`nav()`) changed from hard block to **soft lock** — allows browsing 13 pages (dashboard, properties, tenants, compliance, maintenance, insurance, inspections, rent, financials, calendar, doclibrary, contractors, prop-detail) and billing. Only blocks write-heavy pages (templates, inventory-reports, MTD, assistant).
+- **Part D:** `_expiredGuard(actionLabel)` added after `isExpired()` — reusable guard for write actions. Returns `true` and shows modal if trial expired. Guards added to 8 write functions: `moAddProp`, `savePropToDB`, `moCert`, `moTenant`, `_saveTenantSetupToDB`, `moIssue`, `sendWelcomeKit`, `moSection8`.
+- **Part E:** `moDeleteAccount()` + `execDeleteAccount()` added. Confirmation modal requires typing DELETE. Deletes from all tables (`certificates`, `maintenance`, `rent`, `tenants`, `insurance`, `properties`, `user_profiles`, `stripe_subscriptions`, `profiles`) then signs out.
+- **Part F:** Trial expired banner HTML replaced — now red-styled flex bar with built-in "View plans →" and "Read-only mode" buttons. Text set via `trial-expired-banner-text` span ID instead of `innerHTML` replacement.
+
+### Feature 4 — 18 May 2026 — Client-Side Data Export
+
+**Date:** 18 May 2026  
+**Scope:** `landlord.html`, `profile.html`
+
+- **Part A:** JSZip 3.10.1 loaded from cdnjs in `<head>`
+- **Part B:** Export functions inserted before main `</script>`:
+  - `_toCSV(rows)` — converts array of objects to CSV string with proper escaping
+  - `_expFmt(val)` — formats dates as DD/MM/YYYY HH:MM in en-GB locale
+  - `_exportReadme()` — generates README.txt with generation timestamp, user email, file listing, GDPR notice
+  - Per-table export helpers: `_exportProperties(pid)`, `_exportTenants(pid)`, `_exportCerts(pid)`, `_exportMaintenance(pid)`, `_exportRent(pid)`, `_exportInsurance(pid)`, `_exportEmailLog(pid)`, `_exportContractors()`, `_exportEsign(pid)`
+  - `exportData(pid)` — main function, creates ZIP with all CSVs + README, triggers download
+- **Part C:** "My Data" panel added to `profile.html` above Communication preferences — Export all data + Delete account buttons
+- **Part D:** "⬇ Download audit trail" button added after RAG score bar in property detail compliance tab — calls `exportData(pid)` for per-property export
 
 ---
 
@@ -1937,3 +2027,97 @@ const st = getDocStatus(propDocs.safety.docs[0], certList, insList);
 | `pgCompliance()` page | `getDocsForProperty` → mandatory groups 1–4 for scoring + action list + full audit | `landlord.html:~5428` |
 | `moWelcomeKit()` | `getDocsForProperty` → tenancy + movein merged | `landlord.html:~3469` |
 | `initPropChecklist` auto-detection | `_hasCert()` helper using `CF(pid)` — indirect via `getDocStatus` pattern | `landlord.html:~4769` |
+
+---
+
+## 16. Recent Features (May 2026)
+
+Quick-reference documentation for features added in the May 2026 UX refresh.
+
+### 16.1 Document Viewer Overlay (`dvoOpen`)
+
+**Location:** `landlord.html` — overlay HTML before `</body>`, functions before `</script>`
+
+The global document viewer overlay provides a consistent way to preview any uploaded document across the platform. It is accessible from the property detail compliance tab, the compliance page drill-down, and the document library.
+
+**Key functions:**
+- `dvoOpen(url, title, meta)` — Opens the overlay with a document. Auto-detects file type (PDF/image/other). Falls back to Google Docs viewer for cross-origin PDFs after 4 seconds. Generates signed URLs for private buckets.
+- `dvoClose()` — Closes overlay, clears iframe, restores body scroll
+- `dvoDownload()` — Triggers browser download of current document
+
+**Supported formats:** PDF (iframe), images (img tag), all others (fallback with Download button)
+
+**View buttons appear in:** property detail compliance tab cert rows, compliance page drill-down, document library page
+
+### 16.2 Newsletter Opt-In System
+
+**Location:** `landlord.html` (helpers + dashboard banner), `profile.html` (settings toggle), `signup.html` (signup checkbox), `js/signup.js` (signUp metadata)
+
+**DB columns on `user_profiles`:** `newsletter_opted_in` (boolean), `newsletter_opted_at` (timestamptz), `newsletter_dismissed_at` (timestamptz)
+
+**Flow:**
+1. Signup → checkbox state passed as `options.data.newsletter_opted_in` in `auth.signUp()`
+2. Login → `loadData()` syncs auth `user_metadata.newsletter_opted_in` to `user_profiles` if not already set
+3. Dashboard → banner shows when `newsletter_opted_in` is null and `localStorage nl_banner_dismissed` is not set
+4. Settings → toggle switch in profile.html reads/writes `user_profiles.newsletter_opted_in`
+5. Dismiss → "No thanks" sets `localStorage` dismissal + `dismissed_at` timestamp, animates banner out
+
+### 16.3 Trial Expiry Soft Lock
+
+**Location:** `landlord.html` — `nav()`, `_expiredGuard()`, `showTrialExpiryPopup()`, `moDeleteAccount()`, `execDeleteAccount()`
+
+**Nav guard** (`nav()`): Expired users can browse 13 allowed pages (properties, tenants, compliance, maintenance, insurance, inspections, rent, financials, calendar, doclibrary, contractors, prop-detail, dashboard). Billing/profile always accessible. Write-heavy pages blocked (templates, inventory-reports, MTD, assistant).
+
+**Write guard** (`_expiredGuard(actionLabel)`): Called at the start of 8 write functions. Returns `true` (block) if trial expired, showing a modal with "View plans →" link to profile.html and "Continue read-only" dismiss button.
+
+**Guarded functions:** `moAddProp`, `savePropToDB`, `moCert`, `moTenant`, `_saveTenantSetupToDB`, `moIssue`, `sendWelcomeKit`, `moSection8`
+
+**Expired banner:** Red flex bar with `trial-expired-banner-text` span (set by `showTrialExpiredBanner()`) + built-in "View plans →" and "Read-only mode" buttons.
+
+**Delete account:** `moDeleteAccount()` requires typing DELETE to confirm. `execDeleteAccount()` deletes from all tables then signs out.
+
+### 16.4 Data Export (CSV + ZIP)
+
+**Location:** `landlord.html` (functions + compliance tab button), `profile.html` (My Data panel)  
+**Dependency:** JSZip 3.10.1 from cdnjs (loaded in `<head>`)
+
+**Entry points:**
+- Settings page → "⬇ Export all data" button (full export of all properties, tenants, certs, etc.)
+- Property detail compliance tab → "⬇ Download audit trail" button (per-property export filtered by PID)
+- `exportData()` — callable from console for debugging
+- `exportData(pid)` — per-property export
+
+**ZIP contents (full export):** `properties.csv`, `tenants.csv`, `certificates.csv`, `maintenance.csv`, `rent.csv`, `insurance.csv`, `email-log.csv`, `contractors.csv`, `esign.csv`, `README.txt`
+
+**ZIP contents (per-property):** Same minus `contractors.csv` — all files filtered to that property only
+
+**README.txt includes:** generation timestamp, user email, file descriptions, GDPR legal notice
+
+**CSV format:** Properly escaped (quotes commas/quotes/newlines), header row, empty tables export as "No data". Dates formatted en-GB `DD/MM/YYYY HH:MM`.
+
+### 16.5 Sidebar Navigation Structure
+
+The sidebar groups after the May 2026 refresh:
+
+| Group | Items |
+|---|---|
+| **My Properties** | Properties, Tenants, Contractors |
+| **Compliance** | Compliance, Insurance, Inspections, Inventory Reports |
+| **Activity** | Maintenance, Calendar |
+| **Finance & Tax** | Finance, Rent Tracker, MTD Tax |
+| **Documents** | Templates, Document Library |
+
+All groups collapsible via `toggleSbGroup()` with `sb-group-body`/`sb-group-hdr` pattern. Init state set in `initSbGroups()`.
+
+### 16.6 Property Detail Tab Structure
+
+Tabs in `pgPropDetail()` (left to right): Tenant, Financials, Compliance, Maintenance, Details (was "Property")
+
+Tab badges:
+- **Tenant:** Active tenant count
+- **Financials:** Always 0 (not meaningful)
+- **Compliance:** Overdue mandatory items count via `getDocsForProperty` → `getDocStatus`
+- **Maintenance:** Open issues only (excludes Resolved)
+- **Details:** No badge
+
+Topbar shows breadcrumb: `Properties / 123 High Street` — "Properties" clickable to return to list.
