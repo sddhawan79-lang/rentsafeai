@@ -4119,13 +4119,41 @@ function pgDashboard(){
     <button class="btn" onclick="window._toggleDashDD()" id="dashdd-btn">Quick actions ▾</button>
     <div id="dashdd-menu" style="display:none;position:absolute;right:0;top:100%;margin-top:6px;background:var(--white);border:1px solid var(--border);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.10);z-index:999;min-width:180px">
       <div onclick="moBulkScan();window._toggleDashDD()" style="padding:10px 16px;font-size:13px;cursor:pointer;border-radius:10px 10px 0 0" onmouseenter="this.style.background='var(--off)'" onmouseleave="this.style.background='transparent'">✦ Scan docs</div>
-      <div onclick="moCert();window._toggleDashDD()" style="padding:10px 16px;font-size:13px;cursor:pointer" onmouseenter="this.style.background='var(--off)'" onmouseleave="this.style.background='transparent'">+ Add certificate</div>
-      <div onclick="moIssue();window._toggleDashDD()" style="padding:10px 16px;font-size:13px;cursor:pointer;border-radius:0 0 10px 10px" onmouseenter="this.style.background='var(--off)'" onmouseleave="this.style.background='transparent'">Report issue</div>
+      <div onclick="moCert();window._toggleDashDD()" style="padding:10px 16px;font-size:13px;cursor:pointer;border-radius:0 0 10px 10px" onmouseenter="this.style.background='var(--off)'" onmouseleave="this.style.background='transparent'">+ Add certificate</div>
     </div>
   </div></div>
   <div class="content">
     <div id="setup-banner-slot"></div>
-    <div class="ph"><h1>Dashboard</h1><p>${acts.length} urgent, ${acts.filter(a=>a.b==='amber').length} due soon</p></div>
+    <div style="margin-bottom:16px">
+      <p style="font-size:12px;color:var(--muted);
+        margin:0">
+        ${acts.length
+          ? `<span style="color:var(--red);
+              font-weight:600">${acts.length}
+              urgent</span> · `
+          : ''}
+        ${acts.filter(a=>a.b==='amber').length
+          ? `<span style="color:#D97706;
+              font-weight:600">
+              ${acts.filter(a=>a.b==='amber').length}
+              due soon</span> · `
+          : ''}
+        <span style="color:var(--muted)">
+          ${D.properties.filter(p=>
+            (p.status||'active')!=='archived'
+          ).length}
+          propert${D.properties.filter(p=>
+            (p.status||'active')!=='archived'
+          ).length!==1?'ies':'y'}
+          · ${D.tenants.filter(
+            t=>t.status==='Active'
+          ).length} active tenant${
+            D.tenants.filter(
+              t=>t.status==='Active'
+            ).length!==1?'s':''}
+        </span>
+      </p>
+    </div>
 
     ${(function(){
       const daysLeft = Math.ceil((new Date('2026-05-31') - new Date()) / 864e5);
@@ -4151,16 +4179,121 @@ function pgDashboard(){
     ${(function(){
       const props = D.properties;
       if (!props.length) return '';
+
+      // Only show when contextually relevant
+      const hasLateRent = D.rent.some(
+        r => r.status === 'Late'
+      );
+      const hasArrears = D.tenants.some(
+        t => t.status === 'Active' &&
+             t.arrears && t.arrears > 0
+      );
+      const hasUrgentMaintenance =
+        D.maintenance.some(
+          m => m.awaab &&
+               m.status !== 'Resolved'
+        );
+      const postRRADeadline =
+        new Date() > new Date('2026-05-31');
+
+      // Show if any trigger is true
+      const shouldShow = hasLateRent ||
+        hasArrears ||
+        hasUrgentMaintenance ||
+        postRRADeadline;
+
+      // Always show a compact link —
+      // only show full card when triggered
+      if (!shouldShow) {
+        return `<div style="margin-bottom:14px;
+          padding:10px 14px;background:var(--off);
+          border:1px solid var(--border);
+          border-radius:10px;display:flex;
+          align-items:center;justify-content:
+          space-between;gap:12px">
+          <div style="display:flex;align-items:
+            center;gap:10px">
+            <span style="font-size:13px">⚖️</span>
+            <span style="font-size:12px;
+              color:var(--muted)">
+              Section 8 Notice Generator —
+              all RRA 2025 grounds available
+            </span>
+          </div>
+          <button class="btn btn-sm"
+            style="font-size:11px;flex-shrink:0"
+            onclick="(function(){
+              var v=document.getElementById(
+                's8-compact-sel'
+              );
+              if(v&&v.value) moSection8(v.value);
+              else if(${props.length}===1)
+                moSection8('${props[0]?.id||''}');
+              else toast('Select a property',true);
+            })()">
+            Generate →
+          </button>
+        </div>`;
+      }
+
+      // Full card when triggered
+      const trigger = hasLateRent||hasArrears
+        ? '⚠️ Late rent detected'
+        : hasUrgentMaintenance
+        ? '⚠️ Awaab Law issue open'
+        : 'RRA 2025 — Section 21 abolished';
+
       const btn = props.length === 1
-        ? `<button class="btn btn-sm" style="background:var(--green);color:#0B1E3D;border:none;font-weight:600" onclick="moSection8('${props[0].id}')">Generate notice →</button>`
-        : `<select id="s8-dash-sel" style="padding:6px 10px;border-radius:7px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:#fff;font-family:var(--font);font-size:12px;cursor:pointer"><option value="" style="color:var(--txt)">Select property…</option>${props.map(p=>`<option value="${p.id}" style="color:var(--txt)">${p.address}</option>`).join('')}</select><button class="btn btn-sm" style="background:var(--green);color:#0B1E3D;border:none;font-weight:600;margin-left:6px" onclick="(function(){var v=document.getElementById('s8-dash-sel').value;if(v)moSection8(v);else toast('Please select a property',true)})()">Go →</button>`;
-      return `<div class="s8-dash-card">
+        ? `<button class="btn btn-sm"
+            style="background:var(--green);
+            color:#0B1E3D;border:none;
+            font-weight:600"
+            onclick="moSection8('${props[0].id}')">
+            Generate notice →</button>`
+        : `<select id="s8-dash-sel"
+            style="padding:6px 10px;border-radius:7px;
+            border:1px solid rgba(255,255,255,0.2);
+            background:rgba(255,255,255,0.1);
+            color:#fff;font-family:var(--font);
+            font-size:12px;cursor:pointer">
+            <option value="" style="color:var(--txt)">
+              Select property…</option>
+            ${props.map(p=>
+              `<option value="${p.id}"
+                style="color:var(--txt)">
+                ${p.address}</option>`
+            ).join('')}
+          </select>
+          <button class="btn btn-sm"
+            style="background:var(--green);
+            color:#0B1E3D;border:none;
+            font-weight:600;margin-left:6px"
+            onclick="(function(){
+              var v=document.getElementById(
+                's8-dash-sel').value;
+              if(v) moSection8(v);
+              else toast(
+                'Please select a property',true
+              );
+            })()">Go →</button>`;
+
+      return `<div class="s8-dash-card"
+        style="margin-bottom:16px">
         <div>
-          <div style="font-size:10px;font-weight:700;color:var(--green);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px">✦ RRA 2025 — Section 21 abolished 1 May 2026</div>
-          <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:4px">Section 8 Notice Generator</div>
-          <div style="font-size:12px;color:rgba(255,255,255,0.6)">All RRA 2025 grounds · Auto-filled · PDF download · Email to tenant</div>
+          <div style="font-size:10px;font-weight:700;
+            color:var(--green);letter-spacing:.5px;
+            text-transform:uppercase;margin-bottom:6px">
+            ✦ ${trigger}</div>
+          <div style="font-size:16px;font-weight:700;
+            color:#fff;margin-bottom:4px">
+            Section 8 Notice Generator</div>
+          <div style="font-size:12px;
+            color:rgba(255,255,255,0.6)">
+            All RRA 2025 grounds · Auto-filled ·
+            PDF download · Email to tenant</div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${btn}</div>
+        <div style="display:flex;align-items:center;
+          gap:8px;flex-shrink:0">${btn}</div>
       </div>`;
     })()}
 
