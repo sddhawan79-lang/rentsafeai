@@ -4277,15 +4277,29 @@ function pgProperties(){
     const isArchived=(p.status||'active')==='archived';
     const rowStyle=isArchived?'opacity:0.55':'';
     const st=p.status||'active';
-    let voidLine='';
-    if(st==='vacant'&&p.vacant_since){
-      const vd=Math.floor((Date.now()-new Date(p.vacant_since).getTime())/(86400000));
-      if(vd>=30) voidLine='<div style="font-size:10px;color:var(--amber);margin-top:3px">🟡 Vacant '+vd+'d — ready to re-let?</div>';
-    }
     let voidNudge='';
     if(st==='vacant'&&p.vacant_since){
-      const days=Math.floor((Date.now()-new Date(p.vacant_since).getTime())/(86400000));
-      if(days>=30) voidNudge='<div style="margin-top:6px;padding:8px 12px;background:var(--amber-bg);border:1px solid rgba(217,119,6,0.2);border-radius:7px;display:flex;align-items:center;justify-content:space-between;gap:8px"><span style="font-size:11px;color:var(--amber);font-weight:600">⚠ Vacant for '+days+' days — ready to find a new tenant?</span><button class="btn btn-sm" style="font-size:11px;padding:3px 10px;color:var(--amber);background:rgba(217,119,6,0.15);border:none;border-radius:5px;font-weight:700" onclick="event.stopPropagation();startTenancy(\''+p.id+'\')">Start Tenancy →</button></div>';
+      const days=Math.floor(
+        (Date.now()-new Date(p.vacant_since)
+        .getTime())/864e5
+      );
+      if(days>=30) voidNudge=`
+        <div style="margin-top:6px;padding:8px 12px;
+          background:var(--amber-bg);border:1px solid 
+          rgba(217,119,6,0.2);border-radius:7px;
+          display:flex;align-items:center;
+          justify-content:space-between;gap:8px">
+          <span style="font-size:11px;color:var(--amber);
+            font-weight:600">⚠ Vacant for ${days} days 
+            — ready to re-let?</span>
+          <button class="btn btn-sm" style="font-size:11px;
+            padding:3px 10px;color:var(--amber);
+            background:rgba(217,119,6,0.15);border:none;
+            border-radius:5px;font-weight:700" 
+            onclick="event.stopPropagation();
+              startTenancy('${p.id}')">
+            Start Tenancy →</button>
+        </div>`;
     }
     return '<div style="display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--border);transition:background .1s;'+rowStyle+'"'
       +(!isArchived?' onclick="nav(\'prop-detail\',\''+p.id+'\')" onmouseenter="this.style.background=\'var(--off)\'" onmouseleave="this.style.background=\'transparent\'"':'')
@@ -4294,7 +4308,6 @@ function pgProperties(){
       +'<div style="flex:2;min-width:0">'
         +'<div style="font-size:13px;font-weight:600;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+p.address+'</div>'
         +'<div style="font-size:11px;color:var(--muted)">'+(p.city||'')+(p.postcode?'· '+p.postcode:'')+'</div>'
-        +voidLine
       +'</div>'
       +'<div style="flex:1.5;min-width:0;display:flex;align-items:center;gap:6px">'
         +(isArchived
@@ -4307,8 +4320,9 @@ function pgProperties(){
         +(openIssues>0?'<span style="font-size:11px;font-weight:600;color:'+(awaab?'#E53E3E':'#D97706')+'">'+(awaab?'⚠ ':'')+openIssues+' issue'+(openIssues!==1?'s':'')+' open</span>'
                      :'<span style="font-size:11px;color:var(--muted)">&#8212;</span>')
       +'</div>'
-      +'<div style="display:flex;gap:6px;flex-shrink:0" onclick="event.stopPropagation()">'
-        +'<button class="btn btn-sm" style="font-size:13px;padding:4px 10px" onclick="nav(\'prop-detail\',\''+p.id+'\')">&#8250;</button>'
+      +'<div style="flex-shrink:0;padding-left:4px">'
+        +'<span style="font-size:16px;color:var(--muted);'
+        +'font-weight:300;line-height:1">›</span>'
       +'</div>'
     +'</div>'+voidNudge;
   }
@@ -4319,7 +4333,11 @@ function pgProperties(){
       +'<div style="display:flex;align-items:center;gap:10px">'
         +'<span style="font-size:14px">'+icon+'</span>'
         +'<span style="font-size:13px;font-weight:700;color:var(--txt)">'+label+'</span>'
-        +'<span style="font-size:11px;font-weight:700;background:var(--navy);color:#fff;padding:1px 8px;border-radius:100px">'+items.length+'</span>'
+        +'<span style="font-size:11px;font-weight:600;'
+        +'background:var(--off);color:var(--muted);'
+        +'border:1px solid var(--border);'
+        +'padding:1px 8px;border-radius:100px">'
+        +items.length+'</span>'
       +'</div>'
       +'<span id="pg-arr-'+id+'" style="color:var(--muted);font-size:12px;transition:transform .2s;transform:'+(defaultOpen?'rotate(0deg)':'rotate(-90deg)')+'">&#9662;</span>'
       +'</div>'
@@ -5052,10 +5070,32 @@ function pgPropDetail(pid) {
   // Tabs
   const tabDefs = [
     { id:'tenant',      icon:'👤', label:'Tenant',      cnt: D.tenants.filter(x=>String(x.prop_id)===String(pid)).length },
-    { id:'financials',  icon:'💷', label:'Financials',  cnt: D.rent.filter(r=>String(r.prop_id)===String(pid)).length },
-    { id:'compliance',  icon:'🛡', label:'Compliance',  cnt: pc.length },
-    { id:'maintenance', icon:'🔧', label:'Maintenance', cnt: D.maintenance.filter(m=>String(m.prop_id)===String(pid)).length },
-    { id:'property',    icon:'🏠', label:'Property',    cnt: 0 },
+    { id:'financials',  icon:'💷', label:'Financials',  cnt: 0 },
+    { id:'compliance',  icon:'🛡', label:'Compliance',
+      cnt: (() => {
+        const propDocs = getDocsForProperty(pid);
+        const insList = D.insurance.filter(
+          i => String(i.prop_id)===String(pid)
+        );
+        let overdue = 0;
+        ['safety','licensing','tenancy','movein']
+        .forEach(gk => {
+          const g = propDocs[gk];
+          if (!g) return;
+          g.docs.forEach(doc => {
+            if (!doc.mandatory) return;
+            const st = getDocStatus(doc, pc, insList);
+            if (st.overdue) overdue++;
+          });
+        });
+        return overdue;
+      })()
+    },
+    { id:'maintenance', icon:'🔧', label:'Maintenance', cnt: D.maintenance.filter(m=>
+        String(m.prop_id)===String(pid) && 
+        m.status !== 'Resolved'
+      ).length },
+    { id:'property',    icon:'📋', label:'Details',    cnt: 0 },
   ];
 
   const tabBar = `<div class="pd-tabs">${tabDefs.map(tb=>`
@@ -5064,9 +5104,24 @@ function pgPropDetail(pid) {
       ${tb.cnt > 0 ? `<span class="pd-cnt">${tb.cnt}</span>` : ''}
     </button>`).join('')}</div>`;
 
-  return `<div class="topbar"><span class="tb-title">Properties</span><div class="tb-right">
-    <button class="btn" onclick="moEditProp('${pid}')">✎ Edit</button>
-  </div></div>
+  return `<div class="topbar">
+    <div style="display:flex;align-items:center;
+      gap:8px;min-width:0">
+      <span style="font-size:12px;color:var(--muted);
+        cursor:pointer;flex-shrink:0;font-weight:500" 
+        onclick="nav('properties')">
+        Properties</span>
+      <span style="font-size:12px;color:var(--muted)">
+        /</span>
+      <span class="tb-title" style="overflow:hidden;
+        text-overflow:ellipsis;white-space:nowrap">
+        ${p.address}</span>
+    </div>
+    <div class="tb-right">
+      <button class="btn" onclick="moEditProp(
+        '${pid}')">✎ Edit</button>
+    </div>
+  </div>
   <div class="content">
     <button class="detail-back" onclick="nav('properties')"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3L5 8l5 5"/></svg> Back to properties</button>
 
