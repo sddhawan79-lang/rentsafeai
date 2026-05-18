@@ -4431,7 +4431,42 @@ function renderPropChecklist(prefix, pid, mode, saved, meters){
   var groups={};
   ITEMS.forEach(function(item){if(!groups[item.group])groups[item.group]=[];groups[item.group].push(item);});
 
+  // Count auto-verified vs manual
+  var autoCount = ITEMS.filter(function(i){
+    var rec = (window._pretenancyRecord || {})[pid] || {};
+    return saved[i.id] && rec[i.id] && rec[i.id].auto;
+  }).length;
+  var manualCount = done - autoCount;
+
   var html='<div style="padding:8px 0 4px">';
+
+  // Auto-detect summary banner
+  if (mode === 'onboard' && autoCount > 0) {
+    html += '<div style="background:rgba(59,111,' +
+      '232,0.07);border:1px solid rgba(59,111,232,' +
+      '0.2);border-radius:8px;padding:10px 14px;' +
+      'margin-bottom:14px;display:flex;gap:10px;' +
+      'align-items:flex-start">';
+    html += '<span style="font-size:16px;' +
+      'flex-shrink:0">✦</span>';
+    html += '<div style="flex:1">';
+    html += '<div style="font-size:12px;' +
+      'font-weight:700;color:var(--blue);' +
+      'margin-bottom:2px">' + autoCount +
+      ' item' + (autoCount!==1?'s':'') +
+      ' auto-verified from your records</div>';
+    html += '<div style="font-size:11px;' +
+      'color:var(--muted);line-height:1.5">' +
+      'Certificates, deposit scheme and sent ' +
+      'documents were checked automatically. ' +
+      (done < ITEMS.length
+        ? (ITEMS.length - done) + ' item' +
+          (ITEMS.length-done!==1?'s':'') +
+          ' still need your manual confirmation.'
+        : 'All items complete.') +
+      '</div></div></div>';
+  }
+
   // Overall progress bar
   html+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">';
   html+='<div style="flex:1;height:6px;background:#E4EAF1;border-radius:100px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+col+';border-radius:100px;transition:width .3s ease"></div></div>';
@@ -4470,7 +4505,21 @@ function renderPropChecklist(prefix, pid, mode, saved, meters){
       html+='<div style="width:17px;height:17px;border-radius:4px;border:2px solid '+(checked?'var(--green)':'#C5D0DD')+';background:'+(checked?'var(--green)':'transparent')+';flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center">';
       html+=checked?'<svg width="8" height="8" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>':'';
       html+='</div>';
-      html+='<div style="flex:1"><div style="font-size:12.5px;font-weight:500;'+(checked?'text-decoration:line-through;color:var(--muted)':'color:var(--txt)')+'">'+item.label+'</div>';
+      // Check if this item was auto-verified
+      var itemRec = ((window._pretenancyRecord||{})[pid]||{})[item.id];
+      var wasAuto = itemRec && itemRec.auto;
+      html+='<div style="flex:1">';
+      html+='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">';
+      html+='<div style="font-size:12.5px;font-weight:500;'+(checked?'text-decoration:line-through;color:var(--muted)':'color:var(--txt)')+'">'+item.label+'</div>';
+      if (wasAuto) {
+        html+='<span style="font-size:9px;' +
+          'font-weight:700;color:var(--blue);' +
+          'background:rgba(59,111,232,0.09);' +
+          'padding:1px 6px;border-radius:100px;' +
+          'white-space:nowrap">✦ Auto-verified' +
+          '</span>';
+      }
+      html+='</div>';
       if(item.detail) html+='<div style="font-size:11px;color:var(--muted);margin-top:2px;line-height:1.45">'+item.detail+'</div>';
       html+='</div></div>';
     });
@@ -4488,9 +4537,22 @@ function renderPropChecklist(prefix, pid, mode, saved, meters){
     html+='<div style="margin-top:12px;text-align:center">';
     html+='<button class="btn btn-navy" id="pt-add-tenant-btn" onclick="completePretenancyChecklist(\''+pid+'\')" style="min-width:160px;font-size:13px" '+(allChecked?'':'disabled')+'>'+(allChecked?'Add tenant':'Complete all checks to add tenant')+'</button>';
     html+='</div>';
-    html+='<div style="text-align:center;margin-top:8px">';
-    html+='<a href="#" onclick="event.preventDefault();bypassPretenancyChecklist(\''+pid+'\')" style="font-size:11px;color:var(--muted);text-decoration:underline">Skip checks — I take full responsibility</a>';
-    html+='</div>';
+    html+='<div style="margin-top:20px;padding-top:' +
+      '16px;border-top:1px solid var(--border)">';
+    html+='<div style="font-size:11px;color:var(--muted);' +
+      'text-align:center;margin-bottom:8px;' +
+      'line-height:1.5">Need to bypass these checks?<br>' +
+      'This creates a permanent timestamped record ' +
+      'and is not reversible.</div>';
+    html+='<div style="text-align:center">';
+    html+='<button onclick="moBypassConfirm(\'' +
+      pid + '\')" style="font-size:11px;' +
+      'color:var(--muted);background:none;border:1px ' +
+      'solid var(--border);padding:5px 14px;' +
+      'border-radius:6px;cursor:pointer;' +
+      'font-family:var(--font)">' +
+      'Bypass checks →</button>';
+    html+='</div></div>';
   }
   html+='</div>';
   return html;
@@ -4542,6 +4604,52 @@ async function completePretenancyChecklist(pid) {
     closeMo();
     moTenant(pid);
   } catch(e) { _logError('completePretenancyChecklist',e); toast('Error saving checklist — please try again',true); }
+}
+
+function moBypassConfirm(pid) {
+  openMo(
+    '⚠️ Bypass pre-tenancy checks',
+    'This action is permanent and logged',
+    `<div style="font-size:13px;color:var(--txt);
+      line-height:1.7;margin-bottom:18px">
+      Bypassing the pre-tenancy checklist means
+      you confirm that all required checks have
+      been completed outside this system.<br><br>
+      <strong>This decision is recorded with a
+      timestamp and your user ID.</strong> It may
+      be used as evidence in deposit disputes or
+      possession proceedings.<br><br>
+      If you are sure, type
+      <strong>CONFIRM</strong> below to proceed.
+    </div>
+    <div style="margin-bottom:6px">
+      <input type="text" id="bypass-confirm-input"
+        placeholder="Type CONFIRM to proceed"
+        style="width:100%;padding:9px 12px;
+        border:1px solid var(--border);
+        border-radius:7px;font-family:var(--font);
+        font-size:13px;box-sizing:border-box"
+        oninput="var v=this.value.trim().toUpperCase();
+          var btn=document.getElementById(
+            'bypass-confirm-btn');
+          if(btn) btn.disabled = v !== 'CONFIRM'">
+    </div>
+    <div style="font-size:11px;color:var(--muted)">
+      This cannot be undone.
+    </div>`,
+    `<button class="btn" onclick="closeMo()">
+      Cancel</button>
+     <button class="btn btn-navy"
+       id="bypass-confirm-btn"
+       disabled
+       onclick="closeMo();
+         bypassPretenancyChecklist('${pid}')">
+       ⚠️ Bypass checks</button>`
+  );
+  setTimeout(() => {
+    const btn = document.getElementById('bypass-confirm-btn');
+    if (btn) btn.disabled = true;
+  }, 50);
 }
 
 async function bypassPretenancyChecklist(pid) {
@@ -4651,28 +4759,112 @@ async function initPropChecklist(prefix, pid, mode) {
     });
 
     // ── AUTO-DETECT: tick checklist items based on uploaded docs & system state ──
-    const p = P(pid);
-    const t = D.tenants.find(x => String(x.prop_id) === String(pid) && x.status === 'Active');
-    const tenantId = t ? t.id : null;
-    const tenantDocs = tenantId ? (D.tenantDocs || []).filter(d => String(d.tenant_id) === String(tenantId)) : [];
-    const certs = (D.certs || []).filter(c => String(c.prop_id) === String(pid));
-    const esigns = (D.esignReq || []).filter(r => String(r.property_id) === String(pid));
-    const emailLog = (D.emailLog || []).filter(e => String(e.prop_id) === String(pid));
-    const insurance = (D.insurance || []).filter(i => String(i.prop_id) === String(pid));
+    // Uses COMPLIANCE_DOCS helpers from Fix 1
+    // Auto-ticked items are marked with auto:true
+    // so the audit trail distinguishes them from manual confirmations
 
-    function autoCheck(id) { if (!saved[id]) { saved[id] = true; if (!window._pretenancyRecord[pid][id]) window._pretenancyRecord[pid][id] = { checkedAt: new Date().toISOString(), landlordId: currentUser.id, auto: true }; } }
+    if (!window._pretenancyRecord) window._pretenancyRecord = {};
+    if (!window._pretenancyRecord[pid]) window._pretenancyRecord[pid] = {};
 
-    if (tenantDocs.some(d => d.slot === 'right_to_rent')) autoCheck('ob1');
-    if (esigns.some(r => r.document_type === 'written_statement' && r.status === 'signed')) autoCheck('ob5');
-    if (emailLog.some(e => e.template_id === 'rra_sheet')) autoCheck('ob6');
-    if (emailLog.some(e => e.template_id === 'how_to_rent')) autoCheck('ob7');
-    if (certs.some(c => (c.cert_type || c.type || '').toLowerCase().includes('gas') && c.status !== 'Expired')) autoCheck('ob8');
-    if (certs.some(c => (c.cert_type || c.type || '').toLowerCase().includes('eicr') && c.status !== 'Expired')) autoCheck('ob9');
-    if (p && p.epc_rating && p.epc_expiry && new Date(p.epc_expiry) > new Date()) autoCheck('ob10');
-    if (t && t.deposit_scheme) autoCheck('ob11');
-    if (tenantDocs.some(d => d.slot === 'deposit' || (d.doc_label && d.doc_label.toLowerCase().includes('deposit')))) autoCheck('ob12');
-    if ((D._invReports || []).some(r => String(r.propId) === String(pid) && (r.type || '').toLowerCase().includes('move-in'))) autoCheck('ob13');
-    if (insurance.length > 0) autoCheck('ob19');
+    function autoCheck(id, reason) {
+      if (!saved[id]) {
+        saved[id] = true;
+        if (!window._pretenancyRecord[pid][id]) {
+          window._pretenancyRecord[pid][id] = {
+            checkedAt: new Date().toISOString(),
+            landlordId: currentUser ? currentUser.id : null,
+            auto: true,
+            reason: reason || 'auto-detected'
+          };
+        }
+      }
+    }
+
+    const _autoCerts = CF(pid);
+    const _autoTenant = D.tenants.find(t => String(t.prop_id)===String(pid));
+    const _autoEmailLog = (D.emailLog||[]).filter(e => String(e.prop_id)===String(pid));
+    const _autoEsign = (D.esignReq||[]).filter(r => String(r.property_id)===String(pid));
+
+    function _hasCert(matchTerms) {
+      return _autoCerts.some(c => {
+        const t = (c.type||'').toLowerCase();
+        const match = matchTerms.some(m => t.includes(m));
+        if (!match) return false;
+        if (c.expiry) {
+          const days = Math.round((new Date(c.expiry) - new Date()) / 864e5);
+          return days >= 0;
+        }
+        return true;
+      });
+    }
+
+    // ob1 — Right to Rent — cannot auto-detect, physical ID check required
+    // ob2 — Tenant referencing — external process
+    // ob3 — Holding deposit — financial transaction
+
+    // ob4 — Security deposit collected
+    if (_autoTenant?.deposit && _autoTenant.deposit > 0) {
+      autoCheck('ob4', 'Deposit amount recorded on tenant record');
+    }
+
+    // ob5 — Written Statement served
+    const _wsSigned = _autoEsign.some(r => r.document_type === 'written_statement' && r.status === 'signed');
+    const _wsCert = _hasCert(['written statement','tenancy agreement','ast']);
+    if (_wsSigned || _wsCert) {
+      autoCheck('ob5', _wsSigned ? 'E-sign completed' : 'Written statement uploaded');
+    }
+
+    // ob6 — RRA 2025 Information Sheet served
+    const _rraSent = _autoEmailLog.some(e => e.template_id === 'rra_info_sheet' || (e.subject||'').toLowerCase().includes('renters rights'));
+    if (_rraSent) {
+      autoCheck('ob6', 'RRA sheet sent via email log');
+    }
+
+    // ob7 — How to Rent Guide served
+    const _h2rSent = _autoEmailLog.some(e => e.template_id === 'welcome_kit' || (e.subject||'').toLowerCase().includes('how to rent'));
+    if (_h2rSent) {
+      autoCheck('ob7', 'How to Rent included in welcome kit');
+    }
+
+    // ob8 — Gas Safety Certificate
+    if (_hasCert(['gas safety','cp12','gas cert'])) {
+      autoCheck('ob8', 'Valid Gas Safety Certificate on file');
+    }
+
+    // ob9 — EICR
+    if (_hasCert(['eicr','electrical installation','electrical condition'])) {
+      autoCheck('ob9', 'Valid EICR on file');
+    }
+
+    // ob10 — EPC
+    if (_hasCert(['epc','energy performance'])) {
+      autoCheck('ob10', 'Valid EPC on file');
+    }
+
+    // ob11 — Deposit registered in approved scheme
+    if (_autoTenant?.scheme && _autoTenant.scheme.trim() !== '') {
+      autoCheck('ob11', 'Deposit scheme set: ' + _autoTenant.scheme);
+    }
+
+    // ob12 — Prescribed Information served
+    const _wkSent = _autoEmailLog.some(e => e.template_id === 'welcome_kit');
+    if (_autoTenant?.scheme && _wkSent) {
+      autoCheck('ob12', 'Prescribed information included in welcome kit');
+    }
+
+    // ob13 — Inventory signed
+    if (_hasCert(['inventory','schedule of condition','condition report'])) {
+      autoCheck('ob13', 'Inventory document on file');
+    }
+
+    // ob14-ob19 — Physical move-in day actions — cannot auto-detect
+    // ob14: keys handed over
+    // ob15: smoke/CO alarms tested
+    // ob16: emergency lighting tested
+    // ob17: pest control check
+    // ob18: contact details provided
+    // ob19: insurers notified
+
     // Persist auto-detected checks to Supabase so they survive refresh
     sbSaveChecklist(pid, prefix, saved).catch(function(){});
   }

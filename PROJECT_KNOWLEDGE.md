@@ -29,6 +29,7 @@
 12. [Code Standards & Maintainability](#12-code-standards--maintainability)
 13. [Feature Change Log](#13-feature-change-log)
 14. [Stripe Integration Guide](#14-stripe-integration-guide)
+15. [COMPLIANCE_DOCS Reference](#15-compliance_docs-reference)
 
 ---
 
@@ -650,6 +651,7 @@ Session 8 introduced a 3-checkbox pre-generation consent gate for 4 legal docume
 | 47 | AI scan skips fields without warning — missing data silently dropped | AI / UX | **FIXED Session 18** — missing-field detection + amber warning banner in scan results |
 | 48 | No-expiry docs (RTR, S48, How to Rent, etc.) show as "EXPIRED" | Compliance | **FIXED Session 18** — show "✓ SERVED / ⚠ NOT SERVED" via `NO_EXPIRY` constant in `buildCertStatusGrid` |
 | 49 | HMO-only certs (Fire Extinguisher, Emergency Lighting) shown for non-HMO properties | Compliance | **FIXED Session 18** — `HMO_ONLY` constant hides them when property is not HMO |
+| 50 | Compliance document lists defined in 4+ separate places with different contents (`_GD`/`_GN`/`_GS`, `_pgGD`/`_pgGN`/`_pgGS`, `CERT_TYPES`, `moWelcomeKit.docs[]`) — causing inconsistencies between compliance tab, pgCompliance page, and welcome kit | Compliance | **FIXED 18 May 2026** — single `COMPLIANCE_DOCS` master definition used by all three; `_GD`/`_GN`/`_GS` and `_pgGD`/`_pgGN`/`_pgGS` arrays removed
 
 ---
 
@@ -1649,6 +1651,72 @@ When **touching any of these files for a new feature or bug fix**, follow this p
   - Insurers notified → insurance policy exists
 - Auto-detected checks persist to Supabase via `sbSaveChecklist`
 
+### Fixes 1–5 — 18 May 2026 — Compliance Document Unification & Welcome Kit Rewrite
+
+**Date:** 18 May 2026  
+**Scope:** `landlord.html` only — 5 targeted edits to unify compliance document definitions and align the welcome kit with the compliance engine.
+
+#### Fix 1 — Master COMPLIANCE_DOCS Definition (`landlord.html:~653`)
+- **Inserted `COMPLIANCE_DOCS`** constant immediately after `// ── DATA STORE ──` comment, before `const D = {`
+- Defines 6 groups: `safety`, `licensing`, `tenancy`, `movein`, `insurance`, `recommended`
+- Each doc spec includes: `id`, `label`, `frequency`, `note`, `mandatory`, `no_expiry`, `hmo_only`, `match[]`, plus group-specific fields (`insurance_type`, `ref_group`/`ref_id`, `recommended`)
+- **Inserted 3 helper functions:**
+  - `getDocsForProperty(pid)` — filters docs by property type (hides HMO-only docs for standard properties)
+  - `findCertForDoc(doc, certList)` — matches a doc definition to an existing cert record via the `match` array
+  - `getDocStatus(doc, certList, insuranceList)` — returns `{ lbl, bg, col, bdr, days, overdue, action? }` for each doc, handling: expiry-based certs, no-expiry docs (SERVED/NOT SERVED), insurance group (pulls from insurance data), recommended docs (amber-only), and missing mandatory docs
+
+#### Fix 2 — Property Detail Compliance Tab Rewrite (`landlord.html:~4933`)
+- **Replaced** the old compliance tab in `pdTabContent` which used inline `_cgGetSt`/`_cgGroup` helpers with hardcoded label matching
+- **New structure:** RAG score bar → 5 groups (safety, licensing, tenancy, movein, insurance) → Recommended (collapsed) → Inspections (unchanged)
+- Each group uses `renderCompGroup()` which calls `getDocStatus()` via `COMPLIANCE_DOCS`
+- Licensing group (`hmo_section`) hidden for standard properties — only renders when `propDocs.licensing.docs.length` is truthy
+- Groups with overdue items auto-expand; clean groups collapsed by default
+- Doc rows show note text, days left/overdue, `+ Upload` button on missing mandatory items, `Manage →` on insurance items
+- Removed: `_cgGetSt`, `_cgGroup`, `_GD`, `_GN`, `_GS` arrays; `_cgToday`
+
+#### Fix 3 — pgCompliance() Full Rewrite (`landlord.html:~5428`)
+- **Replaced** the entire `pgCompliance()` function
+- **Portfolio health score** now calculated from mandatory doc slots across all properties via `COMPLIANCE_DOCS` — not raw cert count
+- **Stat cards** count expired/urgent/missing/compliant across mandatory groups 1–4 (safety, licensing, tenancy, movein)
+- **Action list** shows all overdue mandatory items across all properties with flat sorting by urgency; each row shows doc label, note, property address, group pill, and "View →" button linking to property detail compliance tab
+- **Filter chips** work for 'expired', 'critical' (urgent + expiring soon), 'missing' (MISSING/NOT UPLOADED/NOT SERVED), 'all'
+- **Full audit view:** Per-property mini gauge cards with score, overdue count; clicking opens per-property drill-down showing all 5 groups
+- **Property drill-down:** Each group collapsible with `✓ All good` / `N action` badge; safety group shows `+ Add cert` button
+- Removed: `_pgGD`, `_pgGN`, `_pgGS` arrays; `_pgGetSt`, `_pgGroup` helpers; `filterCompliance()` onclick handlers (replaced with inline `window._compFilter` + `nav('compliance')`)
+
+#### Fix 4 — moWelcomeKit() Rewrite (`landlord.html:~3469`)
+- **Replaced** hardcoded 9-item `docs[]` array with document list built from `COMPLIANCE_DOCS.tenancy` + `COMPLIANCE_DOCS.movein` via `getDocsForProperty(pid)`
+- Documents merge tenancy docs first, then move-in docs, deduplicated by `id`
+- Each doc enriched with `getDocStatus()` + welcome-kit-specific status notes (for gas/eicr/epc cert availability, deposit scheme, written statement e-sign)
+- **Mandatory pill:** Only appears when doc `hasIssue` — NOT on every row. Green `✓ Ready` when doc is valid, red `⚠ Action needed` only on genuine problems
+- **Group pills:** "Tenancy doc" / "Move-in doc" labels for landlord orientation
+- Optional docs retain Include checkbox; mandatory docs show ✅/⚠️ icon
+- **moWelcomeKit no longer references its own document list** — same documents as compliance tab Move-In Pack + Tenancy Documents groups
+- `sendWelcomeKit` function NOT modified
+
+#### Fix 5 — Pre-Tenancy Checklist Enhancements (`landlord.html:~4423–~4769`)
+
+**PART A — Extended Auto-Detection:**
+- `autoCheck()` now takes a `reason` parameter — auto-ticked items record the detection reason in `_pretenancyRecord`
+- New `_hasCert(matchTerms)` helper checks cert expiry before auto-ticking
+- Extended auto-detection coverage: ob4 (deposit amount), ob5 (e-sign or cert), ob6 (RRA email), ob7 (welcome kit), ob8 (valid GSC), ob9 (valid EICR), ob10 (valid EPC), ob11 (scheme set), ob12 (scheme + welcome kit sent), ob13 (inventory cert)
+- ob14–ob19 remain manual (physical move-in actions cannot be auto-detected)
+
+**PART B — Auto-Detect Summary Banner:**
+- Blue info banner at top of `renderPropChecklist` (onboard mode only) showing "N item(s) auto-verified from your records" + remaining manual items count
+- Checklist item rows show `✦ Auto-verified` blue pill on auto-ticked items
+
+**PART C — Hardened Bypass Link:**
+- Skip link replaced with "Bypass checks →" button calling `moBypassConfirm(pid)`
+- `moBypassConfirm()` opens confirmation modal requiring user to type `CONFIRM` before proceeding
+- Original `bypassPretenancyChecklist(pid)` function NOT modified
+
+#### Impact Summary
+- **Before:** 4+ separate compliance document lists (`_GD`/`_GN`/`_GS`, `_pgGD`/`_pgGN`/`_pgGS`, `CERT_TYPES`, `moWelcomeKit.docs[]`) with inconsistent contents
+- **After:** Single `COMPLIANCE_DOCS` master definition used by `pdTabContent` compliance tab, `pgCompliance()` page, and `moWelcomeKit()` welcome kit
+- `buildCertStatusGrid()` retained as standalone definition (not called from rewritten functions)
+- All new code uses `getDocsForProperty` → `getDocStatus` pattern with group-aware filtering (HMO/standard, no-expiry, insurance-linked)
+
 ---
 
 ## 14. Stripe Integration Guide
@@ -1761,3 +1829,88 @@ When ready to accept real payments:
 4. Replace all Supabase secrets with the live values
 5. Register a new webhook endpoint in Live mode (same URL)
 6. No code changes needed — the same edge functions work for both modes
+
+---
+
+## 15. COMPLIANCE_DOCS Reference
+
+> **Location:** `landlord.html:~653` — inserted after `// ── DATA STORE ──` comment  
+> **Purpose:** Single master definition of all compliance document types used by `pdTabContent` compliance tab, `pgCompliance()` page, and `moWelcomeKit()` welcome kit.
+
+### Structure
+
+`COMPLIANCE_DOCS` is a const object with 6 group keys:
+
+| Group Key | Label | Icon | Notes |
+|---|---|---|---|
+| `safety` | Safety Certificates | 🛡 | Mandatory legal obligations (6 docs) |
+| `licensing` | Licensing & Property Type | 📋 | HMO-section — hidden for standard properties (6 docs) |
+| `tenancy` | Tenancy Documents | 📄 | Served/not-served status, not expiry (7 docs) |
+| `movein` | Move-In Pack | 📦 | Cross-references Group 1 certs for service confirmation (6 docs) |
+| `insurance` | Insurance | 🔒 | Pulls from Insurance module data (3 docs) |
+| `recommended` | Recommended | 💡 | Best practice, amber-only, no red badges (4 docs) |
+
+### Per-Doc Fields
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | Unique identifier (e.g. `'gas'`, `'rra_sheet'`) |
+| `label` | string | Display label (e.g. `'Gas Safety Certificate (CP12)'`) |
+| `frequency` | string | Renewal/recheck frequency |
+| `note` | string | Legal requirement explanation text |
+| `mandatory` | boolean | `true` = legal obligation |
+| `no_expiry` | boolean | `true` = tracked by served/not-served, not expiry date |
+| `hmo_only` | boolean | `true` = hidden for standard properties by `getDocsForProperty()` |
+| `match` | string[] | Keywords for `findCertForDoc()` to match against cert records |
+| `recommended` | boolean | (optional) Best practice but not law |
+| `insurance_type` | string | (insurance group only) Insurance policy type name |
+| `ref_group` / `ref_id` | string | (movein group only) Cross-reference to parent group/doc |
+| `conditional` | boolean | (optional) May not apply to all properties |
+
+### Helper Functions
+
+**`getDocsForProperty(pid)`** — Returns a filtered copy of `COMPLIANCE_DOCS`:
+- Checks if property is HMO via `p.type === 'HMO'` or `licence_type` contains "hmo"/"mandatory"
+- Hides `hmo_only: true` docs for standard properties
+- Returns all 6 group keys with filtered doc arrays
+
+**`findCertForDoc(doc, certList)`** — Matches a doc definition to a cert record:
+- Iterates `doc.match[]` keywords against `certList[].type` (lowercased)
+- Returns the first matching cert or `undefined`
+
+**`getDocStatus(doc, certList, insuranceList)`** — Returns `{ lbl, bg, col, bdr, days, overdue, action? }`:
+- **Insurance group:** Searches `insuranceList` for matching `insurance_type`; returns EXPIRED/URGENT/EXPIRING SOON/VALID/NOT ADDED; sets `action: 'insurance'`
+- **No-expiry docs:** Returns SERVED/NOT SERVED (green/amber) or NOT UPLOADED (grey)
+- **Recommended docs:** Returns NOT ON FILE (amber, not red) when missing
+- **Expiry-based certs:** Returns EXPIRED/URGENT/EXPIRING SOON/VALID/MISSING
+- `overdue: true` when item needs action (mandatory and expired/missing/not-served)
+
+### Usage Pattern
+
+```javascript
+const propDocs = getDocsForProperty(pid);
+const certList = CF(pid);
+const insList = D.insurance.filter(i => String(i.prop_id) === String(pid));
+
+// Get status for a single doc type
+const st = getDocStatus(propDocs.safety.docs[0], certList, insList);
+// st = { lbl: 'VALID', bg: 'var(--green-bg)', col: '#00A87A', ... }
+
+// Iterate all mandatory groups
+['safety','licensing','tenancy','movein'].forEach(gk => {
+  propDocs[gk].docs.forEach(doc => {
+    if (!doc.mandatory) return;
+    const st = getDocStatus(doc, certList, insList);
+    // Use st.lbl, st.overdue, st.days, etc.
+  });
+});
+```
+
+### Consumers
+
+| Consumer | What it uses | Location |
+|---|---|---|
+| `pdTabContent` compliance tab | `getDocsForProperty` → all 5 groups + recommended + inspections | `landlord.html:~4933` |
+| `pgCompliance()` page | `getDocsForProperty` → mandatory groups 1–4 for scoring + action list + full audit | `landlord.html:~5428` |
+| `moWelcomeKit()` | `getDocsForProperty` → tenancy + movein merged | `landlord.html:~3469` |
+| `initPropChecklist` auto-detection | `_hasCert()` helper using `CF(pid)` — indirect via `getDocStatus` pattern | `landlord.html:~4769` |
