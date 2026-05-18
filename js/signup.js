@@ -1,331 +1,213 @@
 /**
  * js/signup.js
- * ─────────────────────────────────────────────────────────────────────────────
  * Sign-up page logic for signup.html.
- *
- * Depends on (must load before this file):
- *   - Supabase CDN             → window.supabase
- *   - js/lib/supabase-client.js → window.RSA.sb
- *   - js/lib/ui.js              → window.RSA.UI
- *   - js/lib/validation.js      → window.RSA.Validation
- *   - js/lib/auth.js            → window.RSA.Auth
- *   - js/lib/cookies.js         → window.RSA.Cookies
- *
- * Responsibilities:
- *   - Redirect already-logged-in users to landlord.html
- *   - Real-time password strength meter (4-bar, 5-rule checklist)
- *   - Real-time confirm-password match indicator
- *   - Form submission: validate → check duplicate → signUp → redirect
- * ─────────────────────────────────────────────────────────────────────────────
+ * Dependencies: Supabase CDN, js/lib/supabase-client.js (window.sb)
  */
-
 (function () {
   'use strict';
 
-  // ── CONSTANTS ─────────────────────────────────────────────────────────────────
-
-  /** Minimum password strength score (out of 5 rules) required to submit. */
-  var MIN_STRENGTH = 4;
-
-  /** Milliseconds to wait after successful sign-up before redirecting to login. */
-  var REDIRECT_DELAY_MS = 3500;
-
-  // ── DOM REFERENCES (resolved after DOMContentLoaded) ─────────────────────────
+  // ── DOM REFS ──
+  function _q(id) { return document.getElementById(id); }
 
   var _els = {};
-
-  /** Resolves and caches all required DOM elements. Returns false if any are missing. */
-  function _resolveElements() {
-    var ids = [
-      'email', 'password', 'confirm-password',
-      'signup-btn', 'error-msg', 'success-msg',
-      'pw-strength', 'pw-label',
-      'bar1', 'bar2', 'bar3', 'bar4',
-      'match-hint',
-    ];
-
+  function _resolveEls() {
+    var ids = ['email','password','confirm-password','signup-newsletter',
+               'signup-btn','error-msg','success-msg','pw-strength',
+               'bar1','bar2','bar3','bar4','pw-label',
+               'rule-len','rule-upper','rule-lower','rule-num','rule-sym',
+               'match-hint'];
     var ok = true;
-    ids.forEach(function (id) {
-      var el = document.getElementById(id);
-      if (!el) {
-        console.error('[signup:_resolveElements] Missing DOM element: #' + id);
-        ok = false;
-      }
-      _els[id] = el;
+    ids.forEach(function(id) {
+      _els[id] = _q(id);
+      if (!_els[id]) { console.error('[signup] missing element:', id); ok = false; }
     });
-
-    // Rule indicator elements (one per password rule)
-    RSA.Validation.PASSWORD_RULES.forEach(function (rule) {
-      var el = document.getElementById(rule.id);
-      if (!el) {
-        console.error('[signup:_resolveElements] Missing rule element: #' + rule.id);
-        ok = false;
-      }
-      _els[rule.id] = el;
-    });
-
     return ok;
   }
 
-  // ── PASSWORD STRENGTH METER ───────────────────────────────────────────────────
+  // ── PASSWORD CHECK ──
+  var RULES = [
+    { id:'rule-len',  fn:function(pw){ return pw.length >= 8; }},
+    { id:'rule-upper',fn:function(pw){ return /[A-Z]/.test(pw); }},
+    { id:'rule-lower',fn:function(pw){ return /[a-z]/.test(pw); }},
+    { id:'rule-num',  fn:function(pw){ return /[0-9]/.test(pw); }},
+    { id:'rule-sym',  fn:function(pw){ return /[!@#$%^&*_\\.-]/.test(pw); }}
+  ];
 
-  /**
-   * Maps a strength score (0–5) to a display tier.
-   * Returns { bars: number, cls: string, label: string }
-   */
-  function _strengthTier(score) {
-    if (score <= 1) return { bars: 1, cls: 'weak',   label: 'Weak'   };
-    if (score <= 2) return { bars: 2, cls: 'weak',   label: 'Weak'   };
-    if (score <= 3) return { bars: 3, cls: 'fair',   label: 'Fair'   };
-    return           { bars: 4, cls: 'strong', label: 'Strong' };
-  }
-
-  /** Updates the 4-segment strength bar and label based on the current password value. */
-  function _renderStrengthMeter(pw) {
-    var score = RSA.Validation.getPasswordStrength(pw);
-    var tier  = _strengthTier(score);
-    var bars  = [_els['bar1'], _els['bar2'], _els['bar3'], _els['bar4']];
-
-    // Colour the bars
-    bars.forEach(function (bar, i) {
-      bar.className = 'pw-bar';
-      if (i < tier.bars) bar.classList.add(tier.cls);
+  function _updateStrength(pw) {
+    var el = _els['pw-strength'];
+    if (el) el.style.display = 'block';
+    var met = 0;
+    RULES.forEach(function(r) {
+      var ok = r.fn(pw);
+      var row = _els[r.id];
+      if (row) { row.classList.toggle('met', ok); }
+      if (ok) met++;
     });
-
-    // Update label
-    _els['pw-label'].className   = 'pw-label ' + tier.cls;
-    _els['pw-label'].textContent = tier.label;
-
-    // Update individual rule indicators
-    RSA.Validation.PASSWORD_RULES.forEach(function (rule) {
-      var ruleEl = _els[rule.id];
-      if (ruleEl) ruleEl.classList.toggle('met', rule.test(pw));
+    var bars = [_els.bar1, _els.bar2, _els.bar3, _els.bar4];
+    bars.forEach(function(b) {
+      if (!b) return;
+      b.className = '';
     });
-  }
-
-  /** Handles input on the password field — shows/updates the strength meter. */
-  function _onPasswordInput() {
-    var pw = _els['password'].value;
-
-    if (!pw) {
-      _els['pw-strength'].style.display = 'none';
-      return;
-    }
-
-    _els['pw-strength'].style.display = 'block';
-    _renderStrengthMeter(pw);
-
-    // Re-check confirm match if already typed
-    if (_els['confirm-password'].value) {
-      _onConfirmInput();
-    }
-  }
-
-  // ── CONFIRM PASSWORD MATCH ────────────────────────────────────────────────────
-
-  /** Handles input on the confirm-password field — shows a live match hint. */
-  function _onConfirmInput() {
-    var pw   = _els['password'].value;
-    var cpw  = _els['confirm-password'].value;
-    var hint = _els['match-hint'];
-
-    if (!cpw) {
-      hint.style.display = 'none';
-      RSA.UI.clearFieldError(_els['confirm-password']);
-      return;
-    }
-
-    hint.style.display = 'block';
-
-    if (pw === cpw) {
-      hint.textContent = 'Passwords match';
-      hint.className   = 'match-hint ok';
-      RSA.UI.markFieldSuccess(_els['confirm-password']);
+    var label = _els['pw-label'];
+    if (met <= 1) {
+      bars.forEach(function(b) { if (b) b.className = 'weak'; });
+      if (label) { label.textContent = 'Too weak'; label.style.color = 'var(--red)'; }
+    } else if (met <= 3) {
+      bars[0] && (bars[0].className = 'fair');
+      bars[1] && (bars[1].className = 'fair');
+      if (label) { label.textContent = 'Fair'; label.style.color = 'var(--amber)'; }
+    } else if (met === 4) {
+      bars.forEach(function(b, i) { if (b && i < 3) b.className = 'strong'; });
+      if (label) { label.textContent = 'Good'; label.style.color = 'var(--green)'; }
     } else {
-      hint.textContent = 'Passwords do not match';
-      hint.className   = 'match-hint fail';
-      RSA.UI.markFieldError(_els['confirm-password']);
+      bars.forEach(function(b) { if (b) b.className = 'strong'; });
+      if (label) { label.textContent = 'Strong'; label.style.color = 'var(--green)'; }
+    }
+    return met;
+  }
+
+  // ── CONFIRM PASSWORD ──
+  function _updateMatch() {
+    var pw = (_els.password && _els.password.value) || '';
+    var cp = (_els['confirm-password'] && _els['confirm-password'].value) || '';
+    var hint = _els['match-hint'];
+    if (!hint) return;
+    if (!cp) { hint.style.display = 'none'; return; }
+    hint.style.display = 'block';
+    if (pw === cp) {
+      hint.className = 'ok';
+      hint.textContent = '\u2713 Passwords match';
+    } else {
+      hint.className = 'fail';
+      hint.textContent = '\u2717 Passwords do not match';
     }
   }
 
-  // ── FORM VALIDATION ───────────────────────────────────────────────────────────
-
-  /**
-   * Validates all form fields before submission.
-   * Returns true if valid; shows an error and returns false otherwise.
-   */
-  function _validateForm() {
-    var email    = _els['email'].value.trim();
-    var pw       = _els['password'].value;
-    var cpw      = _els['confirm-password'].value;
-    var errEl    = _els['error-msg'];
-
-    // Email presence
-    if (!email) {
-      RSA.UI.showError(errEl, 'Please enter your email address.');
-      RSA.UI.markFieldError(_els['email']);
-      return false;
-    }
-
-    // Email format
-    if (!RSA.Validation.isValidEmail(email)) {
-      RSA.UI.showError(errEl, 'Please enter a valid email address.');
-      RSA.UI.markFieldError(_els['email']);
-      return false;
-    }
-
-    // Password presence
-    if (!pw) {
-      RSA.UI.showError(errEl, 'Please enter a password.');
-      RSA.UI.markFieldError(_els['password']);
-      return false;
-    }
-
-    // Password strength
-    if (RSA.Validation.getPasswordStrength(pw) < MIN_STRENGTH) {
-      RSA.UI.showError(errEl, 'Your password is too weak. Please meet all the requirements shown.');
-      RSA.UI.markFieldError(_els['password']);
-      return false;
-    }
-
-    // Confirm password match
-    if (pw !== cpw) {
-      RSA.UI.showError(errEl, 'Passwords do not match. Please re-enter your confirm password.');
-      RSA.UI.markFieldError(_els['confirm-password']);
-      return false;
-    }
-
-    return true;
+  // ── ERROR / SUCCESS ──
+  var _errTimer = null;
+  function _showError(msg) {
+    var el = _els['error-msg'];
+    if (!el) return;
+    el.textContent = msg;
+    el.style.display = 'block';
+    clearTimeout(_errTimer);
+    _errTimer = setTimeout(function() { el.style.display = 'none'; }, 4000);
   }
 
-  // ── SIGN UP ───────────────────────────────────────────────────────────────────
-
-  /** Clears the form fields and resets all UI state after a successful sign-up. */
-  function _resetForm() {
-    _els['email'].value            = '';
-    _els['password'].value         = '';
-    _els['confirm-password'].value = '';
-    _els['pw-strength'].style.display = 'none';
-    _els['match-hint'].style.display  = 'none';
-    RSA.UI.clearFieldError(_els['email']);
-    RSA.UI.clearFieldError(_els['password']);
-    RSA.UI.clearFieldError(_els['confirm-password']);
+  function _showSuccess(msg) {
+    var el = _els['success-msg'];
+    if (!el) return;
+    el.textContent = msg;
+    el.style.display = 'block';
   }
 
-  /**
-   * Main sign-up handler.
-   * 1. Validates form fields.
-   * 2. Calls Supabase signUp().
-   * 3. Guards against the silent-duplicate edge case (empty identities[]).
-   * 4. On success: shows confirmation and redirects to login.html.
-   */
-  async function signup() {
-    var btn    = _els['signup-btn'];
-    var errEl  = _els['error-msg'];
-    var okEl   = _els['success-msg'];
+  // ── FORM SUBMISSION ──
+  async function _submit() {
+    var btn = _els['signup-btn'];
+    var errEl = _els['error-msg'];
+    if (errEl) errEl.style.display = 'none';
+    var okEl = _els['success-msg'];
+    if (okEl) okEl.style.display = 'none';
 
-    // Hide any previous messages
-    RSA.UI.hideMessage(errEl);
-    RSA.UI.hideMessage(okEl);
+    var email = ((_els.email && _els.email.value) || '').trim();
+    var pw = (_els.password && _els.password.value) || '';
+    var cp = (_els['confirm-password'] && _els['confirm-password'].value) || '';
+    var newsletter = _els['signup-newsletter'] ? _els['signup-newsletter'].checked : true;
 
-    // Client-side validation
-    if (!_validateForm()) return;
+    if (!email) { _showError('Please enter your email address.'); return; }
+    if (!pw) { _showError('Please enter a password.'); return; }
 
-    var email = _els['email'].value.trim();
-    var pw    = _els['password'].value;
+    var score = _updateStrength(pw);
+    if (score < 2) { _showError('Password is too weak. Please choose a stronger password.'); return; }
+    if (pw !== cp) { _showError('Passwords do not match.'); return; }
 
-    // Loading state
-    RSA.UI.setLoading(btn, true, 'Creating account…');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Creating account...';
+    }
 
     try {
-      var newsletterOptedIn = !!(document.getElementById('signup-newsletter')?.checked);
-      var result = await RSA.sb.auth.signUp({ email: email, password: pw, options: { data: { newsletter_opted_in: newsletterOptedIn } } });
-      var data   = result.data;
-      var error  = result.error;
+      var result = await window.sb.auth.signUp({
+        email: email,
+        password: pw,
+        options: { data: { newsletter_opted_in: newsletter } }
+      });
 
-      if (error) {
-        // Supabase returns "User already registered" for duplicate emails
-        var msg = (error.message && error.message.toLowerCase().includes('already registered'))
-          ? 'An account with this email already exists. Please log in instead.'
-          : (error.message || 'Sign up failed. Please try again.');
-        RSA.UI.showError(errEl, msg);
+      if (result.error) {
+        var msg = result.error.message;
+        if (msg && msg.toLowerCase().indexOf('already registered') !== -1) {
+          msg = 'An account with this email already exists. Please log in instead.';
+        }
+        _showError(msg || 'Sign up failed. Please try again.');
+        if (btn) { btn.disabled = false; btn.textContent = 'Create account'; }
         return;
       }
 
-      // Silent duplicate: Supabase returns a user but with no identities
-      if (data.user && data.user.identities && data.user.identities.length === 0) {
-        RSA.UI.showError(errEl, 'An account with this email already exists. Please log in instead.');
-        return;
-      }
+      if (result.data && result.data.user) {
+        _showSuccess('\u2713 Account created! Check your email to confirm, then log in.');
+        // Upsert newsletter preference — fire and forget
+        var uid = result.data.user.id;
+        var now = new Date().toISOString();
+        window.sb.from('user_profiles').upsert({
+          id: uid,
+          newsletter_opted_in: newsletter,
+          newsletter_opted_at: newsletter ? now : null
+        }, { onConflict: 'id' }).then(function(){}, function(){});
 
-      // Success
-      _resetForm();
-      RSA.UI.showSuccess(okEl, 'Account created! Check your email to confirm your address, then log in.');
-      setTimeout(function () { window.location.href = 'login.html'; }, REDIRECT_DELAY_MS);
+        setTimeout(function() { window.location.href = 'login.html'; }, 2000);
+      } else {
+        _showError('Sign up failed. Please try again.');
+        if (btn) { btn.disabled = false; btn.textContent = 'Create account'; }
+      }
 
     } catch (err) {
-      console.error('[signup:signup]', err);
-      RSA.UI.showError(errEl, 'An unexpected error occurred. Please try again.');
-    } finally {
-      RSA.UI.setLoading(btn, false, 'Create account');
+      console.error('[signup]', err);
+      _showError('An unexpected error occurred. Please try again.');
+      if (btn) { btn.disabled = false; btn.textContent = 'Create account'; }
     }
   }
 
-  // ── FIELD ERROR CLEAR HANDLERS ────────────────────────────────────────────────
-
-  /** Clears the global error banner and field error state when the user edits a field. */
-  function _clearErrorOnInput(inputEl) {
-    inputEl.addEventListener('input', function () {
-      RSA.UI.hideMessage(_els['error-msg']);
-      RSA.UI.clearFieldError(inputEl);
-    });
-  }
-
-  // ── INIT ──────────────────────────────────────────────────────────────────────
-
-  /** Entry point — runs after the DOM is fully parsed. */
-  function _init() {
-    if (!_resolveElements()) {
-      console.error('[signup:_init] One or more DOM elements are missing — aborting init.');
+  // ── INIT ──
+  async function _init() {
+    // Wait for Supabase client
+    var tries = 0;
+    while (!window.sb && tries < 40) {
+      await new Promise(function(r) { setTimeout(r, 50); });
+      tries++;
+    }
+    if (!window.sb) {
+      console.error('[signup] Supabase client not loaded');
+      _showError('Service unavailable. Please refresh the page.');
       return;
     }
 
-    // Redirect already-logged-in users
-    RSA.Auth.redirectIfLoggedIn('landlord.html');
+    // Check if already logged in
+    try {
+      var session = await window.sb.auth.getSession();
+      if (session && session.data && session.data.session) {
+        window.location.href = 'landlord.html';
+        return;
+      }
+    } catch(e) {}
 
-    // Wire up form events
-    _els['password'].addEventListener('input', _onPasswordInput);
-    _els['confirm-password'].addEventListener('input', _onConfirmInput);
-    _els['signup-btn'].addEventListener('click', signup);
+    if (!_resolveEls()) return;
 
-    // Allow Enter key to submit from password fields
-    _els['password'].addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') signup();
-    });
-    _els['confirm-password'].addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') signup();
-    });
-    _els['email'].addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') signup();
-    });
+    var pw = _els.password;
+    var cp = _els['confirm-password'];
 
-    // Clear error state when user corrects a field
-    _clearErrorOnInput(_els['email']);
-    _clearErrorOnInput(_els['password']);
-    _clearErrorOnInput(_els['confirm-password']);
+    if (pw) {
+      pw.addEventListener('input', function() { _updateStrength(pw.value); });
+      pw.addEventListener('input', _updateMatch);
+    }
+    if (cp) {
+      cp.addEventListener('input', _updateMatch);
+    }
 
-    // Wire cookie banner buttons
-    var cookieAccept  = document.getElementById('cookie-accept');
-    var cookieDecline = document.getElementById('cookie-decline');
-    if (cookieAccept)  cookieAccept.addEventListener('click', RSA.Cookies.accept);
-    if (cookieDecline) cookieDecline.addEventListener('click', RSA.Cookies.decline);
-
-    // Initialise cookie banner (shows if consent not yet recorded)
-    RSA.Cookies.init();
-
-    console.debug('[signup:_init] Signup page initialised.');
+    var btn = _els['signup-btn'];
+    if (btn) {
+      btn.addEventListener('click', _submit);
+    }
   }
 
   document.addEventListener('DOMContentLoaded', _init);
-
 })();
