@@ -100,6 +100,7 @@ rentsafeai/
 ├── login.html                      Auth page (login / signup / password reset)
 ├── signup.html                     Sign-up page (Sprint 11)
 ├── profile.html                    Account & Billing page (Sprint 13)
+├── feedback.html                   Feedback & Suggestions page (Session 19)
 ├── landlord.html                   Main SPA app (~10,070 lines) — entire landlord dashboard
 ├── tenant.html                     Tenant portal (~1,200+ lines)
 ├── esign.html                       Standalone e-sign page — landlord signs first, tenant counter-signs
@@ -130,6 +131,7 @@ rentsafeai/
 ├── session11_landlord_sig.sql       SQL migration: Session 11 (landlord signature columns on esign_requests)
 ├── sprint11_feedback_table.sql      SQL migration: Sprint 11 (feedback table — alternate name)
 ├── sprint13_db.sql                  SQL migration: Sprint 13 (user_profiles, stripe_subscriptions)
+├── session18_feedback_v2.sql        SQL migration: Session 18 (urgency + files columns on feedback table)
 ├── SPRINT10_DEPLOY.md              Sprint 10 deployment guide
 ├── PROJECT_KNOWLEDGE.md            THIS FILE — agent initialization reference
 ├── fix.py                          Python patching script (landlord.html fixes)
@@ -149,6 +151,7 @@ rentsafeai/
 | `login.html` | Supabase email+password + Google OAuth + password reset | None | |
 | `signup.html` | Account creation with password strength meter | None | |
 | `profile.html` | Account details, personal info, Stripe subscription management | Yes | |
+| `feedback.html` | Bug reports & feature suggestions with file upload | Yes | Session 19 |
 | `landlord.html` | Full landlord SPA — all dashboard modules | Yes | ~11,200 lines |
 | `tenant.html` | Tenant portal — token-based, no Supabase auth needed | Token | |
 | `esign.html` | Standalone e-sign page | Token | |
@@ -686,6 +689,7 @@ Annual billing: 2 months free (pay 10 months, get 12)
 | `login.html` | `js/login.js` |
 | `signup.html` | `js/signup.js` |
 | `profile.html` | `js/profile.js` ✓ Exists |
+| `feedback.html` | `js/feedback.js` ✓ Exists |
 | `landlord.html` | `js/landlord.js` |
 | `tenant.html` | `js/tenant.js` |
 | `esign.html` | `js/esign-content.js` ✓ Exists |
@@ -1716,6 +1720,23 @@ When **touching any of these files for a new feature or bug fix**, follow this p
 - **After:** Single `COMPLIANCE_DOCS` master definition used by `pdTabContent` compliance tab, `pgCompliance()` page, and `moWelcomeKit()` welcome kit
 - `buildCertStatusGrid()` retained as standalone definition (not called from rewritten functions)
 - All new code uses `getDocsForProperty` → `getDocStatus` pattern with group-aware filtering (HMO/standard, no-expiry, insurance-linked)
+
+### Session 19 — 18 May 2026 — Feedback Page & Rebrand Fixes
+**Date:** 18 May 2026
+
+#### New Feature: Feedback Page
+- **Created `feedback.html`** — standalone page for bug reports and feature suggestions, matching `profile.html` styling
+- **Created `js/feedback.js`** — IIFE module with auth guard, file upload, and DB insert
+- **Created `session18_feedback_v2.sql`** — migration adding `urgency` (low/medium/high/critical) and `files` (TEXT[]) columns to the existing `feedback` table
+- **Type toggle:** Two card selector — Bug Report / Feature Suggestion
+- **Form fields:** Title (single line, 120 char max), Urgency dropdown, Description textarea (2000 char max)
+- **File upload:** Multi-file (max 5, 5 MB each, PNG/JPG/PDF), drag-and-drop, live thumbnail preview with ✕ remove, uploaded to `documents` bucket under `feedback/{userId}/`
+- **Submit flow:** Validates fields → uploads files → inserts row into `feedback` table → shows success state with "Back to Dashboard" button
+- **Sidebar:** Added "Feedback" sidebar item in `landlord.html` (between AI Assistant and footer) with chat-bubble SVG icon
+- **Database:** Depends on `feedback` table (created by `sprint11_feedback_table.sql`). Urgency and files columns are additive — existing rows fall back to `medium` / `{}`
+
+#### Rebrand Fix
+- **`profile.html:266`** — Logo corrected from `Rent SafeAI` to `NexLet` (was missed in Session 14 rebrand)
 
 ---
 
