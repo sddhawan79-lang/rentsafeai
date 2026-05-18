@@ -395,7 +395,7 @@ tr:hover td{background:rgba(246,248,251,.8)}
         <span id="nav-badge-compliance" class="sb-badge" style="display:none"></span>
       </button>
       <button class="sb-item" data-page="insurance">
-        <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5L2 4v4c0 3.5 2.5 6 6 7 3.5-1 6-3.5 6-7V4L8 1.5z"/><path d="M5.5 8l2 2 3-3"/></svg>
+        <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="1.5" width="10" height="13" rx="1.5"/><path d="M5 5.5h6M5 8h6M5 10.5h3"/><circle cx="12.5" cy="12.5" r="3" fill="var(--white)" stroke="currentColor"/><path d="M11.2 12.5l1 1 1.8-1.8"/></svg>
         <span class="sb-label">Insurance</span>
       </button>
       <button class="sb-item" data-page="inspections">
@@ -403,22 +403,26 @@ tr:hover td{background:rgba(246,248,251,.8)}
         <span class="sb-label">Inspections</span>
       </button>
       <button class="sb-item" data-page="inventory-reports">
-        <span style="font-size:18px;line-height:1">📋</span>
+        <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="2" width="10" height="12" rx="1.5"/><path d="M4.5 5.5h5M4.5 8h5M4.5 10.5h3"/><path d="M11.5 1v3M13 2.5h-3"/></svg>
         <span class="sb-label">Inventory Reports</span>
       </button>
     </div>
 
-    <!-- Maintenance standalone -->
-    <button class="sb-item" data-page="maintenance">
-      <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.5 2.5a3 3 0 00-4 4L2 11a1.5 1.5 0 002 2l4.5-4.5a3 3 0 004-4l-2 2-1.5-1.5 2-2z"/></svg>
-      <span class="sb-label">Maintenance</span>
-      <span id="nav-badge-maintenance" class="sb-badge" style="display:none"></span>
-    </button>
-
-    <button class="sb-item" data-page="calendar">
-      <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="3" width="13" height="10" rx="1.5"/><path d="M5 7h2M9 7h2M5 10h2M9 10h2"/><path d="M5 1.5v3M11 1.5v3"/></svg>
-      <span class="sb-label">Calendar</span>
-    </button>
+    <!-- Activity group -->
+    <div class="sb-group-hdr" onclick="toggleSbGroup('activity')">
+      <span>Activity</span><span class="sb-chev" id="sbchev-activity">▾</span>
+    </div>
+    <div class="sb-group-body" id="sbgb-activity">
+      <button class="sb-item" data-page="maintenance">
+        <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.5 2.5a3 3 0 00-4 4L2 11a1.5 1.5 0 002 2l4.5-4.5a3 3 0 004-4l-2 2-1.5-1.5 2-2z"/></svg>
+        <span class="sb-label">Maintenance</span>
+        <span id="nav-badge-maintenance" class="sb-badge" style="display:none"></span>
+      </button>
+      <button class="sb-item" data-page="calendar">
+        <svg class="sb-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="3" width="13" height="10" rx="1.5"/><path d="M5 7h2M9 7h2M5 10h2M9 10h2"/><path d="M5 1.5v3M11 1.5v3"/></svg>
+        <span class="sb-label">Calendar</span>
+      </button>
+    </div>
 
     <!-- Finance & Tax group -->
     <div class="sb-group-hdr" onclick="toggleSbGroup('finance')">
@@ -5496,6 +5500,13 @@ function pdTabContent(pid, tab) {
 
         // Action button per row
         let rowAction = '';
+
+        // View button — only if cert has a URL
+        const _certRec = findCertForDoc(doc, certList);
+        const _certUrl = _certRec ? (_certRec.url || _certRec.file_url || _certRec.document_url || null) : null;
+
+        const _viewBtn = _certUrl ? `<button onclick="dvoOpen('${_certUrl}','${doc.label.replace(/'/g,"\\'")}','${p ? p.address : ''}')" style="font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid var(--border);background:var(--white);color:var(--navy);cursor:pointer;font-family:var(--font);white-space:nowrap;font-weight:600">👁 View</button>` : '';
+
         if (st.action === 'insurance') {
           rowAction = `<button onclick="nav('insurance')"
             style="font-size:10px;padding:3px 8px;
@@ -5504,13 +5515,16 @@ function pdTabContent(pid, tab) {
             cursor:pointer;font-family:var(--font);
             white-space:nowrap">Manage →</button>`;
         } else if (st.overdue) {
-          rowAction = `<button onclick="moCert('${pid}')"
+          rowAction = `${_viewBtn}
+            <button onclick="moCert('${pid}')"
             style="font-size:10px;padding:3px 8px;
             border-radius:5px;border:1px solid var(--red);
             background:rgba(229,62,62,0.07);color:var(--red);
             cursor:pointer;font-family:var(--font);
             white-space:nowrap;font-weight:600">
             + Upload</button>`;
+        } else {
+          rowAction = _viewBtn;
         }
 
         return `
@@ -6433,23 +6447,18 @@ function pgCompliance(){
                   <span style="font-size:10px;
                     font-weight:700;color:${st.col};
                     white-space:nowrap">${st.lbl}</span>
-                  ${st.action==='insurance'
-                    ? `<button onclick="nav('insurance')"
-                        style="font-size:10px;padding:3px 8px;
-                        border-radius:5px;border:1px solid
-                        var(--border);background:var(--white);
-                        color:var(--muted);cursor:pointer;
-                        font-family:var(--font)">
-                        Manage →</button>`
-                    : st.overdue
-                    ? `<button onclick="moCert('${selPid}')"
-                        style="font-size:10px;padding:3px 8px;
-                        border-radius:5px;border:1px solid
-                        var(--red);background:rgba(229,62,62,
-                        0.07);color:var(--red);cursor:pointer;
-                        font-family:var(--font);font-weight:600">
-                        + Upload</button>`
-                    : ''}
+                  ${(() => {
+                    const _cr = findCertForDoc(doc, certList);
+                    const _cu = _cr ? (_cr.url || _cr.file_url || _cr.document_url || null) : null;
+                    const _vb = _cu ? `<button onclick="dvoOpen('${_cu}','${doc.label.replace(/'/g,"\\'")}','${selProp.address}')" style="font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid var(--border);background:var(--white);color:var(--navy);cursor:pointer;font-family:var(--font);white-space:nowrap;font-weight:600">👁 View</button>` : '';
+                    if (st.action==='insurance') {
+                      return `<button onclick="nav('insurance')" style="font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid var(--border);background:var(--white);color:var(--muted);cursor:pointer;font-family:var(--font)">Manage →</button>`;
+                    }
+                    if (st.overdue) {
+                      return _vb + `<button onclick="moCert('${selPid}')" style="font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid var(--red);background:rgba(229,62,62,0.07);color:var(--red);cursor:pointer;font-family:var(--font);font-weight:600">+ Upload</button>`;
+                    }
+                    return _vb;
+                  })()}
                 </div>
               </div>`;
           }).join('');
@@ -9814,8 +9823,8 @@ function pgDocLibrary(){
               <div style="font-size:11px;color:var(--muted)">${prop?prop.address:'All properties'} · Uploaded ${date}</div>
             </div>
             ${d.engineer ? `
-              <button class="btn btn-sm" onclick="viewDocInline('${d.engineer}','${name.replace(/'/g,"\\'")}')">👁 View</button>
-              <a href="${d.engineer}" target="_blank" class="btn btn-sm">Download</a>` : ''}
+              <button class="btn btn-sm" onclick="dvoOpen('${d.engineer}','${name.replace(/'/g,"\\'")}','${(prop?prop.address:'').replace(/'/g,"\\'")}')">👁 View</button>
+              <a href="${d.engineer}" target="_blank" class="btn btn-sm">⬇ Download</a>` : ''}
             <button class="btn btn-sm" style="color:var(--red);border-color:var(--red)" onclick="dlDelete('${d.id}')">Delete</button>
           </div>`;
         }).join('')}
@@ -10170,7 +10179,7 @@ function toggleSbGroup(id){
   if(chev)chev.classList.toggle('closed',open);
 }
 function initSbGroups(){
-  ['properties','compliance','finance','docs'].forEach(id=>{
+  ['properties','compliance','activity','finance','docs'].forEach(id=>{
     const body=document.getElementById('sbgb-'+id);
     if(body)body.style.maxHeight=body.scrollHeight+'px';
   });
@@ -13680,6 +13689,143 @@ function scanPropDeposit(input) {
   reader.readAsDataURL(file);
 }
 
+// ── DOCUMENT VIEWER FUNCTIONS ──
+
+// Internal state
+window._dvoUrl = null;
+window._dvoFilename = null;
+
+// Detect if URL is from private bucket
+function _dvoIsPrivate(url) {
+  return url && url.includes('user-feedback-documents');
+}
+
+// Get file extension from URL
+function _dvoExt(url) {
+  if (!url) return '';
+  const clean = url.split('?')[0].split('#')[0];
+  const parts = clean.split('.');
+  return parts.length > 1 ? parts[parts.length-1].toLowerCase() : '';
+}
+
+// Detect file type
+function _dvoType(url) {
+  const ext = _dvoExt(url);
+  if (['pdf'].includes(ext)) return 'pdf';
+  if (['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext)) return 'image';
+  return 'other';
+}
+
+// Main open function — call this everywhere
+async function dvoOpen(url, title, meta) {
+  if (!url) { toast('No document URL on file', true); return; }
+
+  window._dvoUrl = url;
+  window._dvoFilename = title || 'document';
+
+  document.getElementById('dvo-title').textContent = title || 'Document';
+  document.getElementById('dvo-meta').textContent = meta || '';
+
+  const overlay = document.getElementById('doc-viewer-overlay');
+  overlay.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+
+  document.getElementById('dvo-loading').style.display = 'flex';
+  document.getElementById('dvo-iframe').style.display = 'none';
+  document.getElementById('dvo-img-wrap').style.display = 'none';
+  document.getElementById('dvo-fallback').style.display = 'none';
+
+  try {
+    let viewUrl = url;
+
+    if (_dvoIsPrivate(url)) {
+      try {
+        const pathMatch = url.match(/\/object\/(?:sign\/|public\/)?([^?]+)/);
+        if (pathMatch) {
+          const filePath = pathMatch[1].replace(/^[^/]+\//, '');
+          const bucketName = pathMatch[1].split('/')[0];
+          const { data, error } = await window._supabase.storage.from(bucketName).createSignedUrl(filePath, 300);
+          if (!error && data?.signedUrl) { viewUrl = data.signedUrl; }
+        }
+      } catch(e) { console.warn('Signed URL generation failed', e); }
+    }
+
+    const fileType = _dvoType(viewUrl);
+
+    if (fileType === 'pdf') {
+      const iframe = document.getElementById('dvo-iframe');
+      iframe.onload = function() {
+        document.getElementById('dvo-loading').style.display = 'none';
+        iframe.style.display = 'block';
+      };
+      iframe.onerror = function() {
+        document.getElementById('dvo-loading').style.display = 'none';
+        document.getElementById('dvo-fallback').style.display = 'flex';
+      };
+      iframe.src = viewUrl;
+      setTimeout(function() {
+        const loading = document.getElementById('dvo-loading');
+        if (loading && loading.style.display !== 'none') {
+          iframe.src = 'https://docs.google.com/viewer?url=' + encodeURIComponent(viewUrl) + '&embedded=true';
+        }
+      }, 4000);
+
+    } else if (fileType === 'image') {
+      const img = document.getElementById('dvo-img');
+      const wrap = document.getElementById('dvo-img-wrap');
+      img.onload = function() {
+        document.getElementById('dvo-loading').style.display = 'none';
+        wrap.style.display = 'flex';
+      };
+      img.onerror = function() {
+        document.getElementById('dvo-loading').style.display = 'none';
+        document.getElementById('dvo-fallback').style.display = 'flex';
+      };
+      img.src = viewUrl;
+
+    } else {
+      document.getElementById('dvo-loading').style.display = 'none';
+      document.getElementById('dvo-fallback').style.display = 'flex';
+    }
+
+  } catch(err) {
+    console.error('dvoOpen error:', err);
+    document.getElementById('dvo-loading').style.display = 'none';
+    document.getElementById('dvo-fallback').style.display = 'flex';
+  }
+}
+
+// Download the current document
+function dvoDownload() {
+  if (!window._dvoUrl) return;
+  const a = document.createElement('a');
+  a.href = window._dvoUrl;
+  a.download = window._dvoFilename || 'document';
+  a.target = '_blank';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+// Close the viewer
+function dvoClose() {
+  const overlay = document.getElementById('doc-viewer-overlay');
+  overlay.style.display = 'none';
+  document.body.style.overflow = '';
+  const iframe = document.getElementById('dvo-iframe');
+  if (iframe) iframe.src = '';
+  window._dvoUrl = null;
+  window._dvoFilename = null;
+}
+
+// Close on Escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    const overlay = document.getElementById('doc-viewer-overlay');
+    if (overlay && overlay.style.display === 'flex') { dvoClose(); }
+  }
+});
+
 // ── START ──
 // Wire nav clicks
 document.querySelectorAll('.sb-item[data-page]').forEach(btn => {
@@ -13704,6 +13850,26 @@ function acceptCookies(){localStorage.setItem('rsa_cookies','accepted');document
 function declineCookies(){localStorage.setItem('rsa_cookies','essential');document.getElementById('cookie-banner').style.display='none';}
 (function(){if(!localStorage.getItem('rsa_cookies')){document.getElementById('cookie-banner').style.display='flex';}})();
 </script>
+<!-- ── DOCUMENT VIEWER OVERLAY ── -->
+<div id="doc-viewer-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.82);backdrop-filter:blur(3px);display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px">
+  <div style="width:100%;max-width:900px;display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-shrink:0">
+    <div>
+      <div id="dvo-title" style="font-size:15px;font-weight:700;color:#fff;margin-bottom:2px">Document</div>
+      <div id="dvo-meta" style="font-size:11px;color:rgba(255,255,255,0.5)"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button id="dvo-download-btn" onclick="dvoDownload()" style="display:flex;align-items:center;gap:6px;padding:7px 14px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:8px;color:#fff;font-size:12px;font-weight:600;font-family:var(--font);cursor:pointer;transition:background .15s" onmouseenter="this.style.background='rgba(255,255,255,0.2)'" onmouseleave="this.style.background='rgba(255,255,255,0.12)'">⬇ Download</button>
+      <button onclick="dvoClose()" style="display:flex;align-items:center;gap:6px;padding:7px 14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;font-size:12px;font-weight:600;font-family:var(--font);cursor:pointer;transition:background .15s" onmouseenter="this.style.background='rgba(255,255,255,0.15)'" onmouseleave="this.style.background='rgba(255,255,255,0.08)'">✕ Close</button>
+    </div>
+  </div>
+  <div id="dvo-frame-wrap" style="width:100%;max-width:900px;flex:1;min-height:0;max-height:80vh;background:#fff;border-radius:12px;overflow:hidden;position:relative">
+    <div id="dvo-loading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#f8f9fa;z-index:2"><div style="text-align:center"><div style="font-size:28px;margin-bottom:10px">📄</div><div style="font-size:13px;color:#7A8FA6;font-weight:500">Loading document…</div></div></div>
+    <iframe id="dvo-iframe" style="width:100%;height:100%;min-height:70vh;border:none;display:none;position:relative;z-index:1" title="Document preview"></iframe>
+    <div id="dvo-img-wrap" style="display:none;width:100%;height:100%;min-height:70vh;overflow:auto;background:#f8f9fa;display:none;align-items:center;justify-content:center;padding:20px;box-sizing:border-box"><img id="dvo-img" style="max-width:100%;max-height:75vh;object-fit:contain;border-radius:4px;box-shadow:0 2px 16px rgba(0,0,0,0.12)" alt="Document preview"/></div>
+    <div id="dvo-fallback" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;background:#f8f9fa;z-index:1"><div style="text-align:center;padding:32px"><div style="font-size:36px;margin-bottom:12px">📎</div><div style="font-size:14px;font-weight:600;color:var(--txt);margin-bottom:6px">Preview not available</div><div style="font-size:12px;color:var(--muted);margin-bottom:16px">This file type cannot be previewed in the browser. Use the download button to open it.</div><button onclick="dvoDownload()" style="padding:8px 18px;background:var(--navy);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer">⬇ Download file</button></div></div>
+  </div>
+  <div onclick="dvoClose()" style="position:fixed;inset:0;z-index:-1"></div>
+</div>
 
 </body>
 </html>
