@@ -1064,6 +1064,7 @@ const COMPLIANCE_DOCS = {
         recommended: true,
         no_expiry: false,
         hmo_only: false,
+        furnished_only: true,
         match: ['pat testing','pat test','portable appliance']
       },
       {
@@ -1102,10 +1103,12 @@ function getDocsForProperty(pid) {
 
   const result = {};
   Object.entries(COMPLIANCE_DOCS).forEach(([groupKey, group]) => {
+    const isFurnished = p ? (p.furnished === true || (p.furnished_status||'').toLowerCase() === 'furnished' || (p.furnished_status||'').toLowerCase() === 'part furnished') : false;
     result[groupKey] = {
       ...group,
       docs: group.docs.filter(doc => {
         if (doc.hmo_only && !isHMO) return false;
+        if (doc.furnished_only && !isFurnished) return false;
         return true;
       })
     };
@@ -1998,7 +2001,7 @@ function moCert(pid){
     <div class="fg-div"></div>
     <div class="fg"><label>Property</label><select id="cp">${opts}</select></div>
     <div class="fg"><label>Document / certificate type</label>
-      <select id="ct" onchange="document.getElementById('ct-other-row').style.display=this.value==='Other'?'block':'none'">
+      <select id="ct" onchange="document.getElementById('ct-other-row').style.display=this.value==='Other'?'block':'none';var noExp=['Smoke Alarm Test Record','CO Alarm Check Record','How to Rent Guide','Right to Rent Record','Deposit Protection Certificate','Written Statement of Terms','Prescribed Information','Pest Control Report'];var er=document.getElementById('ce');if(!er)return;var fg=er.closest('.fg');if(!fg)return;fg.style.display=noExp.includes(this.value)?'none':'block';">
         <optgroup label="Mandatory">
           <option>Gas Safety Certificate (GSC)</option>
           <option>EICR (Electrical Installation)</option>
@@ -5791,7 +5794,7 @@ function pdTabContent(pid, tab) {
 
       <!-- Group 1: Safety Certificates -->
       ${renderCompGroup(
-        'safety', propDocs.safety, pc, pi, addCertBtn, true
+        'safety', propDocs.safety, pc, pi, addCertBtn, false
       )}
 
       <!-- Group 2: Licensing — only renders if HMO
