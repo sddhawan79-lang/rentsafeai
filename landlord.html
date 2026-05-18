@@ -1200,7 +1200,7 @@ KEY WORKFLOWS:
 - Log maintenance issues: Maintenance page or property > Maintenance tab
 - Tenant portal: each tenant gets unique invite link (no login) — manage in Tenants
 
-PRICING (founding rates — first 100 users locked for life, standard rates apply after): Starter £5.99/mo founding (£9.99 standard, £59.90/yr), 2 properties. Landlord £12.99/mo founding (£19.99 standard, £129.90/yr), 5 properties. Portfolio £24.99/mo founding (£39.99 standard, £249.90/yr), unlimited properties. No card required · Cancel anytime. Manage billing at profile.html (Account & Billing).
+PRICING (founding rates — first 100 users locked for life): Starter £4.99/mo founding (£7.99 standard), up to 2 properties. Landlord £11.99/mo founding (£18.99 standard), up to 10 properties. Portfolio £23.99/mo founding (£39.99 standard), unlimited properties. No card required · Cancel anytime.
 
 UK LAW EXPERTISE:
 - Renters Rights Act 2025 (in force 1 May 2026): Section 21 abolished, all tenancies now periodic assured tenancies, Written Statement of Terms replaces AST, pet permission within 42 days, Decent Homes Standard extended to private sector
@@ -1427,8 +1427,8 @@ async function loadData() {
 
 // ── PLAN GATING HELPERS ──
 function getUserPlan(){ return window._userPlan || 'trial'; }
-function isPortfolio(){ return getUserPlan()==='portfolio'||getUserPlan()==='pro'; }
-function isLandlordOrAbove(){ return ['landlord','portfolio','pro'].includes(getUserPlan()); }
+function isPortfolio(){ return getUserPlan()==='portfolio'; }
+function isLandlordOrAbove(){ return ['landlord','portfolio'].includes(getUserPlan()); }
 function isStarter(){ return getUserPlan()==='starter'; }
 function isExpired(){ return getUserPlan()==='expired'; }
 
@@ -1485,7 +1485,7 @@ async function execDeleteAccount() {
     toast('Error deleting account — please contact support', true);
   }
 }
-const PLAN_LIMITS = { starter:2, landlord:5, portfolio:999 };
+const PLAN_LIMITS = { starter:2, landlord:10, portfolio:999 };
 const PLAN_FEATURES = { starter:['compliance','certificates','maintenance','templates','calendar','assistant'], landlord:['compliance','certificates','maintenance','templates','calendar','assistant','financials','rent','insurance','contractors'], portfolio:['compliance','certificates','maintenance','templates','calendar','assistant','financials','rent','insurance','contractors','mtd','inventory-reports'] };
 function getPropLimit(){ if(isExpired()) return 0; return PLAN_LIMITS[getUserPlan()]||2; }
 
@@ -2078,7 +2078,7 @@ function moAddProp(){
   if (_expiredGuard('Add property')) return;
   window._addPropOrigin = 'properties';
   const limit=getPropLimit();
-  if(D.properties.length >= limit){ upgradePrompt('Add more properties','portfolio'); return; }
+  if(D.properties.length >= limit){ const _t=getUserPlan()==='starter'?'landlord':'portfolio'; upgradePrompt('Add more properties',_t); return; }
   document.getElementById('mo-t').textContent = 'Add property';
   document.getElementById('mo-s').textContent = 'Step 1 of 3 — address';
   document.querySelector('.mo-box').classList.add('mo-wide');
@@ -4242,7 +4242,13 @@ function pgDashboard(){
 
     ${(function(){
       const daysLeft = Math.ceil((new Date('2026-05-31') - new Date()) / 864e5);
-      if (daysLeft < 0 || !D.tenants.length) return '';
+      if (daysLeft < 0) {
+        const _sentIds = new Set(D.emailLog.filter(e=>e.template_id==='rra_info_sheet'&&e.status==='Sent').map(e=>String(e.tenant_id)));
+        const _unsent = D.tenants.filter(t => !_sentIds.has(String(t.id)));
+        if (!_unsent.length || !D.tenants.length) return '';
+        return `<div style="background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.2);border-radius:12px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap"><div style="display:flex;align-items:center;gap:12px"><div style="font-size:22px">📋</div><div><div style="font-size:13px;font-weight:700;color:var(--navy)">RRA 2025 Information Sheet</div><div style="font-size:12px;color:var(--muted);margin-top:2px">Required for all tenancies from 1 June 2026 · ${_unsent.length} tenant${_unsent.length!==1?'s':''} not yet sent</div></div></div><button class="btn btn-sm" onclick="moRRASheet()">Send now →</button></div>`;
+      }
+      if (!D.tenants.length) return '';
       const sentIds = new Set(D.emailLog.filter(e=>e.template_id==='rra_info_sheet'&&e.status==='Sent').map(e=>String(e.tenant_id)));
       const unsent = D.tenants.filter(t => !sentIds.has(String(t.id)));
       if (!unsent.length) return '';
@@ -13620,9 +13626,9 @@ function showTrialExpiryPopup() {
     : 'recently';
 
   const plans = [
-    { plan:'starter', label:'Starter', founding:'£5.99', standard:'£9.99', props:'2 properties', highlight:false },
-    { plan:'landlord', label:'Landlord', founding:'£12.99', standard:'£19.99', props:'5 properties', highlight:true },
-    { plan:'portfolio', label:'Portfolio', founding:'£24.99', standard:'£39.99', props:'Unlimited', highlight:false }
+    { plan:'starter',   label:'Starter',   founding:'£4.99',  standard:'£7.99',  props:'Up to 2 properties',  highlight:false },
+    { plan:'landlord',  label:'Landlord',  founding:'£11.99', standard:'£18.99', props:'Up to 10 properties', highlight:true  },
+    { plan:'portfolio', label:'Portfolio', founding:'£23.99', standard:'£39.99', props:'Unlimited',           highlight:false }
   ];
 
   const planCards = plans.map(p => `
@@ -13682,7 +13688,7 @@ function renderTrialIndicator() {
     el.innerHTML = `<span style="color:${urgent?'var(--red)':'var(--amber)'};font-weight:700">${urgent?'⚠ ':''}Trial — ${s.daysLeft} day${s.daysLeft!==1?'s':''} left</span>`;
     el.style.background = urgent ? 'var(--red-bg)' : 'var(--amber-bg)';
   } else if (s.plan !== 'trial') {
-    const planLabels = { starter:'Starter', landlord:'Landlord', portfolio:'Portfolio', pro:'Pro' };
+    const planLabels = { starter:'Starter', landlord:'Landlord', portfolio:'Portfolio' };
     el.innerHTML = `<span style="color:var(--green-dark);font-weight:700">${planLabels[s.plan]||'Plan'}</span>`;
     el.style.background = 'var(--green-bg)';
   }
@@ -13712,9 +13718,9 @@ function renderTrialUpgradeChip() {
 
 function showTrialUpgradeModal() {
   const tierCards = [
-    { plan:'starter',   label:'Starter',   price:'£5.99', limit:2,  desc:'Core compliance & documents' },
-    { plan:'landlord',  label:'Landlord',  price:'£12.99', limit:5,  desc:'Rent, insurance & bulk tools', highlight:true },
-    { plan:'portfolio', label:'Portfolio', price:'£24.99',limit:999, desc:'All features & unlimited properties' },
+    { plan:'starter',   label:'Starter',   price:'£4.99',  limit:2,   desc:'Core compliance & documents' },
+    { plan:'landlord',  label:'Landlord',  price:'£11.99', limit:10,  desc:'Rent, insurance & bulk tools', highlight:true },
+    { plan:'portfolio', label:'Portfolio', price:'£23.99', limit:999, desc:'All features & unlimited properties' },
   ];
   openMo('Upgrade your plan', `Founding prices — lock for life`, `
     <div style="text-align:center;padding:8px 0">
