@@ -3469,161 +3469,308 @@ async function _endTenancy(tid) {
 function moWelcomeKit(pid) {
   const p = P(pid);
   if (!p) { toast('Property not found', true); return; }
-  const tenant = D.tenants.find(t => String(t.prop_id) === String(pid) && t.status === 'Active');
+  const tenant = D.tenants.find(
+    t => String(t.prop_id)===String(pid)
+      && t.status==='Active'
+  );
   const pCerts = CF(pid);
+  const pIns = D.insurance.filter(
+    i => String(i.prop_id)===String(pid)
+  );
 
-  const findCert = type => pCerts.find(c => c.type && c.type.toLowerCase().includes(type.toLowerCase()));
-  const gasCert  = findCert('gas');
-  const eicrCert = findCert('eicr') || findCert('electrical');
-  const epcCert  = findCert('epc')  || findCert('energy');
+  // Check RRA already sent via email log
+  const rraSent = D.emailLog.some(e =>
+    String(e.prop_id)===String(pid) && (
+      e.template_id==='rra_info_sheet' ||
+      (e.subject||'').toLowerCase()
+        .includes('renters rights')
+    )
+  );
 
-  // Check if RRA sheet already sent
-  const rraSent = D.emailLog.some(e => String(e.prop_id) === String(pid) && (e.template_id === 'rra_info_sheet' || (e.subject||'').toLowerCase().includes('renters rights')));
+  // ── BUILD DOC LIST FROM COMPLIANCE_DOCS ──
+  // Combines movein group + tenancy group
+  // Both are required at tenancy start
+  const propDocs = getDocsForProperty(pid);
 
-  // Build document list — mandatory items marked, optional can be toggled
-  // Each item: { id, icon, label, desc, mandatory, available, warning, link, certId }
-  const docs = [
-    {
-      id: 'rra',
-      icon: '📋',
-      label: 'RRA 2025 Information Sheet',
-      desc: 'Mandatory from 1 May 2026 · Fine up to £7,000 if not served',
-      mandatory: true,
-      available: true, // always — we include the GOV.UK link
-      alreadySent: rraSent,
-      warning: rraSent ? null : 'Not yet sent to this tenant — this is MANDATORY',
-      link: 'https://www.gov.uk/government/publications/how-to-rent',
-      certId: null,
-    },
-    {
-      id: 'h2r',
-      icon: '📖',
-      label: 'How to Rent Guide',
-      desc: 'Government guide — must be current edition · Keep proof of service',
-      mandatory: true,
-      available: true,
-      link: 'https://www.gov.uk/government/publications/how-to-rent',
-      certId: null,
-    },
-    {
-      id: 'gsc',
-      icon: '🔥',
-      label: 'Gas Safety Certificate (GSC)',
-      desc: gasCert ? `Expires: ${gasCert.expiry ? new Date(gasCert.expiry).toLocaleDateString('en-GB') : 'No expiry'} · Engineer: ${gasCert.engineer||'—'}` : 'No certificate on file',
-      mandatory: true,
-      available: !!gasCert,
-      warning: !gasCert ? 'Missing — upload a GSC before sending' : (gasCert.status === 'Expired' ? 'Certificate EXPIRED — renew before serving' : null),
-      certId: gasCert?.id || null,
-    },
-    {
-      id: 'eicr',
-      icon: '⚡',
-      label: 'Electrical Installation Report (EICR)',
-      desc: eicrCert ? `Expires: ${eicrCert.expiry ? new Date(eicrCert.expiry).toLocaleDateString('en-GB') : 'No expiry'} · Engineer: ${eicrCert.engineer||'—'}` : 'No certificate on file',
-      mandatory: true,
-      available: !!eicrCert,
-      warning: !eicrCert ? 'Missing — upload an EICR before sending' : (eicrCert.status === 'Expired' ? 'Certificate EXPIRED — renew before serving' : null),
-      certId: eicrCert?.id || null,
-    },
-    {
-      id: 'epc',
-      icon: '🏷',
-      label: 'Energy Performance Certificate (EPC)',
-      desc: epcCert ? `Rating: ${p.epc_rating||'—'} · Expires: ${epcCert.expiry ? new Date(epcCert.expiry).toLocaleDateString('en-GB') : 'No expiry'}` : 'No certificate on file',
-      mandatory: true,
-      available: !!epcCert,
-      warning: !epcCert ? 'Missing — upload an EPC before sending' : (epcCert.status === 'Expired' ? 'Certificate EXPIRED — renew before serving' : null),
-      certId: epcCert?.id || null,
-    },
-    {
-      id: 'deposit',
-      icon: '🔒',
-      label: 'Deposit protection details',
-      desc: tenant?.scheme ? `Scheme: ${tenant.scheme} · Ref: ${tenant.scheme_ref||'—'} · Amount: £${(tenant.deposit||0).toLocaleString()}` : 'No deposit scheme on record',
-      mandatory: true,
-      available: !!(tenant?.scheme),
-      warning: !tenant?.scheme ? 'Deposit scheme not set — add via tenant details' : null,
-      certId: null,
-    },
-    {
-      id: 'tenancy',
-      icon: '✍️',
-      label: 'Written Statement / Tenancy Agreement',
-      desc: 'Send via e-sign if not yet provided — required under RRA 2025',
-      mandatory: true,
-      available: false,
-      warning: 'Use the e-sign tool to send and get a signed copy',
-      certId: null,
-    },
-    {
-      id: 'prescribed',
-      icon: '🏦',
-      label: 'Prescribed Information (deposit scheme)',
-      desc: tenant?.scheme ? `Scheme: ${tenant.scheme} · Must be served within 30 days of receiving deposit` : 'No deposit scheme on record — set up deposit protection first',
-      mandatory: true,
-      available: !!(tenant?.scheme),
-      warning: !tenant?.scheme ? 'Deposit scheme not set — add via tenant details before serving' : null,
-      certId: null,
-    },
-    {
-      id: 'alarms',
-      icon: '🔔',
-      label: 'Smoke & CO alarm test confirmation',
-      desc: 'Landlord must test all alarms on day 1 of tenancy and keep a signed record — fine up to £5,000 if not done',
-      mandatory: true,
-      available: false,
-      warning: 'Log the alarm test in the property inspection record and get tenant signature',
-      certId: null,
-    },
+  // Merge tenancy + movein docs into one list
+  // Add extra metadata for welcome kit context
+  const allServeDocs = [
+    ...propDocs.tenancy.docs,
+    ...propDocs.movein.docs,
   ];
 
-  const missingMandatory = docs.filter(d => d.mandatory && (!d.available || d.warning));
-  const propAddr = [p.address, p.city].filter(Boolean).join(', ');
+  // Deduplicate by id in case any overlap
+  const seen = new Set();
+  const wkDocs = allServeDocs.filter(doc => {
+    if (seen.has(doc.id)) return false;
+    seen.add(doc.id);
+    return true;
+  });
+
+  // Get status and enrich each doc for display
+  const enriched = wkDocs.map(doc => {
+    const st = getDocStatus(doc, pCerts, pIns);
+
+    // Special cases for welcome kit context
+    let statusNote = null;
+    let alreadySent = false;
+
+    if (doc.id === 'rra_sheet') {
+      alreadySent = rraSent;
+      if (rraSent) statusNote = 'Already sent';
+    }
+
+    if (doc.id === 'deposit_cert' ||
+        doc.id === 'deposit_info') {
+      if (!tenant?.scheme) {
+        statusNote = 'Deposit scheme not set — ' +
+          'add via tenant details';
+      }
+    }
+
+    if (doc.id === 'written_statement') {
+      statusNote = 'Use the e-sign tool to send ' +
+        'and get a signed copy';
+    }
+
+    if (doc.id === 'movein_gas') {
+      const gasCert = pCerts.find(c =>
+        (c.type||'').toLowerCase().includes('gas')
+      );
+      if (!gasCert) {
+        statusNote = 'No Gas Safety Certificate ' +
+          'on file — upload before sending';
+      } else if (gasCert.status==='Expired') {
+        statusNote = 'Certificate EXPIRED — ' +
+          'renew before serving';
+      }
+    }
+
+    if (doc.id === 'movein_eicr') {
+      const eicrCert = pCerts.find(c =>
+        (c.type||'').toLowerCase().includes('eicr') ||
+        (c.type||'').toLowerCase()
+          .includes('electrical')
+      );
+      if (!eicrCert) {
+        statusNote = 'No EICR on file — ' +
+          'upload before sending';
+      } else if (eicrCert.status==='Expired') {
+        statusNote = 'Certificate EXPIRED — ' +
+          'renew before serving';
+      }
+    }
+
+    if (doc.id === 'movein_epc') {
+      const epcCert = pCerts.find(c =>
+        (c.type||'').toLowerCase().includes('epc') ||
+        (c.type||'').toLowerCase()
+          .includes('energy')
+      );
+      if (!epcCert) {
+        statusNote = 'No EPC on file — ' +
+          'upload before sending';
+      } else if (epcCert.status==='Expired') {
+        statusNote = 'Certificate EXPIRED — ' +
+          'renew before serving';
+      }
+    }
+
+    // hasIssue = doc needs attention before sending
+    const hasIssue = st.overdue ||
+      (statusNote && !alreadySent);
+
+    return {
+      ...doc, st, statusNote, alreadySent, hasIssue
+    };
+  });
+
+  const issueCount = enriched.filter(
+    d => d.hasIssue && d.mandatory
+  ).length;
+
+  const propAddr = [p.address, p.city]
+    .filter(Boolean).join(', ');
   const tenantName = tenant?.name || 'Tenant';
   const tenantEmail = tenant?.email || '';
 
-  openMo('📦 Welcome kit', `${propAddr} · ${tenantName}`, `
-    <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Auto-compiled from your property records. Review before sending — mandatory items are locked.</div>
+  // ── RENDER DOC ROWS ──
+  const docRows = enriched.map(doc => {
+    // Determine row styling
+    const rowBorder = doc.hasIssue && doc.mandatory
+      ? 'rgba(229,62,62,0.25)'
+      : doc.hasIssue
+      ? 'rgba(217,119,6,0.25)'
+      : 'var(--border)';
+    const rowBg = doc.hasIssue && doc.mandatory
+      ? 'rgba(229,62,62,0.03)'
+      : doc.hasIssue
+      ? 'rgba(217,119,6,0.03)'
+      : 'var(--white)';
 
-    ${missingMandatory.length ? `<div style="background:rgba(229,62,62,0.07);border:1px solid rgba(229,62,62,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--red);margin-bottom:14px;display:flex;gap:8px">
-      <span style="flex-shrink:0;font-size:16px">⚠️</span>
-      <div><strong>${missingMandatory.length} mandatory item${missingMandatory.length!==1?'s':''} need attention</strong> — you can still send but these will be flagged. Fix them first for full compliance.</div>
-    </div>` : `<div style="background:var(--green-bg);border:1px solid var(--green-bg);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green-dark);margin-bottom:14px">
-      ✅ All mandatory documents are ready — good to send.
-    </div>`}
+    // Status badge — only shows when there is
+    // actually a problem or confirmation needed
+    // NOT shown on every row
+    let statusBadge = '';
+    if (doc.alreadySent) {
+      statusBadge = `<span style="font-size:10px;
+        font-weight:700;color:var(--green-dark);
+        background:var(--green-bg);padding:1px 7px;
+        border-radius:100px">✓ Sent</span>`;
+    } else if (doc.st.lbl === 'VALID' ||
+               doc.st.lbl === '✓ SERVED') {
+      statusBadge = `<span style="font-size:10px;
+        font-weight:700;color:#00A87A;
+        background:var(--green-bg);padding:1px 7px;
+        border-radius:100px">✓ Ready</span>`;
+    } else if (doc.hasIssue && doc.mandatory) {
+      statusBadge = `<span style="font-size:10px;
+        font-weight:700;color:var(--red);
+        background:var(--red-bg);padding:1px 7px;
+        border-radius:100px">⚠ Action needed</span>`;
+    } else if (doc.hasIssue) {
+      statusBadge = `<span style="font-size:10px;
+        font-weight:700;color:var(--amber);
+        background:rgba(217,119,6,0.1);padding:1px 7px;
+        border-radius:100px">Attention</span>`;
+    }
 
-    <div style="margin-bottom:16px">
-      ${docs.map(doc => `
-        <div style="display:flex;align-items:flex-start;gap:12px;padding:11px 14px;border:1px solid ${doc.warning?'rgba(217,119,6,0.25)':'var(--border)'};border-radius:8px;margin-bottom:6px;background:${doc.warning?(doc.mandatory&&!doc.available?'rgba(229,62,62,0.04)':'rgba(217,119,6,0.04)'):'var(--white)'}">
-          <span style="font-size:18px;flex-shrink:0;margin-top:1px">${doc.icon}</span>
-          <div style="flex:1;min-width:0">
-            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px">
-              <span style="font-size:13px;font-weight:600;color:var(--txt)">${doc.label}</span>
-              ${doc.mandatory ? `<span style="font-size:10px;font-weight:700;color:var(--red);background:var(--red-bg);padding:1px 7px;border-radius:100px">Mandatory</span>` : `<span style="font-size:10px;font-weight:600;color:var(--muted);background:var(--off);padding:1px 7px;border-radius:100px">Optional</span>`}
-              ${doc.alreadySent ? `<span style="font-size:10px;font-weight:700;color:var(--green-dark);background:var(--green-bg);padding:1px 7px;border-radius:100px">✓ Already sent</span>` : ''}
-            </div>
-            <div style="font-size:11px;color:var(--muted)">${doc.desc}</div>
-            ${doc.warning ? `<div style="font-size:11px;color:${doc.mandatory&&!doc.available?'var(--red)':'var(--amber)'};font-weight:600;margin-top:3px">⚠ ${doc.warning}</div>` : ''}
+    // Mandatory pill — only shown when missing
+    // or has issue, not on every row
+    const mandatoryPill = doc.mandatory &&
+      doc.hasIssue
+      ? `<span style="font-size:10px;font-weight:700;
+          color:var(--red);background:var(--red-bg);
+          padding:1px 7px;border-radius:100px">
+          Mandatory</span>`
+      : doc.mandatory && !doc.hasIssue
+      ? '' // already shows ✓ Ready — no need for pill
+      : `<span style="font-size:10px;font-weight:600;
+          color:var(--muted);background:var(--off);
+          padding:1px 7px;border-radius:100px">
+          Optional</span>`;
+
+    // Group label pill to help orientate landlord
+    const groupPill = propDocs.tenancy.docs
+      .find(d => d.id === doc.id)
+      ? `<span style="font-size:9px;font-weight:600;
+          color:var(--muted);background:var(--off);
+          padding:1px 6px;border-radius:100px">
+          Tenancy doc</span>`
+      : `<span style="font-size:9px;font-weight:600;
+          color:var(--muted);background:var(--off);
+          padding:1px 6px;border-radius:100px">
+          Move-in doc</span>`;
+
+    return `
+      <div style="display:flex;align-items:flex-start;
+        gap:12px;padding:11px 14px;border:1px solid
+        ${rowBorder};border-radius:8px;margin-bottom:6px;
+        background:${rowBg}">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;
+            gap:6px;flex-wrap:wrap;margin-bottom:3px">
+            <span style="font-size:13px;font-weight:600;
+              color:var(--txt)">${doc.label}</span>
+            ${statusBadge}
+            ${mandatoryPill}
+            ${groupPill}
           </div>
-          <div style="flex-shrink:0;display:flex;align-items:center;gap:8px">
-            ${!doc.mandatory ? `<label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;color:var(--muted)">
-              <input type="checkbox" id="wk-${doc.id}" checked style="width:14px;height:14px;cursor:pointer">
-              Include
-            </label>` : `<span style="font-size:18px">${doc.available&&!doc.warning?'✅':'⚠️'}</span>`}
-          </div>
-        </div>`).join('')}
+          <div style="font-size:11px;color:var(--muted);
+            line-height:1.45">${doc.note}</div>
+          ${doc.statusNote
+            ? `<div style="font-size:11px;
+                color:${doc.mandatory && doc.hasIssue
+                  ?'var(--red)':'var(--amber)'};
+                font-weight:600;margin-top:3px">
+                ⚠ ${doc.statusNote}</div>`
+            : ''}
+        </div>
+        <div style="flex-shrink:0;display:flex;
+          align-items:center;gap:8px">
+          ${!doc.mandatory
+            ? `<label style="display:flex;
+                align-items:center;gap:5px;cursor:pointer;
+                font-size:11px;color:var(--muted)">
+                <input type="checkbox" id="wk-${doc.id}"
+                  checked
+                  style="width:14px;height:14px;
+                  cursor:pointer">
+                Include
+              </label>`
+            : `<span style="font-size:18px">
+                ${doc.hasIssue ? '⚠️' : '✅'}</span>`}
+        </div>
+      </div>`;
+  }).join('');
+
+  openMo(
+    '📦 Welcome kit',
+    `${propAddr} · ${tenantName}`,
+    `
+    <div style="font-size:13px;color:var(--muted);
+      margin-bottom:16px">
+      Auto-compiled from your property records.
+      Review before sending. Mandatory items shown
+      when action is needed — green means ready.
     </div>
 
-    <div style="background:var(--off);border:1px solid var(--border);border-radius:10px;padding:14px">
-      <div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:10px">Send to</div>
+    ${issueCount
+      ? `<div style="background:rgba(229,62,62,0.07);
+          border:1px solid rgba(229,62,62,0.2);
+          border-radius:8px;padding:10px 14px;
+          font-size:12px;color:var(--red);
+          margin-bottom:14px;display:flex;gap:8px">
+          <span style="flex-shrink:0;font-size:16px">
+            ⚠️</span>
+          <div>
+            <strong>${issueCount} mandatory item
+            ${issueCount!==1?'s':''} need attention
+            </strong> — you can still send but these
+            will be flagged. Fix them first for full
+            compliance.
+          </div>
+        </div>`
+      : `<div style="background:var(--green-bg);
+          border:1px solid var(--green-bg);
+          border-radius:8px;padding:10px 14px;
+          font-size:12px;color:var(--green-dark);
+          margin-bottom:14px">
+          ✅ All mandatory documents are ready
+          — good to send.
+        </div>`}
+
+    <div style="margin-bottom:16px">${docRows}</div>
+
+    <div style="background:var(--off);
+      border:1px solid var(--border);
+      border-radius:10px;padding:14px">
+      <div style="font-size:12px;font-weight:700;
+        color:var(--txt);margin-bottom:10px">
+        Send to</div>
       <div class="fg-row" style="margin-bottom:0">
-        <div class="fg"><label>Tenant name</label><input type="text" id="wk-tenant-name" value="${tenantName}" placeholder="Tenant name"></div>
-        <div class="fg"><label>Tenant email <span class="req">*</span></label><input type="email" id="wk-tenant-email" value="${tenantEmail}" placeholder="tenant@example.com"></div>
+        <div class="fg">
+          <label>Tenant name</label>
+          <input type="text" id="wk-tenant-name"
+            value="${tenantName}"
+            placeholder="Tenant name">
+        </div>
+        <div class="fg">
+          <label>Tenant email
+            <span class="req">*</span></label>
+          <input type="email" id="wk-tenant-email"
+            value="${tenantEmail}"
+            placeholder="tenant@example.com">
+        </div>
       </div>
     </div>
   `,
-  `<button class="btn" onclick="closeMo()">Cancel</button>
-   <button class="btn btn-navy" id="wk-send-btn" onclick="sendWelcomeKit('${pid}')">📦 Send welcome kit</button>`);
+  `<button class="btn" onclick="closeMo()">
+    Cancel</button>
+   <button class="btn btn-navy" id="wk-send-btn"
+    onclick="sendWelcomeKit('${pid}')">
+    📦 Send welcome kit</button>`
+  );
 }
 
 async function sendWelcomeKit(pid) {
