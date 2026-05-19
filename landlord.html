@@ -2434,6 +2434,98 @@ function markRefurbReady(pid) {
      <button class="btn btn-navy" onclick="changePropertyStatus('${pid}','vacant')">Mark Vacant →</button>`);
 }
 
+function moPreparRelet(pid) {
+  const p = P(pid); if (!p) return;
+  const tenants = D.tenants.filter(t => String(t.prop_id) === String(pid));
+  const endedTenants = tenants.filter(t => t.status === 'Ended' || t.archived);
+  const certs = D.certs.filter(c => String(c.prop_id) === String(pid));
+  const today = new Date();
+  const expiredCerts = certs.filter(c => c.expiry && new Date(c.expiry) < today);
+  const expiringSoon = certs.filter(c => c.expiry && new Date(c.expiry) > today && Math.round((new Date(c.expiry)-today)/864e5) <= 60);
+
+  openMo('🧹 Prepare for New Tenancy', p.address, `
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div style="background:rgba(59,111,232,0.06);border:1px solid rgba(59,111,232,0.15);border-radius:8px;padding:12px 14px;font-size:13px;color:var(--txt);line-height:1.6">
+        This will clear tenant-specific data from this property ready for a new letting. Property-level certificates and compliance records are <strong>kept</strong>. All cleared data is permanently deleted and timestamped in your audit log.
+      </div>
+
+      <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--muted);letter-spacing:.4px">What will be cleared</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px">
+          <input type="checkbox" id="relet-kyc" checked style="width:15px;height:15px;accent-color:var(--navy)">
+          KYC documents for previous tenants (${endedTenants.length} tenant${endedTenants.length!==1?'s':''})
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px">
+          <input type="checkbox" id="relet-deposit" checked style="width:15px;height:15px;accent-color:var(--navy)">
+          Deposit and scheme details (cleared from tenant record)
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px">
+          <input type="checkbox" id="relet-tenantdocs" checked style="width:15px;height:15px;accent-color:var(--navy)">
+          Tenant portal access and invite tokens
+        </label>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--muted);letter-spacing:.4px;margin-top:4px">Certificate health check</div>
+      ${expiredCerts.length > 0 ? `
+        <div style="background:rgba(229,62,62,0.06);border:1px solid rgba(229,62,62,0.2);border-radius:8px;padding:10px 14px">
+          <div style="font-size:12px;font-weight:600;color:var(--red);margin-bottom:6px">⚠ ${expiredCerts.length} expired certificate${expiredCerts.length!==1?'s':''} — must renew before re-letting</div>
+          ${expiredCerts.map(c=>`<div style="font-size:12px;color:var(--muted);padding:2px 0">• ${c.type||'Document'} — expired ${new Date(c.expiry).toLocaleDateString('en-GB')}</div>`).join('')}
+        </div>` : ''}
+      ${expiringSoon.length > 0 ? `
+        <div style="background:rgba(217,119,6,0.06);border:1px solid rgba(217,119,6,0.2);border-radius:8px;padding:10px 14px">
+          <div style="font-size:12px;font-weight:600;color:var(--amber);margin-bottom:6px">⏳ ${expiringSoon.length} certificate${expiringSoon.length!==1?'s':''} expiring within 60 days</div>
+          ${expiringSoon.map(c=>`<div style="font-size:12px;color:var(--muted);padding:2px 0">• ${c.type||'Document'} — expires ${new Date(c.expiry).toLocaleDateString('en-GB')}</div>`).join('')}
+        </div>` : ''}
+      ${expiredCerts.length === 0 && expiringSoon.length === 0 ? `
+        <div style="background:var(--green-bg);border:1px solid rgba(0,168,122,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green-dark)">
+          ✓ All certificates valid — property is ready to re-let
+        </div>` : ''}
+
+      <div style="background:rgba(229,62,62,0.05);border:1px solid rgba(229,62,62,0.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--red);line-height:1.6">
+        ⚠ This action cannot be undone. Cleared data is permanently deleted.
+      </div>
+    </div>
+  `, `<button class="btn" onclick="closeMo()">Cancel</button>
+     <button class="btn btn-navy" id="relet-btn" onclick="confirmRelet('${pid}')">🧹 Clear & prepare</button>`);
+}
+
+async function confirmRelet(pid) {
+  const btn = document.getElementById('relet-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Clearing…';
+
+  const clearKyc      = document.getElementById('relet-kyc')?.checked;
+  const clearDeposit  = document.getElementById('relet-deposit')?.checked;
+  const clearPortal   = document.getElementById('relet-tenantdocs')?.checked;
+
+  const tenants = D.tenants.filter(t => String(t.prop_id) === String(pid) && (t.status === 'Ended' || t.archived));
+
+  try {
+    for (const t of tenants) {
+      if (clearKyc) {
+        await sb.from('tenant_documents').delete().eq('tenant_id', t.id);
+      }
+      if (clearDeposit) {
+        await sb.from('tenants').update({ deposit: null, scheme: null, scheme_ref: null }).eq('id', t.id);
+        const cached = D.tenants.find(x => String(x.id) === String(t.id));
+        if (cached) { cached.deposit = null; cached.scheme = null; cached.scheme_ref = null; }
+      }
+      if (clearPortal) {
+        await sb.from('tenants').update({ invite_token: null, invite_used: false, portal_enabled: false }).eq('id', t.id);
+      }
+    }
+
+    await logAudit('RELET_PREPARE', 'properties', pid,
+      `Prepared for re-letting — cleared: ${[clearKyc?'KYC docs':'', clearDeposit?'deposit details':'', clearPortal?'portal access':''].filter(Boolean).join(', ')}`);
+
+    closeMo();
+    toast('✓ Property cleared and ready for new tenancy');
+    nav('prop-detail', String(pid));
+  } catch(e) {
+    toast('Error during clear: ' + e.message, true);
+    btn.disabled = false; btn.innerHTML = '🧹 Clear & prepare';
+  }
+}
+
 // ── MODAL: LICENCE ──
 function moLicence(pid){
   const p=P(pid);
@@ -5375,7 +5467,7 @@ function pgPropDetail(pid) {
       const sk = p.status || 'vacant';
       const btn = (label, cls, fn) => `<button class="btn ${cls}" style="font-size:12px;padding:7px 14px" onclick="${fn}">${label}</button>`;
       let btns = '';
-      if (sk === 'vacant')       btns = btn('Start Tenancy', 'btn-navy', `startTenancy('${pid}')`) + btn('Archive', '', `archiveProperty('${pid}')`);
+      if (sk === 'vacant')       btns = btn('Start Tenancy', 'btn-navy', `startTenancy('${pid}')`) + btn('🧹 Prepare to Re-let', '', `moPreparRelet('${pid}')`) + btn('Archive', '', `archiveProperty('${pid}')`);
       else if (sk === 'active')   btns = btn('End Tenancy', '', `endTenancy('${pid}')`) + btn('Archive', '', `archiveProperty('${pid}')`);
       else if (sk === 'refurbishment') btns = btn('Mark Ready', 'btn-navy', `markRefurbReady('${pid}')`) + btn('Archive', '', `archiveProperty('${pid}')`);
       else if (sk === 'archived') btns = '<span style="font-size:12px;color:var(--muted);font-weight:500;padding:7px 0">📋 View History</span>';
