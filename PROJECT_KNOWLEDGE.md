@@ -116,9 +116,16 @@ rentsafeai/
 ├── nav_snippet.html                Dev snippet: MTD nav item code (copy-paste reference)
 ├── og-image.png                    OpenGraph social share image (1200×630)
 ├── CNAME                           GitHub Pages custom domain: nexlet.co.uk
-├── email-alerts-index.ts           Supabase Edge Function source (Sprint 10)
+├── email-alerts-index.ts           Supabase Edge Function source (Sprint 10 → rebuilt Session 20)
 ├── stripe-checkout-index.ts        Supabase Edge Function source (Sprint 13)
 ├── stripe-webhook-index.ts         Supabase Edge Function source (Sprint 13)
+├── email-compliance-digest.html     Email preview — compliance digest template (Session 20)
+├── email-cert-expiry.html           Email preview — certificate expiry alert template (Session 20)
+├── email-welcome.html               Email preview — welcome / trial start template (Session 20)
+├── email-trial-expiry.html          Email preview — trial expiry warning template (Session 20)
+├── sidebar-hybrid-preview.html      UX preview — sidebar redesign comparison (Session 20)
+├── sidebar-hybrid-comparison.html   UX preview — old vs new sidebar side-by-side (Session 20)
+├── cron_setup.sql                   pg_cron jobs: weekly-digest, daily-expiry, daily-trial (Session 20)
 ├── mtd_tables.sql                  SQL migration: MTD tables
 ├── sprint10_step1_db.sql           SQL migration: Sprint 10 DB setup
 ├── sprint10_step1_fix.sql          SQL migration: Sprint 10 patch/fix
@@ -384,11 +391,19 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
 
 ### Deployed Functions
 
-#### `email-alerts` (Sprint 10)
-- **Source file:** `email-alerts-index.ts` (root) → must be placed at `supabase/functions/email-alerts/index.ts` for deploy
-- **Auth:** Uses service role key in `Authorization` header (sent by pg_cron)
+#### `email-alerts` (Sprint 10 → rebuilt Session 20)
+- **Source file:** `email-alerts-index.ts` (root) → deploy from `supabase/functions/email-alerts/index.ts`
+- **Auth:** Uses service role key in `Authorization` header (sent by pg_cron or frontend)
 - **`--no-verify-jwt`:** NOT used — cron jobs authenticate with service role key
-- **Trigger:** HTTP POST with `{"type": "daily"}` or `{"type": "weekly_summary"}`
+- **Modes handled:**
+  - `cron_digest` — Weekly compliance digest to newsletter-opted-in users
+  - `cron_expiry` — Daily cert expiry check (60/30/14/7 days) for opted-in users
+  - `cron_trial` — Daily trial expiry warnings (day 25, 30), skips subscribed users
+  - `welcome` — HTTP POST triggered on signup: `{ user_id, email, first_name }`
+  - `trial_expiry_warning` — HTTP POST direct: `{ user_id, email, first_name, trial_ends_at }`
+  - `daily` — Legacy backward compat: runs all 7 original alert types
+  - `weekly_summary` — Legacy backward compat: original weekly summary
+- **Templates:** 4 branded HTML templates with master `wrapBrandedEmail()` wrapper
 - **Full details:** See [Section 7](#7-email-alert-system-sprint-10)
 
 #### `ai-proxy` ✓ CANONICAL AI FUNCTION (Session 6)
@@ -1972,6 +1987,67 @@ When **touching any of these files for a new feature or bug fix**, follow this p
 - Safety group default collapsed in compliance tab (`addCertBtn, false`)
 - Doc library View buttons check `engineer` field for public URL (handles doc library uploads)
 
+### Session 20 — 20 May 2026 — Branded Email System Rebuild
+
+**Date:** 20 May 2026
+
+**Files created:**
+- `email-compliance-digest.html` — Template 1 preview (weekly digest with score card + properties table)
+- `email-cert-expiry.html` — Template 2 preview (cert expiry alert with days badge)
+- `email-welcome.html` — Template 3 preview (3-step onboarding checklist)
+- `email-trial-expiry.html` — Template 4 preview (trial countdown + pricing table)
+- `cron_setup.sql` — 3 new pg_cron jobs replacing old Sprint 10 jobs
+
+**Edge Function Rebuild** (`supabase/functions/email-alerts/index.ts`, `email-alerts-index.ts`):
+- Complete rewrite — retains 8 legacy alert types for backward compatibility, adds 4 new branded templates
+- New master template: Navy `#1A2B45` header, white card body, `#3B6FE8` blue CTA pill, Inter font, inline styles only, mobile responsive
+- New modes: `welcome` (HTTP POST), `trial_expiry_warning` (HTTP POST), `cron_digest` (pg_cron weekly — newsletter-opted-in users only), `cron_expiry` (pg_cron daily), `cron_trial` (pg_cron daily — day 25/30, skips subscribed users)
+- Uses existing `email_log` with `(landlord_id, alert_type, reference_key)` dedup index
+- New DB columns needed: `user_profiles.newsletter_opted_in` (boolean), `user_profiles.trial_expires_at` (timestamptz)
+
+### Session 20 — 20 May 2026 — login.html Updates
+
+- Left panel: "Be RRA-compliant before 31 May" → "Stay RRA-compliant"; deadline timer removed
+- Google button: "Continue with Google"; footer: "Sign up free" → `signup.html`
+- Newsletter opt-in checkbox added; `login()` saves `newsletter_opted_in` to `user_profiles`
+- Cookie banner: `rsa_cookies` → `nexlet_cookies` (×3)
+
+### Session 20 — 20 May 2026 — Compliance UX & Certificate CRUD
+
+- Compliance doc rows now have `onclick="dvoOpen(...)"` on entire row when cert URL exists, with `cursor:pointer`
+- View/Edit/Delete buttons have `event.stopPropagation()` to prevent double-fire
+- `dlDelete(id, returnPage)` — added `returnPage` param, `logAudit('DELETE_CERT', ...)`, `String()` ID comparisons
+- `moEditCert(id)` — modal with 6 fields (type, ref, issued, expiry, engineer, issuing_authority)
+- `saveEditCert(id)` — DB update + in-memory cache sync + `logAudit('EDIT_CERT', ...)`; spinner uses `class="spin"`
+- Delete (✕) and Edit (✎) buttons added to: `renderCompGroup`, `pgCompliance` drill-down, doc library rows
+- `LEGAL_DOC_TYPES` expanded from 3 to 13 document types
+
+### Session 20 — 20 May 2026 — Property Re-let, Tenant Comms, Legal Pack
+
+- **Re-let:** "🧹 Prepare to Re-let" button on vacant properties; `moPreparRelet(pid)` modal with 3 checkboxes + cert health check; `confirmRelet(pid)` clears data + audit log
+- **Tenant Comms:** "✉ Message" button in tenant detail; `moTenantComms(tid)` with AI draft + 7 categories; `sendTenantComms` sends via `ai-proxy` Resend, logs to `email_log`, `logAudit('TENANT_COMMS')`
+- **Legal Evidence Pack:** "📋 Legal Evidence Pack" button replaces "⬇ Download audit trail"; `moLegalPack(pid)` with tenant/date/section selectors; `generateLegalPack(pid)` — jsPDF with cover page, chain of custody, 5 data sections, auto-pagination, branded footer, `logAudit('LEGAL_PACK_GENERATED')`
+
+### Session 20 — 20 May 2026 — Sidebar Redesign (17 → 7 tabs)
+
+- **17 items → 7** across 3 groups: My Portfolio (Dashboard, Properties, Tenants), Staying Legal (Compliance, Maintenance), Money & Records (Rent & Finance, Documents)
+- AI Assistant → green card between nav and footer; Feedback → footer text link
+- `initSbGroups()` updated for new group IDs: `portfolio`, `legal`, `records`
+- `nav()` pageMap redirects 10 old names → 7 new tab homes; plan gating moved inside `pgRentFinance()`/`pgDocuments()` wrapper renderers
+- New renderers: `pgRentFinance()` (sub-tabs), `pgDocuments()` (sub-tabs), `showAssistant()`
+- Old pages merged: Insurance/Inspections/Inventory Reports → Compliance; Calendar/Contractors → Maintenance; Rent/Finance/MTD → Rent & Finance; Templates/Doc Library/Contractors → Documents
+
+### Session 20 — 20 May 2026 — Property Detail Page Reorganization
+
+- **5 tabs → 4:** Tenants, Compliance, Maintenance, Details
+- **Tenant tab:** Massive cards → compact clickable rows (avatar, name, rent, signing badge, →); click navigates to `tenant-detail`
+- **E-sign:** Moved from per-tenant card button → property header action bar (`moEsign(pid, tid)` for active properties)
+- **Signed documents:** Moved from Tenant tab bottom → property-level panel visible on ALL tabs
+- **Details tab:** Merged property info + financials (mortgage, insurance, rent records, licence, rooms, notes)
+- **Financials tab:** Removed (content in Details)
+- **Compliance tab:** Inventory Reports section added at bottom (Portfolio-only, `D.inventoryReports` filtered by property)
+- **Archived properties:** "📋 View History" + "🧹 Prepare to Re-let" buttons
+
 ---
 
 ## 14. Stripe Integration Guide
@@ -2242,30 +2318,48 @@ The global document viewer overlay provides a consistent way to preview any uplo
 
 ### 16.5 Sidebar Navigation Structure
 
-The sidebar groups after the May 2026 refresh:
+The sidebar after the May 2026 Session 20 redesign — **7 items across 3 groups** (was 17 items, 5 groups):
 
 | Group | Items |
 |---|---|
-| **My Properties** | Properties, Tenants, Contractors |
-| **Compliance** | Compliance, Insurance, Inspections, Inventory Reports |
-| **Activity** | Maintenance, Calendar |
-| **Finance & Tax** | Finance, Rent Tracker, MTD Tax |
-| **Documents** | Templates, Document Library |
+| *(standalone)* | **Dashboard** |
+| **My Portfolio** | Properties, Tenants |
+| **Staying Legal** | Compliance, Maintenance |
+| **Money & Records** | Rent & Finance, Documents |
 
-All groups collapsible via `toggleSbGroup()` with `sb-group-body`/`sb-group-hdr` pattern. Init state set in `initSbGroups()`.
+All groups collapsible via `toggleSbGroup()` with `sb-group-body`/`sb-group-hdr` pattern. Init state set in `initSbGroups()` for IDs: `portfolio`, `legal`, `records`.
+
+**AI Assistant** is a green card between nav and footer (`showAssistant()`).
+**Feedback** is a tiny text link below the footer.
+**Badges:** 4 dynamic badges retained (`nav-badge-properties`, `nav-badge-compliance`, `nav-badge-maintenance`, `nav-badge-rent`).
+
+**Old pages redirected via nav() pageMap:**
+- `insurance`, `inspections`, `inventory-reports` → Compliance tab
+- `calendar`, `contractors` → Maintenance tab
+- `rent`, `financials`, `mtd` → Rent & Finance tab (with sub-tabs)
+- `templates`, `doclibrary`, `contractors` → Documents tab (with sub-tabs)
+- `assistant` → Dashboard (opens via `showAssistant()`)
+
+**Plan gating:** Handled inside `pgRentFinance()` and `pgDocuments()` wrapper renderers with upgrade prompts for Starter users. No sidebar-level blocking.
 
 ### 16.6 Property Detail Tab Structure
 
-Tabs in `pgPropDetail()` (left to right): Tenant, Financials, Compliance, Maintenance, Details (was "Property")
+Tabs in `pgPropDetail()` after Session 20 reorganization (4 tabs, was 5):
 
-Tab badges:
-- **Tenant:** Active tenant count
-- **Financials:** Always 0 (not meaningful)
-- **Compliance:** Overdue mandatory items count via `getDocsForProperty` → `getDocStatus`
-- **Maintenance:** Open issues only (excludes Resolved)
-- **Details:** No badge
+| Tab | Content |
+|---|---|
+| **Tenants** | Compact rows (avatar, name, rent, signing badge, →). Click → `tenant-detail`. Section 8 promo card. Email log. "+ Add tenant" button. |
+| **Compliance** | RAG score bar, Legal Evidence Pack button, 5 collapsible doc groups + Recommended + Inspections + **Inventory Reports** (Portfolio-only) |
+| **Maintenance** | Metric cards (open/resolved/Awaab), issues table with status flow buttons |
+| **Details** | Financial metrics (income/costs/profit), property details, mortgage, insurance, rent records, licence, rooms, notes |
 
-Topbar shows breadcrumb: `Properties / 123 High Street` — "Properties" clickable to return to list.
+**Merged into Details:** Financials tab (metrics + mortgage + insurance + rent records)  
+**Moved to Compliance:** Inventory Reports (was promo card in Tenant tab)  
+**Moved to header:** E-sign Agreement button (was per-tenant card button)  
+**Moved to property-level panel:** Signed Documents (visible on all tabs, shows per-tenant signing status)
+
+Topbar shows breadcrumb: `Properties / 123 High Street` — "Properties" clickable.
+Status-dependent header buttons: Vacant (Start Tenancy + Prepare to Re-let + Archive), Active (E-sign + End Tenancy + Archive), Refurbishment (Mark Ready + Archive), Archived (View History + Prepare to Re-let).
 
 ### 16.7 Pricing (Post-Reprice)
 
