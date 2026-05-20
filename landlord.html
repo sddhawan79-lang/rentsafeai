@@ -5480,35 +5480,23 @@ function pgPropDetail(pid) {
     </div>`).join('')}
   </div>`;
 
-  // Tabs
+  // Tabs — 4 tabs
   const tabDefs = [
-    { id:'tenant',      icon:'👤', label:'Tenant',      cnt: D.tenants.filter(x=>String(x.prop_id)===String(pid)).length },
-    { id:'financials',  icon:'💷', label:'Financials',  cnt: 0 },
+    { id:'tenant',      icon:'👤', label:'Tenants',     cnt: D.tenants.filter(x=>String(x.prop_id)===String(pid)).length },
     { id:'compliance',  icon:'🛡', label:'Compliance',
       cnt: (() => {
         const propDocs = getDocsForProperty(pid);
-        const insList = D.insurance.filter(
-          i => String(i.prop_id)===String(pid)
-        );
+        const insList = D.insurance.filter(i => String(i.prop_id)===String(pid));
         let overdue = 0;
-        ['safety','licensing','tenancy','movein']
-        .forEach(gk => {
-          const g = propDocs[gk];
-          if (!g) return;
-          g.docs.forEach(doc => {
-            if (!doc.mandatory) return;
-            const st = getDocStatus(doc, pc, insList);
-            if (st.overdue) overdue++;
-          });
+        ['safety','licensing','tenancy','movein'].forEach(gk => {
+          const g = propDocs[gk]; if (!g) return;
+          g.docs.forEach(doc => { if (!doc.mandatory) return; const st = getDocStatus(doc, pc, insList); if (st.overdue) overdue++; });
         });
         return overdue;
       })()
     },
-    { id:'maintenance', icon:'🔧', label:'Maintenance', cnt: D.maintenance.filter(m=>
-        String(m.prop_id)===String(pid) && 
-        m.status !== 'Resolved'
-      ).length },
-    { id:'property',    icon:'📋', label:'Details',    cnt: 0 },
+    { id:'maintenance', icon:'🔧', label:'Maintenance', cnt: D.maintenance.filter(m=>String(m.prop_id)===String(pid)&&m.status!=='Resolved').length },
+    { id:'details',     icon:'📋', label:'Details',     cnt: 0 },
   ];
 
   const tabBar = `<div class="pd-tabs">${tabDefs.map(tb=>`
@@ -5517,22 +5505,21 @@ function pgPropDetail(pid) {
       ${tb.cnt > 0 ? `<span class="pd-cnt">${tb.cnt}</span>` : ''}
     </button>`).join('')}</div>`;
 
+  // Signed documents panel (property-level, visible when docs exist)
+  const signed = (D.esignReq||[]).filter(r => String(r.property_id) === String(pid) && r.status === 'signed');
+  const signedPanel = signed.length ? `<div class="panel" style="margin-bottom:16px">
+    <div class="ph2"><div><h2>📄 Signed Documents</h2><p>Completed e-signatures for this property</p></div></div>
+    <div style="padding:8px 18px 14px">${signed.map(r => '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);gap:10px"><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;color:var(--txt)">'+(r.document_type==='written_statement'?'Written Statement':'Uploaded PDF')+'</div><div style="font-size:10px;color:var(--muted)">Signed '+new Date(r.signed_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+' · '+(r.tenant_name||'Tenant')+'</div></div>'+(r.signed_pdf_url?'<a href="'+r.signed_pdf_url+'" target="_blank" class="btn btn-sm" style="font-size:11px;text-decoration:none;flex-shrink:0">⬇ Download</a>':'<span style="font-size:10px;color:var(--muted)">No file</span>')+'</div>').join('')}</div>
+  </div>` : '';
+
   return `<div class="topbar">
-    <div style="display:flex;align-items:center;
-      gap:8px;min-width:0">
-      <span style="font-size:12px;color:var(--muted);
-        cursor:pointer;flex-shrink:0;font-weight:500" 
-        onclick="nav('properties')">
-        Properties</span>
-      <span style="font-size:12px;color:var(--muted)">
-        /</span>
-      <span class="tb-title" style="overflow:hidden;
-        text-overflow:ellipsis;white-space:nowrap">
-        ${p.address}</span>
+    <div style="display:flex;align-items:center;gap:8px;min-width:0">
+      <span style="font-size:12px;color:var(--muted);cursor:pointer;flex-shrink:0;font-weight:500" onclick="nav('properties')">Properties</span>
+      <span style="font-size:12px;color:var(--muted)">/</span>
+      <span class="tb-title" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.address}</span>
     </div>
     <div class="tb-right">
-      <button class="btn" onclick="moEditProp(
-        '${pid}')">✎ Edit</button>
+      <button class="btn" onclick="moEditProp('${pid}')">✎ Edit</button>
     </div>
   </div>
   <div class="content">
@@ -5556,9 +5543,9 @@ function pgPropDetail(pid) {
       const btn = (label, cls, fn) => `<button class="btn ${cls}" style="font-size:12px;padding:7px 14px" onclick="${fn}">${label}</button>`;
       let btns = '';
       if (sk === 'vacant')       btns = btn('Start Tenancy', 'btn-navy', `startTenancy('${pid}')`) + btn('🧹 Prepare to Re-let', '', `moPreparRelet('${pid}')`) + btn('Archive', '', `archiveProperty('${pid}')`);
-      else if (sk === 'active')   btns = btn('End Tenancy', '', `endTenancy('${pid}')`) + btn('Archive', '', `archiveProperty('${pid}')`);
+      else if (sk === 'active')   btns = btn('✍️ E-sign Agreement', '', `moEsign('${pid}','${t?t.id:''}')`) + btn('End Tenancy', '', `endTenancy('${pid}')`) + btn('Archive', '', `archiveProperty('${pid}')`);
       else if (sk === 'refurbishment') btns = btn('Mark Ready', 'btn-navy', `markRefurbReady('${pid}')`) + btn('Archive', '', `archiveProperty('${pid}')`);
-      else if (sk === 'archived') btns = '<span style="font-size:12px;color:var(--muted);font-weight:500;padding:7px 0">📋 View History</span>';
+      else if (sk === 'archived') btns = `<span style="font-size:12px;color:var(--muted);font-weight:500;padding:7px 0">📋 View History</span>` + btn('🧹 Prepare to Re-let', '', `moPreparRelet('${pid}')`);
       return btns ? `<div style="display:flex;align-items:center;gap:8px;margin-bottom:18px">${btns}</div>` : '';
     })()}
 
@@ -5568,14 +5555,12 @@ function pgPropDetail(pid) {
       const daysSince = Math.floor((Date.now() - new Date(p.vacant_since).getTime()) / 864e5);
       if (daysSince < 30) return '';
       return `<div style="background:rgba(217,119,6,0.08);border:1px solid rgba(217,119,6,0.25);border-radius:8px;padding:10px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px">
-        <div>
-          <div style="font-size:12px;font-weight:700;color:var(--amber)">🟡 Vacant for ${daysSince} days</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">Ready to find a new tenant?</div>
-        </div>
+        <div><div style="font-size:12px;font-weight:700;color:var(--amber)">🟡 Vacant for ${daysSince} days</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Ready to find a new tenant?</div></div>
         <button class="btn btn-sm btn-navy" onclick="startTenancy('${pid}')" style="font-size:11px;white-space:nowrap">Start Tenancy →</button>
       </div>`;
     })()}
 
+    ${signedPanel}
     ${statHtml}
     ${tabBar}
     <div id="pd-tab-content">${pdTabContent(pid, activeTab)}</div>
@@ -5613,52 +5598,35 @@ function pdTabContent(pid, tab) {
   // ── TENANT TAB ──
   if (tab === 'tenant') {
     const tenantCard = ts.length ? `
-      ${ts.map(t => `<div class="panel" style="margin-bottom:16px">
-        <div class="ph2">
-          <div style="display:flex;align-items:center;gap:12px">
-            <div class="t-av" style="width:42px;height:42px;font-size:14px">${INI(t.name)}</div>
-            <div>
-              <div style="font-size:15px;font-weight:600">${t.name}${t.is_lead?` <span style="font-size:10px;font-weight:700;background:var(--amber-bg);color:var(--amber);border:1px solid rgba(217,119,6,0.2);border-radius:4px;padding:2px 6px;letter-spacing:.3px">⭐ LEAD</span>`:''}</div>
-              <div style="font-size:12px;color:var(--muted);margin-top:1px">${t.email||'No email'} · ${t.phone||'No phone'}</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+        ${ts.map(t => {
+          const sigReq = (D.esignReq||[]).find(r => String(r.tenant_id) === String(t.id) && r.status === 'signed');
+          const sigPending = (D.esignReq||[]).find(r => String(r.tenant_id) === String(t.id) && r.status === 'sent');
+          const sigBadge = sigReq ? '<span style="font-size:9px;font-weight:700;background:var(--green-bg);color:var(--green-dark);padding:2px 6px;border-radius:100px">✓ signed</span>'
+            : sigPending ? '<span style="font-size:9px;font-weight:700;background:var(--amber-bg);color:var(--amber);padding:2px 6px;border-radius:100px">sent</span>'
+            : t.email ? '<span style="font-size:9px;font-weight:700;background:var(--off);color:var(--muted);padding:2px 6px;border-radius:100px">not sent</span>' : '';
+          return `
+          <div class="panel" style="cursor:pointer;transition:border-color .15s" onclick="nav('tenant-detail','${t.id}')" onmouseenter="this.style.borderColor='var(--navy)'" onmouseleave="this.style.borderColor='var(--border)'">
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 16px">
+              <div class="t-av" style="width:36px;height:36px;font-size:12px;flex-shrink:0">${INI(t.name)}</div>
+              <div style="flex:1;min-width:0">
+                <div style="display:flex;align-items:center;gap:6px">
+                  <span style="font-size:14px;font-weight:600;color:var(--txt)">${t.name}</span>
+                  ${t.is_lead?`<span style="font-size:9px;font-weight:700;background:var(--amber-bg);color:var(--amber);padding:2px 5px;border-radius:4px">LEAD</span>`:''}
+                  ${t.status==='Ended'?`<span style="font-size:9px;font-weight:600;background:var(--off);color:var(--muted);padding:2px 6px;border-radius:100px">Ended</span>`:''}
+                </div>
+                <div style="font-size:11px;color:var(--muted);margin-top:2px">
+                  ${t.rent ? `£${t.rent.toLocaleString()}/mo` : '—'} · ${t.start_date ? FMS(t.start_date) : '—'} · ${t.email||'No email'}
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+                ${sigBadge}
+                <span style="font-size:18px;color:var(--muted);opacity:.4">→</span>
+              </div>
             </div>
-          </div>
-          <div style="display:flex;gap:6px">
-            <button class="btn btn-sm" onclick="moTenantDetail('${t.id}')">✎ Edit</button>
-            <button class="btn btn-sm" style="border-color:var(--blue);color:var(--blue)" onclick="moTenantDocs('${t.id}','${pid}')">📄 Docs</button>
-            <button class="btn btn-sm btn-navy" onclick="moSection8('${pid}')">⚖️ Section 8</button>
-          </div>
-        </div>
-        <div style="padding:14px 18px">
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px">
-            ${[
-              ['Tenancy start', FMS(t.start_date)],
-              ['Tenancy end', t.end_date ? FMS(t.end_date) : 'Periodic (APT)'],
-              ['Monthly rent', t.rent ? `£${t.rent.toLocaleString()}` : '—'],
-              ['Deposit', t.deposit ? `£${t.deposit.toLocaleString()}` : 'Not set'],
-              ['Deposit scheme', t.scheme || 'Not set'],
-              ['Scheme ref', t.scheme_ref || '—'],
-            ].map(([l,v])=>`<div class="det-f"><label>${l}</label><span>${v}</span></div>`).join('')}
-          </div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            ${t.email?`<a href="mailto:${t.email}" class="btn btn-sm">✉ Email</a>`:''}
-            ${t.phone?`<a href="tel:${t.phone}" class="btn btn-sm">📞 Call</a>`:''}
-            <button class="btn btn-sm" style="border-color:var(--amber);color:var(--amber)" onclick="moRRASheet()">📋 RRA Sheet</button>
-            <button class="btn btn-sm" style="border-color:var(--green-dark);color:var(--green-dark)" onclick="moWelcomeKit('${pid}')">📦 Welcome kit</button>
-            ${(()=>{
-              const monthsSince = t.start_date ? Math.floor((new Date()-new Date(t.start_date))/(30.44*864e5)) : 99;
-              const lastS13 = D.emailLog.filter(e=>String(e.prop_id)===String(pid)&&e.template_id==='section13').sort((a,b)=>new Date(b.sent_at)-new Date(a.sent_at))[0];
-              const monthsSinceS13 = lastS13 ? Math.floor((new Date()-new Date(lastS13.sent_at))/(30.44*864e5)) : 99;
-              const eligible = monthsSince >= 12 && monthsSinceS13 >= 12;
-              const daysLeft = eligible ? 0 : Math.ceil(((lastS13?new Date(lastS13.sent_at):new Date(t.start_date)).getTime() + 365*864e5 - Date.now()) / 864e5);
-              return eligible
-                ? `<button class="btn btn-sm" style="border-color:var(--blue);color:var(--blue)" onclick="moSection13('${pid}')">📈 S.13 Rent increase</button>`
-                : `<button class="btn btn-sm" style="border-color:var(--border);color:var(--muted);cursor:not-allowed" title="Eligible in ${daysLeft} days" disabled>📈 S.13 (${daysLeft}d)</button>`;
-            })()}
-            ${t.email?`<button class="btn btn-sm" style="border-color:var(--green);color:var(--green-dark)" id="invite-btn-${t.id}" onclick="sendPortalInvite('${t.id}')">🔗 ${t.invite_used?'Resend invite':'Send portal invite'}</button>`:''}
-            <button class="btn btn-sm" style="border-color:var(--blue);color:var(--blue)" onclick="moEsign('${pid}','${t.id}')">✍️ Send for Signing</button>
-          </div>
-        </div>
-      </div>`).join('')}
+          </div>`;
+        }).join('')}
+      </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
         <div style="background:linear-gradient(135deg,#0B1E3D,#1a3a6b);border-radius:10px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px">
@@ -5667,35 +5635,23 @@ function pdTabContent(pid, tab) {
             <div style="font-size:13px;font-weight:600;color:#fff">Generate Section 8 draft</div>
             <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px">All RRA 2025 grounds · Auto-filled</div>
           </div>
-          <button class="btn btn-sm" style="background:var(--green);color:#0B1E3D;border:none;font-weight:700;flex-shrink:0" onclick="moSection8('${pid}')">Generate →</button>
+          <button class="btn btn-sm" style="background:var(--green);color:#0B1E3D;border:none;font-weight:700;flex-shrink:0" onclick="event.stopPropagation();moSection8('${pid}')">Generate →</button>
         </div>
         ${isPortfolio() ? `
         <div style="background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:10px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px">
-          <div>
-            <div style="font-size:10px;font-weight:700;color:#3B6FE8;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px">✦ AI Powered</div>
-            <div style="font-size:13px;font-weight:600;color:#fff">Inventory Report</div>
-            <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px">Move-in · Move-out · Saves £150–300</div>
-          </div>
-          <button class="btn btn-sm" style="background:var(--blue);color:#fff;border:none;font-weight:700;flex-shrink:0" onclick="moInventoryReport('${pid}')">Generate →</button>
+          <div><div style="font-size:10px;font-weight:700;color:#3B6FE8;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px">✦ AI Powered</div><div style="font-size:13px;font-weight:600;color:#fff">Inventory Report</div><div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px">Move-in · Move-out · Saves £150–300</div></div>
+          <button class="btn btn-sm" style="background:var(--blue);color:#fff;border:none;font-weight:700;flex-shrink:0" onclick="event.stopPropagation();moInventoryReport('${pid}')">Generate →</button>
         </div>` : ''}
       </div>
 
       <div style="margin-bottom:14px">
-        <button class="btn btn-sm" onclick="moTenant('${pid}')" style="border-color:var(--green);color:var(--green-dark)">+ Add co-tenant</button>
+        <button class="btn btn-sm" onclick="moTenant('${pid}')" style="border-color:var(--green);color:var(--green-dark)">+ Add tenant</button>
       </div>
 
       <div class="panel" style="margin-bottom:16px">
-        <div class="ph2"><div><h2>✉ Email log</h2><p>Documents sent to this tenant</p></div><button class="btn btn-sm" onclick="nav('templates')">+ Send document</button></div>
+        <div class="ph2"><div><h2>✉ Email log</h2><p>Documents sent to tenants at this property</p></div><button class="btn btn-sm" onclick="nav('templates')">+ Send document</button></div>
         <div style="padding:14px 18px">${propEmailLogHtml(pid)}</div>
-      </div>
-
-      ${(() => {
-        const signed = (D.esignReq||[]).filter(r => String(r.property_id) === String(pid) && r.status === 'signed');
-        if (!signed.length) return '';
-        return '<div class="panel" style="margin-bottom:16px"><div class="ph2"><div><h2>📄 Signed Documents</h2><p>Completed e-signatures</p></div></div><div style="padding:8px 18px 14px">'
-          + signed.map(r => '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);gap:10px"><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;color:var(--txt)">'+(r.document_type==='written_statement'?'Written Statement':'Uploaded PDF')+'</div><div style="font-size:10px;color:var(--muted)">Signed '+new Date(r.signed_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+' · '+(r.tenant_name||'Tenant')+'</div></div>'+(r.signed_pdf_url?'<a href="'+r.signed_pdf_url+'" target="_blank" class="btn btn-sm" style="font-size:11px;text-decoration:none;flex-shrink:0">⬇ Download</a>':'<span style="font-size:10px;color:var(--muted)">No file</span>')+'</div>').join('')
-          + '</div></div>';
-      })()}`
+      </div>`
 
     : `<div class="panel"><div style="padding:36px 28px;text-align:center">
         <div style="font-size:38px;margin-bottom:12px">🏠</div>
@@ -5707,24 +5663,30 @@ function pdTabContent(pid, tab) {
     return tenantCard;
   }
 
-  // ── FINANCIALS TAB ──
-  if (tab === 'financials') {
+  // ── DETAILS TAB (merged financials + property info) ──
+  if (tab === 'details') {
     const ins = pi.reduce((s,i)=>s+(i.premium||0)/12, 0);
     const mort = p.mortgage_monthly || 0;
     const profit = (p.rent||0) - mort - ins;
     const profCol = profit >= 0 ? 'var(--green-dark)' : 'var(--red)';
+    const licBadge = {None:'b-gray','Mandatory HMO':'b-red','Additional HMO':'b-amber','Selective Licence':'b-blue','Article 4':'b-navy','Short-term Let':'b-amber'}[p.licence_type]||'b-gray';
     return `
+      <!-- Financial metrics -->
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px">
         <div class="mc" style="background:var(--green-bg);border-color:transparent"><div class="mc-top"><span class="mc-label">Monthly income</span></div><div class="mc-val" style="color:var(--green-dark)">£${(p.rent||0).toLocaleString()}</div><div class="mc-sub">Rent</div></div>
         <div class="mc" style="background:rgba(229,62,62,0.07);border-color:transparent"><div class="mc-top"><span class="mc-label">Monthly costs</span></div><div class="mc-val" style="color:var(--red)">£${Math.round(mort+ins).toLocaleString()}</div><div class="mc-sub">Mortgage + insurance</div></div>
         <div class="mc" style="background:${profit>=0?'var(--green-bg)':'rgba(229,62,62,0.07)'};border-color:transparent"><div class="mc-top"><span class="mc-label">Net profit</span></div><div class="mc-val" style="color:${profCol}">£${Math.round(profit).toLocaleString()}</div><div class="mc-sub">Per month</div></div>
       </div>
 
+      <!-- Property details -->
       <div class="panel" style="margin-bottom:16px">
-        <div class="ph2"><div><h2>💷 Rent records</h2></div><button class="btn btn-sm" onclick="nav('rent')">View all rent</button></div>
-        <div style="padding:14px 18px">${propRentHtml(pid)}</div>
+        <div class="ph2"><div><h2>🏠 Property details</h2></div><button class="btn btn-sm" onclick="moEditProp('${pid}')">✎ Edit</button></div>
+        <div style="padding:14px 18px"><div class="det-grid">
+          ${[['Address',p.address],['City',p.city],['Postcode',p.postcode],['Type',p.type||'—'],['Bedrooms',p.beds||'—'],['Bathrooms',p.bathrooms||'—'],['Monthly rent',p.rent?'£'+p.rent.toLocaleString():'—'],['Council tax band',p.council_tax_band||'—'],['EPC rating',p.epc||'—'],['EPC expiry',FMS(p.epc_expiry)]].map(([l,v])=>`<div class="det-f"><label>${l}</label><span>${v}</span></div>`).join('')}
+        </div></div>
       </div>
 
+      <!-- Mortgage -->
       <div class="panel" style="margin-bottom:16px">
         <div class="ph2"><div><h2>🏦 Mortgage</h2></div><button class="btn btn-sm" onclick="moMortgage('${pid}')">✎ Edit</button></div>
         <div style="padding:14px 18px">${p.mortgage_lender
@@ -5733,11 +5695,44 @@ function pdTabContent(pid, tab) {
         </div>
       </div>
 
-      <div class="panel">
+      <!-- Insurance -->
+      <div class="panel" style="margin-bottom:16px">
         <div class="ph2"><div><h2>🛡 Insurance</h2></div></div>
         <div style="padding:14px 18px">${pi.length
           ? pi.map(i=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)"><div><div style="font-weight:500">${i.type}</div><div style="font-size:12px;color:var(--muted)">${i.provider} · ${i.policy}</div></div><div style="text-align:right"><div style="font-size:13px;font-weight:600">£${i.premium}/yr</div><div style="font-size:11px;color:var(--muted)">Expires ${FMS(i.expiry)}</div></div></div>`).join('')
           : `<div style="color:var(--muted);font-size:13px">No insurance policies added yet</div>`}
+        </div>
+      </div>
+
+      <!-- Rent records -->
+      <div class="panel" style="margin-bottom:16px">
+        <div class="ph2"><div><h2>💷 Rent records</h2></div></div>
+        <div style="padding:14px 18px">${propRentHtml(pid)}</div>
+      </div>
+
+      <!-- Property licence -->
+      <div class="panel" style="margin-bottom:16px">
+        <div class="ph2"><div><h2>📋 Property licence</h2><p>${p.licence_type||'None'}</p></div><button class="btn btn-sm" onclick="moLicence('${pid}')">✎ Edit</button></div>
+        <div style="padding:14px 18px"><div class="det-grid">
+          ${[['Licence type',p.licence_type||'None'],['Reference',p.licence_ref||'—'],['Expiry',FMS(p.licence_expiry)],['Max occupants',p.licence_max||'—']].map(([l,v])=>`<div class="det-f"><label>${l}</label><span>${v}</span></div>`).join('')}
+        </div></div>
+      </div>
+
+      <!-- Rooms -->
+      <div class="panel" style="margin-bottom:16px">
+        <div class="ph2"><div><h2>📐 Rooms</h2></div><button class="btn btn-sm" onclick="toast('Add rooms — coming soon')">+ Add</button></div>
+        <div style="padding:14px 18px">${(p.rooms||[]).length
+          ? `<div class="tw"><table><thead><tr><th>Room</th><th>Floor</th><th>Size (m²)</th></tr></thead><tbody>${(p.rooms||[]).map(r=>`<tr><td class="td-bold">${r.name}</td><td>${r.floor}</td><td>${r.size} m²</td></tr>`).join('')}</tbody></table></div>`
+          : `<div style="color:var(--muted);font-size:13px">No rooms added yet</div>`}
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="panel">
+        <div class="ph2"><div><h2>📝 Notes</h2></div><button class="btn btn-sm" onclick="moEditProp('${pid}')">✎ Edit</button></div>
+        <div style="padding:14px 18px">${p.notes
+          ? `<div style="font-size:13.5px;line-height:1.7;white-space:pre-wrap">${p.notes}</div>`
+          : `<div style="color:var(--muted);font-size:13px">No notes added</div>`}
         </div>
       </div>`;
   }
@@ -6071,7 +6066,27 @@ function pdTabContent(pid, tab) {
                 font-size:13px">
                 No inspections logged yet</div>`}
         </div>
-      </div>`;
+      </div>
+
+      <!-- Inventory Reports -->
+      ${isPortfolio() ? `
+      <div class="panel">
+        <div class="ph2">
+          <div><h2>📦 Inventory Reports</h2><p>AI-generated move-in / move-out condition reports</p></div>
+          <button class="btn btn-sm btn-navy" onclick="moInventoryReport('${pid}')">+ New report</button>
+        </div>
+        <div style="padding:14px 18px">
+          ${(D.inventoryReports||[]).filter(r=>String(r.prop_id)===String(pid)).length
+            ? (D.inventoryReports||[]).filter(r=>String(r.prop_id)===String(pid)).map(r=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);gap:10px">
+              <div style="flex:1;min-width:0">
+                <div style="font-size:12.5px;font-weight:500;color:var(--txt)">${r.type||'Inventory Report'}</div>
+                <div style="font-size:10.5px;color:var(--muted)">${r.created_at?FMS(r.created_at):'—'} · ${r.photos?.length||0} photos</div>
+              </div>
+              <button class="btn btn-sm" onclick="nav('inventory-report','${r.id}')">View →</button>
+            </div>`).join('')
+            : `<div style="color:var(--muted);font-size:13px">No inventory reports yet</div>`}
+        </div>
+      </div>` : ''}`;
   }
 
   // ── MAINTENANCE TAB ──
@@ -6108,44 +6123,7 @@ function pdTabContent(pid, tab) {
       </div>`;
   }
 
-  // ── PROPERTY TAB ──
-  if (tab === 'property') {
-    const licBadge = {None:'b-gray','Mandatory HMO':'b-red','Additional HMO':'b-amber','Selective Licence':'b-blue','Article 4':'b-navy','Short-term Let':'b-amber'}[p.licence_type]||'b-gray';
-    return `
-      <div class="panel" style="margin-bottom:16px">
-        <div class="ph2"><div><h2>🏠 Property details</h2></div><button class="btn btn-sm" onclick="moEditProp('${pid}')">✎ Edit</button></div>
-        <div style="padding:14px 18px"><div class="det-grid">
-          ${[['Address',p.address],['City',p.city],['Postcode',p.postcode],['Type',p.type||'—'],['Bedrooms',p.beds||'—'],['Bathrooms',p.bathrooms||'—'],['Monthly rent',p.rent?'£'+p.rent.toLocaleString():'—'],['Council tax band',p.council_tax_band||'—'],['EPC rating',p.epc||'—'],['EPC expiry',FMS(p.epc_expiry)]].map(([l,v])=>`<div class="det-f"><label>${l}</label><span>${v}</span></div>`).join('')}
-        </div></div>
-      </div>
-
-      <div class="panel" style="margin-bottom:16px">
-        <div class="ph2"><div><h2>📋 Property licence</h2><p>${p.licence_type||'None'}</p></div><button class="btn btn-sm" onclick="moLicence('${pid}')">✎ Edit</button></div>
-        <div style="padding:14px 18px"><div class="det-grid">
-          ${[['Licence type',p.licence_type||'None'],['Reference',p.licence_ref||'—'],['Expiry',FMS(p.licence_expiry)],['Max occupants',p.licence_max||'—']].map(([l,v])=>`<div class="det-f"><label>${l}</label><span>${v}</span></div>`).join('')}
-        </div></div>
-      </div>
-
-      <div class="panel" style="margin-bottom:16px">
-        <div class="ph2"><div><h2>📐 Rooms</h2></div><button class="btn btn-sm" onclick="toast('Add rooms — coming soon')">+ Add</button></div>
-        <div style="padding:14px 18px">${(p.rooms||[]).length
-          ? `<div class="tw"><table><thead><tr><th>Room</th><th>Floor</th><th>Size (m²)</th></tr></thead><tbody>${(p.rooms||[]).map(r=>`<tr><td class="td-bold">${r.name}</td><td>${r.floor}</td><td>${r.size} m²</td></tr>`).join('')}</tbody></table></div>`
-          : `<div style="color:var(--muted);font-size:13px">No rooms added yet</div>`}
-        </div>
-      </div>
-
-      <div class="panel">
-        <div class="ph2"><div><h2>📝 Notes</h2></div><button class="btn btn-sm" onclick="moEditProp('${pid}')">✎ Edit</button></div>
-        <div style="padding:14px 18px">${p.notes
-          ? `<div style="font-size:13.5px;line-height:1.7;white-space:pre-wrap">${p.notes}</div>`
-          : `<div style="color:var(--muted);font-size:13px">No notes added</div>`}
-        </div>
-      </div>`;
-  }
-  return '';
-}
-
-// ── PAGE: COMPLIANCE ──
+  // ── COMPLIANCE TAB ──
 function buildCertStatusGrid(pid) {
   const today = new Date(); today.setHours(0,0,0,0);
   const pc = CF(pid);
